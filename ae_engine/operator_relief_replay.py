@@ -16,6 +16,7 @@ from .box_body_editor_readback import formed_box_body_fw_widths
 from .assembly_relief_state import (
     build_current_source_signature, committed_relief_cuts,
 )
+from .operator_settings_transactions import normalize_operator_settings_boolean
 
 
 def build_operator_current_relief_source_signature(
@@ -60,7 +61,9 @@ def resolve_operator_committed_relief_cuts(
     joint identity, formed Fold width and stale-source refusal exactly.
     """
     saved = deepcopy(dict(relief_state or {}))
-    if not bool(saved.get("enabled")):
+    if not normalize_operator_settings_boolean(
+        saved["enabled"] if "enabled" in saved else False
+    ):
         return ()
     profile = box_body_profile or ()
     formed_left, formed_right = formed_box_body_fw_widths(

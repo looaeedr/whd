@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from copy import deepcopy
+from dataclasses import fields
 from math import isclose, isfinite
 
 from .box_body_fold_profile import build_box_body_profile
@@ -20,7 +21,7 @@ from .endcap_operator_part_spec import build_endcap_operator_part_spec
 from .contracts import DoorPartSpec
 from .part_dimension_projection import door_part_projections
 from .sheetmetal_part_adapters import validate_door_layout_dimensions
-from .sheetmetal_geometry import FourCornerTypePolicy
+from .sheetmetal_geometry import FourCornerTypePolicy, CornerTypeSelection
 from .sheetmetal_feature_core import CircleFeature, RectFeature, ProfileFeature, FeatureAnchor
 
 _SOURCE_KEYS = frozenset(("w", "h", "d", "t"))
@@ -270,6 +271,51 @@ def _source_dimensions(value: Mapping[str, object]) -> dict[str, float]:
     return {key: float(value[key]) for key in ("w", "h", "d", "t")}
 
 
+def _restore_serialized_saved_endcap_corner_policy(source):
+    """Restore only complete, actually saved Engine FourCornerTypePolicy data.
+
+    The .p6fold JSON codec represents ordinary dataclasses as dicts. A saved
+    policy must survive that wire boundary without fresh Family defaults,
+    lossy CornerType fields, or trusting an unverified GUI value. The typed
+    policy's original CornerTypeSelection validation remains authoritative.
+    """
+    code = "RECEIVING_SAVED_PHYSICAL_STATE_INCOMPLETE"
+    if isinstance(source, FourCornerTypePolicy):
+        policy = source
+    else:
+        required = {field.name for field in fields(FourCornerTypePolicy)}
+        corners = {field.name for field in fields(CornerTypeSelection)}
+        if not isinstance(source, Mapping) or set(source) != required:
+            raise ValueError(code)
+        values = dict(source)
+        for corner in ("bottom_left", "bottom_right", "top_left", "top_right"):
+            raw = values[corner]
+            if isinstance(raw, CornerTypeSelection):
+                continue
+            if not isinstance(raw, Mapping) or set(raw) != corners:
+                raise ValueError(code)
+            try:
+                values[corner] = CornerTypeSelection(**dict(raw))
+            except (ValueError, TypeError, KeyError) as exc:
+                raise ValueError(code) from exc
+        for key in ("fw", "bottom_fw", "top_fw"):
+            raw = values[key]
+            if raw is not None and (
+                type(raw) not in (int, float) or not isfinite(float(raw))
+            ):
+                raise ValueError(code)
+        policy = FourCornerTypePolicy(**values)
+    # Check each physical FW datum, including optional per-edge material.
+    try:
+        for corner in ("bottom_left", "bottom_right", "top_left", "top_right"):
+            if not isinstance(getattr(policy, corner), CornerTypeSelection):
+                raise ValueError(code)
+            policy.fw_for(corner)
+    except (ValueError, TypeError, AttributeError) as exc:
+        raise ValueError(code) from exc
+    return policy
+
+
 def _saved_operator_state(source: dict[str, float], operator_snapshot):
     """Use confirmed persisted manufacturing authority; never use fresh defaults."""
     if not isinstance(operator_snapshot, Mapping):
@@ -320,9 +366,12 @@ def _saved_operator_state(source: dict[str, float], operator_snapshot):
             }
         else:
             raise ValueError("RECEIVING_SAVED_PHYSICAL_STATE_INCOMPLETE")
-        if any(not isinstance(policies.get(part), FourCornerTypePolicy)
-               for part in ("head", "tail")):
-            raise ValueError("RECEIVING_SAVED_PHYSICAL_STATE_INCOMPLETE")
+        # Genuine .p6fold Reload returns dicts for ordinary Policy dataclasses;
+        # restore the same typed policy, never fall back to Family defaults.
+        policies = {
+            part: _restore_serialized_saved_endcap_corner_policy(policies[part])
+            for part in ("head", "tail")
+        }
     except (KeyError, TypeError, AttributeError) as exc:
         raise ValueError("RECEIVING_SAVED_PHYSICAL_STATE_INCOMPLETE") from exc
 
@@ -348,7 +397,14 @@ def _confirmed_door_parts(values, source, confirmed_columns, *, confirmation, co
             confirmed_columns, total_width=source["w"], total_height=source["h"],
         )
         if confirmation == "saved_operator_confirmed":
-            if values.get("multi_door_enabled") is not True:
+            # Saved project authority preserves native and serialized bool
+            # representations. The same Engine decoder decides whether the
+            # operator actually enabled physical Door cells. A literal
+            # "true" must not be rejected while "false" is never allowed.
+            from .operator_settings_transactions import normalize_operator_settings_boolean
+            if not normalize_operator_settings_boolean(
+                values.get("multi_door_enabled", False)
+            ):
                 raise ValueError("disabled saved Door layout")
             saved_cells = validate_door_layout_dimensions(
                 values.get("door_layout_columns") or (),
@@ -495,6 +551,234 @@ def _confirmed_saved_ordinary_base_plate(
     return "base_plate", spec
 
 
+def _confirmed_fresh_receiving_inner_door_snapshot(
+    source_dimensions: Mapping[str, object], *,
+    confirmation: str | None, confirmed_door_layout_columns,
+) -> dict[str, object]:
+    """Build the same detached Family topology snapshot used by WHD GUI."""
+    if confirmation != "fresh_family_confirmed":
+        raise ValueError("RECEIVING_INNER_DOOR_FRESH_FAMILY_CONFIRMATION_REQUIRED")
+    source = _source_dimensions(source_dimensions)
+    if not confirmed_door_layout_columns:
+        raise ValueError("RECEIVING_INNER_DOOR_LAYOUT_REQUIRED")
+    validate_door_layout_dimensions(
+        confirmed_door_layout_columns,
+        total_width=source["w"], total_height=source["h"],
+    )
+    values = family_policy.apply_fresh_family_defaults(source, _FAMILY)
+    values.update(source)
+    # The nominal new-project one-Bay layout is not source-confirmed physical
+    # Set/Bay identity. The authoritative Door cell grid comes from the caller.
+    values.pop("receiving_layout", None)
+    values["multi_door_enabled"] = True
+    values["door_layout_columns"] = deepcopy(confirmed_door_layout_columns)
+    return values
+
+
+def build_receiving_factory_confirmed_inner_door_frames(
+    source_dimensions: Mapping[str, object], *,
+    confirmation: str | None = None,
+    confirmed_door_layout_columns=(),
+):
+    """Derive the fresh Receiving inner-door A/B/D frames from Engine authority.
+
+    CADSplit supplies W/H/D/T and confirmed Door cells, but never frame spans,
+    material bends, physical identities or DXF geometry.
+    """
+    from .inner_door_frames import derive_all_inner_door_frames
+
+    values = _confirmed_fresh_receiving_inner_door_snapshot(
+        source_dimensions, confirmation=confirmation,
+        confirmed_door_layout_columns=confirmed_door_layout_columns,
+    )
+    frames = derive_all_inner_door_frames(
+        family_policy.derive_inner_door_frame_sets(values)
+    )
+    # C is the physical shared Divider, not an invented bottom frame.
+    if (len(frames) != 3
+            or {frame.side for frame in frames} != {"top", "left", "right"}
+            or len({frame.inner_door_id for frame in frames}) != 1):
+        raise ValueError("RECEIVING_INNER_DOOR_FRAME_TOPOLOGY_UNRESOLVED")
+    return frames
+
+
+def build_receiving_factory_confirmed_inner_door_lower_support(
+    source_dimensions: Mapping[str, object], *,
+    confirmation: str | None = None,
+    confirmed_door_layout_columns=(),
+):
+    """Return the Engine-owned shared horizontal Divider beneath the inner door.
+
+    In Receiving, the physical C part is a BoxBodyDividerPart, NOT a fourth
+    inner-door-frame Part. Its fold/holes/reliefs must use the same canonical
+    Divider FinalScene as WHD GUI, never a CADSplit-generated bottom rectangle.
+    """
+    from .door_dividers import (
+        derive_box_body_dividers, resolve_inner_door_lower_frame_role,
+    )
+
+    frames = build_receiving_factory_confirmed_inner_door_frames(
+        source_dimensions, confirmation=confirmation,
+        confirmed_door_layout_columns=confirmed_door_layout_columns,
+    )
+    values = _confirmed_fresh_receiving_inner_door_snapshot(
+        source_dimensions, confirmation=confirmation,
+        confirmed_door_layout_columns=confirmed_door_layout_columns,
+    )
+    inner_id = frames[0].inner_door_id
+    source_door = next(
+        (item for item in values["inner_doors"]
+         if item.get("stable_id") == inner_id),
+        None,
+    )
+    if source_door is None:
+        raise ValueError("RECEIVING_INNER_DOOR_FRAME_TOPOLOGY_UNRESOLVED")
+    lower_role = source_door.get("lower_frame_role") or {}
+    dividers = derive_box_body_dividers(
+        values["door_layout_columns"],
+        depth=values["d"], thickness=values["t"],
+        layout_scope=values["door_layout_scope"],
+        handle_edges=values.get("door_handle_edges") or {},
+        model_name=_FAMILY, frame_width=values["fw"],
+    )
+    role = resolve_inner_door_lower_frame_role(
+        inner_id, dividers,
+        previous_divider_stable_id=lower_role.get("divider_stable_id"),
+    )
+    divider = next(
+        (part for part in dividers
+         if role is not None and part.stable_id == role.divider_stable_id),
+        None,
+    )
+    if (divider is None or divider.axis != "HORIZONTAL"
+            or source_door.get("cell_key") not in divider.adjacent_cells):
+        raise ValueError("RECEIVING_INNER_DOOR_SHARED_DIVIDER_UNRESOLVED")
+    return divider
+
+
+
+def build_receiving_factory_confirmed_inner_door_panels(
+    source_dimensions: Mapping[str, object], *,
+    confirmation: str | None = None,
+    confirmed_door_layout_columns=(),
+):
+    """Return the actual fresh Receiving inner-door panels from GUI Family.
+
+    The WHD Family owns the finished panel dimensions, four 19-mm flanges,
+    stable cell identity and canonical folded Door CUTTING. No NFB hole is
+    approved by this function; committed NFB pair requests stay independent.
+    """
+    from .inner_door_panels import InnerDoorPanelPart
+
+    values = _confirmed_fresh_receiving_inner_door_snapshot(
+        source_dimensions, confirmation=confirmation,
+        confirmed_door_layout_columns=confirmed_door_layout_columns,
+    )
+    panels = tuple(family_policy.derive_inner_door_panels(values))
+    source_ids = {
+        str(item.get("stable_id") or "") for item in values["inner_doors"]
+    }
+    if (not panels
+            or len(panels) != len(source_ids)
+            or {panel.inner_door_id for panel in panels} != source_ids
+            or any(not isinstance(panel, InnerDoorPanelPart) for panel in panels)):
+        raise ValueError("RECEIVING_INNER_DOOR_PANEL_TOPOLOGY_UNRESOLVED")
+    return panels
+
+
+def resolve_receiving_factory_confirmed_lower_divider_final_scene(
+    source_dimensions: Mapping[str, object], *,
+    box_body_render_data,
+    confirmation: str | None = None,
+    confirmed_door_layout_columns=(),
+):
+    """Resolve C through the SAME full Engine physical 3D/Registry CROSS path.
+
+    The raw fold-chain rectangle alone is NOT an approved cutting blank.
+    Requires the real three-piece BoxBody source, actual Fold and assembly
+    mating geometry, Certified Registry HIT, post-fold verification, and
+    shared EndCap Ø6.4 datum. Never invent cut depths in CADSplit or here.
+    """
+    from .manufacturing_render_data import BoxBodyStructureRenderData
+    from .manufacturing_contracts import (
+        ManufacturingPartInput, ManufacturingResolveRequest,
+    )
+    from .manufacturing_api import (
+        build_box_body_divider_render_data, resolve_manufacturing_request,
+    )
+    from .door_dividers import divider_part_profiles
+
+    values = _confirmed_fresh_receiving_inner_door_snapshot(
+        source_dimensions, confirmation=confirmation,
+        confirmed_door_layout_columns=confirmed_door_layout_columns,
+    )
+    if box_body_render_data is None:
+        # Door-only source is still a CONFIRMED fresh Receiving Family.
+        # Resolve its mating Body through the SAME Engine Factory/PartSpec
+        # used by the GUI. The Body is collision evidence ONLY; it is
+        # never added to the Door-only machining selection by this API.
+        from .manufacturing_api import (
+            build_operator_part_render_data,
+            build_receiving_factory_confirmed_parts,
+        )
+        from .contracts import ManufacturingContext
+
+        factory = dict(build_receiving_factory_confirmed_parts(
+            source_dimensions,
+            confirmation=confirmation,
+            confirmed_door_layout_columns=confirmed_door_layout_columns,
+        ))
+        box_body_render_data = build_operator_part_render_data(
+            factory["box_body"], ManufacturingContext(),
+        )
+    if not isinstance(box_body_render_data, BoxBodyStructureRenderData):
+        raise TypeError("RECEIVING_DIVIDER_CANONICAL_BODY_SOURCE_REQUIRED")
+    if {piece.role for piece in box_body_render_data.pieces} != {
+        "left_side", "right_side", "back",
+    }:
+        raise ValueError("RECEIVING_DIVIDER_CANONICAL_SIDE_SOURCES_REQUIRED")
+    shared = build_receiving_factory_confirmed_inner_door_lower_support(
+        source_dimensions, confirmation=confirmation,
+        confirmed_door_layout_columns=confirmed_door_layout_columns,
+    )
+    raw = build_box_body_divider_render_data(shared)
+    profile = divider_part_profiles((shared,))[shared.stable_id]
+    request = ManufacturingResolveRequest(
+        input_snapshot=values,
+        settings={"t": values["t"]},
+        canonical_part_keys=("box_body", shared.stable_id),
+        parts=(
+            ManufacturingPartInput(
+                part_key="box_body", render_data=box_body_render_data,
+            ),
+            ManufacturingPartInput(
+                part_key=shared.stable_id, render_data=raw,
+                x_profile=profile["X"], y_profile=profile["Y"],
+            ),
+        ),
+        operator_finished_dimensions=(
+            values["w"], values["h"], values["d"],
+        ),
+        cabinet_model="受電箱",
+    )
+    resolved = resolve_manufacturing_request(request)
+    parts = tuple(
+        part for part in resolved.geometry.parts
+        if part.part_key == shared.stable_id
+    )
+    if len(parts) != 1:
+        raise ValueError("RECEIVING_DIVIDER_CANONICAL_RESULT_MISSING")
+    final = parts[0].render_data
+    status = dict((final.metadata or {}).get("divider_assembly_relief") or {})
+    if (status.get("verified") is not True
+            or status.get("candidate_status") != "CERTIFIED_REGISTRY_VERIFIED"
+            or not (final.metadata or {}).get("divider_endcap_shared_6p4_datum")):
+        raise ValueError("RECEIVING_DIVIDER_CERTIFIED_CROSS_NOT_VERIFIED")
+    if not final.material.is_valid or final.material.is_empty:
+        raise ValueError("RECEIVING_DIVIDER_FINAL_MATERIAL_INVALID")
+    return final
+
+
 def build_receiving_factory_confirmed_parts(
     source_dimensions: Mapping[str, object], *,
     confirmation: str | None = None,
@@ -576,6 +860,13 @@ def build_receiving_factory_confirmed_parts(
     # Force the BoxBody owner to consume only source-confirmed sheets even
     # when a legacy saved snapshot contained extra, untrusted physical data.
     body_snapshot = {**values, "physical_piece_features": confirmed_body_pieces}
+    if confirmation == "fresh_family_confirmed":
+        # Fresh defaults contain a nominal one-Bay Receiving Layout whose
+        # dimensions are intentionally independent of the confirmed original
+        # W/H/D/T. It is NOT an operator-confirmed assembly topology, and
+        # must not be used to classify physical side-lock participants.
+        # Genuine saved Set/Bay snapshots retain their exact layout/selection.
+        body_snapshot.pop("receiving_layout", None)
     body = build_box_body_operator_part_spec(
         values, model_name=_FAMILY,
         face_features=confirmed_body_faces,

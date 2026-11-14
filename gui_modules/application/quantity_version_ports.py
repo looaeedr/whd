@@ -20,6 +20,22 @@ def quantity_ports(composition, namespace):
         snapshot["model"] = app.baseline_model_var.get()
         return snapshot
 
+    def hole_source():
+        """Use the same physical W/H/D/T precedence as the manufacturing request.
+
+        Navigation may remain available on incomplete historic Quantity data;
+        opening or committing an actual physical hole must not substitute a
+        stale Settings thickness for an explicitly saved project thickness.
+        """
+        snapshot = source()
+        physical = manufacturing_api.project_operator_manufacturing_request_snapshot(
+            app._phase6_input_snapshot, app._settings_values, app._phase6_box_whd,
+        )
+        for axis in ("w", "h", "d", "t"):
+            if axis in physical:
+                snapshot[axis] = physical[axis]
+        return snapshot
+
     def changed():
         payload = model().snapshot()
         app._phase6_input_snapshot["active_mode"] = "quantity"
@@ -42,29 +58,29 @@ def quantity_ports(composition, namespace):
     def holes(role):
         if role not in {"head", "tail"}:
             raise ValueError("孔型版本只覆寫封頭／封尾 Features")
-        snapshot = source()
+        # Missing editor is an operator/UI capability error, not a reason to
+        # resolve or fabricate physical manufacturing dimensions first.
+        host = getattr(app._scene_query_callback, "__self__", None)
+        if host is None or not hasattr(host, "_open_unified_hole_editor"):
+            raise ValueError("目前未連接既有 Hole Editor")
+        snapshot = hole_source()
         version_id = model().selected_version_id
         features = model().features_for_version(version_id, role)
         geometry = manufacturing_api.project_operator_quantity_endcap_hole_editor_geometry(
             snapshot, role=role,
         )
         width, depth = geometry.width, geometry.height
-        host = getattr(app._scene_query_callback, "__self__", None)
-        if host is None or not hasattr(host, "_open_unified_hole_editor"):
-            raise ValueError("目前未連接既有 Hole Editor")
 
         def commit():
             # Capture identity, not selection: another version may be selected
             # while this modeless editor is open. A deleted ID fails closed.
-            current = source()
-            from phase6_quantity_model import QuantityModel
-            candidate = QuantityModel.from_payload(model().snapshot())
-            candidate.set_version_features(version_id, role, features)
-            current["quantity"] = candidate.snapshot()
-            manufacturing_api.require_valid_operator_quantity_features(current)
-            previous = model().features_for_version(version_id, role)
-            edit(lambda owner: owner.set_version_features(version_id, role, features))
-            if previous != features and version_id == model().selected_version_id:
+            changed_holes = edit(
+                lambda owner: manufacturing_api.commit_operator_quantity_version_holes(
+                    hole_source(), owner, version_id=version_id, role=role,
+                    features=features,
+                )
+            )
+            if changed_holes and version_id == model().selected_version_id:
                 app.submit_update_intent("geometry", commit=True)
 
         win = host._open_unified_hole_editor(
@@ -76,10 +92,34 @@ def quantity_ports(composition, namespace):
         return win or getattr(host, "last_unified_hole_editor", None)
 
     return {
-        "snapshot": lambda: app.designer_workspace.quantity_model.snapshot() if app.designer_workspace.quantity_model else None,
-        "select": lambda version_id: edit(lambda owner: owner.select(version_id)),
-        "add": lambda: edit(lambda owner: owner.add_version()),
-        "delete": lambda confirmed: edit(lambda owner: owner.delete_selected(confirmed=confirmed)),
-        "count": lambda value: edit(lambda owner: owner.set_piece_count(value)),
+        "snapshot": lambda: (
+            manufacturing_api.project_operator_quantity_version_controls(
+                app.designer_workspace.quantity_model.snapshot()
+            )
+            if app.designer_workspace.quantity_model else None
+        ),
+        "select": lambda version_id: edit(
+            lambda owner: manufacturing_api.commit_operator_quantity_version_action(
+                source(), owner, action="select", version_id=version_id,
+            )
+        ),
+        "add": lambda: edit(
+            lambda owner: manufacturing_api.commit_operator_quantity_version_action(
+                source(), owner, action="add",
+                version_id=owner.selected_version_id,
+            )
+        ),
+        "delete": lambda confirmed: edit(
+            lambda owner: manufacturing_api.commit_operator_quantity_version_action(
+                source(), owner, action="delete",
+                version_id=owner.selected_version_id, confirmed=confirmed,
+            )
+        ),
+        "count": lambda value: edit(
+            lambda owner: manufacturing_api.commit_operator_quantity_version_action(
+                source(), owner, action="count",
+                version_id=owner.selected_version_id, piece_count=value,
+            )
+        ),
         "holes": holes,
     }

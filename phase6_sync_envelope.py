@@ -37,8 +37,15 @@ def stable_fingerprint(value) -> str:
 
 
 def actual_delta(before, after):
-    """Return only semantically changed mapping leaves; lists are atomic."""
+    """Return authoritative changed mapping leaves; lists are atomic.
+
+    If a subtree loses keys, that subtree must be replaced with its complete
+    new mapping.  Ignoring removed keys made a cleared hole/Relief mapping look
+    unchanged and could prevent publication of the complete physical snapshot.
+    """
     if isinstance(before, Mapping) and isinstance(after, Mapping):
+        if any(key not in after for key in before):
+            return deepcopy(dict(after))
         out = {}
         for key in after:
             if key not in before:
@@ -124,7 +131,12 @@ class LiveSyncPublicationPlan:
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "should_publish", bool(self.should_publish))
-        object.__setattr__(self, "next_revision", int(self.next_revision))
+        object.__setattr__(
+            self, "next_revision",
+            manufacturing_api.project_operator_fold_designer_publication_revisions(
+                self.next_revision
+            ).current_revision,
+        )
         object.__setattr__(self, "transaction_id", str(self.transaction_id or ""))
         object.__setattr__(self, "delta", _freeze_sync_value(self.delta or {}))
         object.__setattr__(
@@ -151,9 +163,18 @@ def plan_live_sync_envelope(
     force=False,
 ) -> LiveSyncPublicationPlan:
     """Plan one Fold Designer publication without performing runtime effects."""
+    # Engine must validate raw monotonic source and operator force flags before
+    # any payload is fingerprinted or a downstream callback can see a revision.
+    revisions = manufacturing_api.project_operator_fold_designer_publication_revisions(
+        current_revision
+    )
+    force = manufacturing_api.normalize_operator_settings_boolean(force)
+    host_relief_present = manufacturing_api.normalize_operator_settings_boolean(
+        host_relief_present
+    )
     state = deepcopy(dict(current_state or {}))
     fingerprint = stable_fingerprint(state)
-    current_revision = int(current_revision or 0)
+    current_revision = revisions.current_revision
     canonical_relief = deepcopy(state.get("assembly_relief") or {})
     host_relief = deepcopy(host_relief or {})
 
@@ -185,7 +206,10 @@ def plan_live_sync_envelope(
         previous["assembly_relief"] = host_relief
 
     delta = mapping_delta(previous, state)
-    if not delta and previous:
+    # A complete root clear can have an empty delta even though the full
+    # authoritative snapshot changed.  Only suppress an actual no-op, never
+    # a source deletion just because the candidate delta is empty.
+    if not delta and previous and stable_fingerprint(previous) == fingerprint:
         return LiveSyncPublicationPlan(
             should_publish=False,
             next_revision=current_revision,
@@ -196,7 +220,7 @@ def plan_live_sync_envelope(
             host_relief_repair=canonical_relief,
         )
 
-    next_revision = current_revision + 1
+    next_revision = revisions.next_revision
     transaction_id = (
         str(active_transaction_id or "").strip()
         or f"fold_designer:{next_revision}"

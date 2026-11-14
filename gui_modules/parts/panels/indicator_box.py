@@ -3,6 +3,8 @@
 import tkinter as tk
 from tkinter import ttk
 
+from ae_engine import manufacturing_api
+
 def collect_indicator_box_input(payload):
     """Copy existing indicator input values without deriving drawing or geometry."""
     return dict(payload or {})
@@ -51,14 +53,12 @@ def setup_tab_indicator_box_ui(host):
     host.rebuild_layers_config_ui()
 
 def rebuild_layers_config_ui(host):
-    # 清空先前的元件
+    layers = manufacturing_api.normalize_operator_indicator_layer_count(
+        host.indicator_l_var.get()
+    )
+    # 只有 Engine 已驗證的物理層數才能改動 GUI。
     for widget in host.layers_config_frame.winfo_children():
         widget.destroy()
-
-    try:
-        layers = int(host.indicator_l_var.get())
-    except ValueError:
-        layers = 3
 
     # 逐層建立橫向的組數選擇選單
     for ly in range(layers):

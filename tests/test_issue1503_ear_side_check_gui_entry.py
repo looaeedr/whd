@@ -66,11 +66,21 @@ def test_real_gui_selected_receiving_side_check_is_not_standard_manufacturing_ex
     assert state == {"flushed": 1, "resolved": 1}
     assert len(calls) == 1
     assert calls[0][:3] == (_snapshot(), "REAL_RESOLVED_GEOMETRY", str(tmp_path))
-    assert calls[0][3] == {
+    kwargs = dict(calls[0][3])
+    # The new source witness is part of the same public export contract.
+    # Verify exact legacy arguments AND that a stale live source now refuses
+    # the CHECK-only DXF, rather than weakening the action assertion.
+    guard = kwargs.pop("pre_commit_guard")
+    assert callable(guard)
+    assert kwargs == {
         "dimensions": (800., 1600., 350.),
         "sheet_thickness": 2.,
         "overwrite": False,
     }
+    guard()
+    host.fold_designer_app._phase6_input_snapshot["t"] = 3.
+    with pytest.raises(ValueError, match="DXF 出圖來源已變更"):
+        guard()
     assert [x[0] for x in events] == ["select", "success"]
     assert "非製造" in events[-1][1]
     assert "8" in events[-1][2]

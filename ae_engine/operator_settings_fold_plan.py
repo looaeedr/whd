@@ -55,6 +55,13 @@ def plan_operator_settings_fold_profiles(
     This preserves keyed operator-added segments and saved Tail Y ordering,
     while deriving every reset/merge and derived-part exclusion in Engine.
     """
+    # A reset discards saved physical Fold rows. Never let a truthy serialized
+    # value (for example "false" or 1) authorize that manufacturing mutation.
+    for name, flag in (("reset_box_profile", reset_box_profile),
+                       ("reset_all_profiles", reset_all_profiles)):
+        if type(flag) is not bool:
+            raise ValueError(f"{name} must be a native boolean")
+
     snapshot = deepcopy(dict(input_snapshot or {}))
     snapshot.update(deepcopy(dict(settings_values or {})))
     part_dimensions = project_part_dimensions(snapshot)

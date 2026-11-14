@@ -33,15 +33,10 @@ def receiving_layout_stable_ids(layout: Mapping[str, object]) -> tuple[str, ...]
 
 
 def _operator_integer(value, name):
-    """Allow legacy integer UI text; never coerce a float or bool to a Bay ID."""
-    if type(value) is int:
-        return value
-    if type(value) is str:
-        try:
-            return int(value)
-        except (ValueError, OverflowError) as exc:
-            raise ValueError(f"Receiving {name} must be an integer") from exc
-    raise ValueError(f"Receiving {name} must be an integer")
+    """Forward raw Set/Bay/Joint source to the canonical Engine validator."""
+    return manufacturing_api.normalize_receiving_operator_topology_integer(
+        value, name=name,
+    )
 
 
 @dataclass(frozen=True)
@@ -136,23 +131,45 @@ class ReceivingSetBayAdapter:
         if self._confirm_destructive(protected) is not True:
             raise ReceivingDestructiveEditConfirmationRequired(protected)
 
+    def apply_set_delta(self, delta: int) -> bool:
+        """Commit an Engine Set +/- only after destructive removal consent.
+
+        No physical Set/Bay/Joints or GUI selection/bookkeeping is changed
+        when validation fails, the operator declines deletion, or the current
+        Set count is already at its minimum.
+        """
+        candidate, removed, changed = (
+            manufacturing_api.adjust_receiving_operator_set_count_with_removed_ids(
+                self._layout, delta=delta,
+            )
+        )
+        if not changed:
+            return False
+        self._confirm_if_required(removed)
+        self._layout = candidate
+        self._persisted_ids.difference_update(removed)
+        self._session_dirty_ids.difference_update(removed)
+        selected_set = min(self._selection.set_index, len(candidate["sets"]) - 1)
+        selected_bay = min(
+            self._selection.bay_index,
+            len(candidate["sets"][selected_set]["bays"]) - 1,
+        )
+        self._selection = ReceivingSelection(
+            set_index=selected_set, bay_index=selected_bay,
+        )
+        return True
+
     def set_bay_count(self, bay_count: int) -> None:
         wanted = _operator_integer(bay_count, "Bay count")
-        current = self.bay_count()
-        if wanted < current:
-            removed = manufacturing_api.receiving_destructive_tail_ids(
-                self._layout,
-                set_index=self._selection.set_index,
-                bay_count=wanted,
-            )
-            self._confirm_if_required(removed)
-            self._persisted_ids.difference_update(removed)
-            self._session_dirty_ids.difference_update(removed)
-        candidate = manufacturing_api.resize_receiving_bays_with_family_defaults(
+        candidate, removed = manufacturing_api.resize_receiving_operator_topology_with_removed_ids(
             self._layout, set_index=self._selection.set_index, bay_count=wanted,
         )
+        # No saved-ID/dirty/selection change before Engine validation and consent.
+        self._confirm_if_required(removed)
         self._layout = candidate
-        new_count = self.bay_count()
+        self._persisted_ids.difference_update(removed)
+        self._session_dirty_ids.difference_update(removed)
+        new_count = len(candidate["sets"][self._selection.set_index]["bays"])
         self._selection = ReceivingSelection(
             set_index=self._selection.set_index,
             bay_index=min(self._selection.bay_index, new_count - 1),
@@ -160,19 +177,39 @@ class ReceivingSetBayAdapter:
 
     def set_set_count(self, set_count: int) -> None:
         wanted = _operator_integer(set_count, "Set count")
-        current = len(self._layout["sets"])
-        if wanted < current:
-            removed = manufacturing_api.receiving_destructive_tail_ids(self._layout, set_count=wanted)
-            self._confirm_if_required(removed)
-            self._persisted_ids.difference_update(removed)
-            self._session_dirty_ids.difference_update(removed)
-        self._layout = manufacturing_api.resize_receiving_sets(self._layout, set_count=wanted)
+        candidate, removed = manufacturing_api.resize_receiving_operator_topology_with_removed_ids(
+            self._layout, set_count=wanted,
+        )
+        self._confirm_if_required(removed)
+        self._layout = candidate
+        self._persisted_ids.difference_update(removed)
+        self._session_dirty_ids.difference_update(removed)
         set_index = min(self._selection.set_index, wanted - 1)
         bay_index = min(
             self._selection.bay_index,
-            len(self._layout["sets"][set_index]["bays"]) - 1,
+            len(candidate["sets"][set_index]["bays"]) - 1,
         )
         self._selection = ReceivingSelection(set_index=set_index, bay_index=bay_index)
+
+    def resize_connections(self, set_index: int, delta: int) -> bool:
+        """Stage cross-Set +/- via Engine; commit selection only on approval."""
+        index = _operator_integer(set_index, "Set index")
+        step = _operator_integer(delta, "Bay delta")
+        candidate, removed, changed = (
+            manufacturing_api.resize_receiving_operator_connections_by_delta_with_removed_ids(
+                self._layout, set_index=index, delta=step,
+            )
+        )
+        if not changed:
+            return False
+        # A source failure or denied removal must preserve the *previous*
+        # visible selection as well as the exact protected physical IDs.
+        self._confirm_if_required(removed)
+        self._layout = candidate
+        self._persisted_ids.difference_update(removed)
+        self._session_dirty_ids.difference_update(removed)
+        self._selection = ReceivingSelection(set_index=index, bay_index=0)
+        return True
 
     def apply_dimensions_to_bays(self, set_index, bay_indices, *, width, height, depth, expected_count):
         """Forward the operator's highlighted dimensions to canonical Engine."""
@@ -202,11 +239,13 @@ class ReceivingSetBayAdapter:
 
     def rename_bay(self, set_index: int, bay_index: int, panel_name: str) -> bool:
         """Commit one named Bay via public Engine API; preserve current selection."""
-        before = self._layout["sets"][set_index]["bays"][bay_index]["panel_name"]
+        # Let Engine validate physical Set/Bay identity and the proposed name
+        # before Python list indexing can alias bool or read a stale Bay.
         candidate = manufacturing_api.rename_receiving_panel(
             self._layout, set_index=set_index, bay_index=bay_index,
             panel_name=panel_name,
         )
+        before = self._layout["sets"][set_index]["bays"][bay_index]["panel_name"]
         after = candidate["sets"][set_index]["bays"][bay_index]["panel_name"]
         self._layout = candidate
         if after != before:
@@ -265,20 +304,28 @@ class ReceivingSetBayAdapter:
         self._session_dirty_ids.update(affected_ids)
 
     def unlink_setting(self, kind):
-        self._layout = manufacturing_api.unlink_receiving_shared_setting(self._layout, set_index=self.selection.set_index,
-                                      bay_index=self.selection.bay_index, kind=kind)
-        self.mark_current_bay_dirty()
+        """Consume the Engine's exact former physical link group on unlink."""
+        candidate, affected_ids = (
+            manufacturing_api.unlink_receiving_shared_setting_with_affected_ids(
+                self._layout, set_index=self.selection.set_index,
+                bay_index=self.selection.bay_index, kind=kind,
+            )
+        )
+        if not affected_ids:
+            return False
+        self._layout = candidate
+        self._session_dirty_ids.update(affected_ids)
+        return True
 
     def set_brand(self, brand):
-        brand = manufacturing_api.require_receiving_operator_brand(brand)
-        candidate = deepcopy(self._layout)
-        index = self.selection.set_index
-        updated, changed = manufacturing_api.rebase_receiving_set_parent_nfb_brand(
-            candidate["sets"][index], brand,
+        """Consume Engine Set brand transaction and complete physical dirty scope."""
+        candidate, changed, affected_ids = manufacturing_api.update_receiving_one_set_nfb_parent_brand_with_affected_ids(
+            self._layout, self.selection.set_index, brand,
         )
         if changed:
-            candidate["sets"][index] = updated
             self._layout = candidate
+            self._session_dirty_ids.update(affected_ids)
+        return changed
 
     def apply_candidate_to_bays(self, role, set_index, bay_indices, features, *, version_id=None):
         """Forward highlighted Head/Tail Apply to Engine; track GUI dirtiness."""
@@ -382,12 +429,13 @@ class ReceivingSetBayAdapter:
         return receipt
 
     def set_global_brand(self, brand):
-        """Submit one operator all-Set action to the public Engine owner."""
-        candidate, changed = manufacturing_api.update_receiving_all_set_nfb_parent_brand(
+        """Commit Engine all-Set brand and its exact dirty physical IDs."""
+        candidate, changed, affected_ids = manufacturing_api.update_receiving_all_set_nfb_parent_brand_with_affected_ids(
             self._layout, brand,
         )
         if changed:
             self._layout = candidate
+            self._session_dirty_ids.update(affected_ids)
         return changed
 
     def current_joint_editability(self, joint_index: int) -> dict[str, bool]:
@@ -406,16 +454,18 @@ class ReceivingSetBayAdapter:
         height_alignment: object | None = None,
     ) -> None:
         index = _operator_integer(joint_index, "Joint index")
-        candidate = manufacturing_api.update_receiving_joint_alignment(
-            self._layout,
-            set_index=self._selection.set_index,
-            joint_index=index,
-            depth_alignment=depth_alignment,
-            height_alignment=height_alignment,
+        candidate, affected_ids = (
+            manufacturing_api.update_receiving_joint_alignment_with_affected_ids(
+                self._layout,
+                set_index=self._selection.set_index,
+                joint_index=index,
+                depth_alignment=depth_alignment,
+                height_alignment=height_alignment,
+            )
         )
-        self._layout = candidate
-        row = self._layout["sets"][self._selection.set_index]["joints"][index]
-        self._session_dirty_ids.add(str(row["stable_id"]))
+        if affected_ids:
+            self._layout = candidate
+            self._session_dirty_ids.update(affected_ids)
 
     def project_current_bay(self, snapshot: Mapping[str, object]) -> dict[str, object]:
         payload = deepcopy(dict(snapshot or {}))
@@ -462,28 +512,15 @@ class ReceivingSwitchProjectionAdapter:
 
     def set_brand(self, brand):
         brand = manufacturing_api.require_receiving_operator_brand(brand)
-        changed = self.brand != brand
-        self.adapter.set_brand(brand)
-        return changed
+        return self.adapter.set_brand(brand)
 
     def add_layer(self):
-        self.adapter.set_set_count(len(self.adapter.layout["sets"]) + 1)
+        return self.adapter.apply_set_delta(1)
 
     def remove_layer(self):
-        count = len(self.adapter.layout["sets"])
-        if count == 1:
-            return False
-        self.adapter.set_set_count(count - 1)
-        return True
+        return self.adapter.apply_set_delta(-1)
 
     def resize_connections(self, index, delta):
-        # Validate both operator inputs before selecting or resizing any Bay.
-        index = _operator_integer(index, "Set index")
-        delta = _operator_integer(delta, "Bay delta")
-        current = self.connection_count(index)
-        wanted = max(1, current + delta)
-        if wanted == current:
-            return False
-        self.adapter.select_set(index + 1)
-        self.adapter.set_bay_count(wanted)
-        return True
+        # The Engine determines the effective topology and removed physical IDs.
+        # The GUI keeps its previous selection until validation and approval.
+        return self.adapter.resize_connections(index, delta)

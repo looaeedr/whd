@@ -299,6 +299,33 @@ def measure_unfolded_blanks(render_data, *, part_key: str = "") -> tuple[Unfolde
     return (_measure_one_unfolded_blank(render_data, part_key=str(part_key or "part")),)
 
 
+def project_operator_main_blank_summary_dimensions(
+    render_data, *, part_key: str,
+) -> tuple[float, float]:
+    """Read authoritative BoxBody or EndCap blank W/H for main GUI labels.
+
+    A multipart BoxBody preview is exploded display geometry. Its existing
+    canonical Z strip is the summary source, while the physical pieces retain
+    separate measured blanks for manufacturing.
+    """
+    key = str(part_key)
+    if key not in {"box_body", "head", "tail"}:
+        raise ValueError(f"unsupported main blank summary part: {part_key!r}")
+    source = render_data
+    if key == "box_body":
+        strip = getattr(render_data, "canonical_strip_render_data", None)
+        if strip is not None:
+            source = strip
+        elif getattr(render_data, "pieces", ()):
+            raise ValueError("BOX_BODY_CANONICAL_SUMMARY_STRIP_REQUIRED")
+    if getattr(source, "pieces", ()):
+        raise ValueError("MAIN_BLANK_SUMMARY_REQUIRES_ONE_CANONICAL_SHEET")
+    blanks = measure_unfolded_blanks(source, part_key=key)
+    if len(blanks) != 1:
+        raise ValueError("MAIN_BLANK_SUMMARY_REQUIRES_ONE_CANONICAL_SHEET")
+    return blanks[0].width, blanks[0].height
+
+
 @dataclass(frozen=True)
 class BoxBodyPieceRenderData:
     """One independently manufacturable physical Box Body piece."""

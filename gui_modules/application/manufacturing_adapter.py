@@ -34,7 +34,9 @@ def _endcap_profiles_for_assembly(values, stored_profiles, assembly_type, part_k
 
 def _manufacturing_context(self, *, draw_stock=False):
     """GUI-owned execution context for the headless manufacturing boundary."""
-    return ManufacturingContext(draw_stock=bool(draw_stock), overwrite=True)
+    # Engine alone decodes serialized STOCK intent: bool('false') is wrong.
+    stock = manufacturing_api.normalize_operator_settings_boolean(draw_stock)
+    return ManufacturingContext(draw_stock=stock, overwrite=True)
 
 def _box_body_part_spec_from_values(
     self, val, *, model_name, features, face_features,
@@ -121,7 +123,9 @@ def _phase6_relief_profile_signature(profile):
 def _resolved_committed_assembly_relief_cuts(self, key, val, stored_profiles):
     """Collect current operator inputs; Engine owns committed relief replay."""
     state = deepcopy(getattr(self, "assembly_relief_state", {}) or {})
-    if not bool(state.get("enabled")):
+    if not manufacturing_api.normalize_operator_settings_boolean(
+        state["enabled"] if "enabled" in state else False
+    ):
         # Preserve the historic uninitialized-BoxBody disabled short circuit.
         return ()
     controller = getattr(self, "workspace_controller", None)
@@ -142,17 +146,26 @@ def _resolved_committed_assembly_relief_cuts(self, key, val, stored_profiles):
     )
 
 def _end_cap_part_spec(self, val, *, is_tail):
-    key = "tail" if is_tail else "head"
+    # The physical Head/Tail role must be qualified by Engine before choosing
+    # profiles, holes or relief.  Python bool("false") selects the wrong Tail.
+    tail = manufacturing_api.normalize_operator_settings_boolean(is_tail)
+    # A missing/invalid physical box FW is not a factory-25-mm EndCap.
+    # Qualify the original manufacturing source with the public Engine before
+    # reading profiles or manufacturing any Head/Tail PartSpec.
+    box_fw = manufacturing_api.normalize_operator_source_dimension(
+        val.get("fw"), field="fw",
+    )
+    key = "tail" if tail else "head"
     stored_profiles = self.workspace_controller.profile_for(key)
     local_val = dict(val)
-    local_val["fw"] = self._effective_endcap_fw(key, val.get("fw", 25.0))
+    local_val["fw"] = self._effective_endcap_fw(key, box_fw)
     stored_profiles = _endcap_profiles_for_assembly(
         local_val, stored_profiles, self._current_box_assembly_type(), key
     )
     resolved_cuts = self._resolved_committed_assembly_relief_cuts(key, local_val, stored_profiles)
     return self._end_cap_part_spec_from_values(
-        local_val, model_name=self._baseline_source_model(), is_tail=is_tail,
-        holes=(self.tail_holes if is_tail else self.head_holes),
+        local_val, model_name=self._baseline_source_model(), is_tail=tail,
+        holes=(self.tail_holes if tail else self.head_holes),
         corner_policy=(
             self._manual_corner_policy(key, local_val['fw'])
         ),
@@ -167,6 +180,7 @@ def _door_part_spec_from_values(
     self, val, *, model_name, features, indicator_hole=None, door_indicator=None,
     door_indicator_offset=(0.0, 0.0), use_box_distance=False, corner_policy=None,
     frame_edges=None, indicator_window_groups=None, indicator_source_state=None,
+    fold_designer_indicator_source=None,
 ) -> DoorPartSpec:
     """GUI submits operator inputs; Engine owns canonical Door manufacturing spec."""
     return manufacturing_api.build_door_operator_part_spec(
@@ -181,6 +195,7 @@ def _door_part_spec_from_values(
         frame_edges=frame_edges,
         indicator_window_groups=indicator_window_groups,
         indicator_source_state=indicator_source_state,
+        fold_designer_indicator_source=fold_designer_indicator_source,
         nameplate_center_datum_top=getattr(
             self, "door_nameplate_center_datum_top", None
         ),
@@ -194,7 +209,8 @@ def _single_door_part_spec(self, val, *, indicator_hole=None, door_indicator=Non
         indicator_hole=indicator_hole,
         door_indicator=door_indicator,
         door_indicator_offset=(self.door_indicator_offset_x, self.door_indicator_offset_y),
-        use_box_distance=bool(self.is_box_dist_var.get()),
+        # Engine DoorPartSpec validates the live mode and the raw distance flag.
+        use_box_distance=self.is_box_dist_var.get(),
         corner_policy=(
             self._manual_corner_policy(
                 'door', self._door_material_frame_width(val['fw'], val['t'])

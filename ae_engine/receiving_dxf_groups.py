@@ -6,7 +6,9 @@ have verified EVERY staged physical sheet before this module runs.
 """
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
+import re
 
 from .contracts import ResolvedManufacturingGeometry, ResolvedManufacturingPart
 from .manufacturing_export import (
@@ -19,7 +21,38 @@ from .receiving_layout import normalize_receiving_layout
 RECEIVING_COMPOSED_DXF_MODES = frozenset({"PER_SET", "ALL", "END_VS_MIDDLE"})
 
 
-def plan_receiving_grouped_dxf(layout, mode):
+def _taipei_output_stamp():
+    """Actual export minute, not the input DXF modification timestamp."""
+    return datetime.now(timezone(timedelta(hours=8))).strftime("%Y%m%d%H%M")
+
+
+def _group_output_filename(legacy_name, cells, stamp):
+    """Global project label shared across ALL group names, never a subset."""
+    if (not isinstance(stamp, str)
+            or re.fullmatch(r"[0-9]{12}", stamp) is None):
+        raise ValueError("RECEIVING_COMPOSED_DXF_TIMESTAMP_INVALID")
+    try:
+        parsed = datetime.strptime(stamp, "%Y%m%d%H%M")
+    except ValueError as exc:
+        raise ValueError("RECEIVING_COMPOSED_DXF_TIMESTAMP_INVALID") from exc
+    if parsed.strftime("%Y%m%d%H%M") != stamp:
+        raise ValueError("RECEIVING_COMPOSED_DXF_TIMESTAMP_INVALID")
+    names = tuple(normalize_panel_name(name) for _si, _bi, name in cells)
+    numbered = [re.fullmatch(r"[Pp]([0-9]+)", n) for n in names]
+    if all(numbered):
+        numbers = sorted(int(m.group(1)) for m in numbered)
+        label = (f"p{numbers[0]}" if len(numbers) == 1
+                 else f"p{numbers[0]}~p{numbers[-1]}")
+    else:
+        # Never invent a P-number for a renamed Bay.
+        label = "_".join(n.casefold() for n in names)
+    name = f"{stamp}_{label}{Path(legacy_name).stem}.dxf"
+    if len(name) > 240:
+        raise ValueError("RECEIVING_COMPOSED_DXF_FILENAME_TOO_LONG")
+    return name
+
+
+def plan_receiving_grouped_dxf(layout, mode, *, file_stamp=None):
     """Immutable ordered (group filename, physical Bay cells) response.
 
     Cell: (zero-based Set, zero-based Bay, canonical operator panel name).
@@ -60,13 +93,20 @@ def plan_receiving_grouped_dxf(layout, mode):
         result = (("頭尾盤.dxf", tuple(edge)),)
         if middle:
             result += (("中間盤.dxf", tuple(middle)),)
+    if file_stamp is not None:
+        result = tuple(
+            (_group_output_filename(name, all_cells, file_stamp), cells)
+            for name, cells in result
+        )
+        if len({name.casefold() for name, _ in result}) != len(result):
+            raise ValueError("RECEIVING_COMPOSED_DXF_FILENAME_COLLISION")
     return result
 
 
 def commit_verified_receiving_groups(
     layout, mode, physical_rows, stage_dir, output_dir,
     *, pre_commit_guard, overwrite=False, box_body_owner_by_namespace=None,
-    _verified_nfb_pair_parts_by_namespace=None,
+    _verified_nfb_pair_parts_by_namespace=None, emit_debug=False,
 ):
     """Publish only complete *previously verified* per-Bay physical sheets.
 
@@ -77,7 +117,10 @@ def commit_verified_receiving_groups(
     """
     if not callable(pre_commit_guard):
         raise ValueError("RECEIVING_COMPOSED_DXF_PRECOMMIT_GUARD_REQUIRED")
-    groups = plan_receiving_grouped_dxf(layout, mode)
+    if type(emit_debug) is not bool:
+        raise TypeError("RECEIVING_DEBUG_EXPORT_FLAG_MUST_BE_BOOL")
+    stamp = _taipei_output_stamp()
+    groups = plan_receiving_grouped_dxf(layout, mode, file_stamp=stamp)
     source = normalize_receiving_layout(layout)
     by_namespace = {}
     seen = set()
@@ -117,7 +160,8 @@ def commit_verified_receiving_groups(
     from .composed_panel_dxf import save_composed_panel_dxf
     staged = {}
     stage = Path(stage_dir)
-    for filename, cells in groups:
+
+    def group_inputs(cells):
         panel_instances = []
         group_body_owners = {}
         group_nfb_parts = {}
@@ -136,6 +180,10 @@ def commit_verified_receiving_groups(
                 parts=tuple(ResolvedManufacturingPart(key, render)
                             for key, render in records),
             )))
+        return panel_instances, group_body_owners, group_nfb_parts
+
+    for filename, cells in groups:
+        panel_instances, group_body_owners, group_nfb_parts = group_inputs(cells)
         # The Engine composer checks actual canonical scenes, independent
         # source-flat roundtrips and final combined DXF primitive exactness.
         # Preserve Set/Bay ordering even for P10 after a deleted P3.
@@ -144,8 +192,46 @@ def commit_verified_receiving_groups(
             overwrite=False, preserve_input_order=True,
             box_body_owner_by_panel=group_body_owners,
             _verified_nfb_pair_parts=group_nfb_parts,
+            quantity_summary=True,
         )
         staged[filename] = Path(result.path)
+
+    # Every grouped export also carries a distinct machining-total drawing.
+    # Only truly identical canonical physical roles + full non-CHECK primitives
+    # share one representative flat, labelled with their verified quantity.
+    # It uses the exact same source guards and commits atomically with the
+    # normal per-Set/ALL/end-vs-middle manufacturing drawings.
+    all_cells = plan_receiving_grouped_dxf(layout, "ALL")[0][1]
+    total_name = _group_output_filename("總計.dxf", all_cells, stamp)
+    if total_name in staged:
+        raise ValueError("RECEIVING_COMPOSED_DXF_TOTAL_FILENAME_COLLISION")
+    total_panels, total_body_owners, total_nfb_parts = group_inputs(all_cells)
+    total = save_composed_panel_dxf(
+        total_panels, stage / total_name, pre_commit_guard=pre_commit_guard,
+        overwrite=False, preserve_input_order=True,
+        box_body_owner_by_panel=total_body_owners,
+        _verified_nfb_pair_parts=total_nfb_parts,
+        quantity_summary=True, compact_quantity_total=True,
+    )
+    staged[total_name] = Path(total.path)
+    if emit_debug:
+        # This is NOT an additional machining blank: the diagnostic contains
+        # CHECK-only exact copies of verified canonical source primitives.
+        # Stage and atomically publish alongside real groups or publish none.
+        from .receiving_verified_debug_dxf import save_verified_receiving_debug_dxf
+        diagnostic = _group_output_filename("debug.dxf", all_cells, stamp)
+        ordered = []
+        for si, bi, name in all_cells:
+            set_row = source["sets"][si]
+            bay = set_row["bays"][bi]
+            ns = receiving_instance_namespace(
+                set_id=set_row["stable_id"], bay_id=bay["stable_id"],
+            )
+            ordered.append((name, tuple(by_namespace[ns])))
+        save_verified_receiving_debug_dxf(
+            stage / diagnostic, ordered, pre_commit_guard=pre_commit_guard,
+        )
+        staged[diagnostic] = stage / diagnostic
     pre_commit_guard()  # Same immutable current-source witness before publish.
     return _atomic_commit_staged_dxfs(
         staged, Path(output_dir), overwrite=overwrite,

@@ -9,12 +9,27 @@ from __future__ import annotations
 from collections.abc import Mapping
 from hashlib import sha256
 
+from .cabinet_types import policy as cabinet_family_policy
 from .receiving_base_fixing_plate_geometry import SOURCE_DXF_SHA256
 from .receiving_fixed_plate_formed_skins import (
     build_receiving_formed_fixing_plate_skins,
     ReceivingFormedFixingPlateSkin,
 )
 from .receiving_tier_ear_assembly_xy import resolve_receiving_tier_ear_mating_xy
+
+
+def receiving_ear_assembly_display_active(snapshot: Mapping[str, object]) -> bool:
+    """One Engine Family / committed-NFB gate for real EAR 3D visibility.
+
+    The saved operator family may be any registered Receiving alias. Do not
+    suppress genuine formed EARs for lowercase/mixed-case project sources.
+    A serialized flag is not proof of a submitted physical NFB source.
+    """
+    return (
+        isinstance(snapshot, Mapping)
+        and cabinet_family_policy.canonical_family_name(snapshot) == "受電箱"
+        and snapshot.get("nfb_config_submitted") is True
+    )
 
 
 def receiving_ear_assembly_display_source_key(snapshot: Mapping[str, object]) -> str:
@@ -34,8 +49,7 @@ def resolve_receiving_ear_assembly_display_skins(
     """
     if not isinstance(snapshot, Mapping):
         raise TypeError("EAR_DISPLAY_SOURCE_REQUIRES_SNAPSHOT")
-    if (snapshot.get("model") not in ("受電箱", "RECEIVING")
-            or snapshot.get("nfb_config_submitted") is not True):
+    if not receiving_ear_assembly_display_active(snapshot):
         return ()
 
     owners = tuple(resolve_receiving_tier_ear_mating_xy(snapshot))

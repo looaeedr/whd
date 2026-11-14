@@ -143,6 +143,25 @@ def preview_quantity_nfb_submission(snapshot, quantity_model, config):
     return project_common_box(projected)
 
 
+def receiving_inner_door_nfb_confirm_required(staged_config, features):
+    """Classify a physical inner-door Confirm All from its original source.
+
+    Both direct GUI and Quantity precommit use this sole Engine source query.
+    It is a routing decision, never CSV validation or manufacturing approval:
+    a malformed CSV-shaped Feature must still reach the strict NFB verifier.
+    """
+    if staged_config is None:
+        return False
+    if not isinstance(staged_config, Mapping):
+        raise ValueError("RECEIVING_INNER_DOOR_CONFIRM_STAGED_SOURCE_INVALID")
+    if not isinstance(features, Sequence) or isinstance(features, (str, bytes)):
+        raise ValueError("RECEIVING_INNER_DOOR_CONFIRM_FEATURES_INVALID")
+    return any(
+        getattr(feature, "source_type", None) == "NFB_CSV_SOURCE"
+        for feature in features
+    )
+
+
 def preview_quantity_inner_door_confirm(
     snapshot, quantity_model, part_key, features, staged_config, *,
     include_missing_heights=False,
@@ -157,7 +176,10 @@ def preview_quantity_inner_door_confirm(
     """
     from .receiving_inner_door_candidates import validate_door_config
     from .receiving_quantity_box import update_common_box
+    from .cabinet_types.policy import canonical_family_name
 
+    if not isinstance(snapshot, Mapping) or canonical_family_name(snapshot) != "受電箱":
+        raise ValueError("RECEIVING_QUANTITY_INNER_DOOR_FAMILY_REQUIRED")
     config = validate_door_config(staged_config)
     changes = {
         "inner_door_layers": config["layers"],
@@ -170,8 +192,7 @@ def preview_quantity_inner_door_confirm(
             config.get("layer_heights_mm")
         )
     projected = update_common_box(snapshot, changes)
-    if not any(getattr(row, "source_type", None) == "NFB_CSV_SOURCE"
-               for row in features):
+    if not receiving_inner_door_nfb_confirm_required(config, features):
         return projected, None
 
     typed = committed_csv_nfb_config(part_key, features, config)
@@ -179,6 +200,70 @@ def preview_quantity_inner_door_confirm(
         projected, quantity_model, typed,
     )
     return projected, typed
+
+
+
+def commit_receiving_quantity_inner_door_confirm(
+    snapshot, quantity_model, part_key, features, staged_config, *,
+    include_missing_heights=False,
+):
+    """Atomic public-source commit for an operator's Quantity inner Door.
+
+    The original Confirm All opens a detached, full Family/CSV validation
+    before changing either persisted authority: the selected QuantityModel
+    version and the project source snapshot. No GUI geometry or preview
+    may commit an NFB, and the single physical Bay remains a projection.
+    """
+    from .receiving_quantity_versions import QuantityModel
+
+    if type(snapshot) is not dict:
+        raise ValueError("RECEIVING_QUANTITY_NFB_SOURCE_SNAPSHOT_REQUIRED")
+    if snapshot.get("active_mode") != "quantity":
+        raise ValueError("RECEIVING_QUANTITY_NFB_MODE_REQUIRED")
+    if not isinstance(quantity_model, QuantityModel):
+        raise ValueError("RECEIVING_QUANTITY_NFB_VERSION_OWNER_REQUIRED")
+
+    prior_quantity = quantity_model.snapshot()
+    projected, typed = preview_quantity_inner_door_confirm(
+        snapshot, quantity_model, part_key, features, staged_config,
+        include_missing_heights=include_missing_heights,
+    )
+    # The approved projection must correspond to this exact live selected
+    # version, not a switched/mutated quantity model or stale GUI Bay alias.
+    if quantity_model.snapshot() != prior_quantity:
+        raise ValueError("RECEIVING_QUANTITY_NFB_SOURCE_CHANGED_DURING_PREVIEW")
+    if typed is not None:
+        detached = QuantityModel.from_payload(prior_quantity)
+        detached.set_version_nfb_config(
+            detached.selected_version_id, submitted=True, config=typed,
+        )
+        expected_quantity = detached.snapshot()
+    else:
+        expected_quantity = prior_quantity
+    if projected.get("quantity") != expected_quantity:
+        raise ValueError("RECEIVING_QUANTITY_NFB_PROJECTED_VERSION_DRIFT")
+
+    # Snapshot and QuantityModel form ONE Engine transaction. Publishing
+    # the detached snapshot first lets the existing model change callback
+    # observe a consistent project; any failure restores both sources,
+    # without another GUI NFB writer or a second on_change notification.
+    prior_snapshot = deepcopy(snapshot)
+    try:
+        snapshot.clear()
+        snapshot.update(deepcopy(projected))
+        if typed is not None:
+            quantity_model.set_version_nfb_config(
+                quantity_model.selected_version_id, submitted=True, config=typed,
+            )
+        if (quantity_model.snapshot() != expected_quantity
+                or snapshot != projected):
+            raise ValueError("RECEIVING_QUANTITY_NFB_COMMITTED_SOURCE_DRIFT")
+    except Exception:
+        quantity_model._restore_validated_owner_snapshot(prior_quantity)
+        snapshot.clear()
+        snapshot.update(prior_snapshot)
+        raise
+    return deepcopy(snapshot), deepcopy(typed)
 
 
 def candidate_committed_csv_nfb_config(source):

@@ -718,6 +718,13 @@ def build_box_body_structure_render_data(
         cabinet_family_policy.canonical_family_name(spec.model_name) == "受電箱"
         and str(structure.structure_type.value) == "three_piece_side_back_split"
     )
+    lock_sides = spec.receiving_side_lock_participation
+    if lock_sides is not None and (
+        type(lock_sides) is not tuple or len(lock_sides) != 2
+        or any(type(active) is not bool for active in lock_sides)
+        or not receiving_physical
+    ):
+        raise ValueError("RECEIVING_SIDE_LOCK_PARTICIPATION_INVALID")
     pieces = []
     for piece in structure.pieces:
         scene = DrawingScene()
@@ -743,6 +750,11 @@ def build_box_body_structure_render_data(
                 width=float(piece.structural.width),
                 height=float(piece.structural.height),
                 back_contract=(spec.back_panel_contract if piece.role == "back" else None),
+                joint_side=(
+                    lock_sides[0] if piece.role == "left_side"
+                    else lock_sides[1] if piece.role == "right_side"
+                    else None
+                ) if lock_sides is not None else None,
             )
             scene.extend(features)
             # Reference bends are audit evidence only. Receiving's physical
@@ -829,6 +841,7 @@ def generate_box_body_structure_parts(
     # actual DXF publication must not allow registered unimplemented models.
     cabinet_family_policy.require_implemented_manufacturing_family(spec.model_name)
     ctx = context or ManufacturingContext()
+    _manufacturing_export.require_dxf_overwrite_boolean(ctx.overwrite)
     if type(verify_reopen) is not bool:
         raise TypeError("verify_reopen must be bool")
     if resolved_render_data is not None and not isinstance(
@@ -871,7 +884,7 @@ def generate_box_body_structure_parts(
                     render.scene, path, serializer=save_scene_dxf,
                     overwrite=overwrite,
                 ),
-            overwrite=bool(ctx.overwrite), verify_all_staged=True,
+            overwrite=ctx.overwrite, verify_all_staged=True,
         )
     else:
         staged = {}
@@ -884,7 +897,7 @@ def generate_box_body_structure_parts(
                 piece.render_data.scene,
                 path,
                 serializer=save_scene_dxf,
-                overwrite=bool(ctx.overwrite),
+                overwrite=ctx.overwrite,
             )
         source = piece.render_data.metadata.get("baseline_source_path")
         results.append(PartExportResult(

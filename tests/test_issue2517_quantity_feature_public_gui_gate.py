@@ -31,13 +31,18 @@ def test_common_quantity_preview_calls_public_engine_before_cache(monkeypatch):
 
 
 def test_single_quantity_size_commit_uses_public_feature_gate():
-    # The callback is nested inside the real Assembly dialog; assert its
-    # source boundary rather than replacing Tk/QuantityModel with a fake model.
+    # The GUI sends operator W/H/D/count to ONE public Engine transaction;
+    # the canonical Engine owner still runs the finished-face feature gate.
     source = getsource(receiving.open_receiving_multi_settings)
-    assert "manufacturing_api.require_valid_operator_quantity_features(candidate)" in source
+    assert "manufacturing_api.apply_operator_receiving_quantity_size_count(" in source
+    assert "manufacturing_api.project_operator_receiving_quantity_size_count(" in source
+    assert "manufacturing_api.require_valid_operator_quantity_features(candidate)" not in source
     assert "require_valid_quantity_features(candidate)" not in source
-    assert "update_common_box(snapshot, " in source
+    assert "update_common_box(snapshot, " not in source
     assert "_apply_mode_snapshot(self, namespace, candidate)" in source
+    canonical = getsource(manufacturing_api.apply_operator_receiving_quantity_size_count)
+    assert "require_valid_quantity_features(projected)" in canonical
+    assert "update_common_box(" in canonical
 
 
 def test_no_private_quantity_feature_validator_remains_in_receiving_gui():

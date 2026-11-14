@@ -19,7 +19,7 @@ def _s(name,w,h,d,px,py,diam):
 
 def test_two_real_folded_legs_align_tab_tips_to_real_base_skin():
     small=_s("100HN-s",75,130,68,25,111,3.2)
-    big=_s("3P400SN",140,257,107,44,194,5.1)
+    big=_s("3P400",140,257,107,44,194,5.1)
     pattern,=generate_nfb_pad_patterns([small,big],plate_thickness_mm=2,
                                        tooling=read_pad_tooling_rule())
     base_z=-150.
@@ -71,7 +71,7 @@ def test_real_submitted_v5_left_base_2d_squares_feed_same_3d_pad_skins(rotation,
         "shrink_left":45.,"shrink_right":45.,"bend":20.,
     }
     rows=snap["nfb_config"]["holes"]
-    rows[0].update(model_filename="nfbv5:士林:3P400SN",source_brand="士林")
+    rows[0].update(model_filename="nfbv5:士林:3P400",source_brand="士林")
     rows[1].update(model_filename="nfbv5:士林:100HN-s",source_brand="士林",rotation_deg=rotation)
     snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"]=deepcopy(snap["nfb_config"])
     values=receiving_base_plate_values(snap)
@@ -121,7 +121,7 @@ def test_real_submitted_v5_left_base_2d_squares_feed_same_3d_pad_skins(rotation,
 def test_same_real_pad_rotates_as_selected_nfb_base_four_squares(angle):
     from ae_engine.receiving_nfb_v5_configured_inner_door import AXES
     shallow=_s("100HN-s",75,130,68,25,111,3.2)
-    deep=_s("3P400SN",140,257,107,44,194,5.1)
+    deep=_s("3P400",140,257,107,44,194,5.1)
     p,=generate_nfb_pad_patterns([shallow,deep],plate_thickness_mm=2.,
                                   tooling=read_pad_tooling_rule())
     kwargs=dict(pattern=p,parent_base_id="base_plate",owner_hole_id="nfb:rot",
@@ -163,7 +163,7 @@ def test_actual_pad_mating_refuses_stale_base_geometry_even_when_owner_metadata_
         "shrink_left":45.,"shrink_right":45.,"bend":20.,
     }
     rows=snap["nfb_config"]["holes"]
-    rows[0].update(model_filename="nfbv5:士林:3P400SN",source_brand="士林")
+    rows[0].update(model_filename="nfbv5:士林:3P400",source_brand="士林")
     rows[1].update(model_filename="nfbv5:士林:100HN-s",source_brand="士林",
                    rotation_deg=90)
     snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"]=deepcopy(snap["nfb_config"])
@@ -207,7 +207,7 @@ def test_real_folded_pad_four_tab_tips_enter_matching_base_cutting_squares(rotat
     from ae_engine.receiving_nfb_v5_configured_inner_door import AXES
 
     smaller=_s("100HN-s",75,130,68,25,111,3.2)
-    reference=_s("3P400SN",140,257,107,44,194,5.1)
+    reference=_s("3P400",140,257,107,44,194,5.1)
     pattern,=generate_nfb_pad_patterns(
         (smaller,reference),plate_thickness_mm=2.,tooling=read_pad_tooling_rule())
     world_x,world_y,base_z=147.,260.,-150.
@@ -254,7 +254,7 @@ def test_pad_real_mesh_mating_guard_rejects_mutated_triangles_or_base_cut(rotati
         verify_real_pad_mesh_tab_engagement,
     )
     shallow=_s("100HN-s",75,130,68,25,111,3.2)
-    deep=_s("3P400SN",140,257,107,44,194,5.1)
+    deep=_s("3P400",140,257,107,44,194,5.1)
     pattern,=generate_nfb_pad_patterns(
         (shallow,deep),plate_thickness_mm=2.,tooling=read_pad_tooling_rule())
     ux,uy=AXES[rotation]

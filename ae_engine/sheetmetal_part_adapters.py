@@ -149,6 +149,9 @@ def derive_door_layout_cells(columns) -> tuple[DoorLayoutCell, ...]:
 
 def door_layout_part_key(cell: DoorLayoutCell) -> str:
     """Stable one-based identity shared by Fold Designer and DXF export."""
+    if (type(cell.column_index) is not int or type(cell.row_index) is not int
+            or cell.column_index < 0 or cell.row_index < 0):
+        raise ValueError("DOOR_LAYOUT_PHYSICAL_CELL_INDEX_INVALID")
     return f"door_c{cell.column_index + 1}_r{cell.row_index + 1}"
 
 
@@ -156,13 +159,64 @@ def door_layout_export_filename(cell: DoorLayoutCell) -> str:
     return f"{door_layout_part_key(cell)}.dxf"
 
 
+def door_layout_indicator_export_filename(
+    cell: DoorLayoutCell, *, part_kind: str,
+) -> str:
+    """Name one per-cell Indicator sheet from the canonical physical Door ID.
+
+    GUI supplies only the original cell and requested part kind; it must not
+    synthesize or cast physical column/row identities for manufactured DXF.
+    """
+    if part_kind not in ("indicator_box", "indicator_door"):
+        raise ValueError("DOOR_LAYOUT_INDICATOR_EXPORT_KIND_INVALID")
+    physical_door = door_layout_part_key(cell)
+    return f"{part_kind}_{physical_door.removeprefix('door_')}.dxf"
+
+
+
+# Historical standalone PartSpec export names. The separate Vault composed,
+# Receiving Set/Bay and per-cell Door routes have their own Engine naming APIs.
+_LEGACY_SINGLE_PART_DXF_FILENAMES = {
+    "box_body": "box_body_z.dxf",
+    "head": "end_cap_head.dxf",
+    "tail": "end_cap_tail.dxf",
+    "door": "door_unfold.dxf",
+    "base_plate": "base_plate.dxf",
+    "indicator_box": "indicator_box.dxf",
+    "indicator_door": "indicator_door.dxf",
+}
+
+
+def legacy_single_part_dxf_filename(part_kind: str) -> str:
+    """Name a historical standalone manufacturing sheet by Engine part kind.
+
+    The GUI must not map a selected physical part to an arbitrary filename.
+    This is only a name projection, not manufacturing eligibility or a DXF
+    writer, and keeps the existing seven on-disk names unchanged.
+    """
+    if type(part_kind) is not str or part_kind not in _LEGACY_SINGLE_PART_DXF_FILENAMES:
+        raise ValueError("LEGACY_SINGLE_PART_EXPORT_KIND_INVALID")
+    return _LEGACY_SINGLE_PART_DXF_FILENAMES[part_kind]
+
 def door_layout_feature_map_to_part_features(columns, feature_map) -> dict[str, list]:
-    """Project legacy ``col:row`` Door feature stores to formal part identities."""
+    """Project both saved Door-cell key forms through one physical ID owner.
+
+    Current string keys and legacy (column,row) tuple keys refer to the same
+    physical Door cell. A tuple-only authored hole must not disappear during
+    Project Save→Reload; competing forms are ambiguous and fail closed.
+    """
     source = dict(feature_map or {})
     result = {}
     for cell in derive_door_layout_cells(columns):
         legacy_key = f"{cell.column_index}:{cell.row_index}"
-        result[door_layout_part_key(cell)] = list(source.get(legacy_key, ()) or ())
+        tuple_key = (cell.column_index, cell.row_index)
+        if legacy_key in source and tuple_key in source:
+            raise ValueError("DOOR_LAYOUT_FEATURE_AMBIGUOUS_CELL_SOURCE")
+        raw_features = (
+            source[legacy_key] if legacy_key in source
+            else source.get(tuple_key, ())
+        )
+        result[door_layout_part_key(cell)] = list(raw_features or ())
     return result
 
 
@@ -619,6 +673,19 @@ RECEIVING_BASE_PATTERNS = frozenset((
     RECEIVING_BASE_PATTERN_CENTER,
     RECEIVING_BASE_PATTERN_RIGHT,
 ))
+
+
+def project_operator_receiving_base_plate_pattern_choices() -> tuple[tuple[str, str], ...]:
+    """Project the exact existing physical BasePlate patterns in display order.
+
+    The role keys are semantic UI identity, never manufacturing dimensions.
+    Only the canonical builder constants may define the persisted pattern IDs.
+    """
+    return (
+        ("left", RECEIVING_BASE_PATTERN_LEFT),
+        ("center", RECEIVING_BASE_PATTERN_CENTER),
+        ("right", RECEIVING_BASE_PATTERN_RIGHT),
+    )
 
 
 def build_receiving_base_plate_result(

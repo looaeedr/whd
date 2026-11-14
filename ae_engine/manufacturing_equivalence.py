@@ -102,9 +102,13 @@ def manufacturing_equivalence_payload(render_data, parameters):
     from shapely import normalize
     if not isinstance(parameters, ManufacturingParameters):
         raise TypeError("explicit ManufacturingParameters required")
-    thickness = _number(parameters.thickness)
-    if thickness <= 0:
-        raise ValueError("manufacturing thickness must be positive")
+    # The CHECK/Q fingerprint is a manufacturing source contract, not a
+    # generic float serializer: bool(True) may not become a 1 mm sheet.
+    # Use the same Engine gate as GUI/PartSpec physical T.
+    from .operator_settings_transactions import normalize_operator_source_dimension
+    thickness = normalize_operator_source_dimension(
+        parameters.thickness, field="t",
+    )
     material = render_data.material
     if material is None or material.is_empty or not material.is_valid:
         raise ValueError("valid resolved final material required")

@@ -24,7 +24,7 @@ def _choose_pair(root, state):
         assert len(remove)==1
         remove[0].invoke()
         _pump(root)
-    for name in ("3P400SN","100HN-s"):
+    for name in ("3P400","100HN-s"):
         options=row["available"]
         names=[str(options.get(i)) for i in range(options.size())]
         assert name in names, ("NFB_SELECTED_SOURCE_CSV_MISSING",name,names)
@@ -36,7 +36,7 @@ def _choose_pair(root, state):
         assert len(plus)==1
         plus[0].invoke()
         _pump(root)
-    assert tuple(row["assigned"].get(0,tk.END))==("3P400SN","100HN-s")
+    assert tuple(row["assigned"].get(0,tk.END))==("3P400","100HN-s")
 
 
 def test_real_tk_normal_confirm_populates_clickable_pad_2d_unfolded_sheet(tmp_path):

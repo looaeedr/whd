@@ -19,6 +19,15 @@ from tests.test_issue2690_composed_panel_dxf import _flat
 from tests.test_issue1502_current_csv_multi_bay_once import _multi, _provider
 from tests.test_issue1502_single_button_full_csv_receiving_export import _flags
 
+# The export minute is frozen only for filename expectations. Production
+# output obtains the Taiwan local minute once per atomic group transaction.
+@pytest.fixture(autouse=True)
+def _fixed_export_minute(monkeypatch):
+    monkeypatch.setattr(
+        "ae_engine.receiving_dxf_groups._taipei_output_stamp",
+        lambda: "202611071258",
+    )
+
 
 def _seven():
     layout = new_receiving_layout(width=800, height=1600, depth=350)
@@ -74,6 +83,92 @@ def test_renaming_or_gaps_never_reclassifies_physical_edges():
         plan_receiving_grouped_dxf(state, "UNKNOWN")
 
 
+
+def test_output_filename_stamp_panel_range_and_nonnumeric_names():
+    state = _seven()
+    stamp = "202611071258"
+    all_plan = plan_receiving_grouped_dxf(state, "ALL", file_stamp=stamp)
+    assert tuple(n for n, _ in all_plan) == (
+        "202611071258_p1~p7全部.dxf",
+    )
+    per_set = plan_receiving_grouped_dxf(state, "PER_SET", file_stamp=stamp)
+    assert tuple(n for n, _ in per_set) == (
+        "202611071258_p1~p7第1套.dxf",
+        "202611071258_p1~p7第2套.dxf",
+    )
+    groups = plan_receiving_grouped_dxf(state, "END_VS_MIDDLE",
+                                        file_stamp=stamp)
+    assert tuple(n for n, _ in groups) == (
+        "202611071258_p1~p7頭尾盤.dxf",
+        "202611071258_p1~p7中間盤.dxf",
+    )
+    renamed = manufacturing_api.rename_receiving_panel(
+        state, set_index=0, bay_index=0, panel_name="入線",
+    )
+    renamed_plan = plan_receiving_grouped_dxf(
+        renamed, "ALL", file_stamp=stamp,
+    )
+    assert "入線" in renamed_plan[0][0]
+    assert renamed_plan[0][0].endswith("全部.dxf")
+    assert len(renamed_plan[0][1]) == 7
+    for invalid in ("2026110712", "202613071258", "../invalid000", "", 0):
+        with pytest.raises(ValueError, match="TIMESTAMP_INVALID"):
+            plan_receiving_grouped_dxf(state, "ALL", file_stamp=invalid)
+
+
+
+def test_sixteen_bay_mother_range_is_shared_across_all_five_output_names():
+    source = new_receiving_layout(width=800, height=1600, depth=350)
+    source = resize_receiving_bays(source, set_index=0, bay_count=4)
+    source = resize_receiving_sets(source, set_count=3)
+    source = resize_receiving_bays(source, set_index=1, bay_count=3)
+    source = resize_receiving_bays(source, set_index=2, bay_count=9)
+    expected = {
+        "ALL": ("202611071258_p1~p16全部.dxf",),
+        "PER_SET": (
+            "202611071258_p1~p16第1套.dxf",
+            "202611071258_p1~p16第2套.dxf",
+            "202611071258_p1~p16第3套.dxf",
+        ),
+        "END_VS_MIDDLE": (
+            "202611071258_p1~p16頭尾盤.dxf",
+            "202611071258_p1~p16中間盤.dxf",
+        ),
+    }
+    for mode, names in expected.items():
+        result = manufacturing_api.plan_receiving_grouped_dxf(
+            source, mode, file_stamp="202611071258",
+        )
+        assert tuple(name for name, _ in result) == names
+        assert sum(len(cells) for _, cells in result) == 16
+    assert tuple(
+        len(cells) for _, cells in
+        manufacturing_api.plan_receiving_grouped_dxf(source, "PER_SET")
+    ) == (4, 3, 9)
+    assert tuple(
+        len(cells) for _, cells in
+        manufacturing_api.plan_receiving_grouped_dxf(source, "END_VS_MIDDLE")
+    ) == (6, 10)
+
+
+
+def _certified_body(layout, si, bi, *, thickness_mm=2.0):
+    """Use actual Engine Family/Joint production geometry in grouped acceptance."""
+    from ae_engine.contracts import ManufacturingContext
+    bay = layout["sets"][si]["bays"][bi]
+    values = {"w": bay["width"], "h": bay["height"], "d": bay["depth"],
+              "t": thickness_mm}
+    fresh = dict(manufacturing_api.build_receiving_factory_confirmed_parts(
+        values, confirmation="fresh_family_confirmed",
+    ))["box_body"]
+    physical = manufacturing_api.bind_receiving_factory_box_body_to_bay(
+        fresh, layout, set_index=si, bay_index=bi,
+    )
+    return manufacturing_api.build_box_body_structure_render_data(
+        physical, ManufacturingContext(resource_root=Path(__file__).resolve().parents[1]),
+    )
+
+
 def _synthetic_rows(layout):
     rows=[]
     for si, group in enumerate(layout["sets"]):
@@ -87,9 +182,9 @@ def _synthetic_rows(layout):
 
 
 @pytest.mark.parametrize("mode,expected", [
-    ("PER_SET", ("第1套.dxf","第2套.dxf")),
-    ("ALL", ("全部.dxf",)),
-    ("END_VS_MIDDLE", ("頭尾盤.dxf","中間盤.dxf")),
+    ("PER_SET", ("202611071258_p1~p7第1套.dxf","202611071258_p1~p7第2套.dxf","202611071258_p1~p7總計.dxf")),
+    ("ALL", ("202611071258_p1~p7全部.dxf","202611071258_p1~p7總計.dxf")),
+    ("END_VS_MIDDLE", ("202611071258_p1~p7頭尾盤.dxf","202611071258_p1~p7中間盤.dxf","202611071258_p1~p7總計.dxf")),
 ])
 def test_group_commit_is_a_atomic_batch_with_dxf_readback(tmp_path, mode, expected):
     layout = _seven()
@@ -110,11 +205,89 @@ def test_group_commit_is_a_atomic_batch_with_dxf_readback(tmp_path, mode, expect
                    if e.dxftype()=="MTEXT" and e.plain_text().startswith("P"))
 
 
+
+def test_single_bay_grouped_box_body_and_head_writes_one_verified_dxf(tmp_path):
+    """An ALL operator choice may not fall back to separate source-sheet files."""
+    from ae_engine.contracts import ResolvedManufacturingGeometry, ResolvedManufacturingPart
+
+    layout = new_receiving_layout(width=800, height=1600, depth=350)
+    source = {
+        "model": "受電箱", "active_mode": "set_bay",
+        "w": 800, "h": 1600, "d": 350, "t": 2,
+        "receiving_layout": layout,
+    }
+    calls = []
+    def provider(si, bi):
+        calls.append((si, bi))
+        return ResolvedManufacturingGeometry(parts=(
+            ResolvedManufacturingPart("box_body", _certified_body(layout, si, bi)),
+            ResolvedManufacturingPart("head", _flat("head", width=90)),
+        ))
+
+    output = manufacturing_api.export_grouped_receiving_multibay_dxf(
+        source, physical_bay_geometry_provider=provider,
+        flags={"box_body": True, "head": True},
+        output_dir=tmp_path / "out", group_mode="ALL",
+        pre_commit_guard=lambda: None,
+    )
+    assert calls == [(0, 0)]
+    assert set(output) == {"202611071258_p1全部.dxf", "202611071258_p1總計.dxf"}
+    assert {p.name for p in (tmp_path / "out").glob("*.dxf")} == {"202611071258_p1全部.dxf", "202611071258_p1總計.dxf"}
+    document = ezdxf.readfile(tmp_path / "out" / "202611071258_p1全部.dxf")
+    entities = tuple(document.modelspace())
+    assert sum(entity.dxftype() == "LWPOLYLINE" and
+               entity.dxf.layer == "CUTTING" for entity in entities) >= 4
+    checks = [entity.plain_text() for entity in entities
+              if entity.dxftype() == "MTEXT" and entity.dxf.layer == "CHECK"]
+    assert {"box_body:box_body_left_side", "box_body:box_body_right_side", "box_body:box_body_back",
+            "head", "P1"} <= set(checks)
+
+
+def test_single_bay_grouped_missing_canonical_scene_refuses_zero_output(tmp_path):
+    layout = new_receiving_layout(width=800, height=1600, depth=350)
+    source = {
+        "model": "受電箱", "active_mode": "set_bay",
+        "w": 800, "h": 1600, "d": 350, "t": 2,
+        "receiving_layout": layout,
+    }
+    with pytest.raises(ValueError, match="CURRENT_FINALSCENE_MISSING"):
+        manufacturing_api.export_grouped_receiving_multibay_dxf(
+            source, physical_bay_geometry_provider=lambda _si, _bi: None,
+            flags={"box_body": True}, output_dir=tmp_path / "out",
+            group_mode="ALL", pre_commit_guard=lambda: None,
+        )
+    assert not list((tmp_path / "out").glob("*.dxf"))
+
+
+
+def test_single_bay_grouped_requested_missing_base_fails_closed(tmp_path):
+    from ae_engine.contracts import ResolvedManufacturingGeometry, ResolvedManufacturingPart
+    layout = new_receiving_layout(width=800, height=1600, depth=350)
+    source = {
+        "model": "受電箱", "active_mode": "set_bay",
+        "w": 800, "h": 1600, "d": 350, "t": 2,
+        "receiving_layout": layout,
+    }
+    def provider(_si, _bi):
+        return ResolvedManufacturingGeometry(parts=(
+            ResolvedManufacturingPart("head", _flat("head")),
+        ))
+    with pytest.raises(ValueError, match="SELECTED_BASE_PLATE_PHYSICAL_SOURCE_MISSING"):
+        manufacturing_api.export_grouped_receiving_multibay_dxf(
+            source, physical_bay_geometry_provider=provider,
+            flags={"head": True, "base_plate": True},
+            output_dir=tmp_path / "out", group_mode="ALL",
+            pre_commit_guard=lambda: None,
+        )
+    assert not list((tmp_path / "out").glob("*.dxf"))
+
+
+
 def test_drift_on_second_group_preserves_all_old_outputs(tmp_path):
     layout = _seven()
     out = tmp_path/"out"
     out.mkdir()
-    first, second = out/"頭尾盤.dxf", out/"中間盤.dxf"
+    first, second = out/"202611071258_p1~p7頭尾盤.dxf", out/"202611071258_p1~p7中間盤.dxf"
     first.write_bytes(b"old head")
     second.write_bytes(b"old middle")
     calls = 0
@@ -154,11 +327,11 @@ def test_legacy_current_csv_export_and_new_group_mode_share_real_source_guard(tm
         output_dir=tmp_path/"output", group_mode="ALL",
         pre_commit_guard=lambda: checked.append("verified"),
     )
-    assert set(output) == {"全部.dxf"}
-    assert len(list((tmp_path/"output").glob("*.dxf"))) == 1
+    assert set(output) == {"202611071258_p1~p2全部.dxf", "202611071258_p1~p2總計.dxf"}
+    assert len(list((tmp_path/"output").glob("*.dxf"))) == 2
     assert calls == [(0,0),(0,1)]
     assert len(checked)>=2
-    assert len(tuple(ezdxf.readfile(tmp_path/"output"/"全部.dxf").modelspace()))>2
+    assert len(tuple(ezdxf.readfile(tmp_path/"output"/"202611071258_p1~p2全部.dxf").modelspace()))>2
 
 
 
@@ -203,8 +376,8 @@ def test_grouped_physical_flats_retain_canonical_body_owner(tmp_path):
             pre_commit_guard=lambda: None,
             box_body_owner_by_namespace={ns: owner},
         )
-    assert set(receipts) == {"第1套.dxf", "第2套.dxf"}
-    doc = ezdxf.readfile(tmp_path / "output" / "第1套.dxf")
+    assert set(receipts) == {"202611071258_p1~p7第1套.dxf", "202611071258_p1~p7第2套.dxf", "202611071258_p1~p7總計.dxf"}
+    doc = ezdxf.readfile(tmp_path / "output" / "202611071258_p1~p7第1套.dxf")
     checks = [e.plain_text() for e in doc.modelspace()
               if e.dxftype() == "MTEXT" and e.dxf.layer == "CHECK"]
     assert checks.index("box_body:box_body_left_side") < (
@@ -221,8 +394,9 @@ def test_grouped_physical_flats_retain_canonical_body_owner(tmp_path):
     assert set(outlines) == {110.0, 120.0, 130.0}
     assert outlines[120.0] - outlines[110.0] == 20.0
     assert set((tmp_path / "output").glob("*.dxf")) == {
-        tmp_path / "output" / "第1套.dxf",
-        tmp_path / "output" / "第2套.dxf",
+        tmp_path / "output" / "202611071258_p1~p7第1套.dxf",
+        tmp_path / "output" / "202611071258_p1~p7第2套.dxf",
+        tmp_path / "output" / "202611071258_p1~p7總計.dxf",
     }
 
 
@@ -234,7 +408,7 @@ def test_grouped_export_rejects_untrusted_body_owner_without_publishing(tmp_path
     )
     out = tmp_path / "out"
     out.mkdir()
-    old = out / "第1套.dxf"
+    old = out / "202611071258_p1~p7第1套.dxf"
     old.write_bytes(b"old-file-preserved")
     with TemporaryDirectory(dir=tmp_path) as staging:
         with pytest.raises(TypeError, match="COMPOSED_DXF_BOX_BODY_OWNER_TYPE_INVALID"):
@@ -244,7 +418,7 @@ def test_grouped_export_rejects_untrusted_body_owner_without_publishing(tmp_path
                 box_body_owner_by_namespace={ns: object()},
             )
     assert old.read_bytes() == b"old-file-preserved"
-    assert not (out / "第2套.dxf").exists()
+    assert not (out / "202611071258_p1~p7第2套.dxf").exists()
 
 
 def _complete_committed_nfb_requests_for_core(source):
@@ -290,6 +464,75 @@ def _complete_committed_nfb_requests_for_core(source):
     ) for bi in range(len(layout["sets"][0]["bays"])))
 
 
+
+def test_main_grouped_export_includes_saved_confirmed_nfb_pair_in_one_file(tmp_path):
+    """Public Engine projects original approved pair Requests; no side NFB DXF."""
+    source = _multi()
+    layout, requests = _complete_committed_nfb_requests_for_core(source)
+    source["receiving_layout"] = layout
+    before = tuple(
+        (request.input_snapshot, request.canonical_part_keys)
+        for request in requests
+    )
+    provider, _calls = _provider(source)
+    result = manufacturing_api.export_grouped_receiving_multibay_dxf(
+        source, physical_bay_geometry_provider=provider,
+        flags={"head": True, "door": True, "base_plate": True},
+        output_dir=tmp_path / "out", group_mode="ALL",
+        pre_commit_guard=lambda: None, include_saved_nfb_pairs=True,
+    )
+    assert set(result) == {"202611071258_p1~p2全部.dxf", "202611071258_p1~p2總計.dxf"}
+    assert {path.name for path in (tmp_path / "out").rglob("*.dxf")} == {"202611071258_p1~p2全部.dxf", "202611071258_p1~p2總計.dxf"}
+    doc = ezdxf.readfile(result["202611071258_p1~p2全部.dxf"])
+    assert not doc.audit().errors
+    checks = [e.plain_text() for e in doc.modelspace()
+              if e.dxftype() == "MTEXT" and e.dxf.layer == "CHECK"]
+    assert checks.count("head") == 2
+    assert sum(key.startswith("inner_door:") and " × " not in key for key in checks) == 2
+    assert checks.count("base_plate") == 2
+    assert before == tuple(
+        (request.input_snapshot, request.canonical_part_keys)
+        for request in requests
+    )
+    assert not (tmp_path / "out" / "NFB_PART_ONLY").exists()
+
+
+def test_main_grouped_export_rejects_partly_confirmed_nfb_instead_of_partial_output(tmp_path):
+    source = _multi()
+    layout, _requests = _complete_committed_nfb_requests_for_core(source)
+    layout["sets"][0]["bays"][1]["nfb_config_submitted"] = False
+    source["receiving_layout"] = layout
+    provider, _calls = _provider(source)
+    with pytest.raises(ValueError, match="RECEIVING_COMPOSED_NFB_PARTIAL_BAY_CONFIRMATION"):
+        manufacturing_api.export_grouped_receiving_multibay_dxf(
+            source, physical_bay_geometry_provider=provider,
+            flags={"head": True, "door": True, "base_plate": True},
+            output_dir=tmp_path / "out", group_mode="ALL",
+            pre_commit_guard=lambda: None, include_saved_nfb_pairs=True,
+        )
+    assert not list((tmp_path / "out").rglob("*.dxf"))
+
+
+def test_head_only_does_not_auto_include_unselected_nfb_pairs(tmp_path):
+    source = _multi()
+    layout, _requests = _complete_committed_nfb_requests_for_core(source)
+    source["receiving_layout"] = layout
+    provider, _calls = _provider(source)
+    result = manufacturing_api.export_grouped_receiving_multibay_dxf(
+        source, physical_bay_geometry_provider=provider,
+        flags={"head": True}, output_dir=tmp_path / "out",
+        group_mode="ALL", pre_commit_guard=lambda: None,
+        include_saved_nfb_pairs=True,
+    )
+    assert set(result) == {"202611071258_p1~p2全部.dxf", "202611071258_p1~p2總計.dxf"}
+    doc = ezdxf.readfile(result["202611071258_p1~p2全部.dxf"])
+    checks = [e.plain_text() for e in doc.modelspace()
+              if e.dxftype() == "MTEXT" and e.dxf.layer == "CHECK"]
+    assert checks.count("head") == 2
+    assert not any(k == "base_plate" or k.startswith("inner_door:") for k in checks)
+
+
+
 def test_grouped_nfb_pair_verified_source_exports_only_one_composed_file(tmp_path):
     """Each source-confirmed NFB pair joins its own Bay; no parallel PART_ONLY files."""
     source = _multi()
@@ -302,16 +545,16 @@ def test_grouped_nfb_pair_verified_source_exports_only_one_composed_file(tmp_pat
         group_mode="PER_SET", pre_commit_guard=lambda: None,
         nfb_pair_requests=requests,
     )
-    assert set(result) == {"第1套.dxf"}
-    assert list((tmp_path / "out").glob("*.dxf")) == [
-        tmp_path / "out" / "第1套.dxf"
-    ]
-    doc = ezdxf.readfile(result["第1套.dxf"])
+    assert set(result) == {"202611071258_p1~p2第1套.dxf", "202611071258_p1~p2總計.dxf"}
+    assert {p.name for p in (tmp_path / "out").glob("*.dxf")} == {
+        "202611071258_p1~p2第1套.dxf", "202611071258_p1~p2總計.dxf",
+    }
+    doc = ezdxf.readfile(result["202611071258_p1~p2第1套.dxf"])
     assert not doc.audit().errors
     checks = [entity.plain_text() for entity in doc.modelspace()
               if entity.dxftype() == "MTEXT" and entity.dxf.layer == "CHECK"]
     assert checks.count("head") == 2
-    assert sum(key.startswith("inner_door:") for key in checks) == 2
+    assert sum(key.startswith("inner_door:") and " × " not in key for key in checks) == 2
     assert checks.count("base_plate") == 2
     # Composing verified PART_ONLY flats does not publish standalone pairs.
     assert not list((tmp_path / "out").rglob("NFB_PART_ONLY/*.dxf"))
@@ -379,3 +622,76 @@ def test_grouped_nfb_same_ids_dimensions_but_foreign_csv_source_rejected(tmp_pat
             nfb_pair_requests=requests,
         )
     assert not list((tmp_path / "out").rglob("*.dxf"))
+
+@pytest.mark.parametrize("mode, filenames", [
+    ("ALL", ("202611071258_p1~p2全部.dxf",)),
+    ("PER_SET", ("202611071258_p1~p2第1套.dxf",)),
+    ("END_VS_MIDDLE", ("202611071258_p1~p2頭尾盤.dxf",)),
+])
+def test_same_saved_nfb_source_allows_only_independent_core_flat_scope(
+    tmp_path, mode, filenames,
+):
+    """An approved pair can share its exact saved source with independent core.
+
+    A non-NFB Body is never treated as an EAR/PAD certified whole cabinet.
+    Engine must still rederive every approved pair from this saved Layout.
+    """
+    from ae_engine.contracts import (
+        ResolvedManufacturingGeometry, ResolvedManufacturingPart,
+    )
+
+    source = _multi()
+    approved_layout, requests = _complete_committed_nfb_requests_for_core(source)
+    source["receiving_layout"] = approved_layout
+
+    def independent_core(si, bi):
+        return ResolvedManufacturingGeometry(parts=(
+            ResolvedManufacturingPart(
+                "head", _flat("head", width=80 + bi),
+            ),
+            ResolvedManufacturingPart(
+                "box_body", _certified_body(
+                    approved_layout, si, bi, thickness_mm=source["t"],
+                ),
+            ),
+        ))
+
+    out = tmp_path / "group"
+    files = manufacturing_api.export_grouped_receiving_multibay_dxf(
+        source, physical_bay_geometry_provider=independent_core,
+        flags={"head": True, "box_body": True},
+        output_dir=out, group_mode=mode,
+        pre_commit_guard=lambda: None, nfb_pair_requests=requests,
+    )
+    assert tuple(files) == filenames + ("202611071258_p1~p2總計.dxf",)
+    assert len(tuple(out.glob("*.dxf"))) == len(filenames) + 1
+    doc = ezdxf.readfile(next(out.glob("*.dxf")))
+    assert not doc.audit().errors
+    check = [e.plain_text() for e in doc.modelspace()
+             if e.dxftype() == "MTEXT" and e.dxf.layer == "CHECK"]
+    assert check.count("head") == 2
+    assert all(check.count(role) == 2 for role in (
+        "box_body:box_body_left_side", "box_body:box_body_back", "box_body:box_body_right_side",
+    ))
+    assert sum(key.startswith("inner_door:") and " × " not in key for key in check) == 2
+    assert check.count("base_plate") == 2
+    assert "nfb_pad" not in check
+    assert not list(out.rglob("NFB_PART_ONLY/*.dxf"))
+
+
+def test_nfb_composition_does_not_enable_non_core_selected_manufacturing(tmp_path):
+    """NFB pair proof does not authorize PAD/EAR or Base MFG-2 scope."""
+    source = _multi()
+    approved_layout, requests = _complete_committed_nfb_requests_for_core(source)
+    source["receiving_layout"] = approved_layout
+    provider, _calls = _provider(source)
+    with pytest.raises(
+        ValueError, match="RECEIVING_COMPOSED_NFB_INDEPENDENT_CORE_SCOPE_REQUIRED",
+    ):
+        manufacturing_api.export_grouped_receiving_multibay_dxf(
+            source, physical_bay_geometry_provider=provider,
+            flags={"head": True, "base_plate": True},
+            output_dir=tmp_path / "out", group_mode="ALL",
+            pre_commit_guard=lambda: None, nfb_pair_requests=requests,
+        )
+    assert not tuple((tmp_path / "out").glob("*.dxf"))

@@ -7,44 +7,16 @@ from copy import deepcopy
 from dataclasses import dataclass, replace
 from pathlib import Path
 import tkinter as tk
-import ae_engine.ae as ae
 from ae_engine import manufacturing_api
-from ae_engine.receiving_layout import (
-    ensure_receiving_layout as ensure_receiving_preview_layout,
-    resize_receiving_bays as resize_receiving_preview_bays,
-)
-from ae_engine.receiving_joint_locks import resolve_receiving_joint_lock_pattern
-from ae_engine.contracts import BoxBodyPartSpec, ManufacturingContext
-from ae_engine.corner_type_ui import (
-    is_unknown_model,
-    normalize_custom_model_name,
-    known_model_corner_state,
-    policy_from_corner_state,
-)
-from ae_engine.sheetmetal_geometry import (
-    CornerTypeId,
-    CornerTypeSelection,
-    EDITABLE_CORNER_TYPE_IDS,
-    CORNER_TYPE_LABELS,
-    normalize_corner_selection,
-)
-from ae_engine.sheetmetal_drawing import CirclePrimitive, PolylinePrimitive
-from ae_engine.sheetmetal_part_adapters import (
-    DoorFrameEdges,
-    derive_door_layout_cells,
-    door_layout_part_key,
-    door_layout_export_filename,
-    door_layout_feature_map_to_part_features,
-)
+from ae_engine.sheetmetal_geometry import CornerTypeId
 from phase6_fold_profiles import formed_box_body_fw_widths
-from ae_engine.assembly_joint import AssemblyJointSource, migrate_legacy_snapshot_joints
 from phase6_endcap_semantics import (
     normalize_endcap_fw_state,
     ASSEMBLY_TYPE_LABELS,
     assembly_intent_value,
     normalize_endcap_bottom_wrap_state,
 )
-from phase6_settings_center import UI_TEXT_SIZE_LABELS, load_factory_defaults_from_ae
+from phase6_settings_center import UI_TEXT_SIZE_LABELS
 from phase6_settings_service import Phase6SettingsTransactionService
 from phase6_sync_envelope import (
     materialize_sync_value,
@@ -129,23 +101,14 @@ def settings_context_extension_projection(self, namespace, context):
     cross_corner_mode = required("CrossCornerMode")
 
     def endcap_fw_projection(part_key):
-        part_key = str(part_key)
         snapshot = dict(getattr(app, "_phase6_input_snapshot", {}) or {})
         snapshot.update(dict(getattr(app, "_settings_values", {}) or {}))
-        state = app._phase6_endcap_fw_state.setdefault(
-            part_key,
-            {
-                "follow_box": True,
-                "value": required("_num")(snapshot.get("fw", 25), 25),
-            },
-        )
+        row = manufacturing_api.project_operator_endcap_fw_controls(
+            app._phase6_endcap_fw_state, snapshot.get("fw", 25),
+        )[str(part_key)]
         return {
-            "follow": bool(state.get("follow_box", True)),
-            "effective": required("resolve_endcap_fw")(
-                snapshot,
-                part_key,
-                state=app._phase6_endcap_fw_state,
-            ),
+            "follow": row["follow_box"],
+            "effective": row["display_fw"],
         }
 
     def box_structure_projection():
@@ -298,7 +261,6 @@ def settings_context_extension_projection(self, namespace, context):
         state, pairs = required("_phase6_ensure_corner_part")(
             app, part_key
         )
-        pair_keys = required("_CORNER_PAIR_KEYS")
         type_labels = required("_CORNER_TYPE_LABEL_BY_ID")
         direction_labels = required("_CORNER_DIRECTION_LABEL")
         mode_labels = required("_CORNER_MODE_LABEL")
@@ -307,14 +269,14 @@ def settings_context_extension_projection(self, namespace, context):
             targets = (
                 (pair_key,)
                 if pairs[pair_key]
-                else pair_keys[pair_key]
+                else manufacturing_api.project_operator_corner_pair_members(
+                    pair_key
+                )
             )
             target_rows = []
             for target_key in targets:
-                physical = (
-                    pair_keys[target_key][0]
-                    if target_key in pair_keys
-                    else target_key
+                physical = manufacturing_api.project_operator_corner_selection_target(
+                    target_key
                 )
                 selection = required("_phase6_selection_from_raw")(
                     state[physical]
@@ -486,30 +448,14 @@ def sync_settings_panel_extension(
         context in required("ENDCAP_FW_PARTS")
         and state.get("endcap_fw_follow_var") is not None
     ):
-        snapshot = dict(
-            getattr(app, "_phase6_input_snapshot", {}) or {}
-        )
-        snapshot.update(
-            dict(getattr(app, "_settings_values", {}) or {})
-        )
-        fw_state = app._phase6_endcap_fw_state.setdefault(
-            context,
-            {
-                "follow_box": True,
-                "value": required("_num")(
-                    snapshot.get("fw", 25), 25
-                ),
-            },
-        )
-        follow = bool(fw_state.get("follow_box", True))
-        effective = required("resolve_endcap_fw")(
-            snapshot,
-            context,
-            state=app._phase6_endcap_fw_state,
-        )
-        state["endcap_fw_follow_var"].set(follow)
+        snapshot = dict(getattr(app, "_phase6_input_snapshot", {}) or {})
+        snapshot.update(dict(getattr(app, "_settings_values", {}) or {}))
+        row = manufacturing_api.project_operator_endcap_fw_controls(
+            app._phase6_endcap_fw_state, snapshot.get("fw", 25),
+        )[context]
+        state["endcap_fw_follow_var"].set(row["follow_box"])
         state["endcap_fw_value_var"].set(
-            required("_setting_number_text")(effective)
+            required("_setting_number_text")(row["display_fw"])
         )
         try:
             state["endcap_fw_widget"].configure(state="normal")

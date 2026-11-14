@@ -25,9 +25,10 @@ from tkinter import messagebox
 from tkinter import filedialog
 from whd_theme import WHD_THEME, WHD_SEMANTIC_COLORS, apply_ttk_dark_theme
 from gui_modules.runtime_error_log import install_tk_exception_logging, write_runtime_exception
-import ae_engine.ae as ae  # AE manufacturing engine package
 from ae_engine import manufacturing_api
-from ae_engine.engineering_drawing import build_engineering_drawing_projection
+# Legacy GUI import compatibility; all decisions remain in public Engine.
+is_unknown_model = manufacturing_api.is_unknown_operator_model
+assembly_type_from_corner_state = manufacturing_api.operator_assembly_type_from_corner_state
 from ae_engine.cabinet_types import (
     policy as cabinet_family_policy,
     resolve_cabinet_type,
@@ -50,12 +51,10 @@ from ae_engine.sheetmetal_geometry import (
     CornerDirection,
     EDITABLE_CORNER_TYPE_IDS,
     CORNER_TYPE_LABELS,
-    normalize_corner_selection,
 )
 from ae_engine.sheetmetal_features import (
     box_body_face_contexts_from_strip,
     resolve_box_body_face_features,
-    CanvasTransform,
     CircleFeature,
     DoorIndicatorContext,
     RectFeature,
@@ -88,7 +87,6 @@ from ae_engine.sheetmetal_features import (
     endcap_feature_context_from_geometry,
     feature_surface_from_structural_result,
     feature_surface_from_outline,
-    resolve_surface_features,
     ReferenceAnchor,
     REFERENCE_ANCHOR_LABELS,
     REFERENCE_ANCHOR_BY_LABEL,
@@ -126,6 +124,9 @@ from ae_engine.sheetmetal_part_adapters import (
 
 # Stable compatibility names consumed by HoleEditorCompositionDependencies.
 # Always pass public Engine geometry ownership into UI/session controllers.
+# Read-only CornerType compatibility remains a public Engine callable.
+normalize_corner_selection = manufacturing_api.operator_normalize_corner_selection
+
 measure_door_indicator_position = manufacturing_api.project_operator_door_indicator_position
 feature_with_reference_anchor = manufacturing_api.operator_hole_feature_with_reference_anchor
 feature_with_process = manufacturing_api.operator_hole_feature_with_process
@@ -138,15 +139,13 @@ from ae_engine.corner_type_ui import (
     CUSTOM_MODEL_NAME,
     CORNER_KEYS,
     CORNER_LABELS,
-    CORNER_PAIR_CORNERS,
     with_unknown_model,
-    is_unknown_model,
     normalize_custom_model_name,
     new_manual_corner_pair_same_state,
     new_manual_corner_state,
     policy_from_corner_state,
     build_corner_type_preview_geometry,
-    apply_box_assembly_type, assembly_type_from_corner_state,
+    apply_box_assembly_type,
 )
 
 
@@ -277,15 +276,13 @@ def render_resolved_features(canvas, features, transform, *, color="#ff9f0a"):
 def render_surface_user_features(canvas, surface, features, width, height, transform):
     return _render_surface_user_features_impl(
         canvas, surface, features, width, height, transform,
-        resolver=resolve_surface_features,
+        resolver=manufacturing_api.resolve_hole_editor_canvas_features,
         feature_renderer=render_resolved_features,
     )
 
 
 def feature_surface_from_drawing_scene(surface_id, scene):
-    return _feature_surface_from_drawing_scene_impl(
-        surface_id, scene, ae_module=ae
-    )
+    return _feature_surface_from_drawing_scene_impl(surface_id, scene)
 
 
 def _draw_phase6_annotation_projection(
@@ -294,7 +291,7 @@ def _draw_phase6_annotation_projection(
     return _draw_phase6_annotation_projection_impl(
         canvas, render_data, transform,
         part_key=part_key, strict=strict,
-        projection_builder=build_engineering_drawing_projection,
+        projection_builder=manufacturing_api.project_operator_engineering_drawing_annotations,
     )
 
 
@@ -309,7 +306,7 @@ def _phase6_2d_material_viewport(bounds, canvas_width, canvas_height, *, top_gut
                              right_gutter=82.0, bottom_gutter=48.0, left_gutter=48.0):
     kwargs = dict(top_gutter=top_gutter, right_gutter=right_gutter,
                   bottom_gutter=bottom_gutter, left_gutter=left_gutter,
-                  transform_type=CanvasTransform)
+                  transform_type=manufacturing_api.CanvasTransform)
     return _phase6_2d_material_viewport_impl(bounds, canvas_width, canvas_height, **kwargs)
 
 
@@ -398,13 +395,13 @@ from gui_modules.project_actions import (
 )
 
 
-from ae_engine.hole_catalog import (
-    load_hole_catalog,
-    load_pipe_catalog,
-    feature_from_definition,
-    custom_circle_definition,
-    custom_rectangle_definition,
-)
+# The GUI composition injects exactly the public Engine catalog functions.
+# Keep the legacy dependency names only for the existing UI composition port.
+load_hole_catalog = manufacturing_api.operator_load_hole_catalog
+load_pipe_catalog = manufacturing_api.operator_load_pipe_catalog
+feature_from_definition = manufacturing_api.operator_hole_feature_from_definition
+custom_circle_definition = manufacturing_api.operator_custom_circle_definition
+custom_rectangle_definition = manufacturing_api.operator_custom_rectangle_definition
 
 
 from fold_designer_bridge import Phase6FoldDesignerApp
@@ -452,7 +449,6 @@ from ae_engine.sheetmetal_drawing import (
     CirclePrimitive,
     TextPrimitive,
     DrawingScene,
-    resolved_features_to_primitives,
     mirror_point_y,
 )
 
@@ -728,7 +724,7 @@ class Phase6ApplicationHost:
         corner_state = getattr(self, "manual_corner_state", None)
         if corner_state:
             try:
-                return assembly_type_from_corner_state(corner_state)
+                return manufacturing_api.operator_assembly_type_from_corner_state(corner_state)
             except Exception:
                 pass
         return CornerTypeId.INSERT_OVERLAY
@@ -766,23 +762,33 @@ class Phase6ApplicationHost:
         return CornerTypeId(stable) if stable != "WRAP_OVERLAY" else stable
 
     def on_box_assembly_changed(self, event=None):
-        if not is_unknown_model(self.baseline_var.get()):
+        if not manufacturing_api.is_unknown_operator_model(self.baseline_var.get()):
             return
         type_id = self._current_box_assembly_type()
         self._set_box_assembly_type(type_id, reset_bottom_defaults=False)
 
     def _effective_endcap_fw(self, part_key, box_fw=None):
+        # Only Engine validates physical FW before using it as Corner Policy input.
         if box_fw is None:
             fw_var = getattr(self, "fw_z_var", None)
-            if fw_var is not None:
-                box_fw = float(fw_var.get())
-            else:
-                box_fw = float(self.settings_service.snapshot().get("fw", 25.0))
+            box_fw = (
+                fw_var.get() if fw_var is not None
+                else self.settings_service.snapshot().get("fw")
+            )
+        validated_fw = manufacturing_api.normalize_operator_source_dimension(
+            box_fw, field="fw",
+        )
         state = getattr(self, "endcap_fw_state", None)
         if state is None:
-            return float(box_fw)
-        snapshot = {"fw": float(box_fw), "endcap_fw": state}
-        return float(resolve_endcap_fw(snapshot, part_key, state=state))
+            return validated_fw
+        # Validate both persisted physical rows before the original Engine
+        # four-state resolver may consume their values in manufacturing policy.
+        manufacturing_api.project_operator_endcap_fw_controls(
+            state, validated_fw,
+        )
+        return manufacturing_api.resolve_endcap_fw(
+            {"fw": validated_fw, "endcap_fw": state}, part_key, state=state,
+        )
 
     def _sync_endcap_fw_controls(self):
         return _sync_endcap_fw_controls_impl(self)
@@ -797,9 +803,18 @@ class Phase6ApplicationHost:
         return state
 
     def on_endcap_fw_follow_changed(self, part_key):
-        box_fw = float(self.fw_z_var.get())
+        # Engine alone validates raw follow flags, physical FW and saved rows.
+        # Do not coerce serialized follow flags or partially commit state.
         follow_var = self.fw_head_follow_var if part_key == "head" else self.fw_tail_follow_var
-        set_endcap_fw_follow(self.endcap_fw_state, part_key, bool(follow_var.get()), box_fw=box_fw)
+        try:
+            staged = manufacturing_api.operator_endcap_fw_follow(
+                {"fw": self.fw_z_var.get()}, {}, self.endcap_fw_state,
+                part_key, follow_var.get(),
+            )
+        except (TypeError, ValueError, tk.TclError):
+            self._sync_endcap_fw_controls()
+            return
+        self.endcap_fw_state = staged
         self._sync_endcap_fw_controls()
         owner = getattr(self, "_derived_cache_owner", None)
         if owner is not None:
@@ -807,25 +822,28 @@ class Phase6ApplicationHost:
         self._request_phase6_update("geometry")
 
     def on_fw_selected(self, source):
-        if source == "z":
-            # Explicit operator input on the box always retakes Head + Tail,
-            # even when the numeric value is the same as before.
-            commit_box_fw(self.endcap_fw_state, float(self.fw_z_var.get()))
-            self._sync_endcap_fw_controls()
-        elif source in {"head", "tail"}:
-            var = self.fw_head_var if source == "head" else self.fw_tail_var
-            try:
-                value = float(var.get())
-            except (TypeError, ValueError, tk.TclError):
-                # The EndCap FW controls are intentionally free numeric inputs.
-                # Invalid transient text must not corrupt control ownership.
-                self._sync_endcap_fw_controls()
+        # Only Engine may validate and commit the four-state physical FW source.
+        # Transient invalid Tk values must not mutate even one EndCap row.
+        try:
+            if source == "z":
+                # Explicit box takeover also applies for an unchanged number.
+                manufacturing_api.commit_operator_box_fw_takeover(
+                    self.endcap_fw_state, self.fw_z_var.get(),
+                )
+            elif source in {"head", "tail"}:
+                var = self.fw_head_var if source == "head" else self.fw_tail_var
+                manufacturing_api.commit_operator_endcap_fw_value(
+                    self.endcap_fw_state, source, var.get(),
+                    box_fw=self.fw_z_var.get(),
+                )
+            else:
                 return
-            commit_endcap_fw(
-                self.endcap_fw_state, source, value,
-                box_fw=float(self.fw_z_var.get()),
-            )
+        except (TypeError, ValueError, tk.TclError):
+            # Restore the authoritative saved values instead of propagating a
+            # NaN/invalid operator value into PartSpec or 2D/3D/DXF caches.
             self._sync_endcap_fw_controls()
+            return
+        self._sync_endcap_fw_controls()
         owner = getattr(self, "_derived_cache_owner", None)
         if owner is not None:
             owner.invalidate("geometry")
@@ -836,15 +854,17 @@ class Phase6ApplicationHost:
         if baseline_var is None or not hasattr(baseline_var, "get"):
             return None
         value = str(baseline_var.get() or "").strip()
-        if not value or is_unknown_model(value):
+        if not value or manufacturing_api.is_unknown_operator_model(value):
             return None
         return value
 
     def _door_material_frame_width(self, frame_width, thickness, *, model_name=None):
         """Resolve operator Door FW into the material-space value consumed by AE."""
         source = self._baseline_source_model() if model_name is None else model_name
+        # Keep the operator's authored FW/T intact until the public Family
+        # Engine validates the physical source and resolves material-space FW.
         return manufacturing_api.door_material_frame_width(
-            source, frame_width=float(frame_width), thickness=float(thickness),
+            source, frame_width=frame_width, thickness=thickness,
         )
 
     def _sync_fold_designer_manual_corner_context(self, active_part):
@@ -891,7 +911,9 @@ class Phase6ApplicationHost:
         else:
             # Keep this geometry helper independently usable by tests/legacy
             # callers that do not construct the full Tk FW-link state.
-            head_fw = tail_fw = float(fw)
+            head_fw = tail_fw = manufacturing_api.normalize_operator_source_dimension(
+                fw, field="fw",
+            )
         return (
             self._manual_corner_policy("head", head_fw),
             self._manual_corner_policy("tail", tail_fw),
@@ -975,7 +997,7 @@ class Phase6ApplicationHost:
     def _corner_part_type_editable(self, part_key):
         # CornerType 本身只在自訂盤型開放切換；已知盤型保留基準類型。
         return (
-            is_unknown_model(self.baseline_var.get())
+            manufacturing_api.is_unknown_operator_model(self.baseline_var.get())
             and part_key in self.manual_corner_state
             and part_key not in {"indicator_box", "indicator_door"}
         )
@@ -1024,9 +1046,12 @@ class Phase6ApplicationHost:
         return _normalize_manual_corner_target_impl(self, part_key)
 
     def _manual_selection_for_target(self, part_key, target_key):
-        if target_key in CORNER_PAIR_CORNERS:
-            target_key = CORNER_PAIR_CORNERS[target_key][0]
-        return normalize_corner_selection(self.manual_corner_state[part_key][target_key])
+        physical_key = manufacturing_api.project_operator_corner_selection_target(
+            target_key,
+        )
+        return manufacturing_api.operator_normalize_corner_selection(
+            self.manual_corner_state[part_key][physical_key],
+        )
 
     def select_manual_corner(self, corner_key):
         return _select_manual_corner_impl(self, corner_key)
@@ -1038,14 +1063,19 @@ class Phase6ApplicationHost:
         if not self._manual_corner_parameters_editable(part_key):
             self.refresh_corner_type_panel()
             return
-        enabled = self.manual_top_same_var.get() if pair_key == 'top' else self.manual_bottom_same_var.get()
+        raw_enabled = self.manual_top_same_var.get() if pair_key == 'top' else self.manual_bottom_same_var.get()
         manufacturing_api.operator_set_manual_corner_pair_same(
-            self.manual_corner_state[part_key], self.manual_corner_pair_same[part_key], pair_key, enabled
+            self.manual_corner_state[part_key], self.manual_corner_pair_same[part_key], pair_key, raw_enabled
         )
+        # Only the Engine's committed boolean may choose which physical corner
+        # the editor navigates to; bool("false") selects the wrong pair.
+        enabled = self.manual_corner_pair_same[part_key][pair_key]
         if enabled:
             self.manual_active_corner_var.set(pair_key)
         elif self._pair_for_corner_target(self.manual_active_corner_var.get()) == pair_key:
-            self.manual_active_corner_var.set(CORNER_PAIR_CORNERS[pair_key][0])
+            self.manual_active_corner_var.set(
+                manufacturing_api.project_operator_corner_pair_members(pair_key)[0]
+            )
         self.refresh_corner_type_panel()
         self._notify_fold_designer_corner_state()
         self._request_phase6_update("geometry")
@@ -1165,12 +1195,16 @@ class Phase6ApplicationHost:
         if canvas is None:
             return None
 
-        multi_door_var = getattr(self, "multi_door_enabled_var", None)
-        multi_door_enabled = bool(
-            multi_door_var is not None
-            and callable(getattr(multi_door_var, "get", None))
-            and multi_door_var.get()
-        )
+        # A serialized "false" is not an active multi-door physical view.
+        # Only a Door-cell view consumes this operator flag; other parts must
+        # not be blocked by stale/unused multi-door UI state.
+        multi_door_enabled = False
+        if key.startswith("door_c"):
+            multi_door_var = getattr(self, "multi_door_enabled_var", None)
+            if multi_door_var is not None and callable(getattr(multi_door_var, "get", None)):
+                multi_door_enabled = manufacturing_api.normalize_operator_settings_boolean(
+                    multi_door_var.get()
+                )
         if key.startswith("door_c") and multi_door_enabled:
             designer = getattr(self, "fold_designer_app", None)
             if designer is not None:
@@ -1229,7 +1263,7 @@ class Phase6ApplicationHost:
             world_center = Vec2((minx + maxx) / 2.0, (miny + maxy) / 2.0)
             center_x, center_y = transform.world_to_canvas(world_center)
             scaled = transform.scale * zoom
-            transform = CanvasTransform(
+            transform = manufacturing_api.CanvasTransform(
                 scale=scaled,
                 origin_x=center_x - world_center.x * scaled,
                 origin_y=center_y + world_center.y * scaled,
@@ -1313,40 +1347,29 @@ class Phase6ApplicationHost:
         return manufacturing_api.receiving_inner_door_stable_id_for_cell(cell_key)
 
     def _receiving_inner_door_enabled(self, cell_key):
-        key = str(cell_key or "").strip()
-        return any(
-            isinstance(item, dict) and str(item.get("cell_key") or "").strip() == key
-            for item in list(getattr(self, "receiving_inner_doors", []) or [])
-        )
+        # A duplicate/malformed saved physical source must never be hidden by
+        # GUI's first-match selection or silent row filtering.
+        return manufacturing_api.project_operator_receiving_inner_door_cell_source(
+            getattr(self, "receiving_inner_doors", None),
+            cell_key=cell_key,
+        ) is not None
 
     def _receiving_inner_door_inward_offset(self, cell_key):
-        key = str(cell_key or "").strip()
-        item = next((
-            item for item in list(getattr(self, "receiving_inner_doors", []) or [])
-            if isinstance(item, dict) and str(item.get("cell_key") or "").strip() == key
-        ), None)
+        item = manufacturing_api.project_operator_receiving_inner_door_cell_source(
+            getattr(self, "receiving_inner_doors", None),
+            cell_key=cell_key,
+        )
         return manufacturing_api.resolve_operator_receiving_inner_door_inward_offset(
             {"model": str(self.baseline_var.get() or "").strip()}, item,
         )
 
     def _set_receiving_inner_door_inward_offset(self, cell_key, value):
-        key = str(cell_key or "").strip()
-        offset = manufacturing_api.normalize_operator_receiving_inner_door_inward_offset(
-            value,
+        # GUI commits only the Engine's detached physical-source transaction.
+        rows, offset = manufacturing_api.apply_operator_receiving_inner_door_inward_offset(
+            getattr(self, "receiving_inner_doors", None),
+            cell_key=cell_key, inward_offset_mm=value,
         )
-        found = False
-        items = []
-        for raw in list(getattr(self, "receiving_inner_doors", []) or []):
-            if not isinstance(raw, dict):
-                continue
-            item = deepcopy(raw)
-            if str(item.get("cell_key") or "").strip() == key:
-                item["inward_offset_mm"] = offset
-                found = True
-            items.append(item)
-        if not found:
-            raise ValueError(f"door cell has no enabled inner door: {key!r}")
-        self.receiving_inner_doors = items
+        self.receiving_inner_doors = rows
         return offset
 
     def _commit_receiving_inner_door_inward_offset(self, cell_key):
@@ -1380,29 +1403,24 @@ class Phase6ApplicationHost:
         return True
 
     def _set_receiving_inner_door_enabled(self, cell_key, enabled):
-        key = str(cell_key or "").strip()
-        items = [deepcopy(item) for item in list(getattr(self, "receiving_inner_doors", []) or []) if isinstance(item, dict)]
-        existing = next((item for item in items if str(item.get("cell_key") or "").strip() == key), None)
-        items = [item for item in items if str(item.get("cell_key") or "").strip() != key]
-        if bool(enabled):
-            items.append(manufacturing_api.project_operator_receiving_inner_door_enabled_source(
-                {"model": str(self.baseline_var.get() or "").strip()},
-                key, existing=existing,
-            ))
-        def sort_key(item):
-            raw = str(item.get("cell_key") or "")
-            try:
-                return tuple(int(v) for v in raw.split(":", 1))
-            except Exception:
-                return (10**9, 10**9)
-        items.sort(key=sort_key)
-        self.receiving_inner_doors = items
-        return bool(enabled)
+        # Do not filter/sort/commit physical Door identities inside Tk.
+        rows = manufacturing_api.apply_operator_receiving_inner_door_presence(
+            {"model": str(self.baseline_var.get() or "").strip()},
+            getattr(self, "receiving_inner_doors", None),
+            cell_key=cell_key, enabled=enabled,
+        )
+        self.receiving_inner_doors = rows
+        return enabled
 
     def _commit_receiving_inner_door_checkbox(self, cell_key):
         key = str(cell_key or "").strip()
         var = dict(getattr(self, "door_layout_inner_door_vars", {}) or {}).get(key)
-        enabled = bool(var.get()) if var is not None else False
+        if var is None:
+            # A missing checkbox is not an authored "disable inner door".
+            raise ValueError("內門選取控制不存在，拒絕變更實體板件")
+        # The public Engine interprets raw operator/serialized booleans.
+        # Preserve an authored "false" instead of Python truthiness.
+        enabled = manufacturing_api.normalize_operator_settings_boolean(var.get())
         self._set_receiving_inner_door_enabled(key, enabled)
         entry = dict(getattr(self, "door_layout_inner_door_offset_entries", {}) or {}).get(key)
         if entry is not None:
@@ -1548,9 +1566,13 @@ class Phase6ApplicationHost:
             except tk.TclError:
                 pass
 
-        self.door_layout_selected_var.set(f"{int(column_index)}:{int(row_index)}")
         try:
-            cell = self.get_selected_door_layout_cell()
+            # The physical Hole Editor must bind one *existing* Engine cell.
+            # GUI int() truncation and get_selected_door_layout_cell fallback
+            # can silently open a different Door panel after a stale click.
+            cell = manufacturing_api.resolve_operator_door_layout_cell(
+                self.get_door_layout_cells(), column_index, row_index,
+            )
             key = self._door_layout_cell_key(cell)
             val = self.get_float_values()
             # The host's main-Settings W/H/D may intentionally differ from
@@ -1583,6 +1605,9 @@ class Phase6ApplicationHost:
         except Exception as exc:
             messagebox.showerror("開孔失敗", str(exc))
             return
+        # Do not change the selected Door until Engine identity and physical
+        # geometry have both been accepted for this editing session.
+        self.door_layout_selected_var.set(key)
         designer = getattr(self, 'fold_designer_app', None)
         physical_key = manufacturing_api.door_layout_part_key(cell)
         workspace = getattr(designer, 'designer_workspace', None)
@@ -1664,7 +1689,10 @@ class Phase6ApplicationHost:
 
     def on_indicator_box_toggle(self):
         """Indicator Box toggle also owns physical box/small-door presence."""
-        enabled = bool(self.is_indicator_box_var.get())
+        # Qualify the exact UI flag before changing either physical part.
+        enabled = manufacturing_api.normalize_operator_settings_boolean(
+            self.is_indicator_box_var.get()
+        )
         if enabled:
             self._disable_all_door_indicators()
         self._phase6_set_part_presence("indicator_box", enabled)
@@ -1673,7 +1701,11 @@ class Phase6ApplicationHost:
 
     def on_door_indicator_toggle(self):
         """Direct Door indicators exclude the Indicator-Box opening mode without hiding its tabs."""
-        if self.is_door_indicator_var.get():
+        # The saved/textual "false" flag is not Python truthiness.
+        enabled = manufacturing_api.normalize_operator_settings_boolean(
+            self.is_door_indicator_var.get()
+        )
+        if enabled:
             self._disable_indicator_box_for_door_indicator()
         self._request_phase6_update("geometry")
 
@@ -1800,7 +1832,7 @@ class Phase6ApplicationHost:
         if not resolved:
             return None
         scene = DrawingScene()
-        scene.extend(resolved_features_to_primitives(resolved))
+        scene.extend(manufacturing_api.project_operator_resolved_feature_drawing_primitives(resolved))
         return scene
 
     def open_box_body_face_editor(self, face_key):

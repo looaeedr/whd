@@ -27,10 +27,10 @@ class IndicatorEditorComponentGeometry:
 
 
 def _normalize_editor_groups(groups):
-    groups = tuple(int(value) for value in groups)
-    if not groups or any(value <= 0 for value in groups):
-        raise ValueError("indicator groups must be positive")
-    return groups
+    # The headless standalone component API must reject the same raw bool /
+    # fractional physical counts as the public Fold Designer/GUI source gate.
+    from .fold_designer_snapshot_dimensions import normalize_fold_designer_indicator_groups
+    return normalize_fold_designer_indicator_groups(groups)
 
 
 def resolve_indicator_box_editor_geometry(
@@ -38,7 +38,11 @@ def resolve_indicator_box_editor_geometry(
 ) -> IndicatorEditorComponentGeometry:
     """Read the Box alone; do not force the Small Door baseline to load."""
     groups = _normalize_editor_groups(groups)
-    t = float(thickness)
+    # This headless geometry path is directly callable without a GUI or
+    # PartSpec. Validate the authored physical T before baseline stretching:
+    # float(True) and float("nan") are never credible manufacturing sources.
+    from .operator_settings_transactions import normalize_operator_source_dimension
+    t = normalize_operator_source_dimension(thickness, field="t")
     data = ae.get_stretched_indicator_box_data(None, groups, t, corner_policy=None)
     width, height = float(data.params["w"]), float(data.params["h"])
     fold = float(getattr(ae, "indicator_box_fold_def", 49.0))

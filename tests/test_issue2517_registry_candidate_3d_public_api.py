@@ -109,6 +109,53 @@ def test_no_applicable_formula_and_no_endcaps_never_claims_shadow_success(monkey
     assert _call(body_only)["zero_penetration"] is False
 
 
+
+@pytest.mark.parametrize("bad", [
+    True, False, "bad", "NaN", "Infinity",
+    float("nan"), float("inf"), 10 ** 400,
+])
+def test_direct_candidate_rejects_invalid_clearance_before_any_registry_rule(
+    monkeypatch, bad,
+):
+    monkeypatch.setattr(
+        owner, "_validate_editable_rule_record",
+        lambda *_: pytest.fail("invalid clearance entered Registry evaluator"),
+    )
+    with pytest.raises(ValueError, match="MANUFACTURING_RELIEF_CLEARANCE_INVALID"):
+        _call(clearance=bad)
+
+
+@pytest.mark.parametrize("raw,expected", [
+    ("2.125", 2.125), (-3, 0.0), (None, 0.0),
+])
+def test_direct_candidate_preserves_canonical_clearance_in_world_solver(
+    monkeypatch, raw, expected,
+):
+    seen = []
+    monkeypatch.setattr(owner, "_validate_editable_rule_record", lambda _: {
+        "assembly_intent": "INSERT",
+    })
+    monkeypatch.setattr(
+        owner, "evaluate_editable_endcap_rule_record", lambda *_a, **_kw: object(),
+    )
+
+    def solve(**kwargs):
+        seen.append(kwargs["clearance"])
+        return SimpleNamespace(
+            verified=True, trust_level="CERTIFIED", rule_id="candidate",
+            rule_revision=0, residual_projection=SimpleNamespace(pair_count=0),
+        )
+
+    monkeypatch.setattr(owner, "solve_world_backprojected_endcap_relief", solve)
+    physical = _parts()
+    result = _call(
+        parts={"box_body": physical["box_body"], "head": physical["head"]},
+        clearance=raw,
+    )
+    assert result["zero_penetration"] is True
+    assert seen == [expected]
+
+
 def test_gui_only_forwards_operator_inputs_not_registry_solver():
     import fold_designer_bridge as bridge
 

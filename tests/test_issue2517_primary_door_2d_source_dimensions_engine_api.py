@@ -59,8 +59,14 @@ def test_single_door_passes_fractional_physical_w_h_t_fw_to_existing_part_spec()
     assert {key: dimensions[key] for key in ("w", "h", "t", "fw")} == {
         "w": 500.25, "h": 800.5, "t": 2.25, "fw": 25.75,
     }
-    assert dimensions["door_gap_w"] == 0.0
-    assert dimensions["door_fold_l"] == 0.0
+    # The GUI must preserve raw valid Gap/Fold input until the public Door
+    # PartSpec validates it; prior float() converted even bool True to 1 mm.
+    assert dimensions["door_gap_w"] == "0"
+    assert dimensions["door_fold_l"] == "0"
+    from ae_engine.manufacturing_api import build_door_operator_part_spec
+    spec = build_door_operator_part_spec(dimensions, model_name="金庫型")
+    assert spec.gap_w == 0.0
+    assert spec.fold_left == 0.0
 
 
 @pytest.mark.parametrize("field,raw", [

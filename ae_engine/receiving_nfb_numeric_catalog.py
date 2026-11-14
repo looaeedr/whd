@@ -17,7 +17,7 @@ import re
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 RELATIVE_DIRECTORY = Path("基準檔") / "開孔" / "NFB" / "數值規格"
-BRANDS = ("士林", "東元", "伍菱")
+BRANDS = ("士林", "東元", "伍菱", "順山")
 FILENAME = "NFB數值規格.csv"
 HEADER = (
     "型號", "NFB寬_mm", "NFB高_mm", "NFB深_mm",

@@ -10,6 +10,8 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Mapping
 
+from ae_engine import manufacturing_api
+
 
 class Phase6RegistryDiagnosticsController:
     def __init__(
@@ -155,9 +157,11 @@ class Phase6RegistryDiagnosticsController:
             solution = dict(solutions or {}).get(part_key)
             if solution is None:
                 continue
-            if not bool(getattr(solution, "verified", False)):
-                continue
-            if str(getattr(solution, "trust_level", "") or "") != "PROVISIONAL_3D":
+            # Engine owns solver verification and provisional trust; this
+            # presenter only keeps the returned manifest for the operator.
+            if not manufacturing_api.operator_relief_promotion_candidate_eligible(
+                solution,
+            ):
                 continue
             candidates[part_key] = builder(
                 solution,

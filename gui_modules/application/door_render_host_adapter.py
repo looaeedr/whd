@@ -9,8 +9,6 @@ from __future__ import annotations
 from collections.abc import Mapping
 
 from ae_engine import manufacturing_api
-from ae_engine.engineering_drawing import build_engineering_drawing_projection
-from ae_engine.sheetmetal_features import CanvasTransform
 
 from gui_modules.application.render_snapshots import (
     indicator_box_render_snapshot as _indicator_box_render_snapshot_impl,
@@ -44,7 +42,7 @@ def _phase6_2d_material_viewport(bounds, canvas_width, canvas_height, *, top_gut
         bounds, canvas_width, canvas_height,
         top_gutter=top_gutter, right_gutter=right_gutter,
         bottom_gutter=bottom_gutter, left_gutter=left_gutter,
-        transform_type=CanvasTransform,
+        transform_type=manufacturing_api.CanvasTransform,
     )
 
 
@@ -54,7 +52,7 @@ def _draw_phase6_annotation_projection(
     return _draw_phase6_annotation_projection_impl(
         canvas, render_data, transform,
         part_key=part_key, strict=strict,
-        projection_builder=build_engineering_drawing_projection,
+        projection_builder=manufacturing_api.project_operator_engineering_drawing_annotations,
     )
 
 

@@ -85,7 +85,7 @@ def test_door_editor_forwards_exact_cell_spec_and_receives_engine_dimensions(mon
     result = SimpleNamespace(width=520.0, height=315.0)
     host = SimpleNamespace(
         door_layout_selected_var=Var(),
-        get_selected_door_layout_cell=lambda: cell,
+        get_door_layout_cells=lambda: (cell,),
         _door_layout_cell_key=lambda _: "0:0",
         get_float_values=lambda: dict(values),
         _door_layout_cell_result=lambda *args: result,

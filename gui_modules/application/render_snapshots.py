@@ -5,9 +5,7 @@ host-owned state and host-owned T7 authority into immutable presentation payload
 consumed by gui_modules.rendering.
 """
 
-import ae_engine.ae as ae
 from ae_engine import manufacturing_api
-from ae_engine.corner_type_ui import is_unknown_model
 
 
 def _collect_live_indicator_groups(layer_var, group_vars, *, label):
@@ -45,7 +43,7 @@ def indicator_box_render_snapshot(host, val):
         "render_data": render_data,
         "bounds": bounds,
         "layer_groups": layer_groups,
-        "baseline_label": ae.indicator_shared_baseline_source_label("盒子.dxf"),
+        "baseline_label": manufacturing_api.operator_indicator_shared_baseline_source_label("盒子.dxf"),
     }
 
 
@@ -119,7 +117,7 @@ def door_layout_overview_snapshot(host, render_data_by_part_key=None):
         "val": val,
         "selected_key": host.door_layout_selected_var.get(),
         "cell_payloads": cell_payloads,
-        "baseline_status": ae.baseline_source_label(baseline_model, "門.dxf"),
+        "baseline_status": manufacturing_api.operator_baseline_source_label(baseline_model, "門.dxf"),
     }
 
 
@@ -150,16 +148,19 @@ def single_door_render_snapshot(host):
         "fw": manufacturing_api.normalize_operator_source_dimension(
             host.fw_z_var.get(), field="fw",
         ),
-        "door_gap_w": float(host.door_gap_w_var.get()),
-        "door_gap_h": float(host.door_gap_h_var.get()),
-        "door_fold_l": float(host.door_fold_l_var.get()),
-        "door_fold_r": float(host.door_fold_r_var.get()),
-        "door_fold_t": float(host.door_fold_t_var.get()),
-        "door_fold_b": float(host.door_fold_b_var.get()),
+        "door_gap_w": host.door_gap_w_var.get(),
+        "door_gap_h": host.door_gap_h_var.get(),
+        "door_fold_l": host.door_fold_l_var.get(),
+        "door_fold_r": host.door_fold_r_var.get(),
+        "door_fold_t": host.door_fold_t_var.get(),
+        "door_fold_b": host.door_fold_b_var.get(),
     }
 
+    mode = manufacturing_api.project_operator_single_door_indicator_mode(
+        host.is_indicator_box_var.get(), host.is_door_indicator_var.get(),
+    )
     indicator_hole = None
-    if host.is_indicator_box_var.get():
+    if mode in {"indicator_box", "both"}:
         groups = _collect_live_indicator_groups(
             host.indicator_l_var, host.indicator_layer_g_vars, label="指示燈盒"
         )
@@ -170,7 +171,7 @@ def single_door_render_snapshot(host):
         )
 
     door_indicator = None
-    if host.is_door_indicator_var.get():
+    if mode in {"indicator", "both"}:
         door_indicator = _collect_live_indicator_groups(
             host.door_indicator_l_var, host.door_indicator_layer_g_vars,
             label="門上指示燈",
@@ -232,11 +233,11 @@ def base_plate_render_snapshot(host, val):
             current, resolved,
             active_part=getattr(workspace, "active_part", ""),
         )
-    shrink_top = float(host.base_plate_shrink_top_var.get())
-    shrink_bottom = float(host.base_plate_shrink_bottom_var.get())
-    shrink_left = float(host.base_plate_shrink_left_var.get())
-    shrink_right = float(host.base_plate_shrink_right_var.get())
-    bend = float(host.base_plate_bend_var.get())
+    shrink_top = host.base_plate_shrink_top_var.get()
+    shrink_bottom = host.base_plate_shrink_bottom_var.get()
+    shrink_left = host.base_plate_shrink_left_var.get()
+    shrink_right = host.base_plate_shrink_right_var.get()
+    bend = host.base_plate_bend_var.get()
     spec_val = dict(val)
     spec_val.update({
         "base_plate_shrink_top": shrink_top,
@@ -252,14 +253,15 @@ def base_plate_render_snapshot(host, val):
     minx, miny, maxx, maxy = bounds
     world_bounds, box_rect = manufacturing_api.project_legacy_base_plate_2d_bounds(
         bounds, width=val["w"], height=val["h"],
-        shrink_left=shrink_left, shrink_bottom=shrink_bottom, bend=bend,
+        shrink_left=spec.shrink_left, shrink_bottom=spec.shrink_bottom,
+        bend=spec.bend,
     )
     return {
         "render_data": render_data,
         "bounds": bounds,
         "world_bounds": tuple(float(v) for v in world_bounds),
         "box_rect": box_rect,
-        "bend": float(bend),
+        "bend": spec.bend,
     }
 
 
@@ -316,7 +318,7 @@ def box_body_render_snapshot(host, val, *, face_dimensions_fn=None):
         "bounds": bounds,
         "contexts": contexts,
         "selected_face": host.box_body_face_selected_var.get(),
-        "baseline_status": ae.box_body_baseline_source_label(baseline),
+        "baseline_status": manufacturing_api.operator_box_body_baseline_source_label(baseline),
         "dimensions": (
             face_dimensions_fn or manufacturing_api.project_operator_box_body_face_dimensions
         )(w=val["w"], h=val["h"], d=val["d"]),
@@ -330,7 +332,7 @@ def end_cap_render_snapshot(host, val, *, part_label="封頭/尾", is_tail=False
     context = host._manufacturing_context(draw_stock=False)
     render_data = host._authoritative_render_data(spec, context)
     bounds = tuple(float(v) for v in render_data.material.bounds)
-    if is_unknown_model(host.baseline_var.get()):
+    if manufacturing_api.is_unknown_operator_model(host.baseline_var.get()):
         baseline_hint = " (自訂 / Final Part Geometry)"
     elif baseline:
         baseline_hint = f" ({baseline} Final Part Geometry)"
@@ -341,5 +343,6 @@ def end_cap_render_snapshot(host, val, *, part_label="封頭/尾", is_tail=False
         "bounds": bounds,
         "baseline_hint": baseline_hint,
         "part_label": part_label,
-        "is_tail": bool(is_tail),
+        # Display the same physical identity selected by the Engine PartSpec.
+        "is_tail": spec.is_tail,
     }

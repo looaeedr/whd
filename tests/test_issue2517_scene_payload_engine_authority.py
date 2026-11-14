@@ -2,6 +2,8 @@
 """#2517 manufacturing scene Bay/Joint/Family inputs are owned by Engine."""
 from copy import deepcopy
 
+import pytest
+
 from ae_engine import manufacturing_api as api
 from ae_engine import manufacturing_scene_payload as scene
 from ae_engine.assembly_joint import migrate_legacy_snapshot_joints
@@ -31,12 +33,67 @@ def test_receiving_active_bay_never_allows_stale_global_door_or_nfb():
     assert merged["nfb_config_submitted"] is True
 
 
+@pytest.mark.parametrize("family", (
+    "受電箱", "RECEIVING", "receiving", "ReCeIvInG", "  receiving  ",
+))
+def test_registered_family_aliases_cannot_replace_committed_bay_holes_or_nfb(family):
+    source = {
+        "model": family,
+        "_receiving_runtime_selection": {"set_id": "s", "bay_id": "b"},
+        "nfb_config": {"source": "verified-current-bay"},
+        "nfb_config_submitted": True,
+        "door_layout_columns": [{"id": "committed-door"}],
+    }
+    old_settings = {
+        "w": 800.25, "t": 2.0,
+        "nfb_config": {"source": "stale-global"},
+        "nfb_config_submitted": False,
+        "door_layout_columns": [{"id": "wrong-door"}],
+        "receiving_layout": {"sets": ["stale"]},
+        "_receiving_runtime_selection": {"set_id": "old", "bay_id": "old"},
+    }
+    original = deepcopy((source, old_settings))
+    projected = api.project_manufacturing_scene_settings_overlay(source, old_settings)
+    assert projected == {"w": 800.25, "t": 2.0}
+    merged = {**source, **projected}
+    assert merged["nfb_config"] == {"source": "verified-current-bay"}
+    assert merged["nfb_config_submitted"] is True
+    assert merged["door_layout_columns"] == [{"id": "committed-door"}]
+    assert (source, old_settings) == original
+
+
+def test_actual_gui_scene_uses_same_engine_family_alias_source_protection():
+    from phase6_manufacturing_adapter import build_scene_payload_for_app
+    from tests.test_issue356_manufacturing_adapter import _fake_app
+
+    app = _fake_app()
+    app._phase6_input_snapshot.update({
+        "model": "receiving",
+        "_receiving_runtime_selection": {"set_id": "s", "bay_id": "b"},
+        "nfb_config": {"source": "confirmed"},
+        "nfb_config_submitted": True,
+    })
+    app._settings_values.update({
+        "nfb_config": {"source": "stale"},
+        "nfb_config_submitted": False,
+        "_receiving_runtime_selection": {"set_id": "stale", "bay_id": "stale"},
+    })
+    original = deepcopy((app._phase6_input_snapshot, app._settings_values))
+    scene_payload = build_scene_payload_for_app(app, "door")
+    assert scene_payload["nfb_config"] == {"source": "confirmed"}
+    assert scene_payload["nfb_config_submitted"] is True
+    assert scene_payload["_receiving_runtime_selection"] == {"set_id": "s", "bay_id": "b"}
+    assert (app._phase6_input_snapshot, app._settings_values) == original
+
+
 def test_vault_and_unselected_receiving_retain_legacy_global_overlay():
     globals_ = {"w": 600, "nfb_config": {"saved": True}, "door_features": [1]}
     for source in (
         {"model": "金庫型"},
         {"model": "受電箱"},
         {"model": "受電箱", "_receiving_runtime_selection": None},
+        {"model": "receiving", "_receiving_runtime_selection": None},
+        {"model": "金庫型", "_receiving_runtime_selection": {"bay_id": "b"}},
     ):
         projected = api.project_manufacturing_scene_settings_overlay(source, globals_)
         assert projected == globals_

@@ -194,12 +194,12 @@ def test_pad_depth_index_remains_editable_and_rejects_conflicting_duplicates(tmp
     path = tmp_path / "開關索引.csv"
     header = "圖塊名稱,士林,深,東元,深,伍菱,深\n"
     path.write_text(
-        header + "3P400SN,400_140X257_107.dxf,107,140X260_103.dxf,103,NF400_140X257_107.dxf,107\n",
+        header + "3P400,400_140X257_107.dxf,107,140X260_103.dxf,103,NF400_140X257_107.dxf,107\n",
         encoding="utf-8-sig",
     )
     assert model_depth_mm("東元","140X260_103.dxf",path=path) == 103
     path.write_text(
-        header + "3P400SN,400_140X257_107.dxf,107,140X260_103.dxf,105,NF400_140X257_107.dxf,107\n",
+        header + "3P400,400_140X257_107.dxf,107,140X260_103.dxf,105,NF400_140X257_107.dxf,107\n",
         encoding="utf-8-sig",
     )
     assert model_depth_mm("東元","140X260_103.dxf",path=path) == 105
@@ -207,7 +207,7 @@ def test_pad_depth_index_remains_editable_and_rejects_conflicting_duplicates(tmp
     assert result.candidate_delta_mm == 2
     path.write_text(
         header + "2P400,400_140X257_107.dxf,107,140X260_103.dxf,103,NF400_140X257_107.dxf,107\n"
-        + "3P400SN,400_140X257_107.dxf,107,140X260_103.dxf,105,NF400_140X257_107.dxf,107\n",
+        + "3P400,400_140X257_107.dxf,107,140X260_103.dxf,105,NF400_140X257_107.dxf,107\n",
         encoding="utf-8-sig",
     )
     with pytest.raises(ValueError, match="重複深度不一致"):
@@ -220,8 +220,8 @@ def test_v5_numeric_model_list_reads_all_supplied_brands_without_dxf_identity():
         BRANDS as NUMERIC_BRANDS, model_choices as numeric_choices,
         brand_csv_path, model_spec, NUMERIC_ONLY_UNVERIFIED,
     )
-    assert NUMERIC_BRANDS == ("士林", "東元", "伍菱")
-    for brand, size in (("士林", 12), ("東元", 9), ("伍菱", 12)):
+    assert NUMERIC_BRANDS == ("士林", "東元", "伍菱", "順山")
+    for brand, size in (("士林", 12), ("東元", 9), ("伍菱", 68), ("順山", 44)):
         assert brand_csv_path(brand).is_file()
         names = numeric_choices(brand)
         assert len(names) == size == len(set(names))
@@ -245,7 +245,7 @@ def test_v5_screw_centres_use_opening_centre_and_only_screw_group_offset():
         (-12.5, -55.5), (12.5, -55.5),
         (-12.5, 55.5), (12.5, 55.5),
     )
-    offset = model_spec("東元", "3P400SN")
+    offset = model_spec("東元", "3P400")
     assert (offset.screw_offset_x_mm, offset.screw_offset_y_mm) == (5, 1)
     assert offset.opening_corners_xy_mm == (
         (-25, -49), (25, -49), (25, 49), (-25, 49),
@@ -258,9 +258,9 @@ def test_v5_screw_centres_use_opening_centre_and_only_screw_group_offset():
 
 def test_v5_missing_numbers_remain_unknown_and_cannot_claim_manufacturability():
     from ae_engine.receiving_nfb_numeric_catalog import read_numeric_specs, model_spec
-    all_rows = [spec for brand in ("士林", "東元", "伍菱")
+    all_rows = [spec for brand in ("士林", "東元", "伍菱", "順山")
                 for spec in read_numeric_specs(brand)]
-    assert len(all_rows) == 33
+    assert len(all_rows) == 133
     assert sum(spec.dimensionally_complete for spec in all_rows) == 17
     shihlin = model_spec("士林", "1PBH")
     assert shihlin.opening_mm is None
@@ -365,9 +365,9 @@ def test_v5_real_tk_numeric_panel_shows_local_holes_without_reading_dxf(monkeypa
         monkeypatch.setattr(panel.cache, "load", no_dxf)
         panel.canvas.configure(width=396, height=415)
         root.update_idletasks()
-        model = numeric_model_ref("東元", "3P400SN")
+        model = numeric_model_ref("東元", "3P400")
         panel.show("東元", model)
-        assert panel._numeric_spec.model == "3P400SN"
+        assert panel._numeric_spec.model == "3P400"
         assert "未經實體／製造驗證" in panel.reason.get()
         assert panel.viewport.preview is None
         items = panel.canvas.find_withtag("nfb-dxf")
@@ -426,7 +426,7 @@ def test_v5_cross_panel_offset_rotates_with_explicit_axis_not_assumed_world_xy()
     )
     datum=NfbPanelDatum("middle:2", "middle-plate", (100, 200),
                         (0, 1), (-1, 0))
-    p=project_nfb_v5_to_panel("東元", "3P400SN", datum, feature="both")
+    p=project_nfb_v5_to_panel("東元", "3P400", datum, feature="both")
     assert p.opening_uv_mm == (
         (149, 175), (149, 225), (51, 225), (51, 175),
     )
@@ -1013,3 +1013,21 @@ def test_v5_base_popup_renders_actual_ear_plate_and_replaces_old_strokes():
         assert len(canvas.find_withtag("v5-real-part"))==len(items)
     finally:
         root.destroy()
+
+
+
+def test_r5_operator_csv_model_identity_is_authoritative():
+    """R5 production mapping must resolve exact operator CSV rows, never invented aliases."""
+    from ae_engine.receiving_nfb_numeric_catalog import model_choices, model_spec
+    from ae_engine.receiving_nfb_model_identity import numeric_model_ref
+    required = {"士林": {"3P400", "3P-600"},
+                "東元": {"3P400"},
+                "伍菱": {"3P400"}}
+    for brand, models in required.items():
+        choices = set(model_choices(brand))
+        assert models <= choices
+        assert "3P400SN" not in choices
+        for model in models:
+            assert numeric_model_ref(brand, model) == f"nfbv5:{brand}:{model}"
+            assert model_spec(brand, model) is not None
+    assert "KS-2P400A-I" not in set(model_choices("士林"))

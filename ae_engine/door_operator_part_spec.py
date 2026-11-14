@@ -35,6 +35,35 @@ def _finite_operator_number(raw: object, field: str) -> float:
     return value
 
 
+def project_operator_single_door_indicator_mode(
+    indicator_box_enabled: object, door_indicator_enabled: object,
+) -> str:
+    """Resolve the original single-Door indicator control flags in Engine.
+
+    Preserve the legacy physical combination: both the box cutout and direct
+    Door indicators can be present, as verified by the existing single-Door
+    PartSpec and 2D preview tests. A serialized "false" must not select
+    either physical feature; reject malformed original flags.
+    """
+    box = normalize_operator_settings_boolean(indicator_box_enabled)
+    direct = normalize_operator_settings_boolean(door_indicator_enabled)
+    if box and direct:
+        return "both"
+    return "indicator_box" if box else "indicator" if direct else "none"
+
+
+def normalize_operator_door_nameplate_center_datum_top(raw: object) -> float | None:
+    """Validate optional top datum with the same rule as canonical DoorPartSpec.
+
+    No override (None) retains the Family-certified fallback. Explicit values
+    remain signed finite mm; bool, NaN and Inf never become physical holes.
+    """
+    return (
+        None if raw is None
+        else _finite_operator_number(raw, "nameplate_center_datum_top")
+    )
+
+
 def build_door_operator_part_spec(
     values: Mapping[str, object],
     *,
@@ -49,6 +78,7 @@ def build_door_operator_part_spec(
     indicator_window_groups=None,
     nameplate_center_datum_top=None,
     indicator_source_state=None,
+    fold_designer_indicator_source=None,
 ) -> DoorPartSpec:
     """Preserve the existing single/multi-Door Save→Export request contract.
 
@@ -64,6 +94,40 @@ def build_door_operator_part_spec(
         key: normalize_operator_source_dimension(values[key], field=key)
         for key in ("w", "h", "t", "fw")
     }
+    if fold_designer_indicator_source is not None:
+        # Fold Designer's single-door legacy payload is a raw operator input,
+        # never a GUI-computed CUTTING aperture, lamp group or distance mode.
+        # The cell route below remains the sole owner of persisted per-cell
+        # indicator state. Caller-provided physical projections are forbidden.
+        if (not isinstance(fold_designer_indicator_source, Mapping)
+                or indicator_source_state is not None
+                or indicator_hole is not None
+                or door_indicator is not None
+                or indicator_window_groups is not None
+                or door_indicator_offset != (0.0, 0.0)
+                or use_box_distance is not False):
+            raise ValueError("DOOR_OPERATOR_INDICATOR_DUPLICATE_SOURCE")
+        from .manufacturing_door_indicator import indicator_box_opening_size
+        raw = fold_designer_indicator_source
+        enabled = normalize_operator_settings_boolean(
+            raw.get("door_indicator_box_enabled", False)
+        )
+        box_groups = (
+            normalize_fold_designer_indicator_groups(
+                raw.get("indicator_layer_groups") or ()
+            ) if enabled else ()
+        )
+        direct_source = raw.get("door_indicator_groups") or ()
+        door_indicator = (
+            normalize_fold_designer_indicator_groups(direct_source)
+            if direct_source else None
+        )
+        indicator_hole = (
+            indicator_box_opening_size(box_groups, thickness=physical["t"])
+            if enabled else None
+        )
+        door_indicator_offset = raw.get("door_indicator_offset") or (0.0, 0.0)
+        use_box_distance = raw.get("use_box_distance", False)
     if indicator_source_state is not None:
         # Original committed cell input is the only physical lamp/box source.
         # Reject precomputed or conflicting geometry from caller-side adapters.
@@ -140,11 +204,8 @@ def build_door_operator_part_spec(
         normalize_fold_designer_indicator_groups(door_indicator)
         if door_indicator else None
     )
-    nameplate = (
-        None if nameplate_center_datum_top is None
-        else _finite_operator_number(
-            nameplate_center_datum_top, "nameplate_center_datum_top",
-        )
+    nameplate = normalize_operator_door_nameplate_center_datum_top(
+        nameplate_center_datum_top
     )
     return DoorPartSpec(
         width=physical["w"], height=physical["h"],

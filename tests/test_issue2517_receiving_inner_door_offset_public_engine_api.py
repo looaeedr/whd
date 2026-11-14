@@ -178,7 +178,9 @@ def test_gui_boundary_does_not_call_private_finished_dimensions_or_family_offset
     section = src[a:b]
     assert "cabinet_family_policy.default_inner_door_inward_offset_mm(" not in section
     assert "float(value)" not in section
-    assert "normalize_operator_receiving_inner_door_inward_offset(" in section
-    assert "project_operator_receiving_inner_door_enabled_source(" in section
+    assert "manufacturing_api.apply_operator_receiving_inner_door_inward_offset(" in section
+    assert "manufacturing_api.apply_operator_receiving_inner_door_presence(" in section
+    assert "project_operator_receiving_inner_door_enabled_source(" not in section
+    assert "for raw in list(getattr(self, \"receiving_inner_doors\"" not in section
     assert "manufacturing_api.resolve_operator_finished_dimensions(" in src
     assert "manufacturing_api.project_operator_endcap_depth_comp_t(" in src

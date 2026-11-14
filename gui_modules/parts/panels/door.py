@@ -5,9 +5,9 @@ host/controller seam during T4.
 """
 
 import tkinter as tk
-import math
 from collections.abc import Mapping
 from tkinter import ttk, messagebox
+from ae_engine import manufacturing_api
 from whd_theme import configure_tk_menu
 
 def collect_door_input(payload):
@@ -25,16 +25,19 @@ def collect_door_input(payload):
     return result
 
 def _parse_layout_value(var, label):
-    raw = var.get()
-    if isinstance(raw, bool):
-        raise ValueError(f"{label}不是有效數字")
+    # Caption-to-field routing is UI only. Raw W/H, cell width and height
+    # are validated by the same public Engine Door-grid numeric authority.
+    field = (
+        "w" if label == "W" else
+        "h" if label == "H" else
+        "row_height" if "高度" in label else "column_width"
+    )
     try:
-        value = float(raw)
-    except (TypeError, ValueError, OverflowError) as exc:
-        raise ValueError(f"{label}不是有效數字") from exc
-    if not math.isfinite(value) or value <= 0:
-        raise ValueError(f"{label}必須是有限正數")
-    return value
+        return manufacturing_api.normalize_operator_door_grid_dimension(
+            var.get(), field=field,
+        )
+    except ValueError as exc:
+        raise ValueError(f"{label}：{exc}") from exc
 
 def _reject_door_layout_dimension(host, var, previous_value, message):
     var.set(host._door_layout_number_text(previous_value))
@@ -141,7 +144,9 @@ def rebuild_door_layout_ui(host):
                     activebackground=host.COLOR_PANEL, activeforeground="#ff6b6b"
                 ).pack(side=tk.LEFT, padx=(1, 0))
 
-            if str(host.baseline_var.get() or "").strip() in {"受電箱", "RECEIVING"}:
+            if manufacturing_api.receiving_family_supports_back_panel_mode(
+                {"model": host.baseline_var.get()}
+            ):
                 cell_key = f"{column_index}:{row_index}"
                 inner_var = tk.BooleanVar(
                     master=host.root,
@@ -300,72 +305,11 @@ def setup_tab_door_ui(host):
 
 
 def normalize_door_indicator_state(state):
-    """Repair stale indicator presentation inputs without inventing geometry."""
-    # Only a truly absent saved state owns the legacy empty/default layout.
-    # False/0/string roots are corrupt: silently resetting them may alter
-    # indicator holes or disguise a failed project reload.
-    if state is not None and not isinstance(state, Mapping):
-        raise ValueError("Door indicator state must be a mapping")
-    raw = dict(state or {})
+    """Presentation-only compatibility: Engine projects the detached display."""
+    from ae_engine import manufacturing_api
 
-    def saved_flag(value):
-        # Tk-originated persisted booleans can be textual. bool("false") is
-        # True in Python and must never silently enable physical hole features.
-        if isinstance(value, bool):
-            return value
-        if isinstance(value, str):
-            return value.strip().lower() in {"1", "true", "yes", "on"}
-        if type(value) is int:
-            return value == 1
-        return False
+    return manufacturing_api.project_operator_door_indicator_display_state(state)
 
-    mode = raw.get("mode")
-    if not isinstance(mode, str) or mode not in {"none", "indicator", "indicator_box"}:
-        if saved_flag(raw.get("box_enabled")):
-            mode = "indicator_box"
-        elif saved_flag(raw.get("enabled")):
-            mode = "indicator"
-        else:
-            mode = "none"
-
-    def whole(value, default, *, low=1, high=None):
-        if isinstance(value, bool):
-            return default
-        try:
-            number = float(value)
-        except (TypeError, ValueError, OverflowError):
-            return default
-        if not math.isfinite(number) or not number.is_integer():
-            return default
-        number = int(number)
-        if number < low or high is not None and number > high:
-            return default
-        return number
-
-    def finite_offset(value):
-        if isinstance(value, bool):
-            return 0.0
-        try:
-            number = float(value)
-        except (TypeError, ValueError, OverflowError):
-            return 0.0
-        return number if math.isfinite(number) else 0.0
-
-    layers = whole(raw.get("layers", 1), 1, low=1, high=6)
-    source_groups = raw.get("groups", [2] * 6)
-    groups = source_groups if isinstance(source_groups, (list, tuple)) else ()
-    normalized_groups = [whole(value, 2) for value in groups[:6]]
-    normalized_groups.extend([2] * (6 - len(normalized_groups)))
-    return {
-        "mode": mode,
-        "enabled": mode == "indicator",
-        "box_enabled": mode == "indicator_box",
-        "layers": layers,
-        "groups": normalized_groups,
-        "offset_x": finite_offset(raw.get("offset_x", 0.0)),
-        "offset_y": finite_offset(raw.get("offset_y", 0.0)),
-        "is_box_dist": saved_flag(raw.get("is_box_dist", False)),
-    }
 
 def destroy_door_layout_entry_widgets(host):
     for widget in list(host.door_layout_width_entries.values()) + list(host.door_layout_height_entries.values()):
@@ -402,13 +346,11 @@ def door_layout_entry_menu(host, entry, *, column_index, row_index=None):
 
 
 def rebuild_door_layers_config_ui(host):
+    layers = manufacturing_api.normalize_operator_indicator_layer_count(
+        host.door_indicator_l_var.get()
+    )
     for widget in host.door_layers_config_frame.winfo_children():
         widget.destroy()
-
-    try:
-        layers = int(host.door_indicator_l_var.get())
-    except ValueError:
-        layers = 1
 
     for ly in range(layers):
         ly_frame = tk.Frame(host.door_layers_config_frame, bg=host.COLOR_PANEL)

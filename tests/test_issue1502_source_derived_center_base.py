@@ -281,7 +281,7 @@ def _one_layer_pair(second_model="2P400", second_brand="士林"):
     return snap
 
 
-@pytest.mark.parametrize("second_model", ["2P400", "3P400SN"])
+@pytest.mark.parametrize("second_model", ["2P400", "3P400"])
 def test_real_left_two_original_quartets_allow_second_nfb_slot_and_alias(second_model):
     # Two on ONE actual mounting tier; no new manual plate, no moving
     # ear mounting X, and the source-derived 710x300 blank remains identical.
@@ -296,7 +296,7 @@ def test_real_left_two_original_quartets_allow_second_nfb_slot_and_alias(second_
 def test_one_tier_cross_brand_different_apertures_share_flat_plate_not_holes():
     # Source LEFT is one existing physical blank, not proof the NFBs are
     # the same. Each brand retains its own current numeric screw/aperture.
-    snap = _one_layer_pair("3P400SN", "伍菱")
+    snap = _one_layer_pair("3P400", "伍菱")
     # A common fixed EAR world-Z cannot be manufactured from a mixed
     # brand pair until the operator approves an explicit shared Z rule.
     before = deepcopy(snap)
@@ -317,7 +317,7 @@ def test_flat_second_slot_cannot_be_misread_as_third_switch_row():
 
 
 def test_three_same_tier_400_models_derive_one_real_left_source_not_three_bases():
-    snap = _one_layer_pair("3P400SN")
+    snap = _one_layer_pair("3P400")
     third = deepcopy(snap["nfb_config"]["holes"][0])
     third.update(physical_hole_id="nfb:third", slot_index=2,
                  model_filename="nfbv5:士林:2P400")

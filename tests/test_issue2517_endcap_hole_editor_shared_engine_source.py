@@ -211,7 +211,13 @@ def test_quantity_editor_port_is_public_engine_only_and_uses_actual_geometry():
     assert "feature_surface_from_rect(" not in source
     assert "require_valid_quantity_features(" not in source
     assert "manufacturing_api.project_operator_quantity_endcap_hole_editor_geometry(" in source
-    assert "manufacturing_api.require_valid_operator_quantity_features(" in source
+    assert "manufacturing_api.commit_operator_quantity_version_holes(" in source
+    assert "manufacturing_api.require_valid_operator_quantity_features(" not in source
+    from inspect import getsource
+    # Validation moved into the canonical Engine transaction, not removed.
+    assert "require_valid_quantity_features(candidate)" in getsource(
+        api.commit_operator_quantity_version_holes
+    )
 
     class Host:
         def __init__(self):

@@ -12,7 +12,7 @@ from copy import deepcopy
 
 import ae_engine.ae as ae
 from ae_engine import manufacturing_api
-from ae_engine.sheetmetal_geometry import CornerTypeId, normalize_corner_selection
+from ae_engine.sheetmetal_geometry import CornerTypeId
 from phase6_endcap_semantics import (
     ASSEMBLY_TYPE_LABELS,
     normalize_endcap_bottom_wrap_state,
@@ -358,35 +358,25 @@ def setting_var_map(self):
 
 
 def collect_main_setting_values(self):
-    values = self.settings_service.snapshot().as_dict()
-    for key, var in self._setting_var_map().items():
-        try:
-            if isinstance(var, tk.BooleanVar):
-                values[key] = bool(var.get())
-            else:
-                values[key] = float(var.get())
-        except (TypeError, ValueError, tk.TclError):
-            pass
-    return self.settings_service.update(values).as_dict()
+    """Read every manufacturing field through the public Engine before commit.
+
+    An invalid raw field must not silently reuse its last committed value
+    while newer fields enter the physical manufacturing snapshot.
+    """
+    raw = {key: var.get() for key, var in self._setting_var_map().items()}
+    current = self.settings_service.snapshot().as_dict()
+    physical = manufacturing_api.normalize_operator_source_dimensions(raw)
+    other_raw = {key: value for key, value in raw.items() if key not in physical}
+    other = manufacturing_api.normalize_operator_settings_updates(current, other_raw)
+    missing = other_raw.keys() - other.keys()
+    if missing:
+        raise ValueError(f"Invalid operator manufacturing fields: {', '.join(sorted(missing))}")
+    return self.settings_service.update({**physical, **other}).as_dict()
 
 
 def serialize_corner_selection(raw_selection):
-    selection = normalize_corner_selection(raw_selection)
-    raw = {
-        "type_id": selection.type_id.value,
-        "rotation_quadrants": 0,
-    }
-    if selection.cross_mode is not None:
-        raw["cross_mode"] = selection.cross_mode.value
-    if selection.direction is not None:
-        raw["direction"] = selection.direction.value
-    if selection.amount_t is not None:
-        raw["amount_t"] = float(selection.amount_t)
-    if selection.secondary_retain_t is not None:
-        raw["secondary_retain_t"] = float(selection.secondary_retain_t)
-    if selection.secondary_depth_t is not None:
-        raw["secondary_depth_t"] = float(selection.secondary_depth_t)
-    return raw
+    """Persist canonical CornerType payload from public Engine owner."""
+    return manufacturing_api.endcap_corner_selection_to_raw(raw_selection)
 
 
 def serialize_manual_corner_state(self):
@@ -420,20 +410,41 @@ def on_main_setting_var_changed(self, key, var):
     if getattr(self, "_settings_sync_guard", False):
         return
     try:
-        value = bool(var.get()) if isinstance(var, tk.BooleanVar) else float(var.get())
+        raw = var.get()
+        if key in manufacturing_api.PHYSICAL_SNAPSHOT_SOURCE_KEYS:
+            value = manufacturing_api.normalize_operator_source_dimension(
+                raw, field=key,
+            )
+        else:
+            normalized = manufacturing_api.normalize_operator_settings_updates(
+                self.settings_service.snapshot().as_dict(), {key: raw},
+            )
+            if key not in normalized:
+                return
+            value = normalized[key]
     except (TypeError, ValueError, tk.TclError):
         return
+    # Stage physical FW before committing Settings. Failed or non-finite
+    # operator input must not partially update Head/Tail manufacturing source.
+    next_fw_state = None
+    previous_fw = None
+    if key == "fw":
+        try:
+            previous_fw = self.settings_service.snapshot()["fw"]
+            next_fw_state = manufacturing_api.project_operator_box_fw_live_state(
+                self.endcap_fw_state,
+                previous_box_fw=previous_fw, requested_box_fw=value,
+            )
+        except (ValueError, TypeError, KeyError):
+            return
     scheduler = self._phase6_update_scheduler
     scheduler.begin()
     try:
-        self.settings_service.update({key: value})
-        if key == "fw":
+        committed = self.settings_service.update({key: value})
+        if key == "fw" and committed["fw"] != previous_fw and committed["fw"] == value:
             self._settings_sync_guard = True
             try:
-                for part in ("head", "tail"):
-                    state = self.endcap_fw_state.setdefault(part, {"follow_box": True, "value": value})
-                    if bool(state.get("follow_box", True)):
-                        state["value"] = float(value)
+                self.endcap_fw_state = next_fw_state
                 self._sync_endcap_fw_controls()
             finally:
                 self._settings_sync_guard = False

@@ -139,7 +139,7 @@ jobs:
           from ae_engine.dxf_serialization import save_scene_dxf
           import ezdxf
 
-          selected = (model_spec("士林", "100HN-s"), model_spec("士林", "3P400SN"))
+          selected = (model_spec("士林", "100HN-s"), model_spec("士林", "3P400"))
           if any(row is None or not row.dimensionally_complete for row in selected):
               raise ValueError("PAD specimen selected source CSV incomplete")
           pattern, = generate_nfb_pad_patterns(

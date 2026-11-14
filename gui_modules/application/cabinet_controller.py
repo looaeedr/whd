@@ -10,27 +10,60 @@ from tkinter import messagebox
 
 from ae_engine import manufacturing_api
 from ae_engine.contracts import ManufacturingContext
-from ae_engine.corner_type_ui import is_unknown_model, normalize_custom_model_name
 from phase6_endcap_semantics import (
     assembly_intent_label,
     assembly_intent_value,
     normalize_endcap_bottom_wrap_state,
 )
-from phase6_fold_profiles import build_box_body_profile
 
 
 def _inherit_known_corner_state_into_custom(self):
-    """把目前已知固定板件的實際截角狀態複製成自訂起點。"""
-    copied = self._known_corner_state_for_current_family(self.manual_corner_state.keys())
-    for part_key, corners in copied.items():
-        if part_key not in self.manual_corner_state:
-            continue
-        self.manual_corner_state[part_key].update(corners)
-        if part_key in self.manual_corner_pair_same:
-            self.manual_corner_pair_same[part_key]["top"] = True
-            self.manual_corner_pair_same[part_key]["bottom"] = True
+    """Use the certified Engine draft before copying known corners to Custom."""
+    # The current Custom label resolves to the same canonical family as the
+    # original known-corner lookup. Do not re-derive certified corner values
+    # or modify a live part before all source corners are validated.
+    family = self._current_cabinet_type_name()
+    next_state, next_pairs = manufacturing_api.propose_operator_known_model_corner_draft(
+        self.manual_corner_state, self.manual_corner_pair_same,
+        baseline_model=family, cabinet_family=family, reset_all=True,
+    )
+    # Preserve nested GUI aliases (e.g. open Hole Editor / settings widgets).
+    for part_key, updated in next_state.items():
+        existing = self.manual_corner_state[part_key]
+        if existing != updated:
+            existing.clear()
+            existing.update(updated)
+    for part_key, updated in next_pairs.items():
+        existing = self.manual_corner_pair_same[part_key]
+        if existing != updated:
+            existing.clear()
+            existing.update(updated)
 
 def _capture_cabinet_family_runtime(self):
+    # Validate physical UI sources *before* any workspace/profile mutation.
+    # The Engine-owned Door grid getter checks live cells; this final public
+    # source check prevents corrupt bool/NaN data being turned into a deleted
+    # Door layout by the legacy fallback.
+    multi_door_enabled = manufacturing_api.normalize_operator_settings_boolean(
+        self.multi_door_enabled_var.get()
+    )
+    layout = []
+    if getattr(self, "door_layout_columns", None):
+        layout = [
+            [
+                manufacturing_api.normalize_operator_source_dimension(width, field="w"),
+                [
+                    manufacturing_api.normalize_operator_source_dimension(height, field="h")
+                    for height in heights
+                ],
+            ]
+            for width, heights in self.get_door_layout_columns()
+        ]
+
+    nameplate_datum = manufacturing_api.normalize_operator_door_nameplate_center_datum_top(
+        getattr(self, "door_nameplate_center_datum_top", None)
+    )
+
     # The family preset itself must carry a real canonical Box Body profile.
     # Startup used to capture None here, which later restored a profile-less
     # family and reopened the legacy fixed-segment manufacturing fallback.
@@ -40,19 +73,13 @@ def _capture_cabinet_family_runtime(self):
             key: var.get() for key, var in self._setting_var_map().items()
         }
         profile_source["model"] = self._current_cabinet_type_name()
-        box_profile = build_box_body_profile(profile_source)
+        box_profile = manufacturing_api.build_box_body_fold_profile(profile_source)
         if not box_profile:
             raise ValueError("canonical Box Body Fold Profile materialization failed")
         self.workspace_controller.set_box_body_profile(box_profile)
     elif not box_profile:
         raise ValueError("canonical Box Body Fold Profile is empty")
 
-    layout = []
-    if getattr(self, "door_layout_columns", None):
-        try:
-            layout = [[float(width), [float(v) for v in heights]] for width, heights in self.get_door_layout_columns()]
-        except Exception:
-            layout = []
     return {
         "settings": {key: var.get() for key, var in self._setting_var_map().items()},
         "corner_state": self._serialize_manual_corner_state(),
@@ -61,45 +88,119 @@ def _capture_cabinet_family_runtime(self):
         "box_body_structure": self.workspace_controller.box_body_structure_state(),
         "box_body_profile": self.workspace_controller.box_body_profile(),
         "assembly_joint_state": deepcopy(getattr(self, "assembly_joint_state", {}) or {}),
-        "multi_door_enabled": bool(self.multi_door_enabled_var.get()),
+        "multi_door_enabled": multi_door_enabled,
         "door_layout_columns": layout,
         "door_layout_scope": str(getattr(self, "door_layout_scope", "main") or "main"),
         "door_handle_edges": deepcopy(getattr(self, "door_layout_handle_edges", {}) or {}),
         "receiving_inner_doors": deepcopy(getattr(self, "receiving_inner_doors", []) or []),
-        "door_nameplate_center_datum_top": getattr(self, "door_nameplate_center_datum_top", None),
+        "door_nameplate_center_datum_top": nameplate_datum,
     }
 
 def _restore_cabinet_family_runtime(self, state):
     state = dict(state or {})
-    values = {}
-    for key, raw in dict(state.get("settings") or {}).items():
-        try:
-            values[key] = bool(raw) if key == "draw_stock" else float(raw)
-        except (TypeError, ValueError):
-            continue
-    self._apply_fold_designer_live_settings(values, recalculate=False)
-    self._apply_manual_corner_snapshot(state.get("corner_state"), state.get("corner_pair_same"))
-    if state.get("endcap_bottom_wrap") is not None:
-        self.endcap_bottom_wrap_state = normalize_endcap_bottom_wrap_state({
+    # Validate all serialized physical switches before mutating live widgets.
+    multi_door_enabled = manufacturing_api.normalize_operator_settings_boolean(
+        state["multi_door_enabled"] if "multi_door_enabled" in state else False
+    )
+    # A Door cell is physical manufacturing source. Validate the complete
+    # serialized grid before *any* Settings/Corner/Workspace mutation. Never
+    # float(True) into a manufactured 1-mm door when the GUI restores a preset.
+    layout = []
+    for row in state.get("door_layout_columns") or ():
+        if not isinstance(row, (list, tuple)) or len(row) != 2:
+            raise ValueError("已保存門格格式無效")
+        width, heights = row
+        if not isinstance(heights, (list, tuple)) or not heights:
+            raise ValueError("已保存門格每欄至少需要一層高度")
+        layout.append((
+            manufacturing_api.normalize_operator_source_dimension(width, field="w"),
+            [
+                manufacturing_api.normalize_operator_source_dimension(height, field="h")
+                for height in heights
+            ],
+        ))
+    nameplate_datum = manufacturing_api.normalize_operator_door_nameplate_center_datum_top(
+        state.get("door_nameplate_center_datum_top")
+    )
+    # Decode saved sources only via public Engine rules. Physical dimensions
+    # and explicit output switches reject malformed data before GUI mutation;
+    # historic nonphysical Fold numeric defaults retain Engine's skip-invalid
+    # compatibility instead of GUI float(True) == 1 mm.
+    raw_settings = dict(state.get("settings") or {})
+    physical = {
+        key: manufacturing_api.normalize_operator_source_dimension(raw, field=key)
+        for key, raw in raw_settings.items()
+        if key in manufacturing_api.PHYSICAL_SNAPSHOT_SOURCE_KEYS
+    }
+    stock = (
+        {"draw_stock": manufacturing_api.normalize_operator_settings_boolean(
+            raw_settings["draw_stock"]
+        )} if "draw_stock" in raw_settings else {}
+    )
+    other_raw = {
+        key: raw for key, raw in raw_settings.items()
+        if key not in physical and key != "draw_stock"
+    }
+    other = manufacturing_api.normalize_operator_settings_updates(
+        {key: 0.0 for key in other_raw}, other_raw,
+    )
+    # A saved AssemblyJoint graph may contain a future/invalid schema.
+    # Validate the full Engine candidate and its display intent *before*
+    # Settings or Corner controls commit any physical state. Existing legacy
+    # WRAP readback remains the same permissive Engine projection.
+    raw_joint_state = state.get("assembly_joint_state")
+    next_joint_state = None
+    next_assembly_label = None
+    if isinstance(raw_joint_state, dict) and raw_joint_state:
+        next_joint_state = manufacturing_api.migrate_operator_assembly_joint_snapshot(
+            deepcopy(raw_joint_state)
+        )
+        stable = assembly_intent_value(
+            next_joint_state.get("assembly_type", "INSERT_OVERLAY")
+        )
+        next_assembly_label = assembly_intent_label(stable)
+    next_bottom_wrap = (
+        normalize_endcap_bottom_wrap_state({
             "model": self._current_cabinet_type_name(),
             "endcap_bottom_wrap": state.get("endcap_bottom_wrap"),
         })
-    joint_state = state.get("assembly_joint_state")
-    if isinstance(joint_state, dict) and joint_state:
-        self.assembly_joint_state = manufacturing_api.migrate_operator_assembly_joint_snapshot(deepcopy(joint_state))
-        stable = assembly_intent_value(self.assembly_joint_state.get("assembly_type", "INSERT_OVERLAY"))
-        self.box_assembly_type_var.set(assembly_intent_label(stable))
-    self.multi_door_enabled_var.set(bool(state.get("multi_door_enabled", False)))
-    layout = list(state.get("door_layout_columns") or [])
+        if state.get("endcap_bottom_wrap") is not None else None
+    )
+    # The actual Corner commit below already calls this same public Engine
+    # owner. Stage its *whole* saved candidate before committing any Settings:
+    # a malformed late part/pair or certified Family corner must not leave
+    # the earlier Settings transaction applied after restore is rejected.
+    # Controller-only test doubles without a live Corner owner keep their
+    # injected _apply_manual_corner_snapshot callback.
+    live_corners = getattr(self, "manual_corner_state", None)
+    live_pairs = getattr(self, "manual_corner_pair_same", None)
+    if live_corners is not None and live_pairs is not None:
+        model_var = getattr(self, "baseline_var", None)
+        manufacturing_api.propose_operator_saved_manual_corner_snapshot(
+            live_corners, live_pairs,
+            saved_corner_state=state.get("corner_state"),
+            saved_corner_pair_same=state.get("corner_pair_same"),
+            baseline_model=model_var.get() if model_var is not None else "",
+            cabinet_family=self._current_cabinet_type_name(),
+        )
+    self._apply_fold_designer_live_settings(
+        {**physical, **stock, **other}, recalculate=False,
+    )
+    self._apply_manual_corner_snapshot(state.get("corner_state"), state.get("corner_pair_same"))
+    if next_bottom_wrap is not None:
+        self.endcap_bottom_wrap_state = next_bottom_wrap
+    if next_joint_state is not None:
+        self.assembly_joint_state = next_joint_state
+        self.box_assembly_type_var.set(next_assembly_label)
+    self.multi_door_enabled_var.set(multi_door_enabled)
     if layout:
-        self.set_door_layout_columns([(float(row[0]), [float(v) for v in row[1]]) for row in layout])
+        self.set_door_layout_columns(layout)
     else:
         self.door_layout_columns = []
     self.door_layout_scope = str(state.get("door_layout_scope") or "main")
     self.door_layout_handle_edges = deepcopy(dict(state.get("door_handle_edges") or {}))
     self.receiving_inner_doors = deepcopy(state.get("receiving_inner_doors") or [])
-    datum = state.get("door_nameplate_center_datum_top")
-    self.door_nameplate_center_datum_top = None if datum is None else float(datum)
+    self.door_nameplate_center_datum_top = nameplate_datum
     self.workspace_controller.set_box_body_structure_state(state.get("box_body_structure"))
     self.workspace_controller.set_box_body_profile(state.get("box_body_profile"))
 
@@ -111,7 +212,7 @@ def _apply_cabinet_family_for_current_model(self):
     as the starting point.  Project/3D snapshot restoration uses the
     baseline commit guard and therefore does not run this fresh-preset path.
     """
-    raw_model = normalize_custom_model_name(
+    raw_model = manufacturing_api.operator_normalize_custom_model_name(
         self.baseline_var.get() if getattr(self, "baseline_var", None) is not None else ""
     )
     new_type = self._current_cabinet_type_name()
@@ -125,7 +226,7 @@ def _apply_cabinet_family_for_current_model(self):
 
     # Custom is intentionally not another family preset.  It inherits the
     # current values exactly; later edits become the custom starting state.
-    if is_unknown_model(raw_model):
+    if manufacturing_api.is_unknown_operator_model(raw_model):
         self._active_cabinet_type = new_type
         owner = getattr(self, "_derived_cache_owner", None)
         if owner is not None:
@@ -149,6 +250,9 @@ def _apply_cabinet_family_for_current_model(self):
         )
         base_settings = dict(vault_defaults.get("settings") or self.settings_service.snapshot().as_dict())
         values = manufacturing_api.operator_apply_fresh_family_defaults(base_settings, new_type)
+        receiving_datum = manufacturing_api.normalize_operator_door_nameplate_center_datum_top(
+            values["door_nameplate_center_datum_top"]
+        )
         self._apply_fold_designer_live_settings(values, recalculate=False)
         self._set_box_assembly_type(values["assembly_type"], recalculate=False, notify_designer=False)
         self.multi_door_enabled_var.set(bool(values.get("multi_door_enabled", True)))
@@ -159,7 +263,7 @@ def _apply_cabinet_family_for_current_model(self):
         self.door_layout_scope = str(values.get("door_layout_scope") or "receiving-main")
         self.door_layout_handle_edges = deepcopy(dict(values.get("door_handle_edges") or {}))
         self.receiving_inner_doors = deepcopy(values.get("inner_doors") or [])
-        self.door_nameplate_center_datum_top = float(values["door_nameplate_center_datum_top"])
+        self.door_nameplate_center_datum_top = receiving_datum
         structure = manufacturing_api.operator_resolve_box_body_structure_state(
             new_type, self.workspace_controller.box_body_structure_state()
         )
@@ -183,7 +287,7 @@ def _apply_cabinet_family_for_current_model(self):
         )
         snap["active_mode"] = "set_bay"
         initial = manufacturing_api.operator_seed_fresh_receiving_nfb_source(snap)
-        box_profile = build_box_body_profile(snap)
+        box_profile = manufacturing_api.build_box_body_fold_profile(snap)
         workspace = self.workspace_controller.workspace_snapshot()
         workspace["receiving_layout"] = deepcopy(initial["receiving_layout"])
         # A submitted default Bay without its matching physical CUTTING in
@@ -203,6 +307,23 @@ def _apply_cabinet_family_for_current_model(self):
 
 
 def on_baseline_changed(self):
+    # A known Vault baseline must not change committed Corner/Family state
+    # when its current physical plate thickness is invalid. Check the raw
+    # operator value through the existing public Engine before any GUI effects.
+    raw_model = self.baseline_var.get()
+    if (
+        raw_model
+        and not manufacturing_api.is_unknown_operator_model(raw_model)
+        and manufacturing_api.resolve_live_cabinet_family({}, raw_model) == "金庫型"
+        and not getattr(self, "_fold_designer_baseline_commit_guard", False)
+    ):
+        try:
+            manufacturing_api.normalize_operator_source_dimension(
+                self.t_var.get(), field="t",
+            )
+        except (TypeError, ValueError, tk.TclError) as exc:
+            messagebox.showerror("基準檔載入出錯", f"無法讀取基準檔參數: {exc}")
+            return
     self._reset_manual_corner_parameter_locks()
     owner = getattr(self, "_derived_cache_owner", None)
     if owner is not None:
@@ -210,9 +331,9 @@ def on_baseline_changed(self):
     val = self.baseline_var.get()
     previous = str(getattr(self, "_baseline_last_value", "") or "").strip()
     self._apply_cabinet_family_for_current_model()
-    if is_unknown_model(val) and previous and not is_unknown_model(previous):
+    if manufacturing_api.is_unknown_operator_model(val) and previous and not manufacturing_api.is_unknown_operator_model(previous):
         self._inherit_known_corner_state_into_custom()
-    elif val and not is_unknown_model(val) and val != previous:
+    elif val and not manufacturing_api.is_unknown_operator_model(val) and val != previous:
         self._enforce_known_model_corner_types(reset_all=True)
     current_intent = self._current_box_assembly_type()
     assembly_var = getattr(self, "box_assembly_type_var", None)
@@ -222,7 +343,7 @@ def on_baseline_changed(self):
             assembly_var.set(label)
     cb_assembly = getattr(self, "cb_box_assembly", None)
     if cb_assembly is not None:
-        cb_assembly.configure(state=("readonly" if is_unknown_model(val) else "disabled"))
+        cb_assembly.configure(state=("readonly" if manufacturing_api.is_unknown_operator_model(val) else "disabled"))
     self._baseline_last_value = str(val or "").strip()
     self.refresh_corner_type_panel()
     designer = getattr(self, "fold_designer_app", None)
@@ -237,7 +358,7 @@ def on_baseline_changed(self):
         return
     if not val:
         return
-    if is_unknown_model(val):
+    if manufacturing_api.is_unknown_operator_model(val):
         # 自訂沒有 baseline DXF；保留使用者輸入的折彎尺寸。
         self._request_phase6_update("baseline")
         return
@@ -246,26 +367,29 @@ def on_baseline_changed(self):
         self._request_phase6_update("baseline")
         return
     try:
-        t_val = float(self.t_var.get()) if self.t_var.get() else 2.0
+        t_val = self.t_var.get()  # Raw T; public Engine validates before parsing DXF.
         
         # 1. 載入封頭尾基準檔分析折彎參數
         baseline_folds = manufacturing_api.read_operator_baseline_fold_defaults(
             val, thickness=t_val,
         )
         p = baseline_folds["endcap"]
-        
+        # Baseline selection is NOT a manual box-FW takeover. The public
+        # Engine validates both saved FW rows and their four-state authority
+        # before any baseline dimension widget is changed.
+        manufacturing_api.commit_operator_baseline_endcap_fw(
+            self.endcap_fw_state, p["fw"],
+        )
+
         self.yl1_var.set(f"{p['yl1']:.1f}".replace(".0", ""))
         self.yr1_var.set(f"{p['yr1']:.1f}".replace(".0", ""))
         self.ytop1_var.set(f"{p['ytop1']:.1f}".replace(".0", ""))
         self.ybottom1_var.set(f"{p['ybottom1']:.1f}".replace(".0", ""))
         # 基準檔更新箱身 FW；封頭尾只有仍在「跟隨箱身」時同步。
-        fw_val = f"{p['fw']:.1f}".replace(".0", "")
+        # Preserve the Engine's physical-mm precision in the editable
+        # box-FW field; the old one-decimal display silently changed 29.125.
+        fw_val = str(p["fw"]).removesuffix(".0")
         self.fw_z_var.set(fw_val)
-        box_fw = float(p['fw'])
-        for part in ("head", "tail"):
-            state = self.endcap_fw_state.setdefault(part, {"follow_box": True, "value": box_fw})
-            if bool(state.get("follow_box", True)):
-                state["value"] = box_fw
         self._sync_endcap_fw_controls()
         
         # 2. 箱身主結構固定由 StripFoldChain 公式控制。
@@ -280,6 +404,9 @@ def on_baseline_changed(self):
             self.door_fold_b_var.set(f"{pd['door_fold_b']:.1f}".replace(".0", ""))
     except Exception as e:
         messagebox.showerror("基準檔載入出錯", f"無法讀取基準檔參數: {e}")
+        # Rejected FW/loaded source must not schedule a manufacturing redraw
+        # against partially entered baseline fields.
+        return
 
     # Known-family return must publish the rebuilt Box Body, not just restore
     # dimension widgets. Receiving/custom paths request their own redraw above;
@@ -289,79 +416,106 @@ def on_baseline_changed(self):
     # STOCK 開關變動時也觸發重繪 (Checkbutton 已用 command 綁定，此處不需重複)
 
 def get_float_values(self):
+    """Keep the raw 25 GUI numeric inputs until Engine validates their meaning.
+
+    Physical W/H/D/T/FW must be positive; remaining signed Fold/Gap/BasePlate
+    inputs use original Engine finite numeric compatibility. Never return a
+    partial manufacturing candidate when a field is malformed.
     """
-    取得所有浮點數輸入值，若輸入有誤則拋出 Exception
-    """
-    try:
-        return {
-            'w': float(self.w_var.get()),
-            'h': float(self.h_var.get()),
-            'd': float(self.d_var.get()),
-            'fw': float(self.fw_z_var.get()),
-            't': float(self.t_var.get()),
-            'zl1': float(self.zl1_var.get()),
-            'zl2': float(self.zl2_var.get()),
-            'zr1': float(self.zr1_var.get()),
-            'zr2': float(self.zr2_var.get()),
-            'z_comp': float(self.z_comp_var.get()),
-            'yl1': float(self.yl1_var.get()),
-            'yr1': float(self.yr1_var.get()),
-            'ytop1': float(self.ytop1_var.get()),
-            'ybottom1': float(self.ybottom1_var.get()),
-            'door_gap_w': float(self.door_gap_w_var.get()),
-            'door_gap_h': float(self.door_gap_h_var.get()),
-            'door_fold_l': float(self.door_fold_l_var.get()),
-            'door_fold_r': float(self.door_fold_r_var.get()),
-            'door_fold_t': float(self.door_fold_t_var.get()),
-            'door_fold_b': float(self.door_fold_b_var.get()),
-            'base_plate_shrink_top': float(self.base_plate_shrink_top_var.get()),
-            'base_plate_shrink_bottom': float(self.base_plate_shrink_bottom_var.get()),
-            'base_plate_shrink_left': float(self.base_plate_shrink_left_var.get()),
-            'base_plate_shrink_right': float(self.base_plate_shrink_right_var.get()),
-            'base_plate_bend': float(self.base_plate_bend_var.get()),
-        }
-    except ValueError:
-        raise ValueError("請輸入有效的數字格式")
+    raw = {
+        "w": self.w_var.get(),
+        "h": self.h_var.get(),
+        "d": self.d_var.get(),
+        "fw": self.fw_z_var.get(),
+        "t": self.t_var.get(),
+        "zl1": self.zl1_var.get(),
+        "zl2": self.zl2_var.get(),
+        "zr1": self.zr1_var.get(),
+        "zr2": self.zr2_var.get(),
+        "z_comp": self.z_comp_var.get(),
+        "yl1": self.yl1_var.get(),
+        "yr1": self.yr1_var.get(),
+        "ytop1": self.ytop1_var.get(),
+        "ybottom1": self.ybottom1_var.get(),
+        "door_gap_w": self.door_gap_w_var.get(),
+        "door_gap_h": self.door_gap_h_var.get(),
+        "door_fold_l": self.door_fold_l_var.get(),
+        "door_fold_r": self.door_fold_r_var.get(),
+        "door_fold_t": self.door_fold_t_var.get(),
+        "door_fold_b": self.door_fold_b_var.get(),
+        "base_plate_shrink_top": self.base_plate_shrink_top_var.get(),
+        "base_plate_shrink_bottom": self.base_plate_shrink_bottom_var.get(),
+        "base_plate_shrink_left": self.base_plate_shrink_left_var.get(),
+        "base_plate_shrink_right": self.base_plate_shrink_right_var.get(),
+        "base_plate_bend": self.base_plate_bend_var.get(),
+    }
+    physical = manufacturing_api.normalize_operator_source_dimensions(raw)
+    other = {key: value for key, value in raw.items() if key not in physical}
+    accepted = manufacturing_api.normalize_operator_settings_updates(
+        {key: 0.0 for key in other}, other,
+    )
+    if len(accepted) != len(other):
+        invalid = next(key for key in other if key not in accepted)
+        raise ValueError(f"請輸入有效的數字格式：{invalid}")
+    return {**physical, **accepted}
+
 
 def _active_indicator_box_groups_for_results(self):
-    """Return groups only when the currently relevant Door really uses an Indicator Box.
+    """Show only Engine-validated physical groups for the relevant Door.
 
-    Single-Door follows the explicit Indicator-Box toggle. Multi-Door follows
-    only the currently selected cell, so an unrelated cell cannot leak box
-    dimensions into the result panel.
+    This is a read-only result projection, never a source for creating holes.
+    Hidden controls are irrelevant; an active malformed physical group must
+    not be clamped, defaulted, or repaired by the presentation adapter.
     """
-    if self.multi_door_enabled_var.get():
+    multi = manufacturing_api.normalize_operator_settings_boolean(
+        self.multi_door_enabled_var.get()
+    )
+    if multi:
         key = str(self.door_layout_selected_var.get() or "")
         state = self.door_layout_indicator_states.get(key)
-        if not state:
+        if state is None:
             return None
-        state = self._normalize_door_indicator_state(state)
-        if state.get("mode") != "indicator_box":
-            return None
-        layers = max(1, min(6, int(state.get("layers", 1))))
-        groups = tuple(int(v) for v in list(state.get("groups", ()))[:layers])
+        source = manufacturing_api.project_operator_door_cell_indicator_manufacturing_source(
+            state
+        )
     else:
-        if not self.is_indicator_box_var.get():
+        if not manufacturing_api.normalize_operator_settings_boolean(
+            self.is_indicator_box_var.get()
+        ):
             return None
-        layers = max(1, min(6, int(self.indicator_l_var.get())))
-        groups = tuple(int(self.indicator_layer_g_vars[i].get()) for i in range(layers))
-    if not groups or any(value <= 0 for value in groups):
+        # Only group counts participate in this UI summary. Neutral offset
+        # fields are not persisted and never authorize a CUTTING feature.
+        source = manufacturing_api.normalize_operator_hole_editor_indicator_state({
+            "mode": "indicator_box",
+            "layers": self.indicator_l_var.get(),
+            "groups": [var.get() for var in self.indicator_layer_g_vars],
+            "offset_x": 0.0,
+            "offset_y": 0.0,
+            "is_box_dist": False,
+        })
+    if source["mode"] != "indicator_box":
         return None
-    return groups
+    return tuple(source["groups"][:source["layers"]])
+
 
 def _has_any_indicator_box(self):
-    """True only when at least one real Door/cell is configured as Indicator Box."""
-    if not self.multi_door_enabled_var.get():
-        return bool(self.is_indicator_box_var.get())
+    """Detect real Indicator Boxes without GUI truthiness or saved-state repair."""
+    if not manufacturing_api.normalize_operator_settings_boolean(
+        self.multi_door_enabled_var.get()
+    ):
+        return manufacturing_api.normalize_operator_settings_boolean(
+            self.is_indicator_box_var.get()
+        )
     try:
         keys = [self._door_layout_cell_key(cell) for cell in self.get_door_layout_cells()]
     except Exception:
         keys = list(getattr(self, "door_layout_indicator_states", {}).keys())
+    states = getattr(self, "door_layout_indicator_states", {})
     for key in keys:
-        state = self._normalize_door_indicator_state(
-            getattr(self, "door_layout_indicator_states", {}).get(key)
+        source = manufacturing_api.project_operator_door_cell_indicator_manufacturing_source(
+            states.get(key)
         )
-        if state.get("mode") == "indicator_box":
+        if source["mode"] == "indicator_box":
             return True
     return False
 

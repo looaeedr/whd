@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 import tkinter as tk
 
 import fold_designer_bridge as bridge
@@ -99,7 +100,18 @@ def test_force_publish_does_not_echo_equivalent_state_or_bump_revision(monkeypat
         app.flush_pending_settings()
         root.update_idletasks()
         assert published
-        revision = published[-1]["revision"]
+        first_revision = published[-1]["revision"]
+        published.clear()
+
+        # The first forced call can reconcile a still-stale host Relief source.
+        # The separate stale-host test requires exactly one such repair. After
+        # that admission, identical physical sources must never echo or bump.
+        repaired = app._phase6_publish_live_state(force=True)
+        assert len(published) == (1 if repaired else 0)
+        if repaired:
+            assert published[-1]["revision"] == first_revision + 1
+            assert published[-1]["origin"] == "fold_designer"
+        revision = app._phase6_sync_revision
         published.clear()
 
         assert app._phase6_publish_live_state(force=True) is False

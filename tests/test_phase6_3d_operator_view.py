@@ -75,7 +75,10 @@ def test_existing_main_text_scale_controller_is_reused_without_root_rescan():
     top = object()
     controller = SimpleNamespace(root=main_root, factor=1.25, apply=lambda value: calls.append(value))
 
-    result = bridge._phase6_prepare_text_scale_controller(top, "medium", controller=controller)
+    # Text scaling is a presentation-only service, no longer a manufacturing
+    # bridge function. It must reuse the already-present root controller.
+    from ui_text_scale import prepare_text_scale_controller
+    result = prepare_text_scale_controller(top, "medium", controller=controller)
 
     assert result is controller
     assert calls == []

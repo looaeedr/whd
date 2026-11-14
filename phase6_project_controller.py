@@ -6,6 +6,8 @@ from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from typing import Callable, Mapping
 
+from ae_engine import manufacturing_api
+
 # Taiwan uses UTC+08:00 with no DST; avoid requiring IANA tzdata on Windows EXE.
 TAIPEI_TZ = timezone(timedelta(hours=8))
 
@@ -272,7 +274,9 @@ class Phase6ProjectController:
 
     @staticmethod
     def commit_output_stock(value, stage_setting) -> bool:
-        committed = bool(value)
+        # STOCK is an Engine manufacturing-output switch; serialized 'false'
+        # must not become True before the public Settings validation.
+        committed = manufacturing_api.normalize_operator_settings_boolean(value)
         stage_setting("draw_stock", committed)
         return committed
 

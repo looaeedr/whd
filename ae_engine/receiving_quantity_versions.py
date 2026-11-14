@@ -259,6 +259,17 @@ class QuantityModel:
             row.update(fields)
             self._changed()
 
+    def _restore_validated_owner_snapshot(self, payload):
+        """Engine transaction rollback: restore this owner's source without UI events.
+
+        Only called after an already-validated detached operator transaction
+        fails; never fabricate a selected version or its manufacturing NFB.
+        """
+        restored = type(self).from_payload(payload)
+        self._versions = restored._versions
+        self._selected = restored._selected
+        self._next_number = restored._next_number
+
     def snapshot(self):
         committed = any(r.get("nfb_config_submitted") is True for r in self._versions)
         version_brand = any("nfb_parent_brand" in r for r in self._versions)
@@ -276,6 +287,23 @@ class QuantityModel:
             "selected_version_id": self._selected,
             "next_version_number": self._next_number,
         }
+
+
+def project_operator_quantity_version_controls(payload: Mapping) -> dict[str, object]:
+    """Read-only Quantity version UI projection from the sole Engine owner.
+
+    The original version snapshot remains the saved source; display totals
+    and last-version deletion eligibility are derived from a validated
+    detached model. Both Vault and Receiving clients use this same API.
+    """
+    model = QuantityModel.from_payload(payload)
+    return {
+        **model.snapshot(),
+        "version_count": model.version_count,
+        "total_piece_count": model.total_piece_count,
+        "selected_piece_count": model.selected_piece_count,
+        "can_delete_selected": model.version_count > 1,
+    }
 
 
 def quantity_inherited_nfb_brand_conflicts(snapshot):

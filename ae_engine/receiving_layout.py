@@ -11,6 +11,7 @@ from copy import deepcopy
 from .panel_naming import normalize_panel_name, PANEL_NUMBER_RE
 from ae_engine.receiving_shared_settings import normalize_set_settings, setting_value
 from typing import Mapping
+import re
 
 RECEIVING_LAYOUT_SCHEMA = "receiving-layout-v1"
 RECEIVING_RUNTIME_SELECTION_KEY = "_receiving_runtime_selection"
@@ -90,6 +91,95 @@ def new_receiving_layout(*, width: object, height: object, depth: object, back_p
             }
         ],
     }
+
+
+def normalize_receiving_operator_topology_integer(value: object, *, name: str) -> int:
+    """Validate original operator Set/Bay/Joint integer text without ID aliases.
+
+    Selection state remains a GUI concern; this Engine boundary only validates
+    the physical topology index/count source, preserving legacy decimal Tk text.
+    Python int("1_0") is 10, but that is not a real operator-authored Bay ID.
+    Range/physical existence are still enforced by the owning transactions.
+    """
+    if type(value) is int:
+        return value
+    if isinstance(value, str) and re.fullmatch(r"[+-]?[0-9]+", value):
+        try:
+            return int(value)
+        except (ValueError, OverflowError) as exc:
+            raise ValueError(f"Receiving {name} must be an integer") from exc
+    raise ValueError(f"Receiving {name} must be an integer")
+
+
+def project_receiving_operator_set_preview_target(
+    layout: Mapping[str, object], layer_index: object,
+) -> dict[str, object]:
+    """Read-only physical Receiving Set/Bay target for the 2D settings preview.
+
+    Legacy GUI calls these Sets "layers", but they use receiving-layout-v1,
+    not the separate receiving-switch-layout-v1 opening-tier topology.
+    """
+    index = normalize_receiving_operator_topology_integer(
+        layer_index, name="Set preview index",
+    )
+    normalized = normalize_receiving_layout(layout)
+    sets = normalized["sets"]
+    if not 0 <= index < len(sets):
+        raise ValueError("Receiving Set preview layer_index out of range")
+    selected = sets[index]
+    from .receiving_switch_layout import RECEIVING_SWITCH_BRANDS
+    return {
+        "set_index": index,
+        "set_id": selected["stable_id"],
+        "connection_count": len(selected["bays"]),
+        "brand": selected.get("switch_brand", RECEIVING_SWITCH_BRANDS[0]),
+    }
+
+
+def project_receiving_operator_set_bay_selection(
+    layout: Mapping[str, object], *, set_index: object, bay_index: object,
+) -> dict[str, object]:
+    """Qualify a complete existing physical Set/Bay before GUI navigation.
+
+    This is a read-only query, not a selection mutation or geometry
+    entitlement. Reject both raw indices and stale Bay targets atomically:
+    the GUI must not select a different Set before discovering an invalid Bay.
+    """
+    selected_set = project_receiving_operator_set_preview_target(
+        layout, set_index,
+    )
+    selected_bay = normalize_receiving_operator_topology_integer(
+        bay_index, name="Bay selection index",
+    )
+    if not 0 <= selected_bay < selected_set["connection_count"]:
+        raise ValueError("Receiving Bay selection index out of range")
+    return {
+        "set_index": selected_set["set_index"],
+        "set_id": selected_set["set_id"],
+        "bay_index": selected_bay,
+    }
+
+
+def normalize_receiving_operator_connection_counts(raw_counts) -> tuple[int, ...]:
+    """Project only real positive Set/Bay topology counts to GUI controls.
+
+    The saved Receiving Layout always has Set1 and at least one physical Bay
+    per Set.  Never let UI bool/int coercion fabricate a Bay for invalid data.
+    """
+    if isinstance(raw_counts, (str, bytes, Mapping)):
+        raise ValueError("Receiving connection counts must be a sequence")
+    try:
+        counts = tuple(raw_counts)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("Receiving connection counts must be a sequence") from exc
+    if not counts:
+        raise ValueError("Receiving requires at least one Set")
+    for index, count in enumerate(counts):
+        if type(count) is not int or count < 1:
+            raise ValueError(
+                f"Receiving Set{index + 1} connection_count must be a positive integer"
+            )
+    return counts
 
 
 def normalize_receiving_layout(layout: Mapping[str, object] | None) -> dict[str, object]:
@@ -665,7 +755,13 @@ def rename_receiving_panel(
 def _validate_common_receiving_state(snapshot: Mapping[str, object]) -> None:
     """Reuse existing Door/Divider/Inner Door validators for one projected Bay."""
     data = dict(snapshot or {})
-    if not bool(data.get("multi_door_enabled", False)):
+    # A serialized Bay "false" is disabled in the same Engine source
+    # contract as saved .p6fold and confirmed Receiving Door PartSpecs.
+    # Invalid operator modes may never quietly skip physical validation.
+    from .operator_settings_transactions import normalize_operator_settings_boolean
+    if not normalize_operator_settings_boolean(
+        data.get("multi_door_enabled", False)
+    ):
         return
     # Keep persisted Door width/height types until the single canonical
     # validator. float(True) would otherwise fabricate a physical 1-mm cell
@@ -763,8 +859,16 @@ def project_receiving_bay_legacy_aliases(
         # that fully sourced case should Bay N receive its own *transient*
         # family-default geometry. A minimal/unconfigured old project must
         # remain unconfigured: manufacturing cannot invent saved d/t authority.
+        # The original .p6fold codec deliberately keeps the source flag
+        # untouched. bool("false") would fabricate a fresh inner-door frame
+        # on an otherwise unconfigured Bay; use the same Engine boolean
+        # authority as project Save/Reload and factory Door PartSpecs.
+        from .operator_settings_transactions import normalize_operator_settings_boolean
+        enabled_source = normalize_operator_settings_boolean(
+            result.get("multi_door_enabled", False),
+        )
         has_manufacturing_door_source = (
-            bool(result.get("multi_door_enabled"))
+            enabled_source
             and bool(result.get("door_layout_columns"))
             and bool(result.get("inner_doors"))
             and all(result.get(key) is not None for key in ("w", "h", "d", "t"))
@@ -773,6 +877,17 @@ def project_receiving_bay_legacy_aliases(
             result.pop(key, None)
         if has_manufacturing_door_source:
             from ae_engine.cabinet_types import receiving
+            from .operator_settings_transactions import normalize_operator_source_dimension
+            # These values become actual inner-door/FRAME geometry before
+            # normal per-Bay validation runs. float(True) and float("nan")
+            # must never authorize invented 1-mm or nonfinite sheet metal.
+            # Only an *absent* legacy FW may use the original Family default.
+            physical_t = normalize_operator_source_dimension(
+                result["t"], field="t",
+            )
+            physical_fw = normalize_operator_source_dimension(
+                result.get("fw", receiving.BOX_BODY_DEFAULTS["fw"]), field="fw",
+            )
             template = receiving.default_door_layout_columns()
             default_height = sum(float(v) for v in template[0][1])
             bay_height = float(bay["height"])
@@ -784,9 +899,9 @@ def project_receiving_bay_legacy_aliases(
                 "door_layout_scope": receiving.DEFAULT_DOOR_LAYOUT_SCOPE,
                 "door_layout_columns": [[float(bay["width"]), heights]],
                 "inner_doors": receiving.default_inner_doors(
-                    thickness=float(result["t"]),
+                    thickness=physical_t,
                     depth=float(bay["depth"]),
-                    frame_width=float(result.get("fw", receiving.BOX_BODY_DEFAULTS["fw"])),
+                    frame_width=physical_fw,
                 ),
             })
     for key in ("nfb_config_submitted", "nfb_config"):
@@ -945,6 +1060,30 @@ def update_receiving_joint_alignment(
         "joints": [deepcopy(dict(item)) for item in joints],
     }
     return normalize_receiving_layout(normalized)
+
+def update_receiving_joint_alignment_with_affected_ids(
+    layout, *, set_index, joint_index,
+    depth_alignment=None, height_alignment=None,
+):
+    """Return Engine-validated Joint edit and exactly changed physical Joint ID.
+
+    Both clients use the original alignment transaction. Identical alignment
+    or a dimension-locked axis is a no-op, not a new dirty manufacturing source.
+    Do not recompute 3D offsets or create synthetic Set/Bay/Joint identities.
+    """
+    before = normalize_receiving_layout(layout)
+    candidate = update_receiving_joint_alignment(
+        before, set_index=set_index, joint_index=joint_index,
+        depth_alignment=depth_alignment, height_alignment=height_alignment,
+    )
+    original_joint = before["sets"][set_index]["joints"][joint_index]
+    current_joint = candidate["sets"][set_index]["joints"][joint_index]
+    affected = (
+        (str(current_joint["stable_id"]),)
+        if original_joint != current_joint else ()
+    )
+    return candidate, affected
+
 
 def receiving_destructive_tail_ids(
     layout: Mapping[str, object],
@@ -1180,6 +1319,85 @@ def resize_receiving_bays_with_family_defaults(layout, *, set_index, bay_count):
         expected_count=new_count - before_count,
     )
     return candidate
+
+def resize_receiving_operator_topology_with_removed_ids(
+    layout, *, set_index=None, bay_count=None, set_count=None,
+):
+    """Stage one fully validated Set/Bay resize and its physical deletion IDs.
+
+    The returned candidate is detached: callers confirm destructive removal
+    before accepting it. Invalid layout, Family defaults or source ID drift
+    cannot modify an existing saved project or GUI protection bookkeeping.
+    """
+    if (bay_count is None) == (set_count is None):
+        raise ValueError("必須且只能指定一種 Receiving Set／Bay 數量")
+    if bay_count is not None:
+        if type(set_index) is not int or set_index < 0:
+            raise ValueError("Receiving Set index must be a nonnegative integer")
+        candidate = resize_receiving_bays_with_family_defaults(
+            layout, set_index=set_index, bay_count=bay_count,
+        )
+        removed = receiving_destructive_tail_ids(
+            layout, set_index=set_index, bay_count=bay_count,
+        )
+    else:
+        if set_index is not None:
+            raise ValueError("指定 Set 數量不得夾帶 Bay index")
+        candidate = resize_receiving_sets(layout, set_count=set_count)
+        removed = receiving_destructive_tail_ids(layout, set_count=set_count)
+    before_ids = receiving_layout_stable_ids(layout)
+    after_ids = set(receiving_layout_stable_ids(candidate))
+    actual_removed = {sid for sid in before_ids if sid not in after_ids}
+    if len(removed) != len(set(removed)) or set(removed) != actual_removed:
+        raise ValueError("Receiving 刪除來源與實體 Set/Bay 結果不一致")
+    return candidate, tuple(removed)
+
+
+def adjust_receiving_operator_set_count_with_removed_ids(layout, *, delta):
+    """Resolve +/- physical Sets and their true deleted IDs in one Engine call.
+
+    The UI submits only the operator delta. The canonical Engine enforces the
+    permanent Set1 rule and stages new Set/Bay identity from the existing
+    absolute resize. Removal consent remains with the GUI before commit.
+    """
+    if type(delta) is not int:
+        raise ValueError("Receiving Set delta must be an integer")
+    source = normalize_receiving_layout(layout)
+    count = len(source["sets"])
+    wanted = max(1, count + delta)
+    if wanted == count:
+        return source, (), False
+    candidate, removed = resize_receiving_operator_topology_with_removed_ids(
+        source, set_count=wanted,
+    )
+    return candidate, removed, True
+
+
+def resize_receiving_operator_connections_by_delta_with_removed_ids(
+    layout, *, set_index, delta,
+):
+    """Stage a +/- Bay operator click and exact removed physical IDs atomically.
+
+    The delta, minimum-one-Bay rule and effective change belong to the Engine
+    topology owner. A rejected source/Family default leaves selection,
+    protected IDs and the original saved Layout entirely to its caller.
+    This reuses the existing absolute-size transaction and never substitutes
+    GUI-derived manufacturing identities or copies of physical geometry.
+    """
+    if type(set_index) is not int:
+        raise ValueError("Receiving Set index must be an integer")
+    if type(delta) is not int:
+        raise ValueError("Receiving Bay delta must be an integer")
+    original = normalize_receiving_layout(layout)
+    if set_index < 0 or set_index >= len(original["sets"]):
+        raise IndexError("Receiving Set index out of range")
+    current = len(original["sets"][set_index]["bays"])
+    wanted = max(1, current + delta)
+    candidate, removed = resize_receiving_operator_topology_with_removed_ids(
+        original, set_index=set_index, bay_count=wanted,
+    )
+    return candidate, removed, wanted != current
+
 
 def receiving_layout_stable_ids(layout: Mapping[str, object]) -> tuple[str, ...]:
     """Stable physical Set/Bay/Joint IDs in original canonical saved order."""

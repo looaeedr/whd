@@ -1,0 +1,21 @@
+﻿型號_依檔名,原始DWG檔名,DWG_SHA256,內容類別,尺寸讀取狀態,加工資格
+(檔名群組未拆型號),BH-BHK 外型及安裝尺寸.dwg,82f971e5905c01bcaed8fe4e2421b49f73f28f0f475b91565fb69871b1c630ae,NFB,尚未解析DWG幾何,禁止從檔名推算孔位
+(檔名群組未拆型號),BHH外型及安裝尺寸.dwg,d82bd985254a031b888f6e8f7fbea0d17796ef8ef1405610afdc2b5aaf2bc50a,NFB,尚未解析DWG幾何,禁止從檔名推算孔位
+(檔名群組未拆型號),BHS-H外型及安裝尺寸尺寸圖.dwg,48501a953a8ac98316f4684d4e63fe14c5fe92c770da74a690ac87dc19191962,NFB,尚未解析DWG幾何,禁止從檔名推算孔位
+NF100-HS,NF100-HS HP外型及安裝尺寸(非複合式).dwg,4667dbc888e5812fe26451654a75d90ab491bf5231267e12b5560f99e3c5492c,NFB,尚未解析DWG幾何,禁止從檔名推算孔位
+NF100-HP,NF100-HS HP外型及安裝尺寸(非複合式).dwg,4667dbc888e5812fe26451654a75d90ab491bf5231267e12b5560f99e3c5492c,NFB,尚未解析DWG幾何,禁止從檔名推算孔位
+NF125-SW,NF125-SW NF100-SS NF100-HW外型及安裝尺寸.dwg,7bff893a08ca4deb21ca78aed64668e53c9f8b2d216c17934aa36d33073b70ab,NFB,尚未解析DWG幾何,禁止從檔名推算孔位
+NF100-SS,NF125-SW NF100-SS NF100-HW外型及安裝尺寸.dwg,7bff893a08ca4deb21ca78aed64668e53c9f8b2d216c17934aa36d33073b70ab,NFB,尚未解析DWG幾何,禁止從檔名推算孔位
+NF100-HW,NF125-SW NF100-SS NF100-HW外型及安裝尺寸.dwg,7bff893a08ca4deb21ca78aed64668e53c9f8b2d216c17934aa36d33073b70ab,NFB,尚未解析DWG幾何,禁止從檔名推算孔位
+NF225-SS,NF225-SS NF225-HW外型及安裝尺寸.dwg,bdd58ebff90574c561d8115017ffdf42ba25ba0482227cced5c3422072e6bec9,NFB,尚未解析DWG幾何,禁止從檔名推算孔位
+NF225-HW,NF225-SS NF225-HW外型及安裝尺寸.dwg,bdd58ebff90574c561d8115017ffdf42ba25ba0482227cced5c3422072e6bec9,NFB,尚未解析DWG幾何,禁止從檔名推算孔位
+NF250-HS,NF250-HS NF250-KS外型及安裝尺寸.dwg,d13333def99c2e1d61e72bbcad1cd485f2777a8d13aef073d1f4f7bd0ceeff05,NFB,尚未解析DWG幾何,禁止從檔名推算孔位
+NF250-KS,NF250-HS NF250-KS外型及安裝尺寸.dwg,d13333def99c2e1d61e72bbcad1cd485f2777a8d13aef073d1f4f7bd0ceeff05,NFB,尚未解析DWG幾何,禁止從檔名推算孔位
+NF400HS,NF400HS NF400-KS NF400-HW外型及安裝尺寸.dwg,f3ddc6a4c39103965db5a3d90c9e59f75fab6f0e3bef5042cd9ea2a427d3b358,NFB,尚未解析DWG幾何,禁止從檔名推算孔位
+NF400-KS,NF400HS NF400-KS NF400-HW外型及安裝尺寸.dwg,f3ddc6a4c39103965db5a3d90c9e59f75fab6f0e3bef5042cd9ea2a427d3b358,NFB,尚未解析DWG幾何,禁止從檔名推算孔位
+NF400-HW,NF400HS NF400-KS NF400-HW外型及安裝尺寸.dwg,f3ddc6a4c39103965db5a3d90c9e59f75fab6f0e3bef5042cd9ea2a427d3b358,NFB,尚未解析DWG幾何,禁止從檔名推算孔位
+NF50-HS,NF50-HS外型及安裝尺寸.dwg,0ce38baeeb4b21c4f7df24a81fede92694e3d7d2954a197844d43fb7beacc8c7,NFB,尚未解析DWG幾何,禁止從檔名推算孔位
+NF800-CP,NF800-CP NF800-SS NF800-HW外型安裝尺寸.dwg,389e66c8ee0a9bf77a0a01eabc2326fe23336dd8030b709556c45b36b3d8dac6,NFB,尚未解析DWG幾何,禁止從檔名推算孔位
+NF800-SS,NF800-CP NF800-SS NF800-HW外型安裝尺寸.dwg,389e66c8ee0a9bf77a0a01eabc2326fe23336dd8030b709556c45b36b3d8dac6,NFB,尚未解析DWG幾何,禁止從檔名推算孔位
+NF800-HW,NF800-CP NF800-SS NF800-HW外型安裝尺寸.dwg,389e66c8ee0a9bf77a0a01eabc2326fe23336dd8030b709556c45b36b3d8dac6,NFB,尚未解析DWG幾何,禁止從檔名推算孔位
+NF1600-SS,NF1600-SS外型及安裝尺寸.dwg,e929798c39858583a49d0ebb19225f5571309ff10a2206512b5e8b957ac32b4f,NFB,尚未解析DWG幾何,禁止從檔名推算孔位

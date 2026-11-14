@@ -22,7 +22,7 @@ def installed_pair():
     snap=_current()
     # V5 identities are selected input DATA, never a generator branch.
     snap["nfb_config"]["holes"][0].update(
-        model_filename="nfbv5:士林:3P400SN",source_brand="士林")
+        model_filename="nfbv5:士林:3P400",source_brand="士林")
     snap["nfb_config"]["holes"][1].update(
         model_filename="nfbv5:士林:100HN-s",source_brand="士林")
     snap["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"]=deepcopy(

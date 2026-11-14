@@ -118,6 +118,10 @@ class _RoundHoleSettingsDialog:
         }
 
     def open(self):
+        # Validate the physical source before creating/grabbing any Tk window.
+        initial_pitch = manufacturing_api.operator_round_hole_default_center_distance(
+            self.selected_feature.diameter,
+        )
         self.dialog = tk.Toplevel(self.editor)
         self.round_window[0] = self.dialog
         self.dialog.title("圓孔排列設定")
@@ -127,7 +131,7 @@ class _RoundHoleSettingsDialog:
         self.dialog.resizable(False, False)
         self.round_direction = tk.StringVar(value="向右")
         self.round_driver = tk.StringVar(value="center")
-        self.round_center = tk.StringVar(value=f"{max(float(self.selected_feature.diameter) * 2.0, 50.0):.2f}")
+        self.round_center = tk.StringVar(value=f"{initial_pitch:.2f}")
         self.round_gap = tk.StringVar()
         self.round_alignment = tk.StringVar(value="center")
         self.sync_guard = False
@@ -288,17 +292,12 @@ class _RoundHoleSettingsDialog:
             self.sync_guard = False
 
     def _driver_value(self):
-        try:
-            value = float(self.round_center.get() if self.round_driver.get() == "center" else self.round_gap.get())
-        except (TypeError, ValueError, OverflowError) as exc:
-            raise ValueError("孔心距 / 間距必須是數字") from exc
-        if not isfinite(value):
-            raise ValueError("孔心距 / 間距必須是有限數字")
-        if self.round_driver.get() == "center" and value <= 0:
-            raise ValueError("孔心距必須大於 0")
-        if self.round_driver.get() == "gap" and value < 0:
-            raise ValueError("間距不可小於 0")
-        return value
+        """Forward the exact operator source; Engine alone decides valid pitch."""
+        return (
+            self.round_center.get()
+            if self.round_driver.get() == "center"
+            else self.round_gap.get()
+        )
 
     def _apply_pattern(self, refill=False):
         try:

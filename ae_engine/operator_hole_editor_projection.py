@@ -86,7 +86,7 @@ def project_operator_quantity_endcap_hole_editor_geometry(
               else source)
     return project_operator_hole_editor_endcap(
         role, width=values["w"], depth=values["d"],
-        thickness=source.get("t", 2),
+        thickness=source.get("t"),
     )
 
 

@@ -72,19 +72,45 @@ from .cabinet_types import policy as cabinet_family_policy
 from .manufacturing_baseline_policy import resolve_policy, _call
 
 def _resolved_door_params(spec: DoorPartSpec, context: ManufacturingContext | None = None):
+    # DoorPartSpec may be a directly confirmed headless manufacturing input,
+    # without the GUI operator request factory. Validate the original types
+    # before float(True) could manufacture a 1-mm physical Door.
+    from .operator_settings_transactions import normalize_operator_source_dimension
+    from .door_operator_part_spec import _finite_operator_number
     policy = resolve_policy(context)
-    t = float(spec.thickness)
+    w = normalize_operator_source_dimension(spec.width, field="w")
+    h = normalize_operator_source_dimension(spec.height, field="h")
+    t = normalize_operator_source_dimension(spec.thickness, field="t")
+    fw = normalize_operator_source_dimension(spec.frame_width, field="fw")
     material_fw = cabinet_family_policy.door_material_frame_width(
-        spec.model_name, frame_width=float(spec.frame_width), thickness=t,
+        spec.model_name, frame_width=fw, thickness=t,
     )
     return dict(
-        w=float(spec.width), h=float(spec.height), t=t, fw=material_fw,
-        gap_w=float(spec.gap_w if spec.gap_w is not None else policy.door_gap_w),
-        gap_h=float(spec.gap_h if spec.gap_h is not None else policy.door_gap_h),
-        fold_left=float(spec.fold_left if spec.fold_left is not None else policy.door_fold_left),
-        fold_right=float(spec.fold_right if spec.fold_right is not None else policy.door_fold_right),
-        fold_top=float(spec.fold_top if spec.fold_top is not None else policy.door_fold_top),
-        fold_bottom=float(spec.fold_bottom if spec.fold_bottom is not None else policy.door_fold_bottom),
+        w=w, h=h, t=t, fw=material_fw,
+        gap_w=_finite_operator_number(
+            spec.gap_w if spec.gap_w is not None else policy.door_gap_w,
+            "door_gap_w",
+        ),
+        gap_h=_finite_operator_number(
+            spec.gap_h if spec.gap_h is not None else policy.door_gap_h,
+            "door_gap_h",
+        ),
+        fold_left=_finite_operator_number(
+            spec.fold_left if spec.fold_left is not None else policy.door_fold_left,
+            "door_fold_l",
+        ),
+        fold_right=_finite_operator_number(
+            spec.fold_right if spec.fold_right is not None else policy.door_fold_right,
+            "door_fold_r",
+        ),
+        fold_top=_finite_operator_number(
+            spec.fold_top if spec.fold_top is not None else policy.door_fold_top,
+            "door_fold_t",
+        ),
+        fold_bottom=_finite_operator_number(
+            spec.fold_bottom if spec.fold_bottom is not None else policy.door_fold_bottom,
+            "door_fold_b",
+        ),
     )
 
 
@@ -110,15 +136,34 @@ def door_indicator_offset_for_finished_center(
     context: ManufacturingContext | None = None,
 ) -> Vec2:
     """Convert a desired finished-face center into AE's indicator layout offset."""
+    from .fold_designer_snapshot_dimensions import (
+        normalize_fold_designer_indicator_groups,
+        normalize_fold_designer_indicator_offsets,
+    )
+    # The direct headless API must not turn True or 2.5 groups into real holes.
+    normalized_groups = normalize_fold_designer_indicator_groups(groups)
+    center_x, center_y = normalize_fold_designer_indicator_offsets(
+        desired_center.x, desired_center.y,
+    )
     finished_w, finished_h = door_finished_face_size(spec, context)
     local_context = DoorIndicatorContext(
         finished_width=float(finished_w), finished_height=float(finished_h),
         left_fold=0.0, bottom_fold=0.0,
     )
-    base_center = local_context.group_center(tuple(int(v) for v in groups))
+    base_center = local_context.group_center(normalized_groups)
     return Vec2(
-        float(desired_center.x) - float(base_center.x),
-        float(desired_center.y) - float(base_center.y),
+        center_x - float(base_center.x),
+        center_y - float(base_center.y),
+    )
+
+
+def _validated_indicator_box_physical_source(groups, thickness):
+    """Apply the same Engine source gates as Door fit and Hole Editor."""
+    from .fold_designer_snapshot_dimensions import normalize_fold_designer_indicator_groups
+    from .operator_settings_transactions import normalize_operator_source_dimension
+    return (
+        normalize_fold_designer_indicator_groups(groups),
+        normalize_operator_source_dimension(thickness, field="t"),
     )
 
 
@@ -126,10 +171,8 @@ def indicator_box_unfolded_size(
     groups, *, thickness: float, context: ManufacturingContext | None = None
 ) -> tuple[float, float]:
     """Return the shared indicator-box unfolded blank size."""
-    normalized = tuple(int(v) for v in groups)
-    if not normalized or any(v <= 0 for v in normalized):
-        raise ValueError("指示燈盒至少需要一層且每層組數必須大於 0")
-    data = ae.get_indicator_box_data(normalized, float(thickness))
+    normalized, t = _validated_indicator_box_physical_source(groups, thickness)
+    data = ae.get_indicator_box_data(normalized, t)
     return float(data.params["w"]), float(data.params["h"])
 
 
@@ -217,16 +260,32 @@ def validate_door_indicator_fit(
     mode = str(mode or "none")
     fw = float(finished_width)
     fh = float(finished_height)
-    t = float(thickness)
     if fw <= 0 or fh <= 0:
         raise ValueError("門板成品尺寸必須大於 0")
     if mode == "none":
+        # Preserve the old no-fit mode's parseable-T compatibility without
+        # imposing a new manufacturing qualification on a disabled feature.
+        float(thickness)
         return (0.0, 0.0)
+    # The same public original-source gate qualifies real sheet thickness
+    # for GUI and headless callers; float(True) must never become T=1 mm.
+    from .operator_settings_transactions import normalize_operator_source_dimension
+    # Finished-face W/H are physical Engine results. Validate original
+    # caller values as strictly as W/H operator manufacturing sources before
+    # they can become a Door layout or IndicatorBox fit boundary.
+    fw = normalize_operator_source_dimension(finished_width, field="w")
+    fh = normalize_operator_source_dimension(finished_height, field="h")
+    t = normalize_operator_source_dimension(thickness, field="t")
 
-    normalized_groups = tuple(int(v) for v in groups)
-    if not normalized_groups or any(v <= 0 for v in normalized_groups):
-        raise ValueError("指示燈層/組數必須大於 0")
-    ox, oy = float(offset[0]), float(offset[1])
+    # Use the same original-source qualification as the saved Door and
+    # Hole Editor contracts; int(True)/int(2.5) and nonfinite offsets must
+    # not become canonical physical hole layouts in a direct headless call.
+    from .fold_designer_snapshot_dimensions import (
+        normalize_fold_designer_indicator_groups,
+        normalize_fold_designer_indicator_offsets,
+    )
+    normalized_groups = normalize_fold_designer_indicator_groups(groups)
+    ox, oy = normalize_fold_designer_indicator_offsets(offset[0], offset[1])
     tol = 1e-6
 
     if mode == "indicator":
@@ -305,12 +364,11 @@ def _validate_door_part_indicator_fit(
 def indicator_small_door_spec(
     groups, *, thickness: float, context: ManufacturingContext | None = None
 ) -> DoorPartSpec:
+    groups, t = _validated_indicator_box_physical_source(groups, thickness)
     policy = resolve_policy(context)
-    groups = tuple(int(v) for v in groups)
     finished_w, finished_h = indicator_small_door_finished_size(
-        groups, thickness=float(thickness), context=context
+        groups, thickness=t, context=context
     )
-    t = float(thickness)
     source_w = finished_w + (policy.frame_width + 2.0 * t) * 2.0 + policy.door_gap_w * 2.0
     source_h = finished_h + (policy.frame_width + 2.0 * t) * 2.0 + policy.door_gap_h * 2.0
     fold = float(policy.indicator_small_door_fold)
@@ -333,15 +391,25 @@ def indicator_small_door_operator_spec(
     Keep the existing Factory Policy + indicator_small_door_spec pipeline.
     Callers submit inputs/features but do not build manufacturing policies.
     """
+    # The original Door operator Engine owns the same physical FW and signed
+    # Gap/Fold source rules. Never turn True into a 1-mm manufactured frame
+    # or allow NaN/Inf to enter an Indicator Small Door manufacturing policy.
+    from .operator_settings_transactions import normalize_operator_source_dimension
+    from .door_operator_part_spec import _finite_operator_number
+    fw = normalize_operator_source_dimension(frame_width, field="fw")
+    gap_w = _finite_operator_number(door_gap_w, "door_gap_w")
+    gap_h = _finite_operator_number(door_gap_h, "door_gap_h")
+    fold_source = (
+        getattr(ae, "indicator_small_door_fold_def", 19.0)
+        if indicator_door_fold is None else indicator_door_fold
+    )
+    fold = _finite_operator_number(fold_source, "indicator_door_fold")
     policy = replace(
         resolve_policy(),
-        frame_width=float(frame_width),
-        door_gap_w=float(door_gap_w),
-        door_gap_h=float(door_gap_h),
-        indicator_small_door_fold=float(
-            getattr(ae, "indicator_small_door_fold_def", 19.0)
-            if indicator_door_fold is None else indicator_door_fold
-        ),
+        frame_width=fw,
+        door_gap_w=gap_w,
+        door_gap_h=gap_h,
+        indicator_small_door_fold=fold,
     )
     context = ManufacturingContext(policy=policy, draw_stock=False)
     # The same physical group source gate serves GUI and headless callers.
@@ -349,7 +417,7 @@ def indicator_small_door_operator_spec(
 
     base = indicator_small_door_spec(
         normalize_fold_designer_indicator_groups(groups),
-        thickness=float(thickness), context=context,
+        thickness=thickness, context=context,
     )
     return replace(
         base, features=tuple(features or ()), feature_space="legacy_unfolded",

@@ -24,7 +24,6 @@ from ae_engine.display_dimensions import resolve_operator_finished_dimensions
 from ae_engine.cabinet_types import (
     policy as cabinet_family_policy,
     registered_cabinet_types,
-    resolve_cabinet_type,
 )
 PHASE6_BUILD_ID = "RECEIVING_MODEL_SINGLE_SOURCE_20260824_0701"
 from ae_engine.contracts import (
@@ -74,7 +73,6 @@ from ae_engine.sheetmetal_features import (
     move_feature_to_finished_point,
     reanchor_feature,
     build_feature_placement_guides,
-    feature_to_legacy_hole,
     feature_with_offset,
     expand_linear_pattern,
     expand_grid_pattern,
@@ -112,7 +110,6 @@ from ae_engine.sheetmetal_part_adapters import (
     complete_partition,
     door_layout_export_filename,
     door_layout_feature_map_to_part_features,
-    door_part_features_to_layout_feature_map,
     build_box_body_result,
     build_box_body_result_from_fold_profile,
     build_door_result,
@@ -134,7 +131,6 @@ from ae_engine.corner_type_ui import (
     apply_manual_corner_selection,
     with_unknown_model,
     is_unknown_model,
-    normalize_custom_model_name,
     new_manual_corner_pair_same_state,
     new_manual_corner_state,
     known_model_corner_state,
@@ -181,9 +177,6 @@ from phase6_endcap_semantics import (
     normalize_endcap_fw_state, resolve_endcap_fw, set_endcap_fw_follow, set_endcap_fw_override,
     commit_box_fw, commit_endcap_fw,
     normalize_endcap_bottom_wrap_state, resolve_endcap_bottom_wrap,
-)
-from ae_engine.assembly_joint import (
-    migrate_legacy_snapshot_joints, sync_snapshot_intent_joints, ASSEMBLY_JOINT_SCHEMA_VERSION,
 )
 from phase6_settings_center import (
     GLOBAL_CONTEXT,
@@ -280,53 +273,48 @@ def _current_cabinet_type_name(self):
         value = var.get() if var is not None else "金庫型"
     except Exception:
         value = "金庫型"
-    value = normalize_custom_model_name(value)
-    try:
-        return resolve_cabinet_type(value).canonical_name
-    except (KeyError, ValueError):
-        # Existing baseline folders and 自訂 still use the legacy vault
-        # manufacturing family unless a registered family name is selected.
-        return "金庫型"
+    # The legacy default and registered Family identity are Engine-owned.
+    return manufacturing_api.operator_resolve_legacy_baseline_manufacturing_family(value)
 
 def _apply_manual_corner_snapshot(self, corner_state=None, pair_same=None):
-    for part_key, corners in (corner_state or {}).items():
-        if part_key not in self.manual_corner_state:
-            continue
-        for corner_key, raw in (corners or {}).items():
-            if corner_key not in self.manual_corner_state[part_key]:
-                continue
-            if isinstance(raw, dict):
-                type_id = raw.get("type_id", CornerTypeId.CROSS.value)
-                rotation = int(raw.get("rotation_quadrants", 0) or 0)
-                kwargs = {
-                    "cross_mode": raw.get("cross_mode"),
-                    "direction": raw.get("direction"),
-                    "amount_t": raw.get("amount_t"),
-                    "secondary_retain_t": raw.get("secondary_retain_t"),
-                    "secondary_depth_t": raw.get("secondary_depth_t"),
-                }
-            else:
-                type_id = raw
-                rotation = 0
-                kwargs = {}
-            try:
-                selection = CornerTypeSelection(CornerTypeId(type_id), rotation, **kwargs)
-                self.manual_corner_state[part_key][corner_key] = normalize_corner_selection(selection)
-            except (TypeError, ValueError):
-                continue
-    for part_key, pairs in (pair_same or {}).items():
-        if part_key not in self.manual_corner_pair_same:
-            continue
-        for pair_key, enabled in (pairs or {}).items():
-            if pair_key in self.manual_corner_pair_same[part_key]:
-                self.manual_corner_pair_same[part_key][pair_key] = bool(enabled)
-    self._enforce_known_model_corner_types(reset_all=False)
+    """Restore the entire saved Corner draft only after Engine validation."""
+    model_var = getattr(self, "baseline_var", None)
+    model = model_var.get() if model_var is not None else ""
+    next_state, next_pairs = manufacturing_api.propose_operator_saved_manual_corner_snapshot(
+        self.manual_corner_state, self.manual_corner_pair_same,
+        saved_corner_state=corner_state, saved_corner_pair_same=pair_same,
+        baseline_model=model, cabinet_family=self._current_cabinet_type_name(),
+    )
+    # Existing editor widgets retain their live per-part dict references.
+    for part_key, updated in next_state.items():
+        existing = self.manual_corner_state[part_key]
+        if existing != updated:
+            existing.clear()
+            existing.update(updated)
+    for part_key, updated in next_pairs.items():
+        existing = self.manual_corner_pair_same[part_key]
+        if existing != updated:
+            existing.clear()
+            existing.update(updated)
     self.refresh_corner_type_panel()
 
 def _apply_fold_designer_live_settings(self, values, *, recalculate=True):
     """Commit FoldDesigner values without replaying unchanged Tk writes."""
     before = self.settings_service.snapshot()
     clean = {key: value for key, value in dict(values or {}).items() if key in before}
+    if not clean:
+        return
+    next_fw_state = None
+    if "fw" in clean:
+        try:
+            next_fw_state = manufacturing_api.project_operator_box_fw_live_state(
+                self.endcap_fw_state,
+                previous_box_fw=before["fw"], requested_box_fw=clean["fw"],
+            )
+        except (TypeError, ValueError, KeyError):
+            # Invalid FW is not a manufacturing write; unrelated settings
+            # in the same external draft may still be applied independently.
+            clean.pop("fw")
     if not clean:
         return
     current = self.settings_service.update(clean)
@@ -350,12 +338,8 @@ def _apply_fold_designer_live_settings(self, values, *, recalculate=True):
                 existing = object()
             if existing != target:
                 var.set(target)
-        if "fw" in changed:
-            box_fw = float(current["fw"])
-            for part in ("head", "tail"):
-                state = self.endcap_fw_state.setdefault(part, {"follow_box": True, "value": box_fw})
-                if bool(state.get("follow_box", True)):
-                    state["value"] = box_fw
+        if "fw" in changed and next_fw_state is not None and current["fw"] == float(clean["fw"]):
+            self.endcap_fw_state = next_fw_state
             self._sync_endcap_fw_controls()
         shrink_keys = (
             "base_plate_shrink_top", "base_plate_shrink_bottom",
@@ -469,10 +453,25 @@ def _apply_existing_parts_from_fold_workspace(
 
 def _apply_phase6_project_snapshot(self, snapshot):
     """Restore one all-part .p6fold snapshot into the main GUI state."""
+    # Public Engine validates the saved physical Door source before the GUI
+    # clears the previous Receiving session or modifies the selected model.
+    multi_door_enabled = manufacturing_api.normalize_operator_settings_boolean(
+        (snapshot or {}).get("multi_door_enabled", False)
+    )
+    door_columns = manufacturing_api.project_operator_saved_door_layout_columns(
+        (snapshot or {}).get("door_layout_columns")
+    )
+    manufacturing_api.normalize_operator_door_nameplate_center_datum_top(
+        (snapshot or {}).get("door_nameplate_center_datum_top")
+    )
+    if "use_box_distance" in (snapshot or {}):
+        manufacturing_api.normalize_operator_settings_boolean(
+            snapshot["use_box_distance"]
+        )
     self.workspace_controller.reset_receiving_mode_session()
     self._reset_manual_corner_parameter_locks()
     snapshot = deepcopy(dict(snapshot or {}))
-    model = normalize_custom_model_name(snapshot.get("model"))
+    model = manufacturing_api.operator_normalize_custom_model_name(snapshot.get("model"))
     # Migration for the short-lived split-state build: cabinet_type and
     # model represented the same operator choice. Prefer 受電箱 when that
     # legacy field says receiving, then discard the duplicate state.
@@ -504,12 +503,10 @@ def _apply_phase6_project_snapshot(self, snapshot):
             self.surface_features.pop(key, None)
     for key, features in part_features.items():
         self.surface_features[str(key)] = list(features or ())
-    if bool(snapshot.get("multi_door_enabled")) and snapshot.get("door_layout_columns"):
-        columns = tuple(
-            (float(row[0]), tuple(float(v) for v in row[1]))
-            for row in tuple(snapshot.get("door_layout_columns") or ())
+    if multi_door_enabled and door_columns:
+        self.door_layout_features = manufacturing_api.project_operator_door_layout_cell_features_from_parts(
+            tuple((row[0], tuple(row[1])) for row in door_columns), part_features,
         )
-        self.door_layout_features = door_part_features_to_layout_feature_map(columns, part_features)
     face_features = dict(snapshot.get("part_face_features") or {})
     if "box_body" in face_features:
         self.box_body_face_features = {
@@ -519,18 +516,20 @@ def _apply_phase6_project_snapshot(self, snapshot):
     # Head/tail legacy lists are still used by the main 2D end-cap adapter.
     # Rebuild them from the same restored Feature objects so 2D and 3D agree.
     try:
-        width = float(snapshot.get("w", self.w_var.get()))
-        depth = float(snapshot.get("d", self.d_var.get()))
-        self.head_holes = [
-            feature_to_legacy_hole(feature, width, depth)
-            for feature in self.surface_features.get("head", ())
-        ]
-        self.tail_holes = [
-            feature_to_legacy_hole(feature, width, depth)
-            for feature in self.surface_features.get("tail", ())
-        ]
+        legacy_rows = manufacturing_api.project_operator_endcap_legacy_hole_rows(
+            {
+                "head": self.surface_features.get("head", ()),
+                "tail": self.surface_features.get("tail", ()),
+            },
+            width=snapshot.get("w", self.w_var.get()),
+            depth=snapshot.get("d", self.d_var.get()),
+        )
     except Exception:
+        # Invalid saved legacy rows must not partially replace either 2D cache.
         pass
+    else:
+        self.head_holes = legacy_rows["head"]
+        self.tail_holes = legacy_rows["tail"]
 
     existing = self._apply_existing_parts_from_fold_workspace(
         snapshot.get("existing_parts") or workspace.get("existing_parts") or (),
@@ -602,11 +601,13 @@ def _merge_live_receiving_candidate_libraries(self, snapshot):
                     live = candidate
         except tk.TclError:
             pass
-    from ae_engine.receiving_hole_candidates import normalize_candidates
-    from ae_engine.receiving_inner_door_candidates import normalize_inner_candidates
+    # Saved candidate identities are normalized by the same public Engine
+    # contract used by Fold Designer, not private candidate modules in GUI.
     libraries = (
-        ("receiving_hole_candidates", normalize_candidates),
-        ("receiving_inner_door_candidates", normalize_inner_candidates),
+        ("receiving_hole_candidates",
+         manufacturing_api.normalize_receiving_hole_candidates),
+        ("receiving_inner_door_candidates",
+         manufacturing_api.normalize_receiving_inner_door_candidates),
     )
     if live is None:
         # Close publishes the current editor into ProjectController before the
@@ -618,13 +619,21 @@ def _merge_live_receiving_candidate_libraries(self, snapshot):
         if (not isinstance(committed, dict)
                 or committed.get("model") != snapshot.get("model")):
             return snapshot
-        for key, normalize in libraries:
-            if key in committed:
-                snapshot[key] = deepcopy(normalize(committed[key]))
+        # Stage all candidate libraries before changing any project source:
+        # a corrupt second library must not commit the valid first one.
+        updates = {
+            key: deepcopy(normalize(committed[key]))
+            for key, normalize in libraries if key in committed
+        }
+        snapshot.update(updates)
         return snapshot
-    for key, normalize in libraries:
+    updates = {
+        key: deepcopy(normalize(live[key]))
+        for key, normalize in libraries if key in live
+    }
+    for key, _normalize in libraries:
         if key in live:
-            snapshot[key] = deepcopy(normalize(live[key]))
+            snapshot[key] = updates[key]
         else:
             snapshot.pop(key, None)
     return snapshot
@@ -667,23 +676,11 @@ def _compose_phase6_project_snapshot_from_main_gui(self):
     # workspace's saved singleton Bay may still carry first-entry 80 mm.
     # Reconcile only the physical current Bay, preserving all NFB fields and
     # all other Bays without silently discarding user door edits at reload.
-    if (snapshot.get("model") in ("受電箱", "RECEIVING")
-            and snapshot.get("active_mode", "set_bay") == "set_bay"
-            and isinstance(snapshot.get("receiving_layout"), dict)
-            and snapshot.get("inner_doors")):
-        layout = snapshot["receiving_layout"]
-        sets = layout.get("sets") or []
-        if len(sets) == 1 and len(sets[0].get("bays") or []) == 1:
-            from ae_engine.receiving_layout import (
-                RECEIVING_DOOR_STATE_KEYS, update_receiving_bay,
-            )
-            snapshot["receiving_layout"] = update_receiving_bay(
-                layout, set_index=0, bay_index=0,
-                door_state={
-                    key: deepcopy(snapshot[key])
-                    for key in RECEIVING_DOOR_STATE_KEYS if key in snapshot
-                },
-            )
+    bay_layout = manufacturing_api.project_receiving_single_bay_door_controls(
+        snapshot
+    )
+    if bay_layout is not None:
+        snapshot["receiving_layout"] = bay_layout
     snapshot["workspace"] = workspace
     if "assembly_placements" in workspace:
         snapshot["assembly_placements"] = deepcopy(workspace["assembly_placements"])
@@ -700,6 +697,24 @@ def _capture_phase6_committed_snapshot(self):
     )
 
 def _apply_original_fold_designer_snapshot(self, snapshot):
+    # The project Save path already validates these via Engine. Recheck the
+    # same physical source *before* any Settings/Corner/Joint commit on Open.
+    multi_door_enabled = manufacturing_api.normalize_operator_settings_boolean(
+        snapshot.get("multi_door_enabled", False)
+    )
+    door_columns = manufacturing_api.project_operator_saved_door_layout_columns(
+        snapshot.get("door_layout_columns")
+    )
+    nameplate_datum = manufacturing_api.normalize_operator_door_nameplate_center_datum_top(
+        snapshot.get("door_nameplate_center_datum_top")
+    )
+    # This physical Indicator-distance flag must keep its serialized meaning.
+    # Preflight before Settings/Corner/Joint mutations even if the Tk checkbox
+    # is unavailable in a headless or older GUI restore host.
+    box_distance = (
+        manufacturing_api.normalize_operator_settings_boolean(snapshot["use_box_distance"])
+        if "use_box_distance" in snapshot else None
+    )
     settings = dict(snapshot.get("settings") or {})
     for key in self.settings_service.snapshot():
         if key in snapshot and key not in settings:
@@ -708,7 +723,7 @@ def _apply_original_fold_designer_snapshot(self, snapshot):
     self._apply_manual_corner_snapshot(
         snapshot.get("corner_state"), snapshot.get("corner_pair_same")
     )
-    graph_state = migrate_legacy_snapshot_joints(snapshot)
+    graph_state = manufacturing_api.migrate_operator_assembly_joint_snapshot(snapshot)
     # Set the preset UI/cache first, then restore the saved Joint Graph.
     # Reversing this order normalizes every saved user edge override back
     # to the preset defaults during load.
@@ -724,22 +739,17 @@ def _apply_original_fold_designer_snapshot(self, snapshot):
     self._apply_endcap_fw_snapshot(snapshot)
     self.endcap_bottom_wrap_state = normalize_endcap_bottom_wrap_state(snapshot)
     self.assembly_relief_state = deepcopy(snapshot.get("assembly_relief") or {})
-    self.multi_door_enabled_var.set(bool(snapshot.get("multi_door_enabled", False)))
-    layout = list(snapshot.get("door_layout_columns") or ())
-    if layout:
-        self.set_door_layout_columns([
-            (float(row[0]), [float(v) for v in row[1]])
-            for row in layout
-        ])
+    self.multi_door_enabled_var.set(multi_door_enabled)
+    if door_columns:
+        self.set_door_layout_columns(door_columns)
     else:
         self.door_layout_columns = []
     self.door_layout_scope = str(snapshot.get("door_layout_scope") or "main")
     self.door_layout_handle_edges = deepcopy(dict(snapshot.get("door_handle_edges") or {}))
     self.receiving_inner_doors = deepcopy(list(snapshot.get("inner_doors") or ()))
-    datum = snapshot.get("door_nameplate_center_datum_top")
-    self.door_nameplate_center_datum_top = None if datum is None else float(datum)
+    self.door_nameplate_center_datum_top = nameplate_datum
     if getattr(self, "is_box_dist_var", None) is not None and "use_box_distance" in snapshot:
-        self.is_box_dist_var.set(bool(snapshot.get("use_box_distance", False)))
+        self.is_box_dist_var.set(box_distance)
     self.door_layout_indicator_states = {
         str(key): normalize_door_indicator_state(state)
         for key, state in dict(snapshot.get("door_layout_indicator_states") or {}).items()
@@ -860,12 +870,16 @@ def _apply_fold_designer_live_snapshot(self, payload):
         return False
     revision = 0
     if origin == "fold_designer":
-        try:
-            revision = int(payload.get("revision", 0) or 0)
-        except (TypeError, ValueError):
+        # Source ordering is a physical live-state admission decision.
+        # Never let Python int(bool/float/underscored text) authorize a
+        # Settings/Corner/Joint/Workspace overwrite before Engine checks it.
+        revision_plan = manufacturing_api.plan_operator_fold_designer_live_revision(
+            payload.get("revision", 0),
+            last_revision=getattr(self, "_phase6_last_fold_designer_revision", 0),
+        )
+        if not revision_plan.accepted:
             return False
-        if revision <= int(getattr(self, "_phase6_last_fold_designer_revision", 0) or 0):
-            return False
+        revision = revision_plan.revision
         fingerprint = str(payload.get("fingerprint") or "")
         if fingerprint and fingerprint == getattr(self, "_phase6_last_fold_designer_fingerprint", None):
             self._phase6_last_fold_designer_revision = revision
@@ -881,7 +895,7 @@ def _apply_fold_designer_live_snapshot(self, payload):
             # not invalidate caches or enqueue a host calculation/echo.
             active = payload["active_part"]
             self.workspace_controller.set_active_part(active)
-            if active.startswith("box_body:") and not active.startswith("box_body:divider:"):
+            if manufacturing_api.is_box_body_physical_piece_key(active):
                 self.box_body_piece_2d_selected_var.set(active)
             self._sync_fold_designer_manual_corner_context(active)
             self.project_controller.capture_committed(
@@ -899,13 +913,20 @@ def _apply_fold_designer_live_snapshot(self, payload):
                 self.surface_features[str(key)] = deepcopy(list(items or ()))
             if quantity_changed:
                 try:
-                    width, depth = float(self.w_var.get()), float(self.d_var.get())
-                    self.head_holes = [feature_to_legacy_hole(feature, width, depth) for feature in self.surface_features["head"]]
-                    self.tail_holes = [feature_to_legacy_hole(feature, width, depth) for feature in self.surface_features["tail"]]
+                    legacy_rows = manufacturing_api.project_operator_endcap_legacy_hole_rows(
+                        {
+                            "head": self.surface_features["head"],
+                            "tail": self.surface_features["tail"],
+                        },
+                        width=self.w_var.get(), depth=self.d_var.get(),
+                    )
                 except (TypeError, ValueError, AttributeError):
-                    # Typed surface features remain the canonical owner for
-                    # feature kinds that the legacy hole projection cannot carry.
+                    # Typed surface features remain canonical; keep both legacy
+                    # 2D cache roles unchanged if either projection is invalid.
                     pass
+                else:
+                    self.head_holes = legacy_rows["head"]
+                    self.tail_holes = legacy_rows["tail"]
                 if hasattr(self, "_derived_cache_owner"):
                     self._derived_cache_owner.invalidate("geometry")
                 if hasattr(self, "_authoritative_part_render_cache"):
@@ -941,7 +962,31 @@ def _apply_fold_designer_live_snapshot(self, payload):
             self._phase6_last_fold_designer_fingerprint=str(payload.get("fingerprint") or "")
             self._phase6_last_fold_designer_live_payload=deepcopy(payload)
             return True
-        model = normalize_custom_model_name(payload.get("model"))
+        # Only the full live synchronization may update physical Door sources.
+        # Validate raw operator controls through the existing Engine before
+        # changing model, Settings, Corner, Joint or Workspace state.
+        live_multi_door = (
+            manufacturing_api.normalize_operator_settings_boolean(payload["multi_door_enabled"])
+            if "multi_door_enabled" in payload else None
+        )
+        live_nameplate_datum = (
+            manufacturing_api.normalize_operator_door_nameplate_center_datum_top(
+                payload["door_nameplate_center_datum_top"]
+            ) if "door_nameplate_center_datum_top" in payload else None
+        )
+        live_box_distance = (
+            manufacturing_api.normalize_operator_settings_boolean(payload["use_box_distance"])
+            if "use_box_distance" in payload else None
+        )
+        raw_door_columns = (
+            payload.get("door_layout_columns")
+            or dict(payload.get("settings") or {}).get("door_layout_columns")
+        )
+        live_door_columns = (
+            manufacturing_api.project_operator_saved_door_layout_columns(raw_door_columns)
+            if raw_door_columns else None
+        )
+        model = manufacturing_api.operator_normalize_custom_model_name(payload.get("model"))
         baseline_changed = self.baseline_var.get().strip() != model
         if baseline_changed:
             self._fold_designer_baseline_commit_guard = True
@@ -957,7 +1002,7 @@ def _apply_fold_designer_live_snapshot(self, payload):
         self._apply_manual_corner_snapshot(
             payload.get("corner_state"), payload.get("corner_pair_same")
         )
-        graph_state = migrate_legacy_snapshot_joints(payload)
+        graph_state = manufacturing_api.migrate_operator_assembly_joint_snapshot(payload)
         # Update the preset selector/cache first. _set_box_assembly_type()
         # intentionally synchronizes preset defaults, so applying it after a
         # live user-edited Joint Graph would erase Head/Tail edge overrides.
@@ -978,10 +1023,9 @@ def _apply_fold_designer_live_snapshot(self, payload):
         self.endcap_bottom_wrap_state = normalize_endcap_bottom_wrap_state(payload)
         self.assembly_relief_state = deepcopy(payload.get("assembly_relief") or {})
         if "use_box_distance" in payload and getattr(self, "is_box_dist_var", None) is not None:
-            self.is_box_dist_var.set(bool(payload.get("use_box_distance", False)))
+            self.is_box_dist_var.set(live_box_distance)
         if "door_nameplate_center_datum_top" in payload:
-            datum = payload.get("door_nameplate_center_datum_top")
-            self.door_nameplate_center_datum_top = None if datum is None else float(datum)
+            self.door_nameplate_center_datum_top = live_nameplate_datum
         if "door_layout_indicator_states" in payload:
             self.door_layout_indicator_states = {
                 str(key): normalize_door_indicator_state(state)
@@ -1014,54 +1058,46 @@ def _apply_fold_designer_live_snapshot(self, payload):
             for key, features in part_features.items():
                 self.surface_features[str(key)] = list(features or ())
             try:
-                width = float(payload.get("w", self.w_var.get()))
-                depth = float(payload.get("d", self.d_var.get()))
-                if "head" in self.surface_features:
-                    self.head_holes = [
-                        feature_to_legacy_hole(feature, width, depth)
-                        for feature in self.surface_features.get("head", ())
-                    ]
-                if "tail" in self.surface_features:
-                    self.tail_holes = [
-                        feature_to_legacy_hole(feature, width, depth)
-                        for feature in self.surface_features.get("tail", ())
-                    ]
+                legacy_rows = manufacturing_api.project_operator_endcap_legacy_hole_rows(
+                    self.surface_features,
+                    width=payload.get("w", self.w_var.get()),
+                    depth=payload.get("d", self.d_var.get()),
+                )
             except Exception:
+                # No half-committed Head/Tail legacy 2D cache on invalid source.
                 pass
+            else:
+                if "head" in legacy_rows:
+                    self.head_holes = legacy_rows["head"]
+                if "tail" in legacy_rows:
+                    self.tail_holes = legacy_rows["tail"]
             face_features = dict(workspace.get("part_face_features") or payload.get("part_face_features") or {})
             if "box_body" in face_features:
                 self.box_body_face_features = {
                     face: list(items or ()) for face, items in dict(face_features["box_body"] or {}).items()
                 }
-            raw_columns = (
-                payload.get("door_layout_columns")
-                or dict(payload.get("settings") or {}).get("door_layout_columns")
-            )
-            if raw_columns:
+            if live_door_columns:
                 setter = getattr(self, "set_door_layout_columns", None)
                 if callable(setter):
-                    setter([
-                        (float(row[0]), [float(v) for v in row[1]])
-                        for row in raw_columns
-                    ])
+                    setter(live_door_columns)
                 else:
-                    self.door_layout_columns = [
-                        (float(row[0]), [float(v) for v in row[1]])
-                        for row in raw_columns
-                    ]
+                    self.door_layout_columns = deepcopy(live_door_columns)
             else:
                 getter = getattr(self, "get_door_layout_columns", None)
-                raw_columns = getter() if callable(getter) else ()
+                live_door_columns = manufacturing_api.project_operator_saved_door_layout_columns(
+                    getter() if callable(getter) else ()
+                )
             columns = tuple(
-                (float(row[0]), tuple(float(v) for v in row[1]))
-                for row in tuple(raw_columns or ())
+                (row[0], tuple(row[1])) for row in live_door_columns
             )
             if columns and part_features:
-                self.door_layout_features = door_part_features_to_layout_feature_map(columns, part_features)
+                self.door_layout_features = manufacturing_api.project_operator_door_layout_cell_features_from_parts(
+                    columns, part_features,
+                )
             if "multi_door_enabled" in payload:
                 var = getattr(self, "multi_door_enabled_var", None)
                 if var is not None:
-                    var.set(bool(payload.get("multi_door_enabled", False)))
+                    var.set(live_multi_door)
             if "door_layout_scope" in payload:
                 self.door_layout_scope = str(payload.get("door_layout_scope") or "main")
             if "door_handle_edges" in payload:
@@ -1074,7 +1110,7 @@ def _apply_fold_designer_live_snapshot(self, payload):
             or payload.get("active_part")
             or ""
         )
-        if workspace_active.startswith("box_body:") and not workspace_active.startswith("box_body:divider:"):
+        if manufacturing_api.is_box_body_physical_piece_key(workspace_active):
             self.box_body_piece_2d_selected_var.set(workspace_active)
         self._sync_fold_designer_manual_corner_context(payload.get("active_part"))
         if baseline_changed:

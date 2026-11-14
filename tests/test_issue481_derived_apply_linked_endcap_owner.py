@@ -56,13 +56,15 @@ def _method(cls: ast.ClassDef, name: str):
 def test_t3_bridge_derived_sync_has_no_direct_plan_apply_mutations():
     fn = _function(BRIDGE, "_phase6_sync_authoritative_derived_parts")
     source = ast.get_source_segment(BRIDGE.read_text(encoding="utf-8"), fn) or ""
-    assert "build_derived_part_sync_plan(request)" in source
-    assert "navigation.apply_derived_sync_plan(plan)" in source, (
-        "T3 RED: bridge does not delegate immutable plan application to navigation owner"
-    )
+    assert "_phase6_composition(self).sync_authoritative_derived_parts(globals())" in source
     assert not [token for token in MUTATION_TOKENS if token in source], (
-        "T3 RED: bridge still applies derived sync mutations directly"
+        "Bridge must not mutate physical derived identity itself"
     )
+    # The owner moved from the Bridge into the production composition; keep
+    # verifying the actual immutable Engine plan / Navigation apply seam.
+    owner = Path("gui_modules/application/fold_designer_composition_shell_settings.py").read_text(encoding="utf-8")
+    assert "plan = build_derived_part_sync_plan(request)" in owner
+    assert "navigation.apply_derived_sync_plan(plan)" in owner
 
 
 def test_t3_navigation_controller_owns_narrow_derived_plan_apply_seam():

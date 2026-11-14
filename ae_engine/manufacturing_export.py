@@ -16,6 +16,13 @@ import tempfile
 import shutil
 
 
+def require_dxf_overwrite_boolean(raw: object) -> bool:
+    """Only an explicit Python bool can authorize replacing a saved DXF."""
+    if type(raw) is not bool:
+        raise TypeError("DXF_OVERWRITE_BOOL_REQUIRED")
+    return raw
+
+
 def save_part_render_data_dxf(
     scene,
     output_path,
@@ -23,6 +30,7 @@ def save_part_render_data_dxf(
     serializer,
     overwrite: bool = False,
 ) -> str:
+    require_dxf_overwrite_boolean(overwrite)
     destination = Path(output_path)
     destination.parent.mkdir(parents=True, exist_ok=True)
     if destination.exists() and not overwrite:
@@ -158,8 +166,11 @@ def _atomic_commit_staged_dxfs(
     root: Path,
     *,
     overwrite: bool,
+    pre_commit_guard=None,
 ) -> dict[str, str]:
-    """Commit a fully serialized DXF set with rollback on commit failure."""
+    """Commit verified DXFs; roll back if the original source changes."""
+    if pre_commit_guard is not None and not callable(pre_commit_guard):
+        raise TypeError("WHD_PRECOMMIT_SOURCE_GUARD_INVALID")
     root.mkdir(parents=True, exist_ok=True)
     destinations = {key: root / path.name for key, path in staged.items()}
     names = [path.name for path in destinations.values()]
@@ -174,15 +185,21 @@ def _atomic_commit_staged_dxfs(
     moved: list[Path] = []
     backups: dict[Path, Path] = {}
     try:
+        if pre_commit_guard is not None:
+            pre_commit_guard()
         for destination in destinations.values():
             if destination.exists():
                 backup = backup_dir / destination.name
                 os.replace(destination, backup)
                 backups[destination] = backup
+        if pre_commit_guard is not None:
+            pre_commit_guard()
         for key, stage_path in staged.items():
             destination = destinations[key]
             os.replace(stage_path, destination)
             moved.append(destination)
+        if pre_commit_guard is not None:
+            pre_commit_guard()
         return {key: str(destinations[key]) for key in staged}
     except Exception:
         for destination in reversed(moved):
@@ -291,7 +308,15 @@ def _save_resolved_rows_atomic(
     verify_all_staged: bool = False,
     pre_commit_guard=None,
     durable_stage_commit=None,
+    guard_during_atomic_move: bool = False,
 ) -> dict[str, str]:
+    # Only the independent EAR SIDE export opts into late move-time checks.
+    # Existing W-03 verified batch callers retain exactly the two historical
+    # pre_commit_guard invocations (before stage and after Save→Reload).
+    if type(guard_during_atomic_move) is not bool:
+        raise TypeError("WHD_ATOMIC_MOVE_GUARD_FLAG_INVALID")
+    # Reject source flag coercion before creating a stage or replacing a DXF.
+    require_dxf_overwrite_boolean(overwrite)
     # Check all physical-part evidence before any output path is created.
     rows = tuple(rows)
     _reject_unapproved_nfb_pad_ear_manufacturing(rows)
@@ -315,6 +340,8 @@ def _save_resolved_rows_atomic(
     ):
         raise ValueError("WHD_DURABLE_COMMIT_REQUIRES_VERIFIED_STAGE_AND_GUARD")
     if pre_commit_guard is not None:
+        if not callable(pre_commit_guard):
+            raise TypeError("WHD_PRECOMMIT_SOURCE_GUARD_INVALID")
         pre_commit_guard()  # W-03 trusted snapshot before staging
     root = Path(output_dir)
     root.mkdir(parents=True, exist_ok=True)
@@ -351,7 +378,12 @@ def _save_resolved_rows_atomic(
             # verification of ALL 1..20 staged physical DXFs. This path does
             # not use the in-process-only commit/rollback owner.
             return durable_stage_commit(dict(staged), root)
-        return _atomic_commit_staged_dxfs(staged, root, overwrite=overwrite)
+        return _atomic_commit_staged_dxfs(
+            staged, root, overwrite=overwrite,
+            pre_commit_guard=(
+                pre_commit_guard if guard_during_atomic_move else None
+            ),
+        )
     finally:
         shutil.rmtree(stage_dir, ignore_errors=True)
 

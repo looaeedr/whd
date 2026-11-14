@@ -214,4 +214,4 @@ def test_real_receiving_gui_calls_are_in_live_public_catalog():
     }
     assert "rename_receiving_panel" in matched
     assert "apply_receiving_bay_dimensions" in matched
-    assert "preview_quantity_inner_door_confirm" in matched
+    assert "commit_receiving_quantity_inner_door_confirm" in matched

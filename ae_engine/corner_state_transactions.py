@@ -6,9 +6,11 @@ all geometric/relief CUTTING authority. No second production formula is created.
 """
 from __future__ import annotations
 from copy import deepcopy
+import configparser
 from dataclasses import dataclass
 from typing import Mapping
 from .endcap_factory_fold import selection_from_raw, selection_to_raw
+from .operator_settings_transactions import (normalize_operator_settings_boolean, normalize_operator_settings_updates)
 from .sheetmetal_geometry import (
     CornerDirection, CornerTypeId, CornerTypeSelection, CrossCornerMode,
 )
@@ -55,6 +57,100 @@ def project_operator_corner_ini_rotation(type_id: object, value: object) -> int:
     ).rotation_quadrants
 
 
+
+def project_operator_corner_ini_load_section(options: Mapping[str, object]):
+    """Project one persisted Corner INI section without file or Tk dependencies.
+
+    The GUI supplies already-interpolated INI key/value strings.  Preserve the
+    original ConfigParser boolean/integer semantics, including failure on
+    malformed saved data and legacy C02-only rotation handling.
+    """
+    if not isinstance(options, Mapping):
+        raise ValueError("CORNER_INI_SOURCE_INVALID")
+    parser = configparser.ConfigParser(interpolation=None)
+    parser.add_section("corner")
+    for key, value in options.items():
+        if not isinstance(key, str) or not isinstance(value, str):
+            raise ValueError("CORNER_INI_SOURCE_INVALID")
+        parser.set("corner", key, value)
+    pairs = {
+        "top": parser.getboolean("corner", "top_same", fallback=True),
+        "bottom": parser.getboolean("corner", "bottom_same", fallback=True),
+    }
+    corners = {}
+    for key in MANUAL_CORNER_KEYS:
+        if not parser.has_option("corner", key):
+            continue
+        type_id = parser.get("corner", key, fallback="CROSS").strip().upper()
+        rotation = project_operator_corner_ini_rotation(
+            type_id, parser.getint("corner", f"{key}_rotation", fallback=0),
+        )
+        raw = {"type_id": type_id, "rotation_quadrants": rotation}
+        for field in ("cross_mode", "direction"):
+            option = f"{key}_{field}"
+            if parser.has_option("corner", option):
+                value = parser.get("corner", option).strip().lower()
+                if value:
+                    raw[field] = value
+        for field in ("amount_t", "secondary_retain_t", "secondary_depth_t"):
+            option = f"{key}_{field}"
+            if parser.has_option("corner", option):
+                normalized = normalize_operator_settings_updates(
+                    {field: 0.0}, {field: parser.get("corner", option)},
+                )
+                if field in normalized:
+                    raw[field] = normalized[field]
+        corners[key] = raw
+    return corners, pairs
+
+
+def project_operator_corner_ini_save_options(
+    corners: Mapping[str, object], pairs: Mapping[str, object],
+):
+    """Project CornerType source to detached INI options; None removes an option.
+
+    No GUI client should replicate the manufacturing rotation, semantic-field
+    conversion or finite-number validation performed here.
+    """
+    if not isinstance(corners, Mapping) or not isinstance(pairs, Mapping):
+        raise ValueError("CORNER_INI_SOURCE_INVALID")
+    top_same = normalize_operator_settings_boolean(pairs.get("top", True))
+    bottom_same = normalize_operator_settings_boolean(pairs.get("bottom", True))
+    options = {
+        "top_same": "true" if top_same else "false",
+        "bottom_same": "true" if bottom_same else "false",
+    }
+    for key in MANUAL_CORNER_KEYS:
+        raw = corners.get(key)
+        if not isinstance(raw, Mapping):
+            continue
+        type_id = str(raw.get("type_id", "CROSS")).strip().upper()
+        rotation = project_operator_corner_ini_rotation(
+            type_id, raw.get("rotation_quadrants", 0),
+        )
+        options[key] = type_id
+        options[f"{key}_rotation"] = str(rotation)
+        for field in (
+            "cross_mode", "direction", "amount_t",
+            "secondary_retain_t", "secondary_depth_t",
+        ):
+            value = raw.get(field)
+            option = f"{key}_{field}"
+            if value is None or value == "":
+                options[option] = None
+                continue
+            if field.endswith("_t"):
+                normalized = normalize_operator_settings_updates(
+                    {field: 0.0}, {field: value},
+                )
+                if field not in normalized:
+                    raise ValueError(f"截角 {field} 必須是有限數值")
+                options[option] = f"{normalized[field]:g}"
+            else:
+                options[option] = str(getattr(value, "value", value)).strip().lower()
+    return options
+
+
 def ensure_corner_part(
     corner_state: Mapping[str, object] | None,
     corner_pair_same: Mapping[str, object] | None,
@@ -69,9 +165,38 @@ def ensure_corner_part(
             selection_from_raw(state.get(corner_key))
         )
     pairs = all_pairs.setdefault(part, {})
-    pairs.setdefault("top", True)
-    pairs.setdefault("bottom", True)
+    # Persisted pair flags may be serialized. Normalize both in the original
+    # Engine transaction before GUI/editor can select a physical corner.
+    # A malformed present flag fails closed on this detached candidate.
+    pairs["top"] = normalize_operator_settings_boolean(
+        pairs.get("top", True)
+    )
+    pairs["bottom"] = normalize_operator_settings_boolean(
+        pairs.get("bottom", True)
+    )
     return CornerStateTransition(all_state, all_pairs, deepcopy(state))
+
+
+def project_operator_corner_pair_members(pair_key: object) -> tuple[str, str]:
+    """Canonical physical pair membership for GUI clients and manufacturing.
+
+    Unknown or malformed pair identities cannot create an accidental
+    manufacturing-side target.  The returned pair is an immutable tuple.
+    """
+    if type(pair_key) is not str or pair_key not in MANUAL_CORNER_PAIR_KEYS:
+        raise ValueError("CORNER_PAIR_KEY_INVALID")
+    return MANUAL_CORNER_PAIR_KEYS[pair_key]
+
+
+def project_operator_corner_selection_target(target_key: object) -> str:
+    """Map UI pair selection onto the existing Engine physical corner."""
+    if type(target_key) is not str:
+        raise ValueError("CORNER_SELECTION_TARGET_INVALID")
+    if target_key in MANUAL_CORNER_PAIR_KEYS:
+        return project_operator_corner_pair_members(target_key)[0]
+    if target_key in MANUAL_CORNER_KEYS:
+        return target_key
+    raise ValueError("CORNER_SELECTION_TARGET_INVALID")
 
 
 def corner_selection(
@@ -116,8 +241,10 @@ def commit_corner_pair(
     pair = str(pair_key)
     if pair not in CORNER_PAIR_KEYS:
         raise ValueError(f"unknown corner pair: {pair}")
-    pairs[pair] = bool(enabled)
-    if enabled:
+    # The operator's serialized "false" must not join two physical corners.
+    accepted = normalize_operator_settings_boolean(enabled)
+    pairs[pair] = accepted
+    if accepted:
         left_key, right_key = CORNER_PAIR_KEYS[pair]
         state[right_key] = deepcopy(state[left_key])
     return CornerStateTransition(
@@ -198,7 +325,9 @@ def commit_corner_parameters(
     state = all_state[str(part_key)]
     pairs = all_pairs[str(part_key)]
     current = corner_selection(state, pairs, target_key)
-    amount = current.amount_t if amount_t is None else float(amount_t)
+    # CornerTypeSelection performs the physical finite/non-boolean checks.
+    # float(True) here would erase the original source and fabricate 1.0×T.
+    amount = current.amount_t if amount_t is None else amount_t
 
     if current.type_id is CornerTypeId.CROSS:
         mode = (
@@ -240,12 +369,12 @@ def commit_corner_parameters(
             secondary_retain_t=(
                 current.secondary_retain_t
                 if secondary_retain_t is None
-                else float(secondary_retain_t)
+                else secondary_retain_t
             ),
             secondary_depth_t=(
                 current.secondary_depth_t
                 if secondary_depth_t is None
-                else float(secondary_depth_t)
+                else secondary_depth_t
             ),
         )
 

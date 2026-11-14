@@ -1,25 +1,25 @@
 """Assembly/corner presentation and routing helpers only."""
 
 from ae_engine import manufacturing_api
-from ae_engine.corner_type_ui import CORNER_PAIR_CORNERS
 from ae_engine.sheetmetal_geometry import (
     CornerTypeId,
     CrossCornerMode,
-    normalize_corner_selection,
 )
 
 
 def sync_endcap_fw_controls(host):
-    box_fw = float(host.fw_z_var.get())
+    # One Engine read-only projection validates both physical pieces before
+    # touching the UI; refreshing controls never writes saved manufacturing state.
+    projected = manufacturing_api.project_operator_endcap_fw_controls(
+        host.endcap_fw_state, host.fw_z_var.get(),
+    )
     for part, var, follow_var, combo in (
         ("head", host.fw_head_var, host.fw_head_follow_var, getattr(host, "cb_fw_head", None)),
         ("tail", host.fw_tail_var, host.fw_tail_follow_var, getattr(host, "cb_fw_tail", None)),
     ):
-        state = host.endcap_fw_state.setdefault(part, {"follow_box": True, "value": box_fw})
-        follow = bool(state.get("follow_box", True))
-        follow_var.set(follow)
-        value = box_fw if follow else float(state.get("value", box_fw))
-        text = host._fold_designer_number_text(value)
+        row = projected[part]
+        follow_var.set(row["follow_box"])
+        text = host._fold_designer_number_text(row["display_fw"])
         if var.get() != text:
             var.set(text)
         if combo is not None:
@@ -56,13 +56,13 @@ def normalize_manual_corner_target(host, part_key):
     if same[pair]:
         target = pair
     elif target == pair:
-        target = CORNER_PAIR_CORNERS[pair][0]
+        target = manufacturing_api.project_operator_corner_pair_members(pair)[0]
     host.manual_active_corner_var.set(target)
     return target
 
 
 def corner_parameter_summary(host_cls, selection):
-    selection = normalize_corner_selection(selection)
+    selection = manufacturing_api.operator_normalize_corner_selection(selection)
     if selection.type_id is CornerTypeId.CROSS:
         mode = host_cls._CORNER_MODE_LABELS[selection.cross_mode]
         if selection.cross_mode is CrossCornerMode.STANDARD:
@@ -81,7 +81,7 @@ def corner_parameter_summary(host_cls, selection):
 
 import tkinter as tk
 
-from ae_engine.corner_type_ui import CORNER_KEYS, build_corner_type_preview_geometry
+from ae_engine.corner_type_ui import CORNER_KEYS
 from ae_engine.sheetmetal_geometry import CORNER_TYPE_LABELS, CornerDirection, CornerTypeSelection
 from gui_modules.drawing import _corner_preview_canvas_point, _corner_preview_flip_y_for_target
 
@@ -92,10 +92,10 @@ def draw_corner_type_icon(self, canvas, selection_or_type, *, large=False, flip_
     h = max(10, int(float(canvas.cget('height'))))
     margin = 5 if not large else 12
     if isinstance(selection_or_type, CornerTypeSelection):
-        selection = normalize_corner_selection(selection_or_type)
+        selection = manufacturing_api.operator_normalize_corner_selection(selection_or_type)
     else:
         selection = CornerTypeSelection(CornerTypeId(selection_or_type))
-    preview = build_corner_type_preview_geometry(selection)
+    preview = manufacturing_api.project_operator_corner_type_preview_geometry(selection)
     usable_w = max(1.0, w - 2 * margin)
     usable_h = max(1.0, h - 2 * margin)
     scale = min(usable_w / preview.span, usable_h / preview.span)
@@ -136,7 +136,7 @@ def select_manual_corner(self, corner_key):
         return
     pair = self._pair_for_corner_target(corner_key)
     if corner_key in ('top', 'bottom') and not self.manual_corner_pair_same[part_key][pair]:
-        corner_key = CORNER_PAIR_CORNERS[pair][0]
+        corner_key = manufacturing_api.project_operator_corner_pair_members(pair)[0]
     elif corner_key in CORNER_KEYS and self.manual_corner_pair_same[part_key][pair]:
         corner_key = pair
     self.manual_active_corner_var.set(corner_key)
@@ -148,9 +148,11 @@ def selection_from_manual_corner_controls(self):
     except ValueError:
         return None
     try:
-        amount = float(self.manual_corner_amount_var.get())
-        secondary_retain = float(self.manual_corner_secondary_retain_var.get())
-        secondary_depth = float(self.manual_corner_secondary_depth_var.get())
+        # Do not coerce True to 1.0: the Engine CornerTypeSelection value
+        # contract owns finite/non-boolean manufacturing corner parameters.
+        amount = self.manual_corner_amount_var.get()
+        secondary_retain = self.manual_corner_secondary_retain_var.get()
+        secondary_depth = self.manual_corner_secondary_depth_var.get()
     except (TypeError, ValueError, tk.TclError):
         return None
     try:
@@ -289,10 +291,10 @@ def refresh_corner_type_panel(self):
         else:
             controls['left'].pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 2))
             controls['right'].pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(2, 0))
-        pair_targets = {pair_key} if same[pair_key] else set(CORNER_PAIR_CORNERS[pair_key])
+        pair_targets = {pair_key} if same[pair_key] else set(manufacturing_api.project_operator_corner_pair_members(pair_key))
         for name in ('pair', 'left', 'right'):
             widget = controls[name]
-            widget_target = pair_key if name == 'pair' else CORNER_PAIR_CORNERS[pair_key][0 if name == 'left' else 1]
+            widget_target = pair_key if name == 'pair' else manufacturing_api.project_operator_corner_pair_members(pair_key)[0 if name == 'left' else 1]
             active = widget_target == target_key and widget_target in pair_targets
             widget.configure(bg=self.COLOR_ACCENT if active else self.COLOR_PANEL,
                              fg='#ffffff' if active else self.COLOR_TEXT)
@@ -362,7 +364,7 @@ def _build_corner_pair_controls(host, editor):
         host.manual_corner_pair_same_checkbuttons[pair_key] = same_cb
         button_frame = tk.Frame(pair_row, bg=host.COLOR_INPUT_BG)
         button_frame.pack(side=tk.LEFT, fill=tk.X, expand=True)
-        left_key, right_key = CORNER_PAIR_CORNERS[pair_key]
+        left_key, right_key = manufacturing_api.project_operator_corner_pair_members(pair_key)
         pair_button = tk.Button(
             button_frame, text=('上方' if pair_key == 'top' else '下方'),
             bg=host.COLOR_PANEL, fg=host.COLOR_TEXT, bd=0,

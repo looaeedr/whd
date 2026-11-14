@@ -109,6 +109,40 @@ def resolve_endcap_fw(snapshot: Mapping[str, object], part_key: str, *, state=No
     return _num(item.get("value", box_fw), box_fw)
 
 
+def project_operator_endcap_fw_controls(
+    state: Mapping[str, object], box_fw: object,
+) -> dict[str, dict[str, object]]:
+    """Project both Head/Tail FW controls without mutating saved manufacturing state.
+
+    All source rows are validated before any UI widget can be updated. Keep
+    missing legacy rows read-only; Engine alone decodes persisted booleans and
+    validates a physical FW consumed by the display.
+    """
+    from .operator_settings_transactions import (
+        normalize_operator_settings_boolean, normalize_operator_source_dimension,
+    )
+
+    if not isinstance(state, Mapping):
+        raise ValueError("ENDCAP_FW_STATE_REQUIRED")
+    body_fw = normalize_operator_source_dimension(box_fw, field="fw")
+    projected: dict[str, dict[str, object]] = {}
+    for part in ENDCAP_FW_PARTS:
+        if part not in state:
+            item = {}
+        else:
+            item = state[part]
+            if not isinstance(item, Mapping):
+                raise ValueError("ENDCAP_FW_SOURCE_ROW_INVALID")
+        following = normalize_operator_settings_boolean(item.get("follow_box", True))
+        display_fw = (
+            body_fw if following else normalize_operator_source_dimension(
+                item.get("value", body_fw), field="fw",
+            )
+        )
+        projected[part] = {"follow_box": following, "display_fw": display_fw}
+    return projected
+
+
 def resolve_endcap_assembly_type(snapshot: Mapping[str, object]) -> CornerTypeId:
     """Resolve the persisted high-level intent mirror first.
 
@@ -286,6 +320,25 @@ def commit_box_fw(state, value: float) -> dict:
     return state
 
 
+def commit_operator_box_fw_takeover(state, value) -> dict:
+    """Commit an operator's box FW to both EndCaps through the original owner.
+
+    The legacy commit_box_fw is retained for its existing Engine callers.
+    This public UI transaction rejects invalid physical input and malformed
+    existing rows *before* changing any live Head/Tail or mode source.
+    """
+    from .operator_settings_transactions import normalize_operator_source_dimension
+
+    if type(state) is not dict:
+        raise ValueError("ENDCAP_BOX_FW_STATE_REQUIRED")
+    fw = normalize_operator_source_dimension(value, field="fw")
+    staged = deepcopy(state)
+    commit_box_fw(staged, fw)
+    # Preserve the original dict and nested Head/Tail identities: GUI views
+    # may hold these live references. Validation has completed on the copy.
+    return commit_box_fw(state, fw)
+
+
 def commit_endcap_fw(state, part_key: str, value: float, *, box_fw: float | None = None) -> dict:
     """Apply one explicit Head/Tail FW edit using the pair-then-split state machine."""
     part_key = str(part_key)
@@ -324,6 +377,31 @@ def commit_endcap_fw(state, part_key: str, value: float, *, box_fw: float | None
             state[part]["follow_box"] = False
         state[part_key]["value"] = value
     return state
+
+
+def commit_operator_endcap_fw_value(
+    state, part_key: str, value, *, box_fw,
+) -> dict:
+    """Validate one explicit Head/Tail edit before the canonical four-state commit.
+
+    Existing Engine `commit_endcap_fw` owns the FOLLOW_BODY -> leader ->
+    independent transitions. Dry-run a detached copy first, then use the
+    original owner to update live identities only after all source is valid.
+    """
+    from .operator_settings_transactions import normalize_operator_source_dimension
+
+    if type(state) is not dict:
+        raise ValueError("ENDCAP_FW_STATE_REQUIRED")
+    if type(part_key) is not str or part_key not in ENDCAP_FW_PARTS:
+        raise ValueError("ENDCAP_FW_PART_REQUIRED")
+    fw = normalize_operator_source_dimension(value, field="fw")
+    body = normalize_operator_source_dimension(box_fw, field="fw")
+    for part in ENDCAP_FW_PARTS:
+        if part in state and not isinstance(state[part], dict):
+            raise ValueError("ENDCAP_FW_SOURCE_ROW_INVALID")
+    staged = deepcopy(state)
+    commit_endcap_fw(staged, part_key, fw, box_fw=body)
+    return commit_endcap_fw(state, part_key, fw, box_fw=body)
 
 
 def set_endcap_fw_follow(state, part_key: str, follow_box: bool, *, box_fw: float) -> dict:

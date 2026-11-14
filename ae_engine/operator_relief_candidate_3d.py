@@ -6,6 +6,8 @@ from __future__ import annotations
 
 from typing import Mapping
 
+from .manufacturing_contracts import normalize_operator_relief_clearance
+from .operator_settings_transactions import normalize_operator_source_dimension
 from .assembly_placement import SCENE_ASSEMBLY_PLACEMENTS
 from .certified_relief_registry import (
     _validate_editable_rule_record,
@@ -35,6 +37,12 @@ def validate_operator_relief_registry_candidate_3d(
     candidate_id = str(candidate_id or "").strip()
     if not candidate_id:
         raise ValueError("candidate-specific 3D validation requires candidate_id")
+    # Direct headless calls must meet the same physical T contract as
+    # immutable manufacturing requests, before any Rule/3D geometry.
+    physical_t = normalize_operator_source_dimension(sheet_thickness, field="t")
+    # A Registry candidate may not silently consume an invalid GUI preview
+    # clearance. Validate raw headless inputs before touching rule geometry.
+    physical_clearance = normalize_operator_relief_clearance(clearance)
     raw = _validate_editable_rule_record(record)
     intent = str(raw.get("assembly_intent") or "").strip()
     current_intent = str(assembly_intent or "")
@@ -67,7 +75,7 @@ def validate_operator_relief_registry_candidate_3d(
             box_body_x_profile=body_x,
             endcap_x_profile=end_x,
             endcap_y_profile=end_y,
-            sheet_thickness=sheet_thickness,
+            sheet_thickness=physical_t,
             box_body_structure_state=box_body_structure_state,
         )
         if ephemeral is None:
@@ -82,8 +90,8 @@ def validate_operator_relief_registry_candidate_3d(
             endcap_placement=SCENE_ASSEMBLY_PLACEMENTS.get(
                 part_key, "top" if part_key == "head" else "bottom"
             ),
-            sheet_thickness=sheet_thickness,
-            clearance=clearance,
+            sheet_thickness=physical_t,
+            clearance=physical_clearance,
             assembly_intent=intent,
             cabinet_family=cabinet_family,
             allow_3d_fallback=False,
@@ -91,7 +99,7 @@ def validate_operator_relief_registry_candidate_3d(
         )
         validated_parts.append(part_key)
         solutions[part_key] = {
-            "verified": bool(getattr(solution, "verified", False)),
+            "verified": getattr(solution, "verified", None) is True,
             "trust_level": str(getattr(solution, "trust_level", "") or ""),
             "rule_id": getattr(solution, "rule_id", None),
             "rule_revision": getattr(solution, "rule_revision", None),

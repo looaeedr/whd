@@ -1,13 +1,12 @@
 """Stateless rendering of already-resolved 2D material/features."""
 
-import ae_engine.ae as ae
+from ae_engine import manufacturing_api
 
 from ae_engine.sheetmetal_drawing import DrawingScene, PolylinePrimitive
 from ae_engine.sheetmetal_features import (
     ResolvedCircle,
     ResolvedProfile,
     ResolvedRect,
-    resolve_surface_features,
 )
 from gui_modules.drawing import render_drawing_scene
 
@@ -100,7 +99,7 @@ def render_resolved_features(canvas, features, transform, *, color="#ff9f0a"):
 
 def render_surface_user_features(
     canvas, surface, features, width, height, transform, *,
-    resolver=resolve_surface_features, feature_renderer=render_resolved_features,
+    resolver=manufacturing_api.resolve_hole_editor_canvas_features, feature_renderer=render_resolved_features,
 ):
     if not features:
         return
@@ -108,6 +107,8 @@ def render_surface_user_features(
     feature_renderer(canvas, resolved, transform, color="#ff9f0a")
 
 
-def feature_surface_from_drawing_scene(surface_id, scene, *, ae_module=ae):
-    """Delegate CUTTING-outline authority to AE; renderer owns no geometry resolver."""
-    return ae_module.feature_surface_from_drawing_scene(surface_id, scene)
+def feature_surface_from_drawing_scene(surface_id, scene):
+    """Resolve CUTTING surface via the sole public Engine owner."""
+    return manufacturing_api.project_operator_feature_surface_from_drawing_scene(
+        surface_id, scene,
+    )

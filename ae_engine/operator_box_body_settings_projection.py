@@ -14,8 +14,10 @@ from .box_body_structure_state import (
     resolve_three_piece_widths,
     set_structure_locked,
     side_rear_bend_outside_length,
+    _finite_dimension,
 )
 from .cabinet_types import policy as cabinet_family_policy
+from .operator_settings_transactions import normalize_operator_source_dimension
 
 
 def operator_toggle_box_body_structure_lock(state: Mapping[str, object] | None) -> dict:
@@ -59,12 +61,23 @@ def project_operator_box_body_structure_settings(
         mode = "side_back"
         source = dict(snapshot or {})
         if cabinet_family_policy.box_body_profile_uses_outside_dimensions(source):
-            rear_bend = side_rear_bend_outside_length(
-                normalized, float(source.get("t", 2.0))
-            )
+            # Physical outside T must not come from a 2-mm fallback, nor
+            # can Python coerce Boolean True into a real 1-mm sheet.
+            t = normalize_operator_source_dimension(source.get("t"), field="t")
+            rear_bend = side_rear_bend_outside_length(normalized, t)
         else:
-            rear_bend = float(cfg.get("side_rear_bend", 15))
-        width_comp_t = float(cfg.get("back_width_comp_t", 0.5))
+            rear_bend = _finite_dimension(
+                cfg.get("side_rear_bend", 15), field="側板後折",
+            )
+            if rear_bend <= 0:
+                raise ValueError("側板後折必須大於 0")
+        # Saved settings readback must reject invalid source types before
+        # presenting material lengths or a physical compensation multiplier.
+        width_comp_t = _finite_dimension(
+            cfg.get("back_width_comp_t", 0.5), field="後面板寬補償",
+        )
+        if width_comp_t < 0:
+            raise ValueError("後面板寬補償不可小於 0T")
         piece_values = {
             "box_body:left_side": (
                 "rear_bend", "後折", rear_bend, "mm", "side_rear_bend"

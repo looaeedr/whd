@@ -15,7 +15,6 @@ from __future__ import annotations
 # Complete Matplotlib projection registration before any lazy art3d import.
 # Importing mpl_toolkits.mplot3d.art3d first can circularly import
 # matplotlib.projections and leave the global registry without Axes3D.
-from phase6_fold_profiles import _num
 from ae_engine import manufacturing_api
 
 from phase6_final_scene_contracts import (
@@ -83,6 +82,17 @@ def receiving_base_source_display_warnings(snapshot, cabinet_family):
             "未證實來源前不顯示底板與固定片打標線",
         )
     return ()
+
+
+def _operator_final_scene_thickness(snapshot, settings):
+    """Pass source truth to the same public Engine request dimension owner.
+
+    FinalScene is a consumer of physical T; its UI adapter cannot prefer stale
+    Settings T over an explicit saved T or manufacture a missing 2 mm source.
+    """
+    return manufacturing_api.project_operator_manufacturing_request_snapshot(
+        snapshot, settings, {},
+    )["t"]
 
 
 class Phase6FinalSceneViewAdapter:
@@ -160,8 +170,7 @@ class Phase6FinalSceneViewAdapter:
 
     def _formed_ear_assembly_preview(self, snapshot, visible_set):
         """Display/caching only; Engine verifies physical EAR source and safety."""
-        if (snapshot.get("model") not in ("受電箱", "RECEIVING")
-                or snapshot.get("nfb_config_submitted") is not True):
+        if not manufacturing_api.receiving_ear_assembly_display_active(snapshot):
             self.last_formed_ear_display_blocker = None
             return ()
         try:
@@ -273,9 +282,18 @@ class Phase6FinalSceneViewAdapter:
 
     def query_assembly_render_data(self):
         dependencies = self.dependencies
-        # Geometry publication is owned by the update scheduler/executor.  A
-        # display-only assembly redraw must consume the committed/cache-resolved
-        # geometry without forcing a second live-sync publication.
+        # An explicitly supplied physical T is validated before any geometry.
+        # An empty, source-blocked diagnostic assembly can have no physical
+        # parts and no T: it must still publish why verified EAR is absent.
+        # Never fabricate a 2-mm sheet; once actual parts exist T is mandatory.
+        snapshot = dict(dependencies.input_snapshot() or {})
+        settings = dict(dependencies.settings_values() or {})
+        thickness = (
+            _operator_final_scene_thickness(snapshot, settings)
+            if "t" in snapshot or "t" in settings else None
+        )
+        # Geometry publication is owned by the update scheduler/executor. A
+        # display-only assembly redraw consumes committed/cache-resolved geometry.
         resolved = dependencies.resolve_geometry()
 
         part_cls = dependencies.assembly_part_cls
@@ -296,6 +314,10 @@ class Phase6FinalSceneViewAdapter:
             )
             for part in resolved.parts if part.placement != "standalone"
         )
+        if parts and thickness is None:
+            # Only verified physical parts need formed-size T. A pure warning
+            # scene has no sheet to dimension, and must remain inspectable.
+            thickness = _operator_final_scene_thickness(snapshot, settings)
 
         corner_text = dependencies.corner_dimension_text
         corner_texts = {
@@ -304,9 +326,6 @@ class Phase6FinalSceneViewAdapter:
         }
         dependencies.assembly_corner_text_sink(corner_texts)
 
-        snapshot = dict(dependencies.input_snapshot() or {})
-        settings = dict(dependencies.settings_values() or {})
-        thickness = _num(settings.get("t", snapshot.get("t", 2.0)), 2.0)
         formed_text = dependencies.formed_size_text
         blank_text = dependencies.blank_text
         dimensions = dependencies.operator_dimensions
@@ -337,7 +356,9 @@ class Phase6FinalSceneViewAdapter:
         visible_box_body_piece_keys = visibility[1]
         # Preserve the historical two-value visibility contract. The optional
         # display-only EAR switch is carried separately on the result.
-        show_fixing_plate_mesh = bool(getattr(visibility, "show_fixing_plate_mesh", True))
+        show_fixing_plate_mesh = manufacturing_api.normalize_operator_settings_boolean(
+            getattr(visibility, "show_fixing_plate_mesh", True)
+        )
         visible_set = set(visible_part_keys)
         visible_probe_parts = tuple(
             part
@@ -363,11 +384,19 @@ class Phase6FinalSceneViewAdapter:
         ) + (
             self._pad_display_warnings() if cabinet_family == "受電箱" else ()
         )
+        # A disconnected optional UI interference toggle historically
+        # returned None, meaning no overlay. Preserve that display-only
+        # state without allowing truthy serialized 'false' or invalid values.
+        raw_interference = dependencies.show_interference()
+        show_interference = (
+            False if raw_interference is None else
+            manufacturing_api.normalize_operator_settings_boolean(raw_interference)
+        )
         return self.make_assembly_scene_render_data(
             assembly_parts=parts,
             visible_part_keys=visible_part_keys,
             visible_box_body_piece_keys=visible_box_body_piece_keys,
-            show_interference=bool(dependencies.show_interference()),
+            show_interference=show_interference,
             ignore_fixed_corner_relief=False,
             interference_probe_parts=visible_probe_parts,
             joint_diagnostics=(),
@@ -391,7 +420,7 @@ class Phase6FinalSceneViewAdapter:
 
         snapshot = dict(dependencies.input_snapshot() or {})
         settings = dict(dependencies.settings_values() or {})
-        thickness = _num(settings.get("t", snapshot.get("t", 2.0)), 2.0)
+        thickness = _operator_final_scene_thickness(snapshot, settings)
         alpha_bend = float(dependencies.alpha_bend())
         dimensions = dependencies.operator_dimensions
         view_mode = str(dependencies.display_mode() or "single")
@@ -440,7 +469,9 @@ class Phase6FinalSceneViewAdapter:
             alpha_bend=alpha_bend,
             finished_dimensions=dimensions(None),
             thickness=(
-                float(render_data.metadata["thickness"])
+                manufacturing_api.normalize_operator_source_dimension(
+                    render_data.metadata["thickness"], field="t",
+                )
                 if active_part.startswith("base_plate:fixing_plate:")
                 and isinstance(getattr(render_data, "metadata", None), dict)
                 and "thickness" in render_data.metadata

@@ -173,7 +173,7 @@ def test_global_brand_engine_is_one_atomic_transaction_and_gui_is_only_client():
     assert returned == result and returned is not result
 
     gui_code = getsource(ReceivingSetBayAdapter.set_global_brand)
-    assert "manufacturing_api.update_receiving_all_set_nfb_parent_brand(" in gui_code
+    assert "manufacturing_api.update_receiving_all_set_nfb_parent_brand_with_affected_ids(" in gui_code
     assert "for index, set_row in enumerate" not in gui_code
     assert "rebase_receiving_set_parent_nfb_brand(" not in gui_code
 

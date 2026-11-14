@@ -95,3 +95,98 @@ def test_receiving_gui_only_delegates_world_geometry_and_maps_display_role(monke
     assert "manufacturing_api.resolve_receiving_settings_assembly_world_meshes" in source
     assert "_phase6_" not in source
     assert "place_endcap_against_box_body" not in source
+
+
+def test_preserve_core_origin_source_is_validated_before_any_world_geometry():
+    """A damaged saved bool cannot be treated as True or deferred until meshing."""
+    for bad in ("not-a-boolean", None, 2, -1, float("nan"), object()):
+        with pytest.raises(ValueError, match="布林"):
+            api.resolve_receiving_settings_assembly_world_meshes(
+                (object(),), finished_dimensions=(300, 200, 80), thickness=2.0,
+                preserve_endcap_core_origin=bad,
+            )
+    assert api.resolve_receiving_settings_assembly_world_meshes(
+        (), finished_dimensions=(300, 200, 80), thickness=2.0,
+        preserve_endcap_core_origin="false",
+    ) == ()
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [(False, False), ("false", False), ("off", False), (0, False),
+     (True, True), ("true", True), ("on", True), (1, True)],
+)
+def test_headless_receiving_world_assembly_uses_engine_decoded_origin_flag(
+    monkeypatch, raw, expected,
+):
+    from ae_engine import receiving_settings_assembly_mesh as owner
+
+    seen = []
+
+    def observed_endcap(local, **kwargs):
+        seen.append(kwargs["preserve_core_origin"])
+        return SimpleNamespace(solid_triangles=tuple(local))
+
+    monkeypatch.setattr(owner, "resolve_assembled_endcap_world_skins", observed_endcap)
+    material = box(0, 0, 100, 70)
+    rows = api.resolve_receiving_settings_assembly_world_meshes(
+        (_part("box_body", material), _part("head", material, placement="head")),
+        finished_dimensions=(300, 200, 80), thickness=2.0,
+        preserve_endcap_core_origin=raw,
+    )
+    assert seen == [expected]
+    assert [key for _, key, _ in rows] == ["box_body", "head"]
+
+
+def test_direct_assembled_endcap_source_uses_same_engine_boolean_contract(monkeypatch):
+    from ae_engine import receiving_settings_assembly_mesh as owner
+
+    seen = []
+    triangle = (((0, 0, 0), (1, 0, 0), (0, 1, 0)),)
+
+    def fake_place(*args, **kwargs):
+        seen.append(kwargs["preserve_core_origin"])
+        return triangle
+
+    monkeypatch.setattr(owner, "place_endcap_against_box_body", fake_place)
+    monkeypatch.setattr(owner, "thicken_triangle_surface", lambda surface, _t: surface)
+    for raw in ("false", False, "true", True):
+        assembled = api.resolve_assembled_endcap_world_skins(
+            triangle, placement="head", box_body_world=triangle,
+            thickness=2.0, preserve_core_origin=raw,
+        )
+        assert assembled.formed_surface == triangle
+    assert seen == [False, False, True, True]
+    with pytest.raises(ValueError, match="布林"):
+        api.resolve_assembled_endcap_world_skins(
+            triangle, placement="head", box_body_world=triangle,
+            thickness=2.0, preserve_core_origin="invalid",
+        )
+    assert seen == [False, False, True, True]
+
+
+def test_gui_passes_raw_preserve_origin_source_to_headless_engine(monkeypatch):
+    calls = []
+
+    def observed(parts, **kwargs):
+        calls.append(kwargs["preserve_endcap_core_origin"])
+        api.normalize_operator_settings_boolean(kwargs["preserve_endcap_core_origin"])
+        return ()
+
+    monkeypatch.setattr(api, "resolve_receiving_settings_assembly_world_meshes", observed)
+    for raw in ("false", False, "true", True):
+        request = SimpleNamespace(
+            render_data=SimpleNamespace(assembly_parts=(), preserve_endcap_core_origin=raw),
+            finished_dimensions=(300, 200, 80), thickness=2.0,
+        )
+        assert tuple(gui._assembly_world_meshes(request)) == ()
+    assert calls == ["false", False, "true", True]
+    invalid = SimpleNamespace(
+        render_data=SimpleNamespace(assembly_parts=(), preserve_endcap_core_origin="broken"),
+        finished_dimensions=(300, 200, 80), thickness=2.0,
+    )
+    with pytest.raises(ValueError, match="布林"):
+        tuple(gui._assembly_world_meshes(invalid))
+    assert calls[-1] == "broken"
+    assert invalid.render_data.preserve_endcap_core_origin == "broken"
+    assert "preserve_endcap_core_origin=bool(" not in inspect.getsource(gui._assembly_world_meshes)

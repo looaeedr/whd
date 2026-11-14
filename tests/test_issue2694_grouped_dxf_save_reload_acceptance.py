@@ -13,7 +13,13 @@ from phase6_project_file import PROJECT_SCHEMA, read_project, write_project
 from tests.test_issue2692_receiving_grouped_dxf import _seven, _synthetic_rows
 
 
-def test_save_reload_real_canonical_layout_then_three_modes_have_exact_bay_membership(tmp_path):
+def test_save_reload_real_canonical_layout_then_three_modes_have_exact_bay_membership(
+    tmp_path, monkeypatch,
+):
+    monkeypatch.setattr(
+        "ae_engine.receiving_dxf_groups._taipei_output_stamp",
+        lambda: "202611071258",
+    )
     layout = _seven()
     # Panel labels are operator input; changing them never rewrites physical IDs.
     first_id = layout["sets"][0]["bays"][0]["stable_id"]
@@ -43,9 +49,15 @@ def test_save_reload_real_canonical_layout_then_three_modes_have_exact_bay_membe
     assert [name for _,_,name in edge[0][1]] == ["P1","P8","P5","P7"]
     assert [name for _,_,name in edge[1][1]] == ["中間電盤","P3","P6"]
     for mode, expected, counts in (
-        ("PER_SET", ("第1套.dxf", "第2套.dxf"), (4, 3)),
-        ("ALL", ("全部.dxf",), (7,)),
-        ("END_VS_MIDDLE", ("頭尾盤.dxf", "中間盤.dxf"), (4, 3)),
+        ("PER_SET", (
+            "202611071258_p1_中間電盤_p3_p8_p5_p6_p7第1套.dxf",
+            "202611071258_p1_中間電盤_p3_p8_p5_p6_p7第2套.dxf",
+        ), (4, 3)),
+        ("ALL", ("202611071258_p1_中間電盤_p3_p8_p5_p6_p7全部.dxf",), (7,)),
+        ("END_VS_MIDDLE", (
+            "202611071258_p1_中間電盤_p3_p8_p5_p6_p7頭尾盤.dxf",
+            "202611071258_p1_中間電盤_p3_p8_p5_p6_p7中間盤.dxf",
+        ), (4, 3)),
     ):
         output = tmp_path / mode
         with TemporaryDirectory(dir=tmp_path) as staging:
@@ -53,8 +65,11 @@ def test_save_reload_real_canonical_layout_then_three_modes_have_exact_bay_membe
                 saved, mode, _synthetic_rows(saved), staging, output,
                 pre_commit_guard=lambda: None,
             )
-        assert set(emitted) == set(expected)
-        assert {p.name for p in output.glob("*.dxf")} == set(expected)
+        total_name = "202611071258_p1_中間電盤_p3_p8_p5_p6_p7總計.dxf"
+        assert set(emitted) == set(expected) | {total_name}
+        assert {p.name for p in output.glob("*.dxf")} == set(expected) | {total_name}
+        total = ezdxf.readfile(output / total_name)
+        assert not total.audit().errors
         for filename, physical_count in zip(expected, counts):
             doc = ezdxf.readfile(output / filename)
             model = tuple(doc.modelspace())

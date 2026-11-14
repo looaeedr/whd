@@ -74,14 +74,19 @@ def _phase6_assembly_relief_clearance(self):
 
 
 def _phase6_current_cabinet_family(self):
-    """Read operator input only; Engine owns Family precedence and fallback."""
+    """Use the same strict Family source as the immutable Engine request.
+
+    A damaged existing live Tk selector must not silently switch 3D to a
+    stale saved model that cannot be manufactured by the current request.
+    """
+    # Lazy UI adapter import avoids the historic cache-signature import cycle.
+    from phase6_manufacturing_adapter import _cabinet_model
+
     snapshot = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
-    model_var = getattr(self, "baseline_model_var", None)
-    try:
-        live_model = model_var.get() if model_var is not None else None
-    except Exception:
-        live_model = None
-    return manufacturing_api.resolve_live_cabinet_family(snapshot, live_model)
+    raw_family = _cabinet_model(self, snapshot)
+    return manufacturing_api.resolve_live_cabinet_family(
+        snapshot, live_model=raw_family,
+    )
 
 
 def _phase6_solution_is_committable(solution):

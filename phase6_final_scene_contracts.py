@@ -20,13 +20,19 @@ class AssemblyVisibility(tuple):
 
     def __new__(cls, part_keys, piece_keys, *, show_fixing_plate_mesh=True):
         value = super().__new__(cls, (part_keys, piece_keys))
-        value.show_fixing_plate_mesh = bool(show_fixing_plate_mesh)
+        # Display-only state is not manufacturing authority, but serialized
+        # 'false' must not change visibility on rehydration.
+        value.show_fixing_plate_mesh = normalize_operator_settings_boolean(
+            show_fixing_plate_mesh
+        )
         return value
 
 
 # Exact-identity old import path for saved FinalScene presentation adapters.
 # No duplicate manufacturing scene-part class remains in Phase6.
-from ae_engine.manufacturing_api import AssemblyScenePart
+from ae_engine.manufacturing_api import (
+    AssemblyScenePart, normalize_operator_settings_boolean,
+)
 
 @dataclass(frozen=True)
 class AssemblySceneRenderData:

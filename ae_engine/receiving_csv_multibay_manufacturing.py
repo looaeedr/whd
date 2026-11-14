@@ -34,7 +34,9 @@ from .receiving_ear_side_manufacturing_marking import (
 )
 from .receiving_fixed_plate_side_check_dxf import _readback_marking_lines
 from .manufacturing_scene_access import owner_render_data
-from .manufacturing_export_selection import resolved_export_intention_key
+from .manufacturing_export_selection import (
+    resolved_export_intention_key, receiving_export_part_selected,
+)
 
 
 
@@ -195,6 +197,7 @@ def export_current_receiving_multibay_dxf(
     saved_snapshot, *, physical_bay_geometry_provider,
     flags, output_dir, overwrite=False,
     group_mode=None, pre_commit_guard=None, nfb_pair_requests=None,
+    include_saved_nfb_pairs=False, emit_debug=False,
 ):
     """Write once for each CURRENT physical Set/Bay, with no source borrowing.
 
@@ -211,8 +214,23 @@ def export_current_receiving_multibay_dxf(
         if not callable(pre_commit_guard):
             raise ValueError("RECEIVING_COMPOSED_DXF_PRECOMMIT_GUARD_REQUIRED")
         pre_commit_guard()
+    elif pre_commit_guard is not None:
+        # Standalone per-Bay DXFs still need the same pre/post source witness
+        # as composed drawings. Legacy headless clients may omit the guard,
+        # but the attached GUI must supply its current saved/Workspace source.
+        if not callable(pre_commit_guard):
+            raise TypeError("RECEIVING_MULTIBAY_PRECOMMIT_GUARD_INVALID")
+        pre_commit_guard()
+    if type(emit_debug) is not bool:
+        raise TypeError("RECEIVING_DEBUG_EXPORT_FLAG_MUST_BE_BOOL")
+    if emit_debug and group_mode is None:
+        raise ValueError("RECEIVING_DEBUG_VERIFIED_GROUP_REQUIRED")
     if type(overwrite) is not bool:
         raise TypeError("RECEIVING_MULTIBAY_OVERWRITE_MUST_BE_BOOL")
+    if type(include_saved_nfb_pairs) is not bool:
+        raise TypeError("RECEIVING_COMPOSED_NFB_SAVED_SOURCE_FLAG_MUST_BE_BOOL")
+    if include_saved_nfb_pairs and (group_mode is None or nfb_pair_requests is not None):
+        raise ValueError("RECEIVING_COMPOSED_NFB_SAVED_SOURCE_SCOPE_INVALID")
     # Canonical Family Registry owns aliases for every GUI/Engine client.
     # Raw string matching rejected the registered lowercase "receiving" alias.
     from .cabinet_types.policy import canonical_family_name
@@ -221,8 +239,42 @@ def export_current_receiving_multibay_dxf(
     if saved_snapshot.get("active_mode","set_bay")!="set_bay":
         raise ValueError("RECEIVING_MULTIBAY_NOT_QUANTITY_MODE")
     layout=normalize_receiving_layout(saved_snapshot.get("receiving_layout"))
+    # Externally supplied approved NFB pairs may join independent core flats.
+    # The same saved-layout fingerprint check later still rejects foreign NFB.
+    # GUI include_saved_nfb_pairs retains its own original selection policy.
+    independent_core_with_nfb_pair = (
+        nfb_pair_requests is not None and not include_saved_nfb_pairs
+    )
+    if independent_core_with_nfb_pair:
+        core_keys = {"box_body", "door", "head", "tail"}
+        if (not any(bool(flags.get(k)) for k in core_keys)
+                or any(bool(v) for k, v in flags.items() if k not in core_keys)):
+            raise ValueError("RECEIVING_COMPOSED_NFB_INDEPENDENT_CORE_SCOPE_REQUIRED")
     all_bays=tuple((i,j) for i,s in enumerate(layout["sets"])
                    for j,_ in enumerate(s["bays"]))
+    # The original main export button has no second NFB output directory.
+    # If the operator selected both physical pair roles, derive the immutable
+    # original Door/Base Requests from THIS saved Set/Bay layout in Engine.
+    # Never approve X here, borrow one Bay, or silently output a partial pair.
+    if (include_saved_nfb_pairs and bool(flags.get("door"))
+            and bool(flags.get("base_plate"))):
+        submissions = tuple(
+            layout["sets"][si]["bays"][bi].get("nfb_config_submitted") is True
+            for si,bi in all_bays
+        )
+        if any(submissions):
+            if not all(submissions):
+                raise ValueError("RECEIVING_COMPOSED_NFB_PARTIAL_BAY_CONFIRMATION")
+            from .receiving_nfb_default_pair_request import (
+                receiving_committed_nfb_pair_request_for_bay,
+            )
+            nfb_pair_requests = tuple(
+                receiving_committed_nfb_pair_request_for_bay(
+                    layout, set_index=si, bay_index=bi,
+                    thickness_mm=saved_snapshot.get("t"),
+                )
+                for si,bi in all_bays
+            )
     if len(all_bays)<1 or (len(all_bays)<2 and group_mode is None):
         raise ValueError("RECEIVING_MULTIBAY_REQUIRES_MULTIPLE_PHYSICAL_BAYS")
     if not callable(physical_bay_geometry_provider):
@@ -253,9 +305,9 @@ def export_current_receiving_multibay_dxf(
         # Explicitly selecting Base requires an actual physical Base owner in
         # EVERY Bay. An UNCONFIGURED Bay (or a stale FinalScene provider) must
         # not silently produce a partial batch omitting the selected sheet.
-        if bool(flags.get("base_plate")) and not any(
-                key=="base_plate" or key.startswith("base_plate:nfb_layer:")
-                for key in logical):
+        if (bool(flags.get("base_plate")) and nfb_pair_requests is None
+                and not any(key=="base_plate" or key.startswith("base_plate:nfb_layer:")
+                            for key in logical)):
             raise ValueError(
                 "RECEIVING_MULTIBAY_SELECTED_BASE_PLATE_PHYSICAL_SOURCE_MISSING"
             )
@@ -279,10 +331,16 @@ def export_current_receiving_multibay_dxf(
                 raise ValueError(
                     "RECEIVING_MULTIBAY_SELECTED_INDEPENDENT_PHYSICAL_SOURCE_MISSING"
                 )
-        is_csv=source.get("nfb_config_submitted") is True
+        is_csv=(source.get("nfb_config_submitted") is True
+                and not independent_core_with_nfb_pair)
         selected_logical=tuple(p for p in actual.parts
-            if p.part_key.startswith("custom:")
-            or bool(flags.get(resolved_export_intention_key(p.part_key),False)))
+            if (p.part_key.startswith("custom:")
+                or receiving_export_part_selected(p.part_key,flags))
+            and not (nfb_pair_requests is not None and (
+                p.part_key.startswith("inner_door:")
+                or p.part_key=="base_plate"
+                or p.part_key.startswith("base_plate:nfb_layer:")
+            )))
         if not selected_logical:
             continue
         # Actual HEAD/TAIL/outer DOOR FinalScene sheets have no NFB cutting
@@ -308,11 +366,45 @@ def export_current_receiving_multibay_dxf(
         body_selected=bool(flags.get("box_body")) and "box_body" in logical
         if body_selected:
             from .manufacturing_render_data import BoxBodyStructureRenderData
-            for part in actual.parts:
-                if (part.part_key == "box_body"
-                        and isinstance(part.render_data, BoxBodyStructureRenderData)):
-                    box_body_owners[ns] = part.render_data
-                    break
+            from .receiving_layout import derive_bay_lock_state
+            from .sheetmetal_drawing import CirclePrimitive
+            body_owners = tuple(
+                part.render_data for part in actual.parts
+                if part.part_key == "box_body"
+                and isinstance(part.render_data, BoxBodyStructureRenderData)
+            )
+            if len(body_owners) != 1:
+                raise ValueError("RECEIVING_MULTIBAY_BODY_OWNER_MISSING")
+            body_owner = body_owners[0]
+            expected_locks = derive_bay_lock_state(
+                layout, set_index=si, bay_index=bi,
+            )
+            for role, joined in (
+                ("left_side", expected_locks[0]),
+                ("right_side", expected_locks[1]),
+            ):
+                actual_pieces = tuple(
+                    piece for piece in body_owner.pieces if piece.role == role
+                )
+                if len(actual_pieces) != 1:
+                    raise ValueError("RECEIVING_MULTIBAY_SIDE_LOCK_TOPOLOGY_MISMATCH")
+                render = actual_pieces[0].render_data
+                metadata = render.metadata or {}
+                if (metadata.get("baseline_side_lock_participation") is not joined
+                        or metadata.get("baseline_side_lock_certified_count") != 6
+                        or metadata.get("baseline_feature_count") != (9 if joined else 3)):
+                    raise ValueError("RECEIVING_MULTIBAY_SIDE_LOCK_TOPOLOGY_MISMATCH")
+                def matching_holes(radius):
+                    return sum(
+                        isinstance(primitive, CirclePrimitive)
+                        and primitive.layer == "CUTTING"
+                        and abs(float(primitive.radius) - radius) < 1e-6
+                        for primitive in render.scene.primitives
+                    )
+                if (matching_holes(5.25) != (6 if joined else 0)
+                        or matching_holes(8.0) != (2 if joined else 0)):
+                    raise ValueError("RECEIVING_MULTIBAY_SIDE_LOCK_TOPOLOGY_MISMATCH")
+            box_body_owners[ns] = body_owner
         if is_csv and body_selected:
             dims=tuple(float(source[k]) for k in ("w","h","d"))
             thick=float(source["t"])
@@ -424,7 +516,7 @@ def export_current_receiving_multibay_dxf(
                     seg for receipt in uv if receipt.side_piece_id==side
                     for seg in receipt.marking_segments
                 ),owner.scene))
-    if not output_rows:
+    if not output_rows and nfb_pair_requests is None:
         raise ValueError("RECEIVING_MULTIBAY_NO_SELECTED_PHYSICAL_SHEETS")
     root=Path(output_dir)
     if not overwrite and any((root/name).exists() for _,_,name,_ in output_rows):
@@ -433,7 +525,7 @@ def export_current_receiving_multibay_dxf(
     nfb_approved = {}
     grouping_guard = pre_commit_guard
     if nfb_pair_requests is not None:
-        if group_mode is None or bool(flags.get("base_plate")) or bool(flags.get("inner_door")):
+        if group_mode is None or bool(flags.get("inner_door")):
             raise ValueError("RECEIVING_COMPOSED_NFB_GROUP_SCOPE_REQUIRED")
         nfb_rows, nfb_approved, grouping_guard = _verified_nfb_composed_pair_rows(
             layout, nfb_pair_requests, root, pre_commit_guard,
@@ -445,6 +537,8 @@ def export_current_receiving_multibay_dxf(
             expected_keys.add(filename)
             verified_csv_filenames.add(filename)
             output_rows.append((namespace, key, filename, render))
+    if not output_rows:
+        raise ValueError("RECEIVING_MULTIBAY_NO_SELECTED_PHYSICAL_SHEETS")
     with TemporaryDirectory(prefix=".whd-multibay-csv-",dir=root) as staging:
         staged={}
         for namespace,key,filename,render in output_rows:
@@ -475,7 +569,12 @@ def export_current_receiving_multibay_dxf(
                 pre_commit_guard=grouping_guard, overwrite=overwrite,
                 box_body_owner_by_namespace=box_body_owners,
                 _verified_nfb_pair_parts_by_namespace=nfb_approved,
+                emit_debug=emit_debug,
             )
+        if pre_commit_guard is not None:
+            # Recheck after every true physical CUTTING/BEND DXF has been
+            # independently reopened, immediately before the atomic publish.
+            pre_commit_guard()
         return _atomic_commit_staged_dxfs(
             staged,root,overwrite=overwrite,
         )

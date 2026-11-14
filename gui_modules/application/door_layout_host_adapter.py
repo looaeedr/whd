@@ -29,12 +29,18 @@ def _new_door_layout_column(self, width, heights, *, width_auto=False, height_au
     height_values = list(heights)
     if height_auto is None:
         height_auto = [False] * len(height_values)
+    # Booleans affecting physical Door partition ownership belong to Engine.
+    # Decode before allocating any Tk widgets so invalid source is atomic.
+    width_auto = manufacturing_api.normalize_operator_settings_boolean(width_auto)
+    height_auto = [
+        manufacturing_api.normalize_operator_settings_boolean(v) for v in height_auto
+    ]
     return {
         "width_var": tk.StringVar(value=self._door_layout_number_text(width)),
-        "width_auto": bool(width_auto),
+        "width_auto": width_auto,
         "width_committed": float(width),
         "height_vars": [tk.StringVar(value=self._door_layout_number_text(v)) for v in height_values],
-        "height_auto": [bool(v) for v in height_auto],
+        "height_auto": height_auto,
         "height_committed": [float(v) for v in height_values],
         "height_completion": None,
     }
@@ -93,12 +99,12 @@ def _door_layout_controller_columns(self):
     for index, column in enumerate(self.door_layout_columns, start=1):
         columns.append(_DoorLayoutColumnState(
             width=self._parse_layout_value(column["width_var"], f"欄 {index} 寬度"),
-            width_auto=bool(column.get("width_auto", False)),
+            width_auto=column.get("width_auto", False),
             heights=tuple(
                 self._parse_layout_value(var, f"欄 {index} 第 {row} 層高度")
                 for row, var in enumerate(column["height_vars"], start=1)
             ),
-            height_auto=tuple(bool(value) for value in column["height_auto"]),
+            height_auto=tuple(column["height_auto"]),
         ))
     return tuple(columns)
 
@@ -230,8 +236,12 @@ def get_selected_door_layout_cell(self):
     return first
 
 def select_door_layout_cell(self, column_index, row_index):
-    """Select one multi-door cell without rebuilding geometry or Canvas widgets."""
-    selected_key = f"{int(column_index)}:{int(row_index)}"
+    """Select one actual Engine Door cell without inventing a physical part ID."""
+    cell = manufacturing_api.resolve_operator_door_layout_cell(
+        self.get_door_layout_cells(), column_index, row_index,
+    )
+    stable_key = manufacturing_api.door_layout_part_key(cell)
+    selected_key = self._door_layout_cell_key(cell)
     self.door_layout_selected_var.set(selected_key)
 
     canvas = getattr(self, "canvas_door", None)
@@ -244,7 +254,6 @@ def select_door_layout_cell(self, column_index, row_index):
         if corner_canvas is not None:
             canvas = corner_canvas
         import fold_designer_bridge as phase6_bridge
-        stable_key = f"door_c{int(column_index) + 1}_r{int(row_index) + 1}"
         phase6_bridge._phase6_select_corner_data_part(
             designer, stable_key, refresh_view=False
         )
@@ -285,11 +294,17 @@ def _reject_door_layout_dimension(self, var, previous_value, message):
     return _reject_door_layout_dimension_impl(self, var, previous_value, message)
 
 def commit_door_layout_width(self, column_index):
+    # A stale or aliased callback must not even read another physical Door.
+    column_index = manufacturing_api.validate_operator_door_grid_edit_index(
+        column_index, count=len(self.door_layout_columns), axis="column",
+    )
     column = self.door_layout_columns[column_index]
     # Committed geometry is the rollback authority. dict.get's default
     # argument is evaluated eagerly; parsing the dirty Entry there used to
     # raise before the input-error handler could restore the last good width.
-    previous = float(column["width_committed"])
+    previous = manufacturing_api.normalize_operator_door_grid_dimension(
+        column["width_committed"], field="column_width",
+    )
     try:
         current = self._parse_layout_value(column["width_var"], f"欄 {column_index+1} 寬度")
         total_width = self._parse_layout_value(self.w_var, "W")
@@ -312,10 +327,22 @@ def commit_door_layout_width(self, column_index):
     return True
 
 def commit_door_layout_height(self, column_index, row_index):
+    # Validate both axes with original Engine physical identity rules before
+    # touching any Tk Entry or the cached committed dimensions.
+    column_index = manufacturing_api.validate_operator_door_grid_edit_index(
+        column_index, count=len(self.door_layout_columns), axis="column",
+    )
     column = self.door_layout_columns[column_index]
+    row_index = manufacturing_api.validate_operator_door_grid_edit_index(
+        row_index, count=len(column["height_vars"]), axis="row",
+    )
     committed = column.get("height_committed") or []
-    previous = float(committed[row_index]) if row_index < len(committed) else self._parse_layout_value(
-        column["height_vars"][row_index], "高度"
+    previous = (
+        manufacturing_api.normalize_operator_door_grid_dimension(
+            committed[row_index], field="row_height",
+        ) if row_index < len(committed) else self._parse_layout_value(
+            column["height_vars"][row_index], "高度",
+        )
     )
     try:
         current = self._parse_layout_value(
@@ -396,13 +423,12 @@ def _remap_door_layout_owned_data(
         for key in keys:
             try:
                 c_text, r_text = key.split(":", 1)
-                target = mapper(int(c_text), int(r_text))
-                transitions[key] = (
-                    None if target is None
-                    else f"{int(target[0])}:{int(target[1])}"
-                )
-            except (TypeError, ValueError):
-                transitions[key] = None
+                column, row = int(c_text), int(r_text)
+            except (TypeError, ValueError) as exc:
+                raise ValueError("Invalid Door cell source key") from exc
+            # Do not turn True into column 1 or truncate 1.5 to 1.
+            # Engine accepts the raw target coordinates and validates them.
+            transitions[key] = mapper(column, row)
         operation = "map_cells"
     result = manufacturing_api.remap_receiving_door_layout_after_delete(
         operation=operation, column_index=column_index, row_index=row_index,
@@ -430,6 +456,11 @@ def _remap_door_layout_owned_data(
 def remove_door_layout_column(self, column_index):
     if not self.door_layout_columns:
         return
+    # A stale callback must not delete a different physical Door via Python's
+    # bool/negative-index aliases before Engine gets the identity transition.
+    column_index = manufacturing_api.validate_operator_door_grid_edit_index(
+        column_index, count=len(self.door_layout_columns), axis="column",
+    )
     if self.door_layout_columns[column_index].get("width_auto"):
         return
     # Verify before identity remap/deletion, so corrupt H cannot erase the
@@ -454,13 +485,22 @@ def remove_door_layout_column(self, column_index):
 
 def add_door_layout_height(self, column_index):
     """Compatibility action: promote current auto height; remainder creates the next segment."""
+    column_index = manufacturing_api.validate_operator_door_grid_edit_index(
+        column_index, count=len(self.door_layout_columns), axis="column",
+    )
     column = self.door_layout_columns[column_index]
     auto_index = next((i for i, value in enumerate(column["height_auto"]) if value), None)
     if auto_index is not None:
         self.commit_door_layout_height(column_index, auto_index)
 
 def remove_door_layout_height(self, column_index, row_index):
+    column_index = manufacturing_api.validate_operator_door_grid_edit_index(
+        column_index, count=len(self.door_layout_columns), axis="column",
+    )
     column = self.door_layout_columns[column_index]
+    row_index = manufacturing_api.validate_operator_door_grid_edit_index(
+        row_index, count=len(column["height_auto"]), axis="row",
+    )
     if column["height_auto"][row_index]:
         return
     self._remap_door_layout_owned_data(

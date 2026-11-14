@@ -98,55 +98,61 @@ def test_r2_1_and_r2_6_derived_keys_and_custom_parts_preserved_on_bootstrap_and_
 
 
 def test_r2_1_commit_box_body_right_side_syncs_zr1_and_uses_settings_thickness(monkeypatch):
+    """Real BoxBody source: Engine owns material mapping and reads live settings T."""
+    from ae_engine import manufacturing_api
+
     captured = {}
+    authoritative = manufacturing_api.plan_operator_box_body_piece_fold_commit
+
+    def inspect_engine_transaction(*args, **kwargs):
+        captured["thickness"] = kwargs["thickness"]
+        result = authoritative(*args, **kwargs)
+        captured["plan"] = result
+        return result
+
     monkeypatch.setattr(
-        fold_designer_bridge,
-        "apply_outside_dimension_compensation",
-        lambda segs, t_val: captured.__setitem__("t_val", t_val) or segs,
+        manufacturing_api, "plan_operator_box_body_piece_fold_commit",
+        inspect_engine_transaction,
     )
     monkeypatch.setattr(
-        fold_designer_bridge,
-        "read_box_body_profile",
-        lambda agg, snap: {"zr1": next(r["len"] for r in agg if r.get("phase6_key") == "zr1")},
-    )
-    monkeypatch.setattr(
-        fold_designer_bridge,
-        "_phase6_store_editor_values",
+        fold_designer_bridge, "_phase6_store_editor_values",
         lambda self, vals, notify=True: captured.__setitem__("values", vals),
     )
     monkeypatch.setattr(
-        fold_designer_bridge,
-        "_phase6_commit_box_structure_state",
-        lambda self, st, rebuild=False: None,
+        fold_designer_bridge, "_phase6_commit_box_structure_state",
+        lambda self, st, rebuild=False: captured.__setitem__("structure", st),
     )
     monkeypatch.setattr(
-        fold_designer_bridge,
-        "_phase6_sync_authoritative_derived_parts",
+        fold_designer_bridge, "_phase6_sync_authoritative_derived_parts",
         lambda self: None,
     )
 
+    original = {
+        "model": "金庫型", "w": 600.0, "h": 800.0, "d": 300.0,
+        "t": 2.0, "fw": 25.0, "zl1": 15.0, "zl2": 16.0,
+        "zr1": 20.0, "zr2": 16.0,
+    }
+    # Use a full, real Engine D-W-D profile. Two isolated outer rows cannot
+    # satisfy the physical BoxBody contract and must never be fabricated by GUI.
+    aggregate = manufacturing_api.build_box_body_fold_profile(
+        {**original, "t": 3.0},
+    )
     bridge = SimpleNamespace(
-        _phase6_input_snapshot={},
+        _phase6_input_snapshot=original,
         _settings_values={"t": 3.0},
         _phase6_box_whd={"w": 600.0, "h": 800.0, "d": 300.0},
         designer_workspace=SimpleNamespace(box_body_structure_state=lambda: {}),
-        state=SimpleNamespace(
-            profiles_vault={
-                "箱身": [
-                    {"phase6_key": "zl1", "len": 20.0},
-                    {"phase6_key": "zr1", "len": 20.0},
-                ]
-            }
-        ),
+        state=SimpleNamespace(profiles_vault={"箱身": aggregate}),
     )
     fold_designer_bridge._phase6_commit_box_body_physical_piece_profile(
         bridge,
         "box_body:right_side",
         {"X": [{"phase6_key": "zr1", "len": 35.0}], "Y": []},
     )
-    assert captured["t_val"] == 3.0
+    assert captured["thickness"] == 3.0
     assert captured["values"]["zr1"] == 35.0
-
+    assert captured["values"] == captured["plan"].settings_values
+    assert "right_side" in captured["structure"]["configs"]["three_piece_side_back_split"]["piece_profiles"]
 
 
 def test_r2_2a_custom_sheet_bending_ui_clears_stale_vault_and_rebuilds_from_active_axis():

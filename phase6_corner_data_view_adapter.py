@@ -22,20 +22,6 @@ class Phase6CornerDataViewAdapter:
         return self._selected_part_key
 
     @staticmethod
-    def back_panel_mode_is_applicable(
-        selected_part_key,
-        *,
-        family_name,
-        active_type,
-        three_piece_type,
-    ) -> bool:
-        return (
-            str(selected_part_key or "") == "box_body:back"
-            and str(family_name or "") == "受電箱"
-            and str(active_type or "") == str(three_piece_type or "")
-        )
-
-    @staticmethod
     def refresh_back_panel_mode_control(
         owner,
         *,

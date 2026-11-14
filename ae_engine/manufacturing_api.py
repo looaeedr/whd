@@ -28,6 +28,7 @@ from typing import Literal, Mapping
 from . import ae
 from .receiving_quantity_allocation import (
     AllocationDraft, validate_quantity_allocation, validate_receiving_candidate_quantity_preview,
+    adjust_receiving_candidate_draft_quantity,
 )
 from .receiving_hole_candidates import (
     role_key as validate_receiving_candidate_role,
@@ -38,14 +39,47 @@ from .receiving_inner_door_pairing import (
     validate_inner_door_allocation as validate_receiving_inner_door_allocation,
 )
 from .door_layout_numeric_transitions import (
+    normalize_operator_door_grid_dimension, resolve_operator_door_layout_cell,
+    validate_operator_door_grid_edit_index,
     DoorLayoutColumnState, DoorLayoutResolvedColumn,
     DoorLayoutRecomputeResult, DoorLayoutCommitValidation,
 )
 from .dxf_serialization import save_scene_dxf
+from .ae_door_indicator import (
+    feature_surface_from_drawing_scene as project_operator_feature_surface_from_drawing_scene,
+)
+from .ae_endcap import (
+    baseline_hole_catalog_root_path as operator_hole_catalog_root_path,
+)
+# Public hole-catalog operations: GUI must never synthesize a physical hole
+# by coercing raw operator sizes before the canonical owner validates them.
+from .operator_hole_feature_rotation import (
+    operator_hole_rotation_from_control,
+    operator_hole_feature_with_rotation,
+)
+
+from .hole_catalog import (
+    load_hole_catalog as operator_load_hole_catalog,
+    load_pipe_catalog as operator_load_pipe_catalog,
+    feature_from_definition as operator_hole_feature_from_definition,
+    custom_circle_definition as operator_custom_circle_definition,
+    custom_rectangle_definition as operator_custom_rectangle_definition,
+)
+from .engineering_drawing import (
+    build_engineering_drawing_projection as project_operator_engineering_drawing_annotations,
+)
 # Operator panel naming: public input boundary, independent of geometry.
-from .panel_naming import normalize_panel_name, set_cabinet_panel_name
+from .panel_naming import (
+    normalize_panel_name, set_cabinet_panel_name,
+    operator_vault_panel_name_editor_allowed,
+)
 from .panel_dxf_naming import vault_panel_dxf_filename
-from .receiving_layout import rename_receiving_panel
+from .receiving_layout import (
+    rename_receiving_panel, normalize_receiving_operator_connection_counts,
+    normalize_receiving_operator_topology_integer,
+    project_receiving_operator_set_preview_target,
+    project_receiving_operator_set_bay_selection,
+)
 
 from .integration_api import (
     ManufacturingIntegrationRequest, ManufacturingIntegrationResponse,
@@ -53,6 +87,7 @@ from .integration_api import (
 )
 from .cabinet_types.policy import (
     resolve_box_body_back_panel_contract, base_plate_requires_explicit_bend_pattern,
+    corner_data_back_panel_mode_applicable as operator_corner_data_back_panel_mode_applicable,
     require_implemented_manufacturing_family,
     apply_fresh_family_defaults as operator_apply_fresh_family_defaults,
     resolve_box_body_structure_state as operator_resolve_box_body_structure_state,
@@ -93,9 +128,12 @@ from .endcap_factory_fold import (
     apply_box_assembly_type_to_raw_state as apply_endcap_box_assembly_type_to_raw_state,
     normalize_endcap_fw_state,
     resolve_endcap_fw, resolve_endcap_assembly_type, build_endcap_xy_fold_profiles,
+    project_operator_endcap_fw_controls,
     endcap_profiles_for_assembly,
     ENDCAP_FW_PARTS, FW_FOLLOW_BODY, FW_FOLLOW_HEAD, FW_FOLLOW_TAIL,
     FW_INDEPENDENT, ENDCAP_FW_MODES, commit_box_fw, commit_endcap_fw,
+    commit_operator_box_fw_takeover,
+    commit_operator_endcap_fw_value,
     set_endcap_fw_follow, set_endcap_fw_override,
     endcap_editor_fold_tabs, normalize_endcap_profile_order,
 )
@@ -106,6 +144,7 @@ from .cabinet_family_model_transition import (
 from .cabinet_model_choices import (
     list_cabinet_model_choices, OperatorCornerSelectionCatalog,
     project_operator_corner_selection_catalog,
+    OperatorCornerPartEditability, project_operator_corner_part_editability,
 )
 from .operator_quantity_manufacturing import (
     build_operator_quantity_manufacturing_requests,
@@ -121,6 +160,8 @@ from .workspace_state import (
     MANDATORY_PART, PART_ORDER, ACTIVE_REPAIR_POLICIES,
     normalize_existing_parts, _repair_active as repair_workspace_active_part,
     SharedWorkspaceState,
+    OperatorWorkspaceSnapshotPresence,
+    project_operator_fold_designer_workspace_presence,
 )
 from .receiving_mode_session import (
     DEFAULT_OPERATOR_EXISTING_PARTS, fresh_receiving_mode, ReceivingModeSession,
@@ -129,6 +170,7 @@ from .receiving_operator_projection import (
     receiving_default_box_dimensions,
     receiving_default_preview_dimensions,
     project_receiving_operator_bay_door_split_ratio,
+    project_receiving_operator_bay_sketch_dimensions,
     receiving_family_supports_back_panel_mode,
     receiving_back_panel_mode_control_applicable,
     project_receiving_original_door_marks,
@@ -153,17 +195,23 @@ from .corner_type_ui import (
     assembly_type_from_corner_state as operator_assembly_type_from_corner_state,
     apply_box_assembly_type as operator_apply_box_assembly_type,
     propose_operator_known_model_corner_draft,
+    propose_operator_saved_manual_corner_snapshot,
+    build_corner_type_preview_geometry as project_operator_corner_type_preview_geometry,
 )
 from .corner_state_transactions import (
     CornerStateTransition, MANUAL_CORNER_KEYS, MANUAL_CORNER_PAIR_KEYS,
     ensure_corner_part, corner_selection, corner_targets, commit_corner_pair,
+    project_operator_corner_pair_members, project_operator_corner_selection_target,
     commit_corner_type, commit_corner_mode, commit_corner_parameters, apply_corner_preset,
     replace_corner_state, project_operator_corner_ini_rotation,
+    project_operator_corner_ini_load_section, project_operator_corner_ini_save_options,
 )
 from .operator_endcap_settings_transactions import (
-    OperatorBottomWrapTransition, operator_endcap_fw_follow,
+    OperatorBottomWrapTransition, project_operator_box_fw_live_state, operator_endcap_fw_follow,
+    commit_operator_baseline_endcap_fw,
     operator_endcap_fw_override, operator_endcap_bottom_wrap,
     operator_endcap_edge_relation,
+    commit_operator_endcap_fw_profile_save,
 )
 
 # BoxBody structural Settings physical rows and persisted lock ownership.
@@ -173,15 +221,33 @@ from .operator_box_body_settings_projection import (
 )
 
 # Engine-owned operator Settings dimensions and external-sync coercion.
+# #2517: one Engine settings catalog and factory-default source for every GUI.
+from .operator_settings_catalog import (
+    GLOBAL_CONTEXT as OPERATOR_GLOBAL_SETTINGS_CONTEXT,
+    SettingSpec as OperatorSettingSpec,
+    SETTING_SPECS as OPERATOR_SETTING_SPECS,
+    settings_for_context as operator_settings_for_context,
+)
+from .operator_factory_settings_defaults import project_operator_factory_default_settings
+
 from .operator_settings_transactions import (
     OperatorSettingsCommitTransition, OperatorExternalSyncPlan,
+    OperatorFoldDesignerLiveRevisionPlan, plan_operator_fold_designer_live_revision,
+    OperatorFoldDesignerPublicationRevisions, project_operator_fold_designer_publication_revisions,
     plan_operator_external_sync, normalize_operator_settings_boolean,
     normalize_operator_settings_updates, commit_operator_settings_state,
     normalize_operator_source_dimension, normalize_operator_source_dimensions,
+    normalize_operator_live_box_dimensions,
+    normalize_operator_base_plate_edge_shrink,
+    normalize_operator_receiving_base_plate_number,
     PHYSICAL_SNAPSHOT_SOURCE_KEYS,
     project_receiving_manufacturing_request_settings,
+    project_operator_manufacturing_request_snapshot,
+    project_operator_linked_endcap_source_snapshot,
+    project_operator_part_dimension_settings_overlay,
     operator_legacy_shared_base_plate_shrink,
     apply_operator_legacy_runtime_manufacturing_policies,
+    apply_operator_runtime_settings_to_ae,
 )
 from .endcap_bottom_wrap_state import (
     WRAP_LINKED, WRAP_FOLLOW_HEAD, WRAP_FOLLOW_TAIL, WRAP_INDEPENDENT,
@@ -200,9 +266,17 @@ from .endcap_editor_fold import (
 from .box_body_editor_readback import (
     reverse_box_body_fold_traversal, box_body_piece_editor_profiles,
 )
+from .operator_box_body_piece_fold_transaction import (
+    OperatorBoxBodyPieceFoldPlan, plan_operator_box_body_piece_fold_commit,
+)
+from .operator_box_body_dwd_sync import (
+    OperatorBoxBodyDwdSyncPlan, plan_operator_box_body_dwd_sync,
+)
 from .operator_fold_editor import (
     OperatorFoldMirrorPlan, commit_operator_fold_editor_rows,
+    require_operator_fold_editor_profile_target,
     normalize_operator_fold_editor_control,
+    project_operator_fold_editor_angle,
     plan_operator_fold_mirror_target,
     operator_fold_editor_add_segment, operator_fold_editor_remove_segment,
     project_operator_fold_editor_display_rows,
@@ -224,6 +298,7 @@ from .box_body_fold_profile import (
 from .receiving_quantity_versions import (
     SCHEMA, SCHEMA_V2, SCHEMA_V3, QUANTITY_MODE, SET_BAY_MODE,
     QuantityModel, positive_piece_count, quantity_inherited_nfb_brand_conflicts,
+    project_operator_quantity_version_controls,
     normalize_quantity_snapshot, quantity_only_change,
 )
 from .assembly_geometry import (
@@ -259,6 +334,7 @@ from .receiving_pad_display_sources import (
     resolve_receiving_pad_assembly_display_skins,
 )
 from .receiving_ear_display_sources import (
+    receiving_ear_assembly_display_active,
     receiving_ear_assembly_display_source_key, resolve_receiving_ear_assembly_display_skins,
 )
 from .project_snapshot_state import (
@@ -270,6 +346,7 @@ from .corner_dimension_projection import (
 )
 from .physical_sheet_editor_context import (
     PhysicalSheetEditorContext, resolve_physical_sheet_editor_context,
+    propose_operator_physical_sheet_hole_features,
 )
 from .indicator_editor_geometry import (
     resolve_indicator_editor_components,
@@ -315,6 +392,7 @@ from .manufacturing_selected_export import (
     plan_unconfigured_receiving_base_export_retry,
 )
 from .manufacturing_export_selection import (
+    normalize_operator_selected_export_flags,
     resolved_export_intention_key,
     select_resolved_export_geometry,
     resolve_receiving_bay_local_export_geometry,
@@ -345,6 +423,7 @@ from .sheetmetal_feature_reference import (
     feature_with_reference_anchor as operator_hole_feature_with_reference_anchor,
     feature_with_process as operator_hole_feature_with_process,
     move_feature_by_reference_distance as operator_hole_move_feature_by_reference_distance,
+    normalize_operator_hole_reference_distance,
 )
 from .sheetmetal_feature_surface import (
     feature_is_within_surface as operator_hole_feature_is_within_surface,
@@ -376,6 +455,10 @@ from .door_indicator_position_transactions import (
 )
 from .sheetmetal_corner_policy import (
     box_body_height_from_corner_policies as project_operator_box_body_finished_height,
+    normalize_corner_selection as operator_normalize_corner_selection,
+)
+from .sheetmetal_drawing import (
+    resolved_features_to_primitives as project_operator_resolved_feature_drawing_primitives,
 )
 from .sheetmetal_geometry import (
     EndCapAssemblySemantics,
@@ -390,13 +473,21 @@ from .sheetmetal_part_adapters import (
     build_unknown_door_result,
     build_finished_reference_guide,
     door_layout_part_key,
+    project_operator_receiving_base_plate_pattern_choices,
 )
 from .cabinet_types import policy as cabinet_family_policy
 from .cabinet_types.policy import door_material_frame_width, box_body_symmetry_allowed
 from .cabinet_types.registry import resolve_cabinet_type
 from .certified_relief_registry import (
     build_relief_promotion_candidate,
+    operator_relief_promotion_candidate_eligible,
     load_external_relief_rule_records as operator_load_certified_relief_rule_records,
+    _validate_editable_rule_record as validate_operator_relief_registry_rule_record,
+    normalize_operator_relief_topology_levels,
+    normalize_operator_relief_formula_sample,
+    evaluate_relief_formula_record as evaluate_operator_relief_registry_formula_record,
+    save_relief_rule_candidate as save_operator_relief_registry_candidate,
+    promote_relief_rule_candidate as promote_operator_relief_registry_candidate,
 )
 # Fold Designer's certified CornerType seed is the original Registry-backed owner.
 from .corner_type_ui import (
@@ -407,6 +498,20 @@ from .corner_type_ui import (
 # Public, identity-preserving Engine operator Family policy projections.
 # GUI adapters must not import the private Family policy owner directly.
 operator_canonical_family_name = cabinet_family_policy.canonical_family_name
+
+def operator_resolve_legacy_baseline_manufacturing_family(source_model) -> str:
+    """Project the existing legacy GUI baseline onto a registered Engine Family.
+
+    This preserves the historical main-GUI fallback to the Vault family for
+    unregistered baseline folders/Custom; it does not certify an unknown
+    model or bypass manufacturing Family eligibility checks.
+    """
+    value = operator_normalize_custom_model_name(source_model)
+    try:
+        return resolve_cabinet_type(value).canonical_name
+    except (KeyError, ValueError):
+        return "金庫型"
+
 operator_family_fixes_box_body_structure = cabinet_family_policy.family_fixes_box_body_structure
 operator_box_body_profile_uses_outside_dimensions = cabinet_family_policy.box_body_profile_uses_outside_dimensions
 operator_supports_bottom_wrap_controls = cabinet_family_policy.supports_bottom_wrap_controls
@@ -418,7 +523,7 @@ operator_endcap_fw_profile_uses_material_dimensions = cabinet_family_policy.endc
 from .operator_door_blank_projection import project_operator_door_blank_dimensions
 from .operator_round_hole_projection import (
     OperatorRoundHolePreview, nearest_operator_round_hole_neighbor_index,
-    plan_operator_round_hole_preview,
+    plan_operator_round_hole_preview, operator_round_hole_default_center_distance,
 )
 # GUI round-hole spacing fields use the same Engine geometric conversions
 # as the canonical physical-feature reference owner.
@@ -446,9 +551,12 @@ from .operator_endcap_blank_projection import (
 )
 from .display_dimensions import (
     resolve_live_operator_finished_dimensions,
+    folded_outside_envelope as project_operator_folded_outside_envelope,
     OperatorDimensionGuidePlan, project_operator_dimension_guides,
 )
-from .live_cabinet_family import resolve_live_cabinet_family
+from .live_cabinet_family import (
+    resolve_live_cabinet_family, resolve_operator_manufacturing_family_source,
+)
 from .assembly_mesh_profiles import (
     resolve_material_mesh_profiles, project_operator_3d_mesh_profiles,
 )
@@ -480,7 +588,8 @@ from .manufacturing_cache_signature import (
 from .physical_part_navigation import project_physical_part_navigation_rows
 from .physical_part_identity import (
     is_box_body_physical_piece_key, is_derived_physical_part_key,
-    door_display_part_role,
+    door_display_part_role, OperatorHoleEditorRoute,
+    project_operator_hole_editor_route,
 )
 from .independent_part_view_mesh import (
     IndependentPartViewMesh, project_independent_part_view_mesh,
@@ -564,7 +673,12 @@ def apply_cabinet_family_endcap_policy(
         return policy
     if not cabinet_family_policy.supports_bottom_wrap_controls(family_source):
         return policy
-    t = float(ae.T if thickness is None else thickness)
+    # T is a physical manufacturing source: GUI must forward the original
+    # operator value, not pre-coerce bool/NaN into a plausible factory T.
+    # Keep the historical default only for callers explicitly omitting T.
+    t = normalize_operator_source_dimension(
+        ae.T if thickness is None else thickness, field="t",
+    )
     default_fw = float(policy.bottom_fw if policy.bottom_fw is not None else policy.fw)
     return replace(
         policy,
@@ -574,6 +688,36 @@ def apply_cabinet_family_endcap_policy(
         ),
     )
 
+
+def resolve_operator_fold_designer_payload_corner_policy(
+    corner_state, part_key, fw, *, known_family=None, unknown=False,
+    family_source=None, structure_state=None, thickness=None,
+):
+    """Resolve Fold Designer manufacturing corners in one Engine-owned call.
+
+    Complete operator selections win. Only known models with missing corners
+    may use Certified Registry family defaults. After selection, Receiving
+    EndCap lower FW follows the original Family/BoxBody structure authority.
+    Neither the source nor a second preview/export policy is mutated.
+    """
+    if type(unknown) is not bool:
+        raise ValueError("Fold Designer corner model identity must be boolean")
+    policy = corner_policy_from_payload(corner_state, part_key, fw)
+    if policy is None and not unknown:
+        # Derive the fallback Family only when the manual source is incomplete.
+        # Fold Designer must never read a host-only Family helper before this
+        # authoritative Engine decision. Explicit API callers remain supported.
+        resolved_family = (
+            known_family if known_family is not None
+            else cabinet_family_policy.canonical_family_name(family_source)
+        )
+        policy = corner_policy_from_payload(
+            corner_state, part_key, fw, known_family=resolved_family,
+        )
+    return apply_cabinet_family_endcap_policy(
+        policy, part_key, family_source=family_source,
+        structure_state=structure_state, thickness=thickness,
+    )
 
 def resolve_operator_snapshot_corner_policy(
     part_key, *, corner_state=None, input_snapshot=None,
@@ -669,6 +813,7 @@ from .assembly_joint import (
     side_wrap_target_corners, resolve_box_body_piece_solver_key,
     joint_relief_state_item_matches, resolve_manufacturing_joint_graph,
     migrate_legacy_snapshot_joints as migrate_operator_assembly_joint_snapshot,
+    project_operator_user_assembly_joint_parts,
     project_operator_endcap_joint_edge_policies,
 )
 from .assembly_joint import joint_registry_diagnostic_info
@@ -718,6 +863,7 @@ from .manufacturing_render_data import (
     UnfoldedBlankInfo,
     _measure_one_unfolded_blank,
     measure_unfolded_blanks,
+    project_operator_main_blank_summary_dimensions,
     BoxBodyPieceRenderData,
     BoxBodyStructureRenderData,
     material_polygon_from_final_scene,
@@ -762,6 +908,7 @@ def save_part_render_data_dxf(
     verify_reopen: bool = False,
 ) -> str:
     """Serialize an already-built authoritative FinalScene to DXF."""
+    _manufacturing_export.require_dxf_overwrite_boolean(overwrite)
     metadata = getattr(render_data, "metadata", None) or {}
     blocked = metadata.get("baseline_fit_error")
     if blocked:
@@ -1052,6 +1199,7 @@ def generate_part(
     # formula merely because its PartSpec has a familiar physical shape.
     require_implemented_manufacturing_family(getattr(spec, "model_name", None))
     ctx = context or ManufacturingContext()
+    _manufacturing_export.require_dxf_overwrite_boolean(ctx.overwrite)
     destination = Path(output_path)
     destination.parent.mkdir(parents=True, exist_ok=True)
     if destination.exists() and not ctx.overwrite:
@@ -1213,16 +1361,20 @@ def save_composed_panel_dxf(
     pre_commit_guard,
     overwrite: bool = False,
     gap: float = 60.0,
+    quantity_summary: bool = False,
+    compact_quantity_total: bool = False,
 ):
     """Compose already resolved physical flats into one verified DXF.
 
     No GUI/Tk or new whole-cabinet manufacturing certification is implied.
     The caller supplies a trusted current-source check before/after staging.
     """
+    _manufacturing_export.require_dxf_overwrite_boolean(overwrite)
     from .composed_panel_dxf import save_composed_panel_dxf as compose
     return compose(
         panels, output_path, pre_commit_guard=pre_commit_guard,
-        overwrite=overwrite, gap=gap,
+        overwrite=overwrite, gap=gap, quantity_summary=quantity_summary,
+        compact_quantity_total=compact_quantity_total,
     )
 
 
@@ -1346,6 +1498,14 @@ def prepare_receiving_inner_door_physical_confirm(staged_config, part_key, final
     return validate_receiving_inner_door_config(prepared)
 
 
+def receiving_inner_door_nfb_confirm_required(staged_config, features):
+    """Public Engine routing decision for an operator's physical inner Door."""
+    from .receiving_nfb_csv_committed_config import (
+        receiving_inner_door_nfb_confirm_required as resolve,
+    )
+    return resolve(staged_config, features)
+
+
 def preview_quantity_inner_door_confirm(
     snapshot, quantity_model, part_key, features, staged_config, *,
     include_missing_heights=False,
@@ -1355,6 +1515,20 @@ def preview_quantity_inner_door_confirm(
         preview_quantity_inner_door_confirm as preview,
     )
     return preview(
+        snapshot, quantity_model, part_key, features, staged_config,
+        include_missing_heights=include_missing_heights,
+    )
+
+
+def commit_receiving_quantity_inner_door_confirm(
+    snapshot, quantity_model, part_key, features, staged_config, *,
+    include_missing_heights=False,
+):
+    """Public Engine atomic Quantity NFB inner-Door Confirm-All transaction."""
+    from .receiving_nfb_csv_committed_config import (
+        commit_receiving_quantity_inner_door_confirm as commit,
+    )
+    return commit(
         snapshot, quantity_model, part_key, features, staged_config,
         include_missing_heights=include_missing_heights,
     )
@@ -1459,6 +1633,10 @@ from .operator_receiving_inner_door_source import (
     normalize_operator_receiving_inner_door_inward_offset,
     resolve_operator_receiving_inner_door_inward_offset,
     project_operator_receiving_inner_door_enabled_source,
+    apply_operator_receiving_inner_door_presence,
+    apply_operator_receiving_inner_door_inward_offset,
+    project_operator_receiving_inner_door_cell_source,
+    operator_receiving_inner_door_commit_target,
 )
 
 
@@ -1532,6 +1710,30 @@ def validate_receiving_base_plate_settings(
         config=config,
     )
 
+def project_operator_receiving_quantity_base_plate_settings(snapshot, config):
+    """Public detached Quantity Base Plate source/EAR projection."""
+    from .receiving_base_plate_settings_validation import (
+        project_operator_receiving_quantity_base_plate_settings as project,
+    )
+    return project(snapshot, config)
+
+
+def commit_operator_receiving_base_plate_settings(
+    *, input_snapshot, settings_values, config, submit_geometry_update=None,
+):
+    """Public Engine transaction for one validated physical Base Plate choice."""
+    from .receiving_base_plate_settings_validation import (
+        commit_receiving_base_plate_settings as commit,
+    )
+    return commit(
+        input_snapshot=input_snapshot, settings_values=settings_values,
+        config=config, submit_geometry_update=submit_geometry_update,
+    )
+
+
+from .receiving_switch_layout import validate_receiving_switch_opening_target
+
+
 def normalize_receiving_switch_operator_layout(layout):
     """Public Engine port for Receiving Switch input topology state."""
     from .receiving_switch_layout import normalize_receiving_switch_layout
@@ -1547,6 +1749,19 @@ def apply_receiving_switch_operator_action(
         layout, operation=operation, brand=brand,
         layer_index=layer_index, delta=delta,
     )
+
+def project_operator_fold_designer_divider_input(
+    part_key, payload, *, default_depth, default_thickness,
+):
+    """Public Engine projection of raw GUI/CADSplit Divider source inputs."""
+    from .fold_designer_physical_selection import (
+        project_operator_fold_designer_divider_input as project,
+    )
+    return project(
+        part_key, payload,
+        default_depth=default_depth, default_thickness=default_thickness,
+    )
+
 
 def resolve_fold_designer_divider_part(part_key, divider_input):
     """Public Engine selection of one canonical Box Body Divider physical part."""
@@ -1571,9 +1786,23 @@ from .fold_designer_snapshot_dimensions import (
     FoldDesignerSnapshotDimensions, normalize_fold_designer_indicator_groups,
     normalize_fold_designer_indicator_offsets,
     normalize_operator_hole_editor_indicator_state,
+    project_operator_door_indicator_display_state,
     project_operator_door_cell_indicator_manufacturing_source,
     project_operator_door_layout_indicator_snapshot_states,
 )
+
+
+def normalize_operator_indicator_layer_count(value: object) -> int:
+    """Validate live 1..6 IndicatorBox or Door physical editor layers.
+
+    This uses the existing canonical Engine group validator, never a GUI
+    int() conversion or fallback to a different physical layer count.
+    """
+    from .fold_designer_snapshot_dimensions import normalize_fold_designer_indicator_groups
+    layers = normalize_fold_designer_indicator_groups((value,))[0]
+    if layers > 6:
+        raise ValueError("指示燈層數／組數無效：最多六層")
+    return layers
 
 
 def project_fold_designer_snapshot_dimensions(snapshot, indicator_layer_groups):
@@ -1593,6 +1822,19 @@ def project_operator_box_body_face_dimensions(
         for key, raw in (("w", w), ("h", h), ("d", d))
     }
     return box_body_face_dimensions(**values)
+
+
+# Main-GUI Door-grid readback uses the same physical part identity mapper as
+# headless Engine clients.  No alternate GUI cell/part conversion is allowed.
+from .sheetmetal_part_adapters import (
+    door_part_features_to_layout_feature_map as project_operator_door_layout_cell_features_from_parts,
+)
+
+from .operator_legacy_endcap_hole_projection import (
+    project_operator_endcap_legacy_hole_rows,
+)
+
+from .door_layout_feature_projection import project_operator_saved_door_layout_columns
 
 
 def project_fold_designer_snapshot_part_features(
@@ -1697,12 +1939,19 @@ def project_physical_solid_mesh_display_segments(triangles, *, mode, tolerance=1
 
 
 
+from .door_operator_part_spec import (
+    normalize_operator_door_nameplate_center_datum_top,
+    project_operator_single_door_indicator_mode,
+)
+
+
 def build_door_operator_part_spec(
     values, *, model_name, features=(), indicator_hole=None,
     door_indicator=None, door_indicator_offset=(0.0, 0.0),
     use_box_distance=False, corner_policy=None, frame_edges=None,
     indicator_window_groups=None, nameplate_center_datum_top=None,
     indicator_source_state=None,
+    fold_designer_indicator_source=None,
 ) -> DoorPartSpec:
     """Public Engine-owned Door operator → canonical manufacturing PartSpec."""
     from .door_operator_part_spec import build_door_operator_part_spec as build
@@ -1715,6 +1964,7 @@ def build_door_operator_part_spec(
         indicator_window_groups=indicator_window_groups,
         nameplate_center_datum_top=nameplate_center_datum_top,
         indicator_source_state=indicator_source_state,
+        fold_designer_indicator_source=fold_designer_indicator_source,
     )
 
 # #2517: Pre-solve EndCap fixed-relief delta and world collision diagnostics.
@@ -1791,6 +2041,7 @@ from .assembly_relief_state import (
 from .operator_fold_designer_numeric_source import (
     fold_designer_legacy_source_default,
     resolve_fold_designer_legacy_numeric_settings,
+    project_operator_fold_designer_snapshot_numeric_defaults,
 )
 
 # #2517: physical Receiving NFB highlighted partial DXF batch is Engine-owned.
@@ -1816,10 +2067,23 @@ from .operator_fixed_corner_summary import project_operator_fixed_corner_summary
 
 # #2517: GUI baseline labeling and quantity-export source validation must
 # pass through the existing public Engine entrypoint (not internal imports).
-def is_unknown_operator_model(model_name):
-    """Legacy custom-model selector for read-only baseline panel routing."""
-    from .corner_type_ui import is_unknown_model
-    return is_unknown_model(model_name)
+from .corner_type_ui import (
+    CUSTOM_MODEL_NAME as operator_default_custom_model_name,
+    is_unknown_model as _is_unknown_model,
+)
+
+
+def is_unknown_operator_model(model_name, *, explicit_unknown_value=None):
+    """Read-only custom baseline identity, including a legacy saved alias.
+
+    The normal custom names come from the original CornerType Engine owner.
+    A saved project may additionally nominate one explicit custom display
+    value. Comparing it here prevents GUI clients from independently deciding
+    whether manual CornerType editing is permitted.
+    """
+    text = str(model_name or "").strip()
+    explicit = str(explicit_unknown_value or "").strip()
+    return bool(_is_unknown_model(text) or (explicit and text == explicit))
 
 
 def require_valid_operator_quantity_features(snapshot):
@@ -1910,6 +2174,57 @@ def build_box_body_operator_part_spec(
     )
 
 
+def bind_receiving_factory_box_body_to_bay(
+    spec: BoxBodyPartSpec, layout, *, set_index: int, bay_index: int,
+) -> BoxBodyPartSpec:
+    """Bind a source-confirmed Factory Body to its actual adjacent Set/Bay.
+
+    A fresh Factory Body has no physical adjacency and retains both template
+    side-lock groups. This Engine-only operation reuses the same canonical
+    Joint solver as GUI BoxBody and strictly verifies immutable Bay identity
+    and dimensions before deriving any manufacturing CUTTING.
+    """
+    from .cabinet_types.policy import canonical_family_name
+    from .receiving_layout import (
+        normalize_receiving_layout, derive_bay_lock_state,
+        receiving_bay_joint_face_features,
+    )
+    if type(spec) is not BoxBodyPartSpec or canonical_family_name(spec.model_name) != "受電箱":
+        raise ValueError("RECEIVING_FACTORY_BAY_BODY_SPEC_REQUIRED")
+    if type(set_index) is not int or type(bay_index) is not int:
+        raise ValueError("RECEIVING_FACTORY_BAY_SELECTION_INVALID")
+    state = normalize_receiving_layout(layout)
+    try:
+        if set_index < 0 or bay_index < 0:
+            raise IndexError("negative Bay index")
+        bay = state["sets"][set_index]["bays"][bay_index]
+    except (IndexError, KeyError, TypeError) as exc:
+        raise ValueError("RECEIVING_FACTORY_BAY_SELECTION_INVALID") from exc
+    if any(
+        abs(float(getattr(spec, attr)) - float(bay[key])) > 1e-6
+        for attr, key in (("width", "width"), ("height", "height"), ("depth", "depth"))
+    ):
+        raise ValueError("RECEIVING_FACTORY_BAY_DIMENSIONS_MISMATCH")
+    if (not spec.fold_profile or not spec.back_panel_contract
+            or spec.structure_state.get("active_type") != "three_piece_side_back_split"):
+        raise ValueError("RECEIVING_FACTORY_BAY_BODY_SOURCE_INVALID")
+    expected = derive_bay_lock_state(
+        state, set_index=set_index, bay_index=bay_index,
+    )
+    if spec.receiving_side_lock_participation not in (None, expected):
+        raise ValueError("RECEIVING_FACTORY_BAY_LOCK_SOURCE_CONFLICT")
+    faces = receiving_bay_joint_face_features(
+        state, set_index=set_index, bay_index=bay_index,
+        thickness=spec.thickness, frame_width=spec.frame_width,
+        existing=spec.face_features,
+    )
+    return replace(
+        spec,
+        receiving_side_lock_participation=expected,
+        face_features={key: tuple(rows) for key, rows in faces.items()},
+    )
+
+
 def build_receiving_factory_confirmed_parts(
     source_dimensions, *, confirmation=None, operator_snapshot=None,
     confirmed_endcap_features=None, confirmed_door_layout_columns=(),
@@ -1934,6 +2249,64 @@ def build_receiving_factory_confirmed_parts(
         confirmed_base_plate_features=confirmed_base_plate_features,
         confirmed_box_body_piece_features=confirmed_box_body_piece_features,
         confirmed_box_body_face_features=confirmed_box_body_face_features,
+    )
+
+
+def build_receiving_factory_confirmed_inner_door_frames(
+    source_dimensions, *, confirmation=None, confirmed_door_layout_columns=(),
+):
+    """Public fresh-Receiving source -> canonical inner-door A/B/D frame parts.
+
+    This is the same Family/Topology derivation consumed by the WHD GUI.
+    Rendering and verified DXF output remain the existing Engine public APIs.
+    """
+    from .receiving_factory_requests import (
+        build_receiving_factory_confirmed_inner_door_frames as build,
+    )
+    return build(
+        source_dimensions, confirmation=confirmation,
+        confirmed_door_layout_columns=confirmed_door_layout_columns,
+    )
+
+
+def build_receiving_factory_confirmed_inner_door_lower_support(
+    source_dimensions, *, confirmation=None, confirmed_door_layout_columns=(),
+):
+    """Public confirmed source -> canonical shared lower Divider C physical part."""
+    from .receiving_factory_requests import (
+        build_receiving_factory_confirmed_inner_door_lower_support as build,
+    )
+    return build(
+        source_dimensions, confirmation=confirmation,
+        confirmed_door_layout_columns=confirmed_door_layout_columns,
+    )
+
+
+def build_receiving_factory_confirmed_inner_door_panels(
+    source_dimensions, *, confirmation=None, confirmed_door_layout_columns=(),
+):
+    """Public Engine fresh Receiving physical panel topology, no NFB holes."""
+    from .receiving_factory_requests import (
+        build_receiving_factory_confirmed_inner_door_panels as build,
+    )
+    return build(
+        source_dimensions, confirmation=confirmation,
+        confirmed_door_layout_columns=confirmed_door_layout_columns,
+    )
+
+
+def resolve_receiving_factory_confirmed_lower_divider_final_scene(
+    source_dimensions, *, box_body_render_data,
+    confirmation=None, confirmed_door_layout_columns=(),
+):
+    """Public certified CROSS C support, never an unchecked raw blank."""
+    from .receiving_factory_requests import (
+        resolve_receiving_factory_confirmed_lower_divider_final_scene as build,
+    )
+    return build(
+        source_dimensions, box_body_render_data=box_body_render_data,
+        confirmation=confirmation,
+        confirmed_door_layout_columns=confirmed_door_layout_columns,
     )
 
 
@@ -2005,7 +2378,10 @@ from .assembly_physical_dimensions import (
 
 # #2517 GUI project export adapter: all certification and actual atomic DXF
 # operations remain owned by their existing headless Engine modules.
-from .sheetmetal_part_adapters import door_layout_export_filename
+from .sheetmetal_part_adapters import (
+    door_layout_export_filename, door_layout_indicator_export_filename,
+    legacy_single_part_dxf_filename,
+)
 from .receiving_nfb_model_identity import (
     parse_numeric_model_ref,
     display_model_ref as display_receiving_nfb_model_ref,
@@ -2021,6 +2397,10 @@ from .receiving_multibay_export_selection import (
 from .receiving_quantity_box import (
     BOX_KEY as RECEIVING_QUANTITY_BOX_KEY,
     normalize_common_box, update_common_box, project_common_box,
+    project_operator_receiving_quantity_size_count,
+    apply_operator_receiving_quantity_size_count,
+    commit_operator_quantity_version_holes,
+    commit_operator_quantity_version_action,
 )
 from .manufacturing_equivalence import ManufacturingParameters
 from .receiving_nfb_pad_operator_parts import committed_nfb_pad_draft_parts
@@ -2040,26 +2420,39 @@ def export_current_csv_quantity_manufacturing(
 
 def export_current_receiving_multibay_dxf(
     saved_snapshot, *, physical_bay_geometry_provider,
-    flags, output_dir, overwrite=False,
+    flags, output_dir, overwrite=False, pre_commit_guard=None,
 ):
-    """Every physical Set/Bay still goes through the original certified gate."""
+    """Every physical Set/Bay uses the same staged source witness as grouped DXF.
+
+    The optional guard remains backward compatible for existing headless
+    callers, but a GUI export must pass the current operator/Workspace witness.
+    """
     from .receiving_csv_multibay_manufacturing import export_current_receiving_multibay_dxf as execute
+    options = (
+        {"pre_commit_guard": pre_commit_guard}
+        if pre_commit_guard is not None else {}
+    )
     return execute(saved_snapshot, physical_bay_geometry_provider=physical_bay_geometry_provider,
-                   flags=flags, output_dir=output_dir, overwrite=overwrite)
+                   flags=flags, output_dir=output_dir, overwrite=overwrite,
+                   **options)
 
 
-def plan_receiving_grouped_dxf(layout, mode):
-    """Preview exact group labels/names from persisted Receiving Set/Bay authority."""
+def plan_receiving_grouped_dxf(layout, mode, *, file_stamp=None):
+    """Preview Set/Bay groups; optional Taiwan-minute stamp for output names."""
     from .receiving_dxf_groups import plan_receiving_grouped_dxf as plan
-    return plan(layout, mode)
+    return plan(layout, mode, file_stamp=file_stamp)
 
 
 def export_grouped_receiving_multibay_dxf(
     saved_snapshot, *, physical_bay_geometry_provider,
     flags, output_dir, group_mode, pre_commit_guard, overwrite=False,
-    nfb_pair_requests=None,
+    nfb_pair_requests=None, include_saved_nfb_pairs=False, emit_debug=False,
 ):
-    """Source-verified current Bay flats -> group DXFs (no MFG-2 release)."""
+    """Source-verified current Bay flats -> group DXFs (no MFG-2 release).
+
+    The main GUI may request an Engine-owned projection from confirmed saved
+    NFB Bays, rather than constructing X/PartSpecs or exporting a second folder.
+    """
     from .receiving_csv_multibay_manufacturing import export_current_receiving_multibay_dxf
     return export_current_receiving_multibay_dxf(
         saved_snapshot,
@@ -2067,17 +2460,24 @@ def export_grouped_receiving_multibay_dxf(
         flags=flags, output_dir=output_dir, overwrite=overwrite,
         group_mode=group_mode, pre_commit_guard=pre_commit_guard,
         nfb_pair_requests=nfb_pair_requests,
+        include_saved_nfb_pairs=include_saved_nfb_pairs,
+        emit_debug=emit_debug,
     )
 
 
 def export_receiving_ear_side_manufacturing_marking_dxf(
     snapshot, geometry, output_dir, *, dimensions, sheet_thickness,
-    overwrite=False,
+    overwrite=False, pre_commit_guard=None,
 ):
-    """Only existing certified physical side MARKING; no new manufacturing scope."""
+    """Source-checked physical SIDE MARKING only; no expanded release scope."""
     from .receiving_ear_side_manufacturing_marking import export_receiving_ear_side_manufacturing_marking_dxf as execute
+    # Preserve the old caller argument shape when no witness was supplied.
+    # Explicit source witnesses flow unchanged to the same Engine owner.
+    extra = ({"pre_commit_guard": pre_commit_guard}
+             if pre_commit_guard is not None else {})
     return execute(snapshot, geometry, output_dir, dimensions=dimensions,
-                   sheet_thickness=sheet_thickness, overwrite=overwrite)
+                   sheet_thickness=sheet_thickness, overwrite=overwrite,
+                   **extra)
 
 
 def receiving_ear_side_check_operator_inputs(snapshot):
@@ -2088,22 +2488,31 @@ def receiving_ear_side_check_operator_inputs(snapshot):
 
 def export_receiving_ear_side_check_only_dxf(
     snapshot, geometry, output_dir, *, dimensions, sheet_thickness,
-    overwrite=False,
+    overwrite=False, pre_commit_guard=None,
 ):
-    """Existing CHECK-only receipt must not become manufacturing authorization."""
+    """Source-checked CHECK-only receipt is not manufacturing authorization."""
     from .receiving_fixed_plate_side_check_dxf import export_receiving_ear_side_check_only_dxf as execute
+    # Preserve the old caller argument shape when no witness was supplied.
+    # Explicit source witnesses flow unchanged to the same Engine owner.
+    extra = ({"pre_commit_guard": pre_commit_guard}
+             if pre_commit_guard is not None else {})
     return execute(snapshot, geometry, output_dir, dimensions=dimensions,
-                   sheet_thickness=sheet_thickness, overwrite=overwrite)
+                   sheet_thickness=sheet_thickness, overwrite=overwrite,
+                   **extra)
 
 
 def export_verified_pad_base_part_only(
     snapshot, assembly_parts, output_directory, *,
     version_id: str, box_count: int, parameters: ManufacturingParameters,
+    pre_commit_guard=None,
 ):
     """Preserve strict PAD+Base paired PART_ONLY CHECK/Q production boundary."""
     from .receiving_nfb_pad_pair_manufacturing import export_verified_pad_base_part_only as execute
+    # Keep original headless callers without a guard API-compatible.
+    witness = ({"pre_commit_guard": pre_commit_guard}
+               if pre_commit_guard is not None else {})
     return execute(snapshot, assembly_parts, output_directory, version_id=version_id,
-                   box_count=box_count, parameters=parameters)
+                   box_count=box_count, parameters=parameters, **witness)
 
 # #2517: Public physical quantity equivalence and live-manifest CHECK/Q.
 # Not a second exporter or a release grant.
@@ -2211,10 +2620,14 @@ from .operator_derived_navigation import (
 from .receiving_layout import (
     normalize_receiving_layout, receiving_layout_stable_ids,
     append_receiving_set, receiving_destructive_tail_ids,
-    resize_receiving_sets, update_receiving_bay,
+    resize_receiving_sets, resize_receiving_operator_topology_with_removed_ids,
+    adjust_receiving_operator_set_count_with_removed_ids,
+    resize_receiving_operator_connections_by_delta_with_removed_ids,
+    update_receiving_bay,
     receiving_joint_alignment_editability, project_receiving_joint_alignment_editability,
     project_receiving_bay_dimension_groups,
     update_receiving_joint_alignment,
+    update_receiving_joint_alignment_with_affected_ids,
     project_receiving_bay_legacy_aliases,
     new_receiving_layout as operator_new_receiving_layout,
 )
@@ -2229,9 +2642,11 @@ from .receiving_fresh_nfb_defaults import (
 )
 from .receiving_shared_settings import (
     transition_receiving_nfb_layer_heights,
+    normalize_receiving_operator_nfb_layer_heights,
     switch_filenames_in_layer as receiving_nfb_switch_filenames_in_layer,
     pack_switch_layer as pack_receiving_nfb_switch_layer,
     project_receiving_shared_setting_group,
+    normalize_receiving_operator_inner_door_layer_choice,
     edit_setting as edit_receiving_shared_setting,
     edit_setting_for_bays as edit_receiving_shared_setting_for_bays,
     edit_setting_for_bays_with_affected_ids as edit_receiving_shared_setting_for_bays_with_affected_ids,
@@ -2239,6 +2654,7 @@ from .receiving_shared_settings import (
     share_setting_with_affected_ids as share_receiving_shared_setting_with_affected_ids,
     share_and_edit_setting_with_affected_ids as share_and_edit_receiving_shared_setting_with_affected_ids,
     unlink_setting as unlink_receiving_shared_setting,
+    unlink_setting_with_affected_ids as unlink_receiving_shared_setting_with_affected_ids,
 )
 from .receiving_manufacturing_readiness import (
     ReceivingManufacturingFailure, evaluate_receiving_manufacturing_readiness,
@@ -2277,7 +2693,10 @@ from .receiving_nfb_brand_transition import (
     project_receiving_quantity_nfb_parent_brand,
     update_receiving_quantity_nfb_parent_brand,
     project_receiving_parent_brand_change_impact,
+    update_receiving_one_set_nfb_parent_brand,
     update_receiving_all_set_nfb_parent_brand,
+    update_receiving_one_set_nfb_parent_brand_with_affected_ids,
+    update_receiving_all_set_nfb_parent_brand_with_affected_ids,
 )
 
 
@@ -2498,6 +2917,8 @@ def project_operator_box_body_baseline_face_features(
 
 # Textual source status is also an Engine projection, not a GUI ae call.
 operator_box_body_baseline_source_label = ae.box_body_baseline_source_label
+operator_indicator_shared_baseline_source_label = ae.indicator_shared_baseline_source_label
+operator_baseline_source_label = ae.baseline_source_label
 
 
 # #2517 public copy-on-write candidate and NFB draft edit facade.

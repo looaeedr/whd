@@ -337,6 +337,7 @@ def test_ac16_same_original_legacy_gui_cancel_save_reload_geometry_and_dxfs(tmp_
     from copy import deepcopy
     from collections import Counter
     from tkinter import filedialog
+    import re
     import ezdxf
     from gui_modules.project.export_actions import _export_selected_parts
 
@@ -377,8 +378,18 @@ def test_ac16_same_original_legacy_gui_cancel_save_reload_geometry_and_dxfs(tmp_
             "box_body", "head", "tail", "door", "base_plate",
             "indicator_box", "indicator_door",
         ), False)
+        # An old unconfigured project can lack a physical Base Plate. This
+        # readback test exports only actual Engine-resolved parts; an operator
+        # explicitly requesting the absent Base must still be rejected by the
+        # public manufacturing gate, not silently fabricated or removed there.
+        from ae_engine import manufacturing_api
+        canonical = app.fold_designer_app._phase6_resolve_manufacturing_geometry()
+        intents = {
+            manufacturing_api.resolved_export_intention_key(part.part_key)
+            for part in canonical.parts
+        }
         for key in ("box_body", "head", "tail", "door", "base_plate"):
-            flags[key] = True
+            flags[key] = key in intents
         files, failures = _export_selected_parts(app, str(folder), {}, flags, False)
         assert not failures, failures
         assert files, "Old unconfigured manufacturing cannot silently become zero output"
@@ -417,7 +428,14 @@ def test_ac16_same_original_legacy_gui_cancel_save_reload_geometry_and_dxfs(tmp_
                     geometry = ()
                 entities.append((e.dxftype(), layer, color, geometry))
             assert entities, filename
-            signatures[str(filename)] = Counter(repr(row) for row in entities)
+            # Grouped Receiving DXFs now include an authoritative Taiwan-minute
+            # stamp. Separate export transactions may cross a minute boundary;
+            # compare the same physical panel/mode and all DXF entities, not
+            # the transaction clock as though it were manufacturing geometry.
+            assert re.fullmatch(r"\d{12}_.+\.dxf", str(filename)), filename
+            stable_name = re.sub(r"^\d{12}_", "", str(filename))
+            assert stable_name not in signatures
+            signatures[stable_name] = Counter(repr(row) for row in entities)
         return signatures
 
     root = tk.Tk()

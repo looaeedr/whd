@@ -44,7 +44,6 @@ from phase6_assembly_presentation import (
 from phase6_assembly_panel import AssemblyPanelActions, Phase6AssemblyPanel
 from phase6_box_body_structure import (
     BoxBodyStructureType, BackPanelMode, normalize_box_body_structure_state,
-    set_side_back_geometry, set_side_back_piece_profile,
     set_side_back_back_panel_mode, back_panel_mode, side_rear_bend_outside_length,
     resolve_two_piece_widths, resolve_three_piece_widths,
 )
@@ -138,11 +137,6 @@ from ui_text_scale import prepare_text_scale_controller as _ui_prepare_text_scal
 from ae_engine.assembly_joint import AssemblyJointRelation
 from ae_engine.sheetmetal_geometry import (
     CornerTypeId, CrossCornerMode, CornerDirection,
-    EDITABLE_CORNER_TYPE_IDS, CORNER_TYPE_LABELS, normalize_corner_selection,
-)
-
-from ae_engine.corner_type_ui import (
-    CUSTOM_MODEL_NAME, LEGACY_CUSTOM_MODEL_NAMES,
 )
 
 from phase6_endcap_semantics import (
@@ -155,7 +149,7 @@ from phase6_endcap_semantics import (
     selection_from_raw as _phase6_selection_from_raw,
 )
 from phase6_fold_profiles import (
-    _num, _ui_len, apply_outside_dimension_compensation,
+    _num, _ui_len,
     build_box_body_profile, build_endcap_profile, read_endcap_profile,
     build_endcap_xy_profiles, _phase6_fold_tabs_for_part,
     _phase6_normalize_endcap_profile_order, read_endcap_xy_profiles,
@@ -387,8 +381,16 @@ def normalize_part_selection(part_keys, active_part=None):
 def _phase6_replace_mapping(self, attr_name, values):
     """Preserve one mutable mapping identity across legacy snapshot refreshes."""
     source = getattr(self, "_phase6_input_snapshot", {}) or {}
-    if attr_name == "_phase6_box_whd" and source.get("active_mode") == "quantity" and source.get("receiving_quantity_box"):
-        values = {axis: float(source["receiving_quantity_box"][axis]) for axis in ("w", "h", "d")}
+    if (attr_name == "_phase6_box_whd"
+            and source.get("active_mode") == "quantity"
+            and source.get("receiving_quantity_box") is not None):
+        # This is the committed Quantity common physical source, not a GUI
+        # number parser. Validate ALL original W/H/D values through the
+        # public Engine before clearing or replacing the live mapping.
+        # In particular, float(True) must never create a 1-mm box width.
+        values = manufacturing_api.normalize_operator_live_box_dimensions(
+            source["receiving_quantity_box"]
+        )
     current = getattr(self, attr_name, None)
     if isinstance(current, MutableMapping):
         current.clear()
@@ -579,16 +581,13 @@ def project_features_to_original_holes(features, width, height):
 def _phase6_rebuild_linked_endcaps(self):
     """Rebuild only existing head/tail derived profiles from current box topology."""
     box_profile = self.state.profiles_vault.get("箱身", [])
-    snapshot = dict(self._phase6_input_snapshot)
-    snapshot.update(getattr(self, "_settings_values", {}) or {})
-    if str(snapshot.get("model") or "") in {"受電箱", "RECEIVING"}:
-        # Settings dimensions are seeds, not the active Receiving Bay. Linked
-        # EndCaps must use the same live W/H/D as the committed BoxBody.
-        snapshot.update({
-            axis: value for axis, value in
-            dict(getattr(self, "_phase6_box_whd", {}) or {}).items()
-            if axis in ("w", "h", "d")
-        })
+    # Source priority and canonical Family identity belong to the public
+    # Engine API, never this GUI fold-editor's model-string allowlist.
+    snapshot = manufacturing_api.project_operator_linked_endcap_source_snapshot(
+        self._phase6_input_snapshot,
+        getattr(self, "_settings_values", {}) or {},
+        getattr(self, "_phase6_box_whd", {}) or {},
+    )
     snapshot["corner_state"] = deepcopy(getattr(self, "_phase6_corner_state", {}) or {})
     snapshot["corner_pair_same"] = deepcopy(getattr(self, "_phase6_corner_pair_same", {}) or {})
     snapshot["assembly_type"] = assembly_intent_value(getattr(
@@ -755,12 +754,19 @@ class Phase6FoldDesignerApp(original.MainApp):
 
     def load_phase6_snapshot(self, snapshot: Mapping[str, object]):
         snapshot = _phase6_snapshot_with_settings_fallback(snapshot)
+        # Validate all physical finished outside dimensions before any loaded
+        # project source, Fold or UI cache is replaced. Never use get_int()
+        # as an invalid-input fallback or round fractional operator W/H/D.
+        manufacturing_api.normalize_operator_live_box_dimensions(snapshot)
         _phase6_replace_mapping(self, "_phase6_input_snapshot", dict(snapshot))
         self._phase6_receiving_set_bay_adapter = None
         if _phase6_receiving_layout_applicable(self):
             _phase6_receiving_adapter(self, reset=True)
             _phase6_sync_receiving_current_bay(self, validate_common=False)
             snapshot = dict(self._phase6_input_snapshot)
+        # For Receiving, the just-resolved authoritative Bay may have its own
+        # dimensions; validate the final physical source before opening tabs.
+        physical = manufacturing_api.normalize_operator_live_box_dimensions(snapshot)
         stored = snapshot.get("box_body_profile")
         if stored:
             self.state.profiles_vault["箱身"] = merge_box_body_profile(stored, snapshot)
@@ -769,9 +775,9 @@ class Phase6FoldDesignerApp(original.MainApp):
         endcap = build_endcap_profile(snapshot)
         self.state.profiles_vault["封頭"] = clone_profile(endcap)
         self.state.profiles_vault["封尾"] = clone_profile(endcap)
-        self.state.w = original.get_int(snapshot.get("w", self.state.w))
-        self.state.h = original.get_int(snapshot.get("h", self.state.h))
-        self.state.d = original.get_int(snapshot.get("d", self.state.d))
+        self.state.w = physical["w"]
+        self.state.h = physical["h"]
+        self.state.d = physical["d"]
         self.v_w.set(str(self.state.w))
         self.v_h.set(str(self.state.h))
         self.v_d.set(str(self.state.d))
@@ -785,65 +791,47 @@ class Phase6FoldDesignerApp(original.MainApp):
         self.do_update()
 
     def _sync_dwd_with_top_whd(self):
-        source = getattr(self, "_phase6_input_snapshot", {}) or {}
-        if source.get("active_mode") == "quantity" and source.get("receiving_quantity_box"):
-            self.state.profiles_vault["箱身"] = merge_box_body_profile(
-                self.state.profiles_vault.get("箱身", []), source)
-            self._phase6_last_w = float(source["receiving_quantity_box"]["w"])
-            self._phase6_last_d = float(source["receiving_quantity_box"]["d"])
-            return
-        if (manufacturing_api.operator_canonical_family_name(source) == "受電箱"
-                and source.get("receiving_layout")):
-            # Set/Bay has the same single dimensional authority as Quantity.
-            # A T/FW redraw must never interpret an older cached Fold core as
-            # a new W/D edit and silently reverse the operator's active Bay.
-            self.state.profiles_vault["箱身"] = merge_box_body_profile(
-                self.state.profiles_vault.get("箱身", []), source)
-            self._phase6_last_w = float(source["w"])
-            self._phase6_last_d = float(source["d"])
-            return
-        profile = self.state.profiles_vault.get("箱身", [])
-        w_segments = [seg for seg in profile if seg.get("core") == "W"]
-        d_segments = [seg for seg in profile if seg.get("core") == "D"]
-        if len(w_segments) != 1 or len(d_segments) != 2:
-            return
-
-        top_w = original.get_int(self.v_w.get())
-        top_d = original.get_int(self.v_d.get())
-        core_w = original.get_int(engine_segment_length_to_ui(w_segments[0]))
-        d_values = [original.get_int(engine_segment_length_to_ui(seg)) for seg in d_segments]
-
-        last_w = self._phase6_last_w
-        last_d = self._phase6_last_d
-        if top_w != last_w:
-            w_segments[0]["len"] = ui_segment_length_to_engine(w_segments[0], top_w)
-            core_w = top_w
-        elif core_w != last_w:
-            self.v_w.set(str(core_w))
-            top_w = core_w
-
-        if top_d != last_d:
-            for seg in d_segments:
-                seg["len"] = ui_segment_length_to_engine(seg, top_d)
-            d_value = top_d
-        else:
-            changed = [value for value in d_values if value != last_d]
-            d_value = changed[0] if changed else d_values[0]
-            for seg in d_segments:
-                seg["len"] = ui_segment_length_to_engine(seg, d_value)
-            if d_value != top_d:
-                self.v_d.set(str(d_value))
-
-        self._phase6_last_w = top_w
-        self._phase6_last_d = d_value
+        """Apply the public Engine D-W-D source transaction without GUI geometry."""
+        plan = manufacturing_api.plan_operator_box_body_dwd_sync(
+            getattr(self, "_phase6_input_snapshot", {}) or {},
+            self.state.profiles_vault.get("箱身", []),
+            top_width=self.v_w.get(),
+            top_depth=self.v_d.get(),
+            previous_width=getattr(self, "_phase6_last_w", None),
+            previous_depth=getattr(self, "_phase6_last_d", None),
+        )
+        if plan.profile is not None:
+            fresh = clone_profile(plan.profile)
+            if plan.replace_profile:
+                # A committed Receiving Bay/Quantity owns the core topology.
+                self.state.profiles_vault["箱身"] = fresh
+            else:
+                # Keep the live editor's list identity while replacing only
+                # the validated Engine-projected material row values.
+                current = self.state.profiles_vault.get("箱身")
+                if isinstance(current, list):
+                    current[:] = fresh
+                else:
+                    self.state.profiles_vault["箱身"] = fresh
+        if plan.display_width is not None:
+            self.v_w.set(str(plan.display_width))
+        if plan.display_depth is not None:
+            self.v_d.set(str(plan.display_depth))
+        self._phase6_last_w = plan.last_width
+        self._phase6_last_d = plan.last_depth
 
     def do_update(self):
         _phase6_apply_box_symmetry_policy(self)
         if getattr(self, "_phase6_sync_ready", False):
             self._sync_dwd_with_top_whd()
-        return original.MainApp.do_update(self)
+        return _phase6_render_with_engine_live_dimensions(self)
 
     def export_phase6_snapshot(self) -> dict:
+        # This legacy direct Save path is still consumed by FIX10/11 callers.
+        # Validate the live physical dimensions before writing any Fold state.
+        physical = manufacturing_api.normalize_operator_live_box_dimensions({
+            "w": self.v_w.get(), "h": self.v_h.get(), "d": self.v_d.get(),
+        })
         self.bend_ui.save()
         result = dict(self._phase6_input_snapshot)
         result.update(read_box_body_profile(self.state.profiles_vault["箱身"], self._phase6_input_snapshot))
@@ -852,7 +840,9 @@ class Phase6FoldDesignerApp(original.MainApp):
         if head != tail:
             raise ValueError("Phase6 目前封頭/封尾共用同一組折彎值，兩個分頁必須一致")
         result.update(head)
-        result["h"] = original.get_int(self.v_h.get())
+        # Manual Fold materials are resolved by Engine; never let their
+        # rounded GUI display readback override physical finished W/H/D.
+        result.update(physical)
         result["box_body_profile"] = clone_profile(self.state.profiles_vault["箱身"])
         result["head_profile"] = clone_profile(self.state.profiles_vault["封頭"])
         result["tail_profile"] = clone_profile(self.state.profiles_vault["封尾"])
@@ -886,13 +876,11 @@ def _copy_features(snapshot, key):
 
 def _phase6_recalculate_part_dimensions(self):
     snapshot = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
-    settings = dict(getattr(self, "_settings_values", {}) or {})
-    if manufacturing_api.operator_canonical_family_name(snapshot) == "受電箱":
-        # The live Receiving Bay/Quantity is the dimensional authority.
-        # Saved Settings defaults are not the current W/H/D: re-applying
-        # them during a fold/T edit destroys the operator's Bay dimensions.
-        for axis in ("w", "h", "d"):
-            settings.pop(axis, None)
+    # Manufacturing source priority belongs to the Engine, not the GUI.
+    # Existing Receiving Bay dimensions survive stale global Settings seeds.
+    settings = manufacturing_api.project_operator_part_dimension_settings_overlay(
+        snapshot, getattr(self, "_settings_values", {}) or {},
+    )
     snapshot.update(settings)
     dims = project_part_dimensions(snapshot)
     self._phase6_input_snapshot.update(settings)
@@ -942,9 +930,12 @@ def _phase6_stage_setting_update(self, key, value):
 
 _CORNER_KEYS = ("top_left", "top_right", "bottom_left", "bottom_right")
 _CORNER_PAIR_KEYS = {"top": ("top_left", "top_right"), "bottom": ("bottom_left", "bottom_right")}
-_CORNER_TYPE_IDS = tuple(item.value for item in EDITABLE_CORNER_TYPE_IDS)
-_CORNER_TYPE_LABEL_BY_ID = {item.value: CORNER_TYPE_LABELS[item] for item in EDITABLE_CORNER_TYPE_IDS}
-_CORNER_TYPE_BY_LABEL = {label: type_id for type_id, label in _CORNER_TYPE_LABEL_BY_ID.items()}
+_CORNER_TYPE_LABEL_ITEMS = manufacturing_api.project_operator_corner_selection_catalog(
+    manufacturing_api.operator_default_custom_model_name, (),
+).labels
+_CORNER_TYPE_IDS = tuple(type_id for type_id, _ in _CORNER_TYPE_LABEL_ITEMS)
+_CORNER_TYPE_LABEL_BY_ID = dict(_CORNER_TYPE_LABEL_ITEMS)
+_CORNER_TYPE_BY_LABEL = {label: type_id for type_id, label in _CORNER_TYPE_LABEL_ITEMS}
 _CORNER_MODE_LABEL = {
     CrossCornerMode.STANDARD: "標準",
     CrossCornerMode.RETAIN: "單邊留肉",
@@ -984,11 +975,15 @@ def _phase6_notify_corner_change(self):
 
 
 def _phase6_corner_type_editable(self, part_key):
-    return bool(getattr(self, "_corner_editable", False)) and part_key not in {"indicator_box", "indicator_door"}
+    return manufacturing_api.project_operator_corner_part_editability(
+        part_key, model_corner_type_editable=bool(getattr(self, "_corner_editable", False)),
+    ).type_editable
 
 
 def _phase6_corner_parameters_unlockable(self, part_key):
-    return part_key not in {GLOBAL_CONTEXT, "box_body", "indicator_box", "indicator_door"}
+    return manufacturing_api.project_operator_corner_part_editability(
+        part_key, model_corner_type_editable=bool(getattr(self, "_corner_editable", False)),
+    ).parameters_unlockable
 
 
 def _phase6_corner_parameters_unlocked(self, part_key):
@@ -1002,7 +997,7 @@ def _phase6_corner_parameters_editable(self, part_key):
 
 
 def _phase6_corner_parameter_summary(selection):
-    selection = normalize_corner_selection(selection)
+    selection = manufacturing_api.operator_normalize_corner_selection(selection)
     if selection.type_id is CornerTypeId.CROSS:
         mode = _CORNER_MODE_LABEL[selection.cross_mode]
         if selection.cross_mode is CrossCornerMode.STANDARD:
@@ -1045,12 +1040,9 @@ def _phase6_corner_target_var_changed(self, part_key, target_key):
 
 
 def _phase6_is_unknown_baseline(self, value):
-    text = str(value or "").strip()
-    explicit = str(getattr(self, "_baseline_unknown_value", "") or "").strip()
-    return (
-        text == CUSTOM_MODEL_NAME
-        or text in LEGACY_CUSTOM_MODEL_NAMES
-        or (explicit and text == explicit)
+    return manufacturing_api.is_unknown_operator_model(
+        value,
+        explicit_unknown_value=getattr(self, "_baseline_unknown_value", ""),
     )
 
 
@@ -1359,7 +1351,12 @@ def _phase6_select_box_structure_type(self, var):
 def _phase6_box_structure_w(self):
     values = dict(getattr(self, "_phase6_box_whd", {}) or {})
     values.update(dict(getattr(self, "_settings_values", {}) or {}))
-    return float(values.get("w", getattr(getattr(self, "state", None), "w", 500.0)))
+    # Only the public Engine may turn operator W into a physical dimension.
+    # float(True) would otherwise hide an invalid 1-mm source.
+    return manufacturing_api.normalize_operator_source_dimension(
+        values.get("w", getattr(getattr(self, "state", None), "w", 500.0)),
+        field="w",
+    )
 
 
 def _phase6_box_structure_d(self):
@@ -1398,13 +1395,12 @@ def _phase6_select_back_panel_mode(self, var):
 def _phase6_apply_box_structure_numeric(self, type_id, field, var):
     state = _phase6_box_structure_state(self)
     try:
-        raw = str(var.get()).strip()
-        value = float(raw)
+        # Preserve the original Tk source until the Engine physical-mm gate.
         committed = _phase6_settings_transactions(self).apply_box_structure_numeric(
             state,
             type_id,
             field,
-            value,
+            var.get(),
             total_w=_phase6_box_structure_w(self),
             outside_family=manufacturing_api.operator_box_body_profile_uses_outside_dimensions(
                 getattr(self, "_phase6_input_snapshot", {}) or {}
@@ -1550,13 +1546,13 @@ def _phase6_commit_receiving_bottom_wrap_controls(self, part_key, reserve_u_var,
     if not bool(current.get("enabled", False)):
         return None
     try:
-        reserve_u = max(0.0, float(reserve_u_var.get()))
-        reserve_v = max(0.0, float(reserve_v_var.get()))
+        # Original Tk values must reach the Engine's manufacturing source gate.
+        # Clamping here turns an invalid negative/NaN into a real WRAP cut.
+        committed = _phase6_settings_transactions(self).commit_bottom_wrap(
+            str(part_key), reserve_u=reserve_u_var.get(), reserve_v=reserve_v_var.get()
+        )
     except (TypeError, ValueError, original.tk.TclError):
         return None
-    committed = _phase6_settings_transactions(self).commit_bottom_wrap(
-        str(part_key), reserve_u=reserve_u, reserve_v=reserve_v
-    )
     self._phase6_last_resolved_manufacturing_geometry = None
     self._phase6_last_resolved_manufacturing_signature = None
     for key in ENDCAP_FW_PARTS:
@@ -1679,6 +1675,20 @@ def _phase6_part_label(value: object, *, snapshot=None) -> str:
 
 def _phase6_registry_validate_candidate_3d(self, record, *, candidate_id):
     """Collect operator inputs; Engine evaluates Registry candidate 3D."""
+    # Preflight the same committed Project > Settings physical source before
+    # reading scene geometry. No GUI-local 2 mm substitute is permissible.
+    snapshot = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
+    settings = dict(getattr(self, "_settings_values", {}) or {})
+    physical_t = manufacturing_api.project_operator_manufacturing_request_snapshot(
+        snapshot, settings, {},
+    )["t"]
+    # Unlike the finite-zero legacy *preview*, candidate 3D evidence must
+    # fail closed on edited raw clearance before querying any physical scene.
+    clearance_control = getattr(self, "assembly_relief_clearance_var", None)
+    raw_clearance = clearance_control.get() if clearance_control is not None else None
+    physical_clearance = manufacturing_api.normalize_operator_relief_clearance(
+        raw_clearance,
+    )
     callback = getattr(self, "_scene_query_callback", None)
     if callback is None:
         raise RuntimeError("3D final-scene provider is not connected")
@@ -1700,8 +1710,6 @@ def _phase6_registry_validate_candidate_3d(self, record, *, candidate_id):
             tuple(dict(segment) for segment in x_profile),
             tuple(dict(segment) for segment in y_profile),
         )
-    snapshot = dict(getattr(self, "_phase6_input_snapshot", {}) or {})
-    settings = dict(getattr(self, "_settings_values", {}) or {})
     raw_intent = getattr(self, "_phase6_assembly_type", "")
     return manufacturing_api.validate_operator_relief_registry_candidate_3d(
         record,
@@ -1709,8 +1717,8 @@ def _phase6_registry_validate_candidate_3d(self, record, *, candidate_id):
         assembly_intent=str(getattr(raw_intent, "value", raw_intent) or ""),
         part_inputs=parts,
         finished_dimensions=_phase6_operator_finished_dimensions(self),
-        sheet_thickness=_num(settings.get("t", snapshot.get("t", 2.0)), 2.0),
-        clearance=_phase6_assembly_relief_clearance(self),
+        sheet_thickness=physical_t,
+        clearance=physical_clearance,
         box_body_structure_state=_phase6_box_structure_state(self),
         cabinet_family=_phase6_current_cabinet_family(self),
     )
@@ -1727,8 +1735,10 @@ def _phase6_joint_form_add(self):
             subject_region=self.relief_joint_subject_region_var.get(),
             target_region=self.relief_joint_target_region_var.get(),
             clearance_policy=self.relief_joint_clearance_var.get(),
+            # Forward the original Tk source to the public Engine Joint edit;
+            # only Engine decides the legal physical topology stage count.
             solver_constraints={
-                "topology_levels": int(self.relief_joint_topology_var.get())
+                "topology_levels": self.relief_joint_topology_var.get()
             },
         )
         self.relief_joint_status_var.set(
@@ -1862,7 +1872,9 @@ def _phase6_mesh_profiles_for_part(self, part_key, material):
         saved_profiles=saved,
         vault_profiles=getattr(self.state, "profiles_vault", {}) or {},
         snapshot=snapshot,
-        thickness=_num(settings.get("t", snapshot.get("t", 2.0)), 2.0),
+        thickness=manufacturing_api.project_operator_manufacturing_request_snapshot(
+            snapshot, settings, {},
+        )["t"],
     )
 
 
@@ -2065,7 +2077,10 @@ def _phase6_prepare_predecessor_init(self, root, snapshot):
     self._phase6_baseline_initial_model = manufacturing_api.operator_normalize_custom_model_name(snapshot.get("model"))
     if self._phase6_baseline_initial_model and self._phase6_baseline_initial_model not in self._baseline_models:
         self._baseline_models.append(self._phase6_baseline_initial_model)
-    self._baseline_unknown_value = str(snapshot.get("baseline_unknown_value") or CUSTOM_MODEL_NAME).strip()
+    self._baseline_unknown_value = str(
+        snapshot.get("baseline_unknown_value")
+        or manufacturing_api.operator_default_custom_model_name
+    ).strip()
     if self._baseline_unknown_value and self._baseline_unknown_value not in self._baseline_models:
         self._baseline_models.append(self._baseline_unknown_value)
     self._phase6_baseline_last_model = self._phase6_baseline_initial_model
@@ -2778,99 +2793,30 @@ def _phase6_store_editor_values(self, values, *, notify=True):
     )
 
 def _phase6_commit_box_body_physical_piece_profile(self, part_key, profiles, *, notify=True):
-    """Commit one physical side/back Fold editor through canonical BoxBody state."""
-    role = str(part_key).split(":", 1)[-1]
-    if role not in {"left_side", "back", "right_side"}:
-        raise ValueError(f"unsupported BoxBody physical piece: {part_key}")
-
-    rows = clone_profile(tuple((profiles or {}).get("X", ()) or ()))
-    if not rows:
-        raise ValueError(f"{part_key} X Fold profile is empty")
-
-    structure = _phase6_box_structure_state(self)
-    cfg = structure["configs"][BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value]
-    aggregate = clone_profile(self.state.profiles_vault.get("箱身", ()))
-    aggregate_by_key = {
-        str(row.get("phase6_key") or ""): row
-        for row in aggregate
-        if str(row.get("phase6_key") or "")
-    }
-    piece_by_key = {
-        str(row.get("phase6_key") or ""): row
-        for row in rows
-        if str(row.get("phase6_key") or "")
-    }
-
-    def copy_material_length(source_key, target_keys):
-        source = piece_by_key.get(source_key)
-        if source is None:
-            return
-        for target_key in tuple(target_keys):
-            target = aggregate_by_key.get(target_key)
-            if target is not None:
-                target["len"] = float(source.get("len", target.get("len", 0.0)))
-
-    if role == "left_side":
-        copy_material_length("zl1", ("zl1",))
-        copy_material_length("zl2", ("zl2",))
-        copy_material_length("fw_left", ("fw_left", "fw_right"))
-        copy_material_length("d_left", ("d_left", "d_right"))
-        # Rear fold is piece-local. Persist it only in this physical piece's
-        # canonical profile; do not back-write the legacy shared default.
-    elif role == "right_side":
-        copy_material_length("d_right", ("d_left", "d_right"))
-        copy_material_length("fw_right", ("fw_left", "fw_right"))
-        copy_material_length("zr2", ("zr2",))
-        copy_material_length("zr1", ("zr1",))
-        # Rear fold is piece-local. Persist it only in this physical piece's
-        # canonical profile; do not back-write the legacy shared default.
-    else:
-        back = piece_by_key.get("back_panel")
-        if back is not None:
-            t_val = _num(
-                getattr(self, "_settings_values", {}).get(
-                    "t", getattr(self, "_phase6_input_snapshot", {}).get("t", 2.0)
-                ),
-                2.0,
-            )
-            t = max(1.0e-9, float(t_val))
-            total_w = float(_phase6_box_structure_w(self))
-            comp_t = (total_w - float(back.get("len", 0.0))) / t
-            structure = set_side_back_geometry(
-                structure, back_width_comp_t=max(0.0, comp_t)
-            )
-
-    # Shared cabinet dimensions remain authoritative and are updated from the
-    # edited physical piece before its piece-local topology is persisted.
-    if aggregate:
-        t_comp = _num(
-            getattr(self, "_settings_values", {}).get(
-                "t", getattr(self, "_phase6_input_snapshot", {}).get("t", 2.0)
-            ),
-            2.0,
-        )
-        apply_outside_dimension_compensation(
-            aggregate, float(t_comp)
-        )
-        values = read_box_body_profile(aggregate, self._phase6_input_snapshot)
-        if role == "left_side":
-            signed = piece_by_key.get("zl1")
-            if signed is not None and "phase6_ui_sign" in signed:
-                sign = -1.0 if float(signed.get("phase6_ui_sign", 1.0)) < 0.0 else 1.0
-                values["zl1"] = sign * abs(float(values["zl1"]))
-        values["h"] = self._phase6_box_whd["h"]
+    """Transport the operator's physical-piece Fold edit to public Engine."""
+    source = getattr(self, "_phase6_input_snapshot", {}) or {}
+    settings = getattr(self, "_settings_values", {}) or {}
+    # Preserve the original live width source before number conversion:
+    # boolean/NaN operator values must reach the Engine's physical gate.
+    live_width = (getattr(self, "_phase6_box_whd", {}) or {}).get(
+        "w", getattr(self.state, "w", 500.0),
+    )
+    plan = manufacturing_api.plan_operator_box_body_piece_fold_commit(
+        part_key, profiles,
+        structure_state=_phase6_box_structure_state(self),
+        aggregate_profile=self.state.profiles_vault.get("箱身", ()),
+        original_snapshot=source,
+        thickness=settings.get("t", source.get("t", 2.0)),
+        total_width=settings.get("w", live_width),
+        box_height=self._phase6_box_whd["h"],
+    )
+    # Publish only after every physical source/row has passed the Engine.
+    if plan.settings_values is not None:
+        aggregate = clone_profile(plan.aggregate_profile)
         self.state.profiles_vault["箱身"] = clone_profile(aggregate)
         self._phase6_input_snapshot["box_body_profile"] = clone_profile(aggregate)
-        _phase6_store_editor_values(self, values, notify=notify)
-
-    stored_rows = (
-        _phase6_reverse_fold_traversal(rows)
-        if role == "right_side" else clone_profile(rows)
-    )
-    for row in stored_rows:
-        row.pop("phase6_ui_sign", None)
-    structure = set_side_back_piece_profile(structure, role, stored_rows)
-    _phase6_commit_box_structure_state(self, structure, rebuild=False)
+        _phase6_store_editor_values(self, plan.settings_values, notify=notify)
+    _phase6_commit_box_structure_state(self, plan.structure_state, rebuild=False)
     _phase6_sync_authoritative_derived_parts(self)
 
 
@@ -2986,6 +2932,11 @@ def _fix11_remove_part(self, key):
 
 
 def _fix11_export(self):
+    # Validate operator physical W/H/D before saving any part or mutating
+    # GUI workspace. Cached Settings may not replace these committed spans.
+    live_whd = manufacturing_api.normalize_operator_live_box_dimensions(
+        getattr(self, "_phase6_box_whd", {}) or {}
+    )
     # Closing/exporting owns one complete snapshot handoff.  Do not also fire a
     # live settings callback here or the main GUI recalculates twice before the
     # designer can close.
@@ -3013,10 +2964,7 @@ def _fix11_export(self):
     # that were edited in the X/Y EndCap editor. Global W/H/D are owned by the
     # bridge, while EndCap fold/FW values are owned by the shared Phase6 snapshot.
     result = _FIX10_EXPORT(self)
-    dimension_number = float if self._phase6_input_snapshot.get("receiving_quantity_box") and self._phase6_input_snapshot.get("active_mode") == "quantity" else _ui_len
-    result["w"] = dimension_number(self._phase6_box_whd["w"])
-    result["h"] = dimension_number(self._phase6_box_whd["h"])
-    result["d"] = dimension_number(self._phase6_box_whd["d"])
+    result.update(live_whd)
     for name in ("yl1", "yr1", "ytop1", "ybottom1"):
         if name in self._phase6_input_snapshot:
             result[name] = _ui_len(self._phase6_input_snapshot[name])
@@ -3025,13 +2973,28 @@ def _fix11_export(self):
         profiles = self.designer_workspace.profiles_for(current)
         if profiles:
             endcap_values = read_endcap_xy_profiles(profiles, self._phase6_input_snapshot)
-            if self._phase6_input_snapshot.get("receiving_quantity_box") and self._phase6_input_snapshot.get("active_mode") == "quantity":
-                endcap_values["w"] = float(self._phase6_input_snapshot["receiving_quantity_box"]["w"])
-                endcap_values["d"] = float(self._phase6_input_snapshot["receiving_quantity_box"]["d"])
+            quantity = (
+                self._phase6_input_snapshot.get("receiving_quantity_box")
+                if self._phase6_input_snapshot.get("active_mode") == "quantity"
+                else None
+            )
+            if quantity:
+                # The saved Quantity common box owns its physical W/D. Check
+                # both values before updating any physical source in the GUI.
+                quantity_whd = {
+                    axis: manufacturing_api.normalize_operator_source_dimension(
+                        quantity[axis], field=axis
+                    )
+                    for axis in ("w", "d")
+                }
+                live_whd.update(quantity_whd)
+            # Head/Tail material readback may round editor rows; physical
+            # W/D have already been reconciled by the public Engine API.
+            endcap_values.update({"w": live_whd["w"], "d": live_whd["d"]})
             result.update(endcap_values)
             self._phase6_input_snapshot.update(endcap_values)
-            self._phase6_box_whd["w"] = dimension_number(endcap_values["w"])
-            self._phase6_box_whd["d"] = dimension_number(endcap_values["d"])
+            if quantity:
+                self._phase6_box_whd.update(quantity_whd)
     elif current == "box_body":
         # The box body is authoritative for the shared FW when it is the part
         # being edited. Preserve that value for later EndCap sessions.
@@ -3058,6 +3021,11 @@ def _fix11_export(self):
     result["corner_state"] = deepcopy(getattr(self, "_phase6_corner_state", {}))
     result["corner_pair_same"] = deepcopy(getattr(self, "_phase6_corner_pair_same", {}))
     result.update(self._settings_values)
+    # Final physical W/H/D always come from the Engine-validated live Box,
+    # never rounded readback nor stale global Settings.
+    result.update(manufacturing_api.normalize_operator_live_box_dimensions(
+        self._phase6_box_whd
+    ))
     return result
 
 
@@ -3108,13 +3076,43 @@ def _propagate_endcap_derived_cores(self, w, d):
         _set_profile_phase6_len(self.state.profiles.get("Y"), "endcap_d_core", lengths["endcap_d_core"])
 
 
+def _phase6_render_with_engine_live_dimensions(self):
+    """Preserve canonical physical W/H/D across the legacy GUI redraw boundary.
+
+    Original MainApp.do_update() converts live measurements through
+    get_int(), which silently rounds valid fractional-mm Receiving Bays and
+    lets legacy rendering diverge from the exact Engine source. Keep the
+    original GUI-only toggles, angle readback and renderer, while using the
+    same public physical validator as the saved project and Bay source.
+    """
+    dimensions = manufacturing_api.normalize_operator_live_box_dimensions({
+        "w": self.v_w.get(), "h": self.v_h.get(), "d": self.v_d.get(),
+    })
+    self.state.w = dimensions["w"]
+    self.state.h = dimensions["h"]
+    self.state.d = dimensions["d"]
+    self.state.symmetric, self.state.enable_y = self.v_sy.get(), self.v_ey.get()
+    self.state.alpha_bend = self.v_a_bend.get()
+    self.state.alpha_face = self.v_a_face.get()
+    self.renderer.render()
+    return None
+
+
 def _sync_active_endcap_and_global_whd(self):
     if self._phase6_input_snapshot.get("active_mode") == "quantity" and self._phase6_input_snapshot.get("receiving_quantity_box"):
         return
-    top_w = original.get_int(self.v_w.get())
-    top_d = original.get_int(self.v_d.get())
-    last_w = original.get_int(self._phase6_last_w if self._phase6_last_w is not None else top_w)
-    last_d = original.get_int(self._phase6_last_d if self._phase6_last_d is not None else top_d)
+    live_box = manufacturing_api.normalize_operator_live_box_dimensions({
+        "w": self.v_w.get(), "h": self.v_h.get(), "d": self.v_d.get(),
+    })
+    top_w, top_d = live_box["w"], live_box["d"]
+    last_w = manufacturing_api.normalize_operator_source_dimension(
+        self._phase6_last_w if self._phase6_last_w is not None else top_w,
+        field="w",
+    )
+    last_d = manufacturing_api.normalize_operator_source_dimension(
+        self._phase6_last_d if self._phase6_last_d is not None else top_d,
+        field="d",
+    )
     dimensions = manufacturing_api.reconcile_endcap_live_outside_dimensions(
         self._phase6_input_snapshot, top_width=top_w, top_depth=top_d,
         previous_width=last_w, previous_depth=last_d,
@@ -3127,7 +3125,7 @@ def _sync_active_endcap_and_global_whd(self):
         self.v_d.set(str(new_d))
 
     self._phase6_box_whd["w"] = new_w
-    self._phase6_box_whd["h"] = original.get_int(self.v_h.get())
+    self._phase6_box_whd["h"] = live_box["h"]
     self._phase6_box_whd["d"] = new_d
     self._phase6_input_snapshot["w"] = new_w
     self._phase6_input_snapshot["h"] = self._phase6_box_whd["h"]
@@ -3141,17 +3139,16 @@ _FIX10_DO_UPDATE = Phase6FoldDesignerApp.do_update
 def _fix11_do_update(self):
     key = getattr(self, "active_part_key", "box_body")
     if key == "box_body":
+        live_box = manufacturing_api.normalize_operator_live_box_dimensions({
+            "w": self.v_w.get(), "h": self.v_h.get(), "d": self.v_d.get(),
+        })
         if _phase6_receiving_layout_applicable(self):
             _phase6_commit_receiving_current_bay_controls(self)
         # 折彎編輯器的軸向是唯一基準；舊金庫型 Renderer 曾使用
         # active_bend="箱身" only as a visual highlight flag; mutating the shared
         # editor state here can race Tk notebook callbacks and makes the custom
         # X-only profile get indexed by "箱身" (KeyError).
-        _phase6_replace_mapping(self, "_phase6_box_whd", {
-            "w": original.get_int(self.v_w.get()),
-            "h": original.get_int(self.v_h.get()),
-            "d": original.get_int(self.v_d.get()),
-        })
+        _phase6_replace_mapping(self, "_phase6_box_whd", live_box)
         if not _phase6_receiving_layout_applicable(self):
             self._phase6_input_snapshot.update(self._phase6_box_whd)
         # Resolve dimension-linked profiles BEFORE the one renderer/manufacturing
@@ -3166,20 +3163,19 @@ def _fix11_do_update(self):
         return _FIX10_DO_UPDATE(self)
     if key in {"head", "tail"}:
         _sync_active_endcap_and_global_whd(self)
-        return original.MainApp.do_update(self)
+        return _phase6_render_with_engine_live_dimensions(self)
 
-    # All other parts keep their local fold profiles, but W/H/D at the top are
-    # always the cabinet-global values.
-    _phase6_replace_mapping(self, "_phase6_box_whd", {
-        "w": original.get_int(self.v_w.get()),
-        "h": original.get_int(self.v_h.get()),
-        "d": original.get_int(self.v_d.get()),
+    # Preserve operator finished outside W/H/D for other physical parts too.
+    # Validation is read-only until all axes are confirmed by the Engine.
+    live_box = manufacturing_api.normalize_operator_live_box_dimensions({
+        "w": self.v_w.get(), "h": self.v_h.get(), "d": self.v_d.get(),
     })
+    _phase6_replace_mapping(self, "_phase6_box_whd", live_box)
     if _phase6_receiving_layout_applicable(self):
         _phase6_commit_receiving_current_bay_controls(self)
     else:
         self._phase6_input_snapshot.update(self._phase6_box_whd)
-    return original.MainApp.do_update(self)
+    return _phase6_render_with_engine_live_dimensions(self)
 
 
 _PHASE6_RENDERING_DO_UPDATE = _fix11_do_update

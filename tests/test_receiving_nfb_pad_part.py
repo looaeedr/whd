@@ -20,7 +20,7 @@ def _s(brand,model,w,h,depth,px,py,dia):
 def test_full_100hn_pad_is_real_wHD_part_and_retains_four_tabs():
     rule=read_pad_tooling_rule()
     small=_s("士林","100HN-s",75,130,68,25,111,3.2)
-    big=_s("士林","3P400SN",140,257,107,44,194,5.1)
+    big=_s("士林","3P400",140,257,107,44,194,5.1)
     p,=generate_nfb_pad_patterns([small,big],plate_thickness_mm=2,tooling=rule)
     part=build_nfb_pad_draft_part(
         p,parent_base_id="base_plate",owner_hole_id="nfb:upper:tier:0:unit:0")
@@ -58,7 +58,7 @@ def test_real_fold_profiles_put_both_legs_on_same_base_contact_side():
     )
     rule=read_pad_tooling_rule()
     shallow=_s("士林","100HN-s",75,130,68,25,111,3.2)
-    deeper=_s("士林","3P400SN",140,257,107,44,194,5.1)
+    deeper=_s("士林","3P400",140,257,107,44,194,5.1)
     p,=generate_nfb_pad_patterns([shallow,deeper],plate_thickness_mm=2,tooling=rule)
     pad=build_nfb_pad_draft_part(p,parent_base_id="base_plate",owner_hole_id="nfb:trial")
     left=folded_profile_segment_center_from_envelope(pad.x_profile,0)
@@ -108,7 +108,7 @@ def test_actual_generated_pad_cannot_escape_through_direct_single_part_manufactu
     from dataclasses import replace
     from ae_engine.manufacturing_api import save_part_render_data_dxf
     a=_s("士林","100HN-s",75,130,68,25,111,3.2)
-    b=_s("士林","3P400SN",140,257,107,44,194,5.1)
+    b=_s("士林","3P400",140,257,107,44,194,5.1)
     pattern,=generate_nfb_pad_patterns(
         [a,b],plate_thickness_mm=2,tooling=read_pad_tooling_rule()
     )

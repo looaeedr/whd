@@ -129,7 +129,7 @@ def _mixed_source_two_tiers():
     snapshot=_current_two_tiers()
     first=snapshot["nfb_config"]["holes"][0]
     first.update(
-        model_filename="nfbv5:士林:3P400SN",manual_x_mm=-150.,
+        model_filename="nfbv5:士林:3P400",manual_x_mm=-150.,
     )
     pad=deepcopy(first)
     pad.update(
@@ -207,7 +207,7 @@ def test_both_real_tiers_pad_and_base_have_independent_owners_and_total_q(tmp_pa
     )
     snap,_=_mixed_source_two_tiers()
     second=snap["nfb_config"]["holes"][1]
-    second.update(model_filename="nfbv5:士林:3P400SN",manual_x_mm=-150.)
+    second.update(model_filename="nfbv5:士林:3P400",manual_x_mm=-150.)
     pad=deepcopy(second)
     pad.update(physical_hole_id="tier:1:pad:1",
                model_filename="nfbv5:士林:100HN-s",
@@ -287,3 +287,37 @@ def test_original_gui_pad_base_export_action_routes_real_two_tier_pair(tmp_path,
     assert manifest["full_cabinet_manufacturing_released"] is False
     assert manifest["pad_total"]==2
     assert manifest["base_total"]==2
+
+
+def test_cli_pad_base_pair_receipt_uses_complete_committed_csv_and_reopens_dxf(
+    tmp_path, monkeypatch,
+):
+    """Guard the independent Action CLI, not just the unit test's helper."""
+    from tools.receiving_pad_pair_part_only_receipt import main
+
+    monkeypatch.chdir(tmp_path)
+    main()
+
+    output = tmp_path / "WHD_PAD_BASE_CHECK_Q_PAIR_PART_ONLY"
+    manifest = json.loads(
+        (output / "PAD_BASE_PAIR_PART_ONLY_CHECK_Q_RECEIPT.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert manifest["pad_total"] == 3
+    assert manifest["base_total"] == 3
+    generated = tuple(sorted(output.glob("*.dxf")))
+    assert len(generated) == 2
+    for path in generated:
+        assert len(tuple(__import__("ezdxf").readfile(path).modelspace())) > 0
+
+def test_real_pad_ci_visual_receipt_uses_complete_csv_and_renders_png(tmp_path):
+    """The independent real FinalScene CI visual must use validated CSV IDs."""
+    from tools.receiving_pad_ci_visual_receipt import create_pad_3d_ci_receipt
+
+    target = tmp_path / "WHD_PAD_ENGINE_REAL_3D_TEST.png"
+    digest = create_pad_3d_ci_receipt(target)
+    assert target.is_file()
+    data = target.read_bytes()
+    assert data.startswith(b"\x89PNG\r\n\x1a\n")
+    assert sha256(data).hexdigest() == digest

@@ -88,3 +88,23 @@ def test_legacy_flags_choose_mode_only_not_fabricated_geometry():
     with pytest.raises(ValueError):
         api.project_operator_door_layout_indicator_snapshot_states({"0:0": False})
     assert api.project_operator_door_layout_indicator_snapshot_states({}) == {}
+
+
+@pytest.mark.parametrize("invalid_root", (False, 0, "", [], "invalid"))
+def test_snapshot_rejects_falsy_damaged_indicator_inventory_before_project_save(
+    invalid_root,
+):
+    """Raw corrupt GUI source must not be converted to a manufactured plain Door."""
+    host = SnapshotHost("金庫型", {"model": "金庫型"})
+    host.door_layout_indicator_states = invalid_root
+    with pytest.raises(ValueError, match="門格指示燈來源必須是有效對照表"):
+        gui._snapshot_base_state(host)
+
+
+def test_absent_indicator_control_saves_explicit_empty_source_without_fabrication():
+    """A new legacy host without the optional control still has no holes."""
+    host = SnapshotHost("金庫型", {"model": "金庫型"})
+    assert not hasattr(host, "door_layout_indicator_states")
+    assert gui._snapshot_base_state(host)["door_layout_indicator_states"] == {}
+
+

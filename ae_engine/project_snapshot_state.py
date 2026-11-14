@@ -30,6 +30,15 @@ def normalize_authoritative_door_state(snapshot):
     for key in _TRANSIENT_DERIVED_SNAPSHOT_KEYS:
         result.pop(key, None)
 
+    # Project persistence uses the same Engine operator bool contract as the
+    # physical Door Family.  Do not rewrite the raw saved value: the Receiving
+    # HALF rear-panel policy separately requires an *original* native bool.
+    from .operator_settings_transactions import normalize_operator_settings_boolean
+    enabled_door_topology = (
+        normalize_operator_settings_boolean(result["multi_door_enabled"])
+        if "multi_door_enabled" in result else False
+    )
+
     from ae_engine.cabinet_types.receiving import is_receiving_snapshot
     if is_receiving_snapshot(result) and result.get("door_nameplate_center_datum_top") is None:
         from ae_engine.cabinet_types.receiving import DOOR_NAMEPLATE_CENTER_DATUM_TOP
@@ -126,7 +135,7 @@ def normalize_authoritative_door_state(snapshot):
         item.pop("frame_spans", None)
         item.pop("inner_door_finished_size", None)
     if inner_doors:
-        if not columns or not bool(result.get("multi_door_enabled", False)):
+        if not columns or not enabled_door_topology:
             for item in inner_doors:
                 if isinstance(item, dict):
                     item.pop("lower_frame_role", None)

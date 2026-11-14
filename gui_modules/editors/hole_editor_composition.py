@@ -16,7 +16,7 @@ class HoleEditorCompositionDependencies:
     """Explicit adapter for authorities currently imported by the GUI host module."""
 
     REQUIRED = (
-        "RectGuide", "Vec2", "ae", "load_hole_catalog", "load_pipe_catalog",
+        "RectGuide", "Vec2", "load_hole_catalog", "load_pipe_catalog",
         "_HoleEditorSessionFactory", "_HoleEditorWindowShellBuilder",
         "_HoleEditorIndicatorUiActions", "_HoleEditorIndicatorStateCollector",
         "_HoleEditorIndicatorPanelBuilder", "_HoleEditorCatalogSidebarBuilder",
@@ -37,7 +37,7 @@ class HoleEditorCompositionDependencies:
         "feature_is_within_surface", "move_feature_within_surface",
         "_HoleEditorCreatedListActions", "feature_with_process",
         "_HoleEditorReferenceActions", "move_feature_by_reference_distance",
-        "_HoleEditorSelectedFeatureActions", "REFERENCE_ANCHOR_LABELS", "replace",
+        "_HoleEditorSelectedFeatureActions", "REFERENCE_ANCHOR_LABELS",
         "_HoleEditorRoundSettingsLauncher", "_open_round_hole_settings_impl",
         "_HoleEditorContextSwitcher", "_HoleEditorIndicatorContextRefresh",
         "_HoleEditorPageNavigation", "_HoleEditorModalLifecycle",
@@ -74,7 +74,7 @@ def _prepare_model(s):
         s.reference_guide = d.RectGuide(
             d.Vec2(rminx, rminy), d.Vec2(rmaxx, rmaxy), "finished_boundary"
         )
-    hole_base_dir = d.ae.baseline_hole_catalog_root_path()
+    hole_base_dir = d.manufacturing_api.operator_hole_catalog_root_path()
     s.general_catalog_defs = d.load_hole_catalog(hole_base_dir)
     s.pipe_catalog_defs = d.load_pipe_catalog(hole_base_dir)
     s.catalog_by_label = {}
@@ -555,7 +555,7 @@ def _build_reference_selection_actions(s):
         feature_reference_anchor=d.feature_reference_anchor,
         set_reference_anchor=s.set_reference_anchor,
         var_rotation=s.var_rotation,
-        rotate_feature=lambda feature, rotation: d.replace(feature, rotation_deg=rotation),
+        rotate_feature=d.manufacturing_api.operator_hole_feature_with_rotation,
         feature_is_within_surface=d.feature_is_within_surface,
         warn_rotation_out_of_bounds=lambda: d.messagebox.showwarning(
             "旋轉失敗", "旋轉後孔的完整外形會超出板面框。"

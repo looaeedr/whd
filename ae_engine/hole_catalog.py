@@ -8,6 +8,7 @@ import csv
 import math
 
 from .sheetmetal_geometry import Vec2
+from .operator_settings_transactions import normalize_operator_settings_boolean
 
 
 @dataclass(frozen=True)
@@ -97,15 +98,19 @@ def _positive_hole_mm(value, label):
 
 
 def custom_circle_definition(diameter: float, *, blind: bool = False) -> HoleDefinition:
+    # Process is a physical Hole Feature source, not Python truthiness:
+    # bool("false") must never turn a through hole into a blind pipe hole.
+    enabled = normalize_operator_settings_boolean(blind)
     return HoleDefinition(
-        name="自訂圓孔", shape="circle", process=("BLIND_HOLE" if blind else "CUTTING"),
+        name="自訂圓孔", shape="circle", process=("BLIND_HOLE" if enabled else "CUTTING"),
         diameter=_positive_hole_mm(diameter, 'diameter'),
     )
 
 
 def custom_rectangle_definition(width: float, height: float, *, blind: bool = False) -> HoleDefinition:
+    enabled = normalize_operator_settings_boolean(blind)
     return HoleDefinition(
-        name="自訂方孔", shape="rectangle", process=("BLIND_HOLE" if blind else "CUTTING"),
+        name="自訂方孔", shape="rectangle", process=("BLIND_HOLE" if enabled else "CUTTING"),
         width=_positive_hole_mm(width, 'width'), height=_positive_hole_mm(height, 'height'),
     )
 

@@ -17,6 +17,7 @@ from .certified_relief_registry import (
     RELIEF_CONTRACT_VERSION,
     certified_rule_revision_exists,
 )
+from .operator_settings_transactions import normalize_operator_settings_boolean
 
 _CERTIFIED_TRUST_LEVELS = frozenset({"CERTIFIED", "CERTIFIED_FROM_3D", "ENGINE_CONFLICT"})
 _NUMERIC_SOURCE_KEYS = (
@@ -198,11 +199,19 @@ def source_matches_current(
 def committed_relief_cuts(state, part_key: str, current_source):
     """Return persisted cut polygons only when the replay contract is still valid."""
     state = deepcopy(dict(state or {}))
-    if not bool(state.get("enabled")):
+    if not normalize_operator_settings_boolean(
+        state["enabled"] if "enabled" in state else False
+    ):
         return ()
     part_key = str(part_key)
     part = dict((state.get("parts") or {}).get(part_key, {}) or {})
-    if not bool(part.get("verified")) and not bool(part.get("canonical_accepted")):
+    verified = normalize_operator_settings_boolean(
+        part["verified"] if "verified" in part else False
+    )
+    accepted = normalize_operator_settings_boolean(
+        part["canonical_accepted"] if "canonical_accepted" in part else False
+    )
+    if not verified and not accepted:
         return ()
 
     trust_level = str(part.get("trust_level") or "")

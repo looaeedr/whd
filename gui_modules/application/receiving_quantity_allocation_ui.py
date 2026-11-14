@@ -79,8 +79,9 @@ class ReceivingQuantityAllocationUI:
         self.draft.replace_version(self.role, old, new, self.reconcile()[self.role])
 
     def _count(self, version_id, delta):
-        current = self.draft.quantities[self.role][version_id]
-        self.draft.set_quantity(self.role, version_id, max(0, current + delta))
+        return manufacturing_api.adjust_receiving_candidate_draft_quantity(
+            self.draft, self.role, version_id, delta,
+        )
 
     def draw_controls(self):
         host = self.host

@@ -7,12 +7,15 @@ manufacturing eligibility, atomic export, and physical DXF re-open checks.
 from collections.abc import Mapping
 from dataclasses import dataclass
 
-from .manufacturing_export_selection import select_resolved_export_geometry
+from .manufacturing_export_selection import (
+    select_resolved_export_geometry, normalize_operator_selected_export_flags,
+)
 from .cabinet_types.policy import canonical_family_name
 
 
 def selected_export_manufacturing_policy(receiving_snapshot, flags):
     """Engine-owned classification of Receiving NFB and side manufacturing."""
+    flags = normalize_operator_selected_export_flags(flags)
     # The existing Family Registry decides the physical export route; aliases
     # must never suppress current committed NFB/EAR verification.
     receiving = canonical_family_name(receiving_snapshot) == "受電箱"
@@ -43,6 +46,7 @@ def plan_selected_resolved_export_route(
     """
     if not isinstance(snapshot, Mapping) or not isinstance(flags, Mapping):
         raise TypeError("SELECTED_EXPORT_ROUTE_SNAPSHOT_REQUIRED")
+    flags = normalize_operator_selected_export_flags(flags)
     guard_flags = tuple((str(key), bool(value)) for key, value in flags.items())
     if canonical_family_name(snapshot) == "金庫型" and group_mode is not None:
         return SelectedResolvedExportRoute(True, guard_flags)
@@ -82,6 +86,7 @@ def plan_unconfigured_receiving_base_export_retry(
     """
     if not isinstance(flags, Mapping):
         raise TypeError("RECEIVING_BASE_EXPORT_RETRY_FLAGS_REQUIRED")
+    flags = normalize_operator_selected_export_flags(flags)
     if not bool(flags.get("base_plate")):
         return None
     if tuple(str(error) for error in errors) != (_UNCONFIGURED_RECEIVING_BASE_ERROR,):
@@ -97,6 +102,7 @@ def save_selected_resolved_manufacturing_dxf(
 ):
     """Return verified physical output paths; derive all decisions from source."""
     from . import manufacturing_api
+    flags = normalize_operator_selected_export_flags(flags)
     auto_side, committed_csv = selected_export_manufacturing_policy(
         receiving_snapshot, flags,
     )

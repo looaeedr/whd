@@ -48,6 +48,29 @@ def transition_receiving_nfb_layer_heights(heights, *, old_count, new_count):
     return target if old_count != new_count and actual == old else actual
 
 
+def normalize_receiving_operator_nfb_layer_heights(raw):
+    """Validate two original NFB Y editor entries at the Engine boundary.
+
+    Operator Tk fields are numeric strings; saved physical SharedSettings
+    remains a two-number list validated by the original single owner.
+    Reject booleans *before* float(True) could fabricate a 1-mm NFB row.
+    This accepts both saved numeric rows and editable string rows, but never
+    authorizes NFB CUTTING or supplies a synthetic Y coordinate.
+    """
+    message = "第一層／第二層高度須為正數、由上往下遞增（mm）"
+    if not isinstance(raw, (tuple, list)) or len(raw) != 2:
+        raise ValueError(message)
+    numeric = []
+    for item in raw:
+        if isinstance(item, bool) or not isinstance(item, (str, int, float)):
+            raise ValueError(message)
+        try:
+            numeric.append(float(item))
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise ValueError(message) from exc
+    return validate_setting("inner_door_layer_heights_mm", numeric)
+
+
 def switch_filenames_in_layer(slot):
     """Return physical switch occurrences, never deduplicate quantity."""
     if isinstance(slot, str):
@@ -143,6 +166,20 @@ def validate_setting(kind, value):
     else:
         value = list(value)
     return deepcopy(value)
+
+
+
+def normalize_receiving_operator_inner_door_layer_choice(raw):
+    """Decode the exact 1/2 UI choice before original physical Bay validation.
+
+    The persisted shared-setting contract stays an integer, not a numeric
+    string.  Do not turn bool, 1.0, "01" or "2.0" into physical layers.
+    """
+    if type(raw) is str:
+        if raw not in ("1", "2"):
+            raise ValueError("內門層數只能選 1 或 2")
+        raw = {"1": 1, "2": 2}[raw]
+    return validate_setting("inner_door_layers", raw)
 
 
 def normalize_set_settings(raw, bays):
@@ -420,3 +457,32 @@ def unlink_setting(layout, *, set_index, bay_index, kind):
     row["values"][ref] = deepcopy(row["values"][old_ref])
     row["refs"][bay_id] = ref
     return normalize_receiving_layout(result)
+
+def unlink_setting_with_affected_ids(layout, *, set_index, bay_index, kind):
+    """Detach an actual linked physical Bay and report its former link group.
+
+    An unlink changes the saved sharing relationship of the selected Bay and
+    every sibling formerly using its reference.  This readback is derived
+    exclusively from validated canonical Engine refs; matching display values
+    do not establish a link.  A Bay already holding an independent ref is a
+    genuine no-op and must not acquire false dirty/edit protection.
+    """
+    from .receiving_layout import normalize_receiving_layout
+
+    original = normalize_receiving_layout(layout)
+    _require_valid_index(set_index, len(original["sets"]), "組選取超出範圍")
+    selected = original["sets"][set_index]
+    _require_valid_index(bay_index, len(selected["bays"]), "連選取超出範圍")
+    settings = normalize_set_settings(selected.get("settings"), selected["bays"])
+    row = settings[kind]
+    bay_id = selected["bays"][bay_index]["stable_id"]
+    old_ref = row["refs"][bay_id]
+    former_linked_ids = tuple(
+        bay["stable_id"] for bay in selected["bays"]
+        if row["refs"][bay["stable_id"]] == old_ref
+    )
+    candidate = unlink_setting(
+        original, set_index=set_index, bay_index=bay_index, kind=kind,
+    )
+    new_ref = candidate["sets"][set_index]["settings"][kind]["refs"][bay_id]
+    return candidate, (former_linked_ids if new_ref != old_ref else ())

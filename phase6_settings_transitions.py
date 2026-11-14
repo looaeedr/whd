@@ -183,8 +183,8 @@ def bottom_wrap(
     endcap_bottom_wrap_state: Mapping[str, object] | None,
     part_key: str,
     *,
-    reserve_u: float,
-    reserve_v: float,
+    reserve_u: object,
+    reserve_v: object,
 ) -> BottomWrapTransition:
     return manufacturing_api.operator_endcap_bottom_wrap(
         input_snapshot, endcap_bottom_wrap_state, part_key,

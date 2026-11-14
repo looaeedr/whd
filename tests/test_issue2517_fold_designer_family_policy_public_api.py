@@ -51,14 +51,22 @@ def test_fold_designer_gui_does_not_import_internal_family_policy_or_registry():
     for source in (bridge, corner):
         assert "from ae_engine.cabinet_types import policy as cabinet_family_policy" not in source
         assert "cabinet_family_policy." not in source
-        assert "manufacturing_api.operator_canonical_family_name(" in source
+    assert "manufacturing_api.operator_canonical_family_name(" in bridge
+    # Corner Data now forwards its raw Family + physical topology to one
+    # public Engine eligibility API, rather than projecting Family in the GUI.
+    assert "manufacturing_api.operator_corner_data_back_panel_mode_applicable(" in corner
     assert "from ae_engine.cabinet_types.registry import" not in bridge
     assert "manufacturing_api.resolve_cabinet_type(model)" in bridge
     assert "from ae_engine.certified_relief_registry import" not in corner
     assert "manufacturing_api.build_relief_promotion_candidate" in corner
     session = (ROOT / "gui_modules/application/fold_designer_part_session.py").read_text(encoding="utf-8")
     assert "bridge.cabinet_family_policy." not in session
-    assert "bridge.manufacturing_api.operator_endcap_fw_profile_uses_material_dimensions(" in session
+    # Head/Tail Fold save is a manufacturing transaction, not a GUI Family
+    # branch: the Engine transaction now owns the original Family policy.
+    assert "bridge.manufacturing_api.commit_operator_endcap_fw_profile_save(" in session
+    assert "bridge.manufacturing_api.operator_endcap_fw_profile_uses_material_dimensions(" not in session
+    engine = (ROOT / "ae_engine/operator_endcap_settings_transactions.py").read_text(encoding="utf-8")
+    assert "cabinet_family_policy.endcap_fw_profile_uses_material_dimensions(" in engine
     for suffix in POLICY_NAMES[1:-1]:
         assert "manufacturing_api.operator_" + suffix + "(" in bridge
 

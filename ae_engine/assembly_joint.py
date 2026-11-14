@@ -674,6 +674,25 @@ def migrate_legacy_snapshot_joints(snapshot: Mapping[str, object]) -> dict[str, 
     return result
 
 
+def project_operator_user_assembly_joint_parts(snapshot: Mapping[str, object]) -> frozenset[str]:
+    """Project user-added Joint physical identities from canonical migrated state.
+
+    The complete schema and source semantics stay with the existing Joint
+    migration owner.  FinalScene/GUI must not infer source kinds or resurrect
+    unsupported future snapshots.  This read-only result cannot mutate input.
+    """
+    migrated = migrate_legacy_snapshot_joints(snapshot)
+    result: set[str] = set()
+    for raw in tuple(migrated.get("assembly_joints", ()) or ()):
+        if str(raw.get("source") or "") != AssemblyJointSource.USER_ADDED.value:
+            continue
+        for field in ("subject_part", "target_part"):
+            key = str(raw.get(field) or "")
+            if key:
+                result.add(key)
+    return frozenset(result)
+
+
 def sync_snapshot_intent_joints(snapshot: Mapping[str, object], intent) -> dict[str, object]:
     """Update intent mirror and only intent-derived/default joints."""
     from .assembly_intent import normalize_assembly_intent_id
@@ -788,6 +807,20 @@ def add_user_assembly_joint(
     """
     from uuid import uuid4
 
+    # Physical solver topology belongs to the public Joint transaction, not
+    # a GUI int() cast. Keep absent constraints and unrelated legacy metadata.
+    if solver_constraints is None:
+        validated_constraints = {}
+    elif not isinstance(solver_constraints, Mapping):
+        raise ValueError("USER_ADDED solver_constraints 必須是對應表")
+    else:
+        validated_constraints = deepcopy(dict(solver_constraints))
+        if "topology_levels" in validated_constraints:
+            from .certified_relief_formula_io import normalize_operator_relief_topology_levels
+            validated_constraints["topology_levels"] = normalize_operator_relief_topology_levels(
+                validated_constraints["topology_levels"]
+            )
+
     staged = migrate_legacy_snapshot_joints(snapshot)
     normalized_relation = _relation(relation)
     joint = AssemblyJoint(
@@ -801,7 +834,7 @@ def add_user_assembly_joint(
         preserve_side=str(preserve_side or "AUTO"),
         relief_intent=str(relief_intent or "AUTO"),
         clearance_policy=str(clearance_policy or "ZERO"),
-        solver_constraints=deepcopy(dict(solver_constraints or {})),
+        solver_constraints=validated_constraints,
         source=AssemblyJointSource.USER_ADDED,
     )
     identity = (

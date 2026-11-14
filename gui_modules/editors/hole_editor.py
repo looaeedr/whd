@@ -8,14 +8,12 @@ existing controllers/AE/session seams.
 from __future__ import annotations
 
 from dataclasses import replace
-from math import isfinite
 from tkinter import messagebox
 
 from phase6_hole_editor_session import HoleEditorAction
 from phase6_hole_editor_session import Phase6HoleEditorSession
 
 from ae_engine import manufacturing_api
-from ae_engine.corner_type_ui import is_unknown_model
 
 
 class HoleEditorSessionFactory:
@@ -31,23 +29,40 @@ class HoleEditorSessionFactory:
 class HoleEditorLiveContext:
     """Transient live CAD context shared by editor handlers; never committed state."""
 
+    @staticmethod
+    def _validated_face_dimensions(width, height):
+        # Physical finished-face sizes belong to the public Engine contract.
+        # Do not turn bool(True), NaN or missing source into apparent mm.
+        return (
+            manufacturing_api.normalize_operator_source_dimension(width, field="w"),
+            manufacturing_api.normalize_operator_source_dimension(height, field="h"),
+        )
+
     def __init__(
         self, *, feature_list, surface, width, height, reference_guide,
         baseline_scene, part_key,
     ):
+        qualified_width, qualified_height = self._validated_face_dimensions(
+            width, height,
+        )
         self.feature_list = feature_list
         self.surface = surface
-        self.width = float(width)
-        self.height = float(height)
+        self.width = qualified_width
+        self.height = qualified_height
         self.reference_guide = reference_guide
         self.baseline_scene = baseline_scene
         self.part_key = part_key
 
     def apply(self, context):
+        # Stage and validate the complete physical source before changing the
+        # live Feature/context references that feed Hole Editor and 2D preview.
+        qualified_width, qualified_height = self._validated_face_dimensions(
+            context["width"], context["height"],
+        )
         self.feature_list = context["feature_list"]
         self.surface = context["surface"]
-        self.width = float(context["width"])
-        self.height = float(context["height"])
+        self.width = qualified_width
+        self.height = qualified_height
         self.reference_guide = context["reference_guide"]
         self.baseline_scene = context.get("baseline_scene")
         if context.get("part_key") is not None:
@@ -91,11 +106,6 @@ class HoleEditorContextSwitcher:
         self.redraw = redraw
 
     def switch(self, context_key):
-        if self.hole_session.has_active_edit:
-            self.cancel_active_edit()
-        if self.insert_mode[0]:
-            self.insert_mode[0] = False
-            self.insert_button.configure(text="插入", bg="#30d158")
         context = (
             self.door_context
             if context_key == "door"
@@ -103,6 +113,16 @@ class HoleEditorContextSwitcher:
         )
         if not context:
             return False
+        # Reject a corrupt target before canceling the active edit, insert
+        # mode or Session selection. No partial switch on invalid physical mm.
+        self.live_context._validated_face_dimensions(
+            context["width"], context["height"],
+        )
+        if self.hole_session.has_active_edit:
+            self.cancel_active_edit()
+        if self.insert_mode[0]:
+            self.insert_mode[0] = False
+            self.insert_button.configure(text="插入", bg="#30d158")
         self.live_context.apply(context)
         part_key = context.get("part_key", context_key)
         self.live_context.part_key = part_key
@@ -149,15 +169,17 @@ class HoleEditorFeatureFactory:
 
     def make_feature(self, point):
         label = self.selected_catalog_text.get()
-        rotation = int(self.rotation_var.get().replace("°", ""))
         try:
+            rotation = manufacturing_api.operator_hole_rotation_from_control(
+                self.rotation_var.get()
+            )
             if label == "＋ 自訂圓孔":
                 definition = self.custom_circle_definition(
-                    float(self.diameter_var.get()), blind=self.blind_var.get()
+                    self.diameter_var.get(), blind=self.blind_var.get()
                 )
             elif label == "＋ 自訂方孔":
                 definition = self.custom_rectangle_definition(
-                    float(self.width_var.get()), float(self.height_var.get()),
+                    self.width_var.get(), self.height_var.get(),
                     blind=self.blind_var.get(),
                 )
             else:
@@ -170,7 +192,8 @@ class HoleEditorFeatureFactory:
                 rotation_deg=rotation,
             )
             return self.feature_with_reference_anchor(feature, self.center_anchor)
-        except (ValueError, FileNotFoundError) as exc:
+        except (ValueError, TypeError, AttributeError, OverflowError,
+                FileNotFoundError) as exc:
             self.show_error("開孔錯誤", str(exc))
             return None
 
@@ -213,9 +236,9 @@ class HoleEditorIndicatorFitValidation:
                 self.validate_fit(
                     mode=state_now["mode"],
                     groups=tuple(state_now["groups"][:state_now["layers"]]),
-                    finished_width=float(context.finished_width),
-                    finished_height=float(context.finished_height),
-                    thickness=float(self.door_thickness_provider() or 0.0),
+                    finished_width=context.finished_width,
+                    finished_height=context.finished_height,
+                    thickness=self.door_thickness_provider(),
                     offset=(state_now["offset_x"], state_now["offset_y"]),
                 )
         except (ValueError, TypeError) as exc:
@@ -278,9 +301,9 @@ class HoleEditorTransientActions:
             self.hole_session.execute(HoleEditorAction.select(idx))
         feature_list = self.feature_list_provider()
         if 0 <= idx < len(feature_list):
-            rotation = int(
-                getattr(feature_list[idx], "rotation_deg", 0) or 0
-            ) % 360
+            rotation = manufacturing_api.operator_hole_rotation_from_control(
+                getattr(feature_list[idx], "rotation_deg", 0)
+            )
             self.var_rotation.set(f"{360 if rotation == 0 else rotation}°")
         self.refresh_created()
         self.refresh_reference_fields()
@@ -464,19 +487,17 @@ class HoleEditorReferenceActions:
         idx = self.hole_session.selected_index
         if not (0 <= idx < len(feature_list)):
             return
-        raw = self.reference_variables[(axis, mode)].get().strip()
-        if not raw:
+        raw = self.reference_variables[(axis, mode)].get()
+        if isinstance(raw, str) and not raw.strip():
             return
         try:
-            value = float(raw)
-            if not isfinite(value):
-                raise ValueError("reference distance must be finite")
+            value = manufacturing_api.normalize_operator_hole_reference_distance(
+                raw
+            )
         except (TypeError, ValueError, OverflowError):
             if show_errors:
                 self.show_format_error()
                 self.refresh_reference_fields()
-            return
-        if value < 0:
             return
         old = feature_list[idx]
         moved = self.move_feature_by_reference_distance(
@@ -550,20 +571,24 @@ class HoleEditorSelectedFeatureActions:
         menu.tk_popup(event.x_root, event.y_root)
 
     def rotate_selected(self, angle):
-        self.var_rotation.set(f"{angle}°")
+        # The same Engine angle contract is used for inserting and editing
+        # physical hole Features. An invalid control cannot mutate UI/session.
+        validated = manufacturing_api.operator_hole_rotation_from_control(angle)
         context = self.context_provider()
         feature_list = context["feature_list"]
         idx = self.hole_session.selected_index
         if not (0 <= idx < len(feature_list)):
+            # With no selected feature, toolbar rotation sets insert mode.
+            self.var_rotation.set(f"{360 if validated == 0 else validated}°")
             return
-        normalized = 0 if angle == 360 else angle
-        candidate = self.rotate_feature(feature_list[idx], normalized)
+        candidate = self.rotate_feature(feature_list[idx], angle)
         if not self.feature_is_within_surface(
             context["surface"], candidate, context["width"], context["height"]
         ):
             self.warn_rotation_out_of_bounds()
             return
         self.hole_session.execute(HoleEditorAction.replace_selected(candidate))
+        self.var_rotation.set(f"{360 if validated == 0 else validated}°")
         self.refresh_reference_fields()
         self.redraw()
         self.sync_all()
@@ -711,7 +736,7 @@ def open_hole_editor(host, key):
 
 def _door_context(host, values):
     material_fw = host._door_material_frame_width(values["fw"], values["t"])
-    custom = is_unknown_model(host.baseline_var.get())
+    custom = manufacturing_api.is_unknown_operator_model(host.baseline_var.get())
     projection = manufacturing_api.project_operator_hole_editor_door(
         values, material_frame_width=material_fw, is_custom=custom,
         corner_policy=(
@@ -740,7 +765,7 @@ def _door_context(host, values):
 
 
 def _base_plate_context(host, values):
-    custom = is_unknown_model(host.baseline_var.get())
+    custom = manufacturing_api.is_unknown_operator_model(host.baseline_var.get())
     projection = manufacturing_api.project_operator_hole_editor_base_plate(
         values, is_custom=custom,
         corner_policy=(
@@ -756,8 +781,21 @@ def _base_plate_context(host, values):
 
 
 def _indicator_groups(host):
-    layers = int(host.indicator_l_var.get())
-    return [int(host.indicator_layer_g_vars[i].get()) for i in range(layers)]
+    """Collect raw independent Indicator component controls through public Engine.
+
+    Do not int() a boolean or fractional lamp-group source before the
+    manufacturing geometry validator can reject it.  A missing layer is
+    invalid, never a shorter manufactured Box/Small Door.
+    """
+    layers = manufacturing_api.normalize_fold_designer_indicator_groups(
+        (host.indicator_l_var.get(),)
+    )[0]
+    controls = tuple(host.indicator_layer_g_vars)
+    if len(controls) < layers:
+        raise ValueError("指示燈層數／組數無效：缺少實際組數")
+    return list(manufacturing_api.normalize_fold_designer_indicator_groups(
+        tuple(var.get() for var in controls[:layers])
+    ))
 
 
 def _indicator_box_context(host, values):
@@ -810,31 +848,40 @@ def _indicator_door_context(host, values):
 
 def open_part_hole_editor(host, part_key):
     """Route one physical-part editor while preserving existing authority seams."""
-    host.workspace_controller.set_active_part(part_key)
     app = getattr(host, 'fold_designer_app', None)
-    if part_key in {'head', 'tail'}:
-        return open_hole_editor(host, part_key)
-    import re
-    from phase6_part_navigation import is_box_body_physical_piece_key
-    match = re.fullmatch(r'door_c(\d+)_r(\d+)', str(part_key))
-    if match:
-        return host.open_door_layout_cell_editor(int(match[1]) - 1, int(match[2]) - 1)
-    if (str(part_key).startswith(('box_body:divider:', 'base_plate:fixing_plate:', 'base_plate_c', 'custom:'))
-            or is_box_body_physical_piece_key(part_key)
-            or (part_key == 'base_plate' and app is not None and host.baseline_var.get() == '受電箱')
-            or (str(part_key).startswith('inner_door:') and str(part_key).endswith('_frame'))):
+    model_var = getattr(host, "baseline_var", None)
+    multi_var = getattr(host, "multi_door_enabled_var", None)
+    try:
+        route = manufacturing_api.project_operator_hole_editor_route(
+            part_key,
+            model=model_var.get() if model_var is not None else "",
+            multi_door_enabled=multi_var.get() if multi_var is not None else False,
+            has_fold_designer=app is not None,
+        )
+    except (ValueError, TypeError) as exc:
+        messagebox.showerror("開孔失敗", str(exc))
+        return None
+    # Do not mutate active physical part until Engine has accepted its identity.
+    host.workspace_controller.set_active_part(route.part_key)
+    if route.kind == "endcap":
+        return open_hole_editor(host, route.part_key)
+    if route.kind == "door_cell":
+        return host.open_door_layout_cell_editor(
+            route.column_index, route.row_index,
+        )
+    if route.kind == "workspace_sheet":
         from gui_modules.application.physical_part_hole_editor import open_workspace_sheet_editor
         try:
-            return open_workspace_sheet_editor(host, part_key)
+            return open_workspace_sheet_editor(host, route.part_key)
         except ValueError as exc:
-            messagebox.showerror('開孔失敗', str(exc))
+            messagebox.showerror("開孔失敗", str(exc))
             return None
-    if part_key == 'box_body':
+    if route.kind == "box_body_face":
         face = host.box_body_face_selected_var.get() or 'back'
         for name in ('left', 'back', 'right'):
             host.box_body_face_features.setdefault(name, [])
         return host.open_box_body_face_editor(face)
-    if str(part_key).startswith("inner_door:") and str(part_key).endswith(":panel"):
+    if route.kind == "inner_door_panel":
         from gui_modules.application.receiving_inner_door_hole_editor import open_inner_door_hole_editor
 
         try:
@@ -845,7 +892,7 @@ def open_part_hole_editor(host, part_key):
         except ValueError as exc:
             messagebox.showerror("開孔失敗", str(exc))
             return None
-    if part_key == "door" and host.multi_door_enabled_var.get():
+    if route.kind == "selected_door_cell":
         cell = host.get_selected_door_layout_cell()
         host.open_door_layout_cell_editor(cell.column_index, cell.row_index)
         return

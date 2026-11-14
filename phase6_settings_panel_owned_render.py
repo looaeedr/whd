@@ -5,6 +5,7 @@ from __future__ import annotations
 import tkinter as tk
 from tkinter import ttk
 
+from ae_engine import manufacturing_api
 from whd_theme import WHD_SEMANTIC_COLORS
 from phase6_settings_panel_primitives import (
     SettingsPanelExtensionResult,
@@ -419,12 +420,6 @@ class Phase6SettingsPanelOwnedRenderMixin:
 
     def _render_owned_receiving_base_plate(self, parent, start_row, projection, state):
         """Receiving-only operator choice for the EXISTING physical Base Plate."""
-        from ae_engine.sheetmetal_part_adapters import (
-            RECEIVING_BASE_PATTERN_LEFT,
-            RECEIVING_BASE_PATTERN_CENTER,
-            RECEIVING_BASE_PATTERN_RIGHT,
-        )
-
         frame = ttk.LabelFrame(parent, text="受電箱實體底板選型", padding=5)
         frame.grid(row=start_row, column=0, columnspan=5, sticky="ew", padx=3, pady=(6, 2))
         values = dict(projection.get("values") or {})
@@ -437,10 +432,14 @@ class Phase6SettingsPanelOwnedRenderMixin:
         ).grid(
             row=0, column=0, columnspan=3, sticky="w"
         )
-        choices = (
-            ("左片：上下折彎", RECEIVING_BASE_PATTERN_LEFT),
-            ("中片：上下＋雙側折彎", RECEIVING_BASE_PATTERN_CENTER),
-            ("右片：上下折彎", RECEIVING_BASE_PATTERN_RIGHT),
+        display_labels = {
+            "left": "左片：上下折彎",
+            "center": "中片：上下＋雙側折彎",
+            "right": "右片：上下折彎",
+        }
+        choices = tuple(
+            (display_labels[role], pattern)
+            for role, pattern in manufacturing_api.project_operator_receiving_base_plate_pattern_choices()
         )
         for index, (label, value) in enumerate(choices):
             ttk.Radiobutton(
@@ -454,13 +453,19 @@ class Phase6SettingsPanelOwnedRenderMixin:
         # Preserve these non-visual state values for legacy project roundtrips
         # and the existing atomic commit callback; never render shrink inputs.
         shrink_keys = ("shrink_top", "shrink_bottom", "shrink_left", "shrink_right")
+        # These four values are not editable UI fields. Keep their original
+        # persisted types for the public Engine gate, not Tk display strings.
+        shrink_source = {key: values.get(key) for key in shrink_keys}
         vars_by_key = {"pattern": pattern_var}
         for key in shrink_keys:
             raw = values.get(key)
             vars_by_key[key] = tk.StringVar(
                 master=frame,
-                value=setting_number_text(raw) if raw is not None else "",
+                value=str(raw) if raw is not None else "",
             )
+        initial_shrink_text = {
+            key: vars_by_key[key].get() for key in shrink_keys
+        }
         fields = (
             ("height", "實體標稱高度"),
             ("bend", "上下折彎"),
@@ -472,7 +477,9 @@ class Phase6SettingsPanelOwnedRenderMixin:
             ttk.Label(cell, text=label + " (mm)").pack(anchor="w")
             raw = values.get(key)
             var = tk.StringVar(
-                master=cell, value=setting_number_text(raw) if raw is not None else "",
+                master=cell,
+                value=(str(raw) if isinstance(raw, bool) else
+                       setting_number_text(raw) if raw is not None else ""),
             )
             ttk.Entry(
                 cell, textvariable=var, width=12, justify=tk.CENTER,
@@ -498,11 +505,26 @@ class Phase6SettingsPanelOwnedRenderMixin:
                 status_var.set("沒有可用的底板設定交易入口")
                 return
             try:
-                payload = {"pattern": pattern_var.get()}
-                # No shrink operation is exposed to the operator. Reuse only
-                # the already-resolved/persisted physical shrink contract.
-                for key in (*shrink_keys, *(name for name, _ in fields)):
-                    payload[key] = float(vars_by_key[key].get())
+                # Unedited hidden shrink fields retain their original type.
+                # The legacy #1502 unconfigured Tk seam may explicitly set
+                # these StringVars; normalize only changed text via Engine.
+                payload = {"pattern": pattern_var.get(), **shrink_source}
+                for key in shrink_keys:
+                    current = vars_by_key[key].get()
+                    if current != initial_shrink_text[key]:
+                        payload[key] = (
+                            manufacturing_api.normalize_operator_receiving_base_plate_number(
+                                current, field=key,
+                            )
+                        )
+                # The Engine public numeric gate supplies canonical mm floats.
+                # The existing Engine commit still owns full blank/EAR checks.
+                for key, _label in fields:
+                    payload[key] = (
+                        manufacturing_api.normalize_operator_receiving_base_plate_number(
+                            vars_by_key[key].get(), field=key,
+                        )
+                    )
                 self._receiving_base_plate_commit(payload)
             except (ValueError, TypeError, KeyError, RuntimeError) as exc:
                 status_var.set("套用失敗：" + str(exc))

@@ -22,11 +22,9 @@ def inner_door_commit_target(settings_mode):
     Ordinary board/corner/part-preview and 單只 settings write physical parts
     on the parent editor Confirm All. NFB tab Confirm never writes either.
     """
-    if settings_mode == "candidate":
-        return "candidate"
-    if settings_mode in (None, "single"):
-        return "physical"
-    raise ValueError("未知的內門編輯來源")
+    return manufacturing_api.operator_receiving_inner_door_commit_target(
+        settings_mode,
+    )
 
 
 def open_inner_door_hole_editor(
@@ -97,9 +95,9 @@ def open_inner_door_hole_editor(
         staged = getattr(editor, "_receiving_staged_config", None)
         if on_settings_confirm is not None:
             on_settings_confirm(part_key, deepcopy(list(final_features)), staged)
-        elif staged is not None and any(
-                getattr(feature, "source_type", None) == "NFB_CSV_SOURCE"
-                for feature in final_features):
+        elif manufacturing_api.receiving_inner_door_nfb_confirm_required(
+            staged, final_features,
+        ):
             # 3D double-click is a DIRECT physical-door entry. The original
             # handler used to save native Features only; the staged NFB
             # selection was silently discarded by the next canonical
@@ -126,19 +124,13 @@ def open_inner_door_hole_editor(
             elif mode == "quantity":
                 current = app._phase6_input_snapshot
                 quantity = workspace.quantity_model
-                projected, typed = manufacturing_api.preview_quantity_inner_door_confirm(
+                projected, _typed = manufacturing_api.commit_receiving_quantity_inner_door_confirm(
                     current, quantity, part_key, final_features, staged,
                     include_missing_heights=True,
                 )
-                # Engine checked the detached Quantity version and Family box
-                # before any live version or project snapshot mutation.
-                quantity.set_version_nfb_config(
-                    quantity.selected_version_id, submitted=True, config=typed,
-                )
-                # Apply the entire validated Engine projection, including its
-                # deletion of obsolete runtime Bay selection, in-place.
-                current.clear()
-                current.update(projected)
+                # Engine atomically updated the live Quantity version and
+                # saved source snapshot; GUI only refreshes its workspace
+                # projection and visual caches after the accepted transaction.
                 workspace.set_receiving_common_box(
                     projected["receiving_quantity_box"]
                 )

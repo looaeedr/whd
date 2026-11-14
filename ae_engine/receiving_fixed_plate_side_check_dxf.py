@@ -16,6 +16,7 @@ from math import isclose
 import ezdxf
 
 from .cabinet_types.policy import canonical_family_name
+from .operator_settings_transactions import normalize_operator_source_dimension
 from .manufacturing_api import (
     save_part_render_data_dxf,
     verify_saved_part_render_data_dxf,
@@ -53,21 +54,22 @@ class ReceivingEarSideCheckDxfReceipt:
 
 
 def receiving_ear_side_check_operator_inputs(snapshot):
-    """Read-only pre-picker validation for a Receiving SIDE CHECK action.
+    """Read-only shared SIDE source preflight for CHECK and MARKING clients.
 
-    This validates the operator's committed source and returns the exact
-    dimensions/T supplied to the existing CHECK-only exporter; it neither
-    resolves material nor authorizes manufacturing.
+    This validates the exact committed W/H/D/T through the original Engine
+    physical-source contract. It neither resolves material nor authorizes
+    manufacturing; each downstream exporter retains its own release guard.
     """
     if (not isinstance(snapshot, Mapping)
             or canonical_family_name(snapshot) != "受電箱"
             or snapshot.get("nfb_config_submitted") is not True
             or snapshot.get("active_mode") == "quantity"):
         raise ValueError("固定片 CHECK 限受電箱已提交的單只／套連實體；數量版本須逐版驗證")
-    dimensions = tuple(float(snapshot[key]) for key in ("w", "h", "d"))
-    thickness = float(snapshot["t"])
-    if dimensions[0] <= 0 or thickness <= 0:
-        raise ValueError("固定片側板 CHECK 箱寬與側板厚度必須為正")
+    dimensions = tuple(
+        normalize_operator_source_dimension(snapshot[key], field=key)
+        for key in ("w", "h", "d")
+    )
+    thickness = normalize_operator_source_dimension(snapshot["t"], field="t")
     return dimensions, thickness
 
 
@@ -225,7 +227,7 @@ def _readback_marking_lines(path, expected_segments, *, original_scene=None, che
 
 def export_receiving_ear_side_check_only_dxf(
     snapshot, geometry, output_dir, *, dimensions, sheet_thickness,
-    overwrite=False,
+    overwrite=False, pre_commit_guard=None,
 ) -> ReceivingEarSideCheckDxfReceipt:
     """Write and independently reopen BOTH side sheets or commit NEITHER.
 
@@ -233,6 +235,10 @@ def export_receiving_ear_side_check_only_dxf(
     geometry. A failed side check, roundtrip, or output collision leaves no
     published partial pair. Names explicitly identify check-only status.
     """
+    if pre_commit_guard is not None:
+        if not callable(pre_commit_guard):
+            raise TypeError("WHD_PRECOMMIT_SOURCE_GUARD_INVALID")
+        pre_commit_guard()
     uv, physical, parts, previews = _verified_pair(
         snapshot, geometry, dimensions=dimensions, sheet_thickness=sheet_thickness,
     )
@@ -283,8 +289,11 @@ def export_receiving_ear_side_check_only_dxf(
                 check_scene=previews[side],
             )
             staged[side] = staged_path
+        if pre_commit_guard is not None:
+            pre_commit_guard()
         committed = _atomic_commit_staged_dxfs(
             staged, root, overwrite=overwrite,
+            pre_commit_guard=pre_commit_guard,
         )
     return ReceivingEarSideCheckDxfReceipt(
         output_paths=tuple((side, committed[side]) for side in _SIDE_NAMES),

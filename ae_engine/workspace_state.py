@@ -8,6 +8,7 @@ mutable singleton is shared between clients.
 from __future__ import annotations
 
 from copy import deepcopy
+from dataclasses import dataclass
 from typing import Mapping
 
 from .custom_part_catalog import CustomPartCatalog, is_custom_part
@@ -42,6 +43,58 @@ def normalize_existing_parts(values) -> tuple[str, ...]:
     ordered = [key for key in PART_ORDER if key in seen]
     ordered.extend(key for key in raw if key not in PART_ORDER)
     return tuple(ordered)
+
+
+@dataclass(frozen=True)
+class OperatorWorkspaceSnapshotPresence:
+    """Detached physical presence/active part written to Fold Designer projects."""
+
+    existing_parts: tuple[str, ...]
+    active_part: str | None
+
+
+def project_operator_fold_designer_workspace_presence(
+    current_existing_parts: object,
+    workspace_existing_parts: object,
+    active_part: object,
+) -> OperatorWorkspaceSnapshotPresence:
+    """Resolve persisted physical part identity without GUI-owned ordering.
+
+    The current controller owns *present* parts, while the committed Workspace
+    owns dynamic part order.  The canonical Engine PART_ORDER precedes custom
+    parts exactly as the historical Fold Designer projection did.  Invalid
+    selections fall back to the first genuinely present physical part.
+    """
+    def rows(value: object, label: str) -> tuple[str, ...]:
+        if value is None or isinstance(value, (str, bytes, Mapping)):
+            raise ValueError(f"{label} must be physical part keys")
+        try:
+            result = tuple(value)
+        except TypeError as exc:
+            raise ValueError(f"{label} must be physical part keys") from exc
+        if any(not isinstance(key, str) or not key.strip() for key in result):
+            raise ValueError(f"{label} contains invalid physical part keys")
+        return result
+
+    present = set(normalize_existing_parts(
+        rows(current_existing_parts, "current_existing_parts")
+    ))
+    workspace_order = normalize_existing_parts(
+        rows(workspace_existing_parts, "workspace_existing_parts")
+    )
+    canonical = tuple(key for key in PART_ORDER if key in present)
+    dynamic = tuple(
+        key for key in workspace_order
+        if key in present and key not in PART_ORDER
+    )
+    ordered = canonical + dynamic
+    if not ordered:
+        raise ValueError("physical Workspace snapshot has no existing parts")
+    candidate = str(active_part or "").strip()
+    # Historical Save→Reload uses the first physical part when no selection
+    # was made, unlike the independent WorkspaceState(None) edit mode.
+    repaired = _repair_active(candidate or ordered[0], ordered, "first")
+    return OperatorWorkspaceSnapshotPresence(ordered, repaired)
 
 
 def _repair_active(active_part, existing_parts, policy: str) -> str | None:

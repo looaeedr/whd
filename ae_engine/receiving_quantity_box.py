@@ -254,3 +254,165 @@ def require_valid_quantity_features(snapshot):
     errors = quantity_feature_errors(snapshot)
     if errors:
         raise ValueError("不能輸出 DXF：" + "；".join(errors))
+
+
+
+def commit_operator_quantity_version_action(
+    snapshot, quantity_model, *, action, version_id, piece_count=None,
+    confirmed=False,
+):
+    """Commit one Quantity version operation on its Engine-owned live model.
+
+    An isolated copy is validated first. Only one workspace notification is
+    allowed, and a failed callback restores the original model without
+    issuing another notification.
+    """
+    from .receiving_quantity_versions import QuantityModel
+
+    if (not isinstance(snapshot, Mapping)
+            or snapshot.get("active_mode") != "quantity"
+            or not isinstance(quantity_model, QuantityModel)):
+        raise ValueError("QUANTITY_VERSION_SOURCE_REQUIRED")
+    original = quantity_model.snapshot()
+    if snapshot.get("quantity") != original:
+        raise ValueError("QUANTITY_VERSION_SOURCE_DRIFT")
+    if action not in {"select", "add", "delete", "count"}:
+        raise ValueError("QUANTITY_VERSION_ACTION_UNSUPPORTED")
+    if not isinstance(version_id, str) or not version_id:
+        raise ValueError("QUANTITY_VERSION_ID_REQUIRED")
+    if action != "select" and version_id != original["selected_version_id"]:
+        raise ValueError("QUANTITY_VERSION_SELECTED_ID_DRIFT")
+    if action != "count" and piece_count is not None:
+        raise ValueError("QUANTITY_VERSION_UNEXPECTED_COUNT")
+    if action != "delete" and confirmed is not False:
+        raise ValueError("QUANTITY_VERSION_UNEXPECTED_CONFIRMATION")
+    if action == "delete" and type(confirmed) is not bool:
+        raise ValueError("QUANTITY_VERSION_INVALID_CONFIRMATION")
+
+    def apply(owner):
+        if action == "select":
+            return owner.select(version_id)
+        if action == "add":
+            return owner.add_version()
+        if action == "delete":
+            return owner.delete_selected(confirmed=confirmed)
+        return owner.set_piece_count(piece_count)
+
+    detached = QuantityModel.from_payload(original)
+    result = apply(detached)
+    expected = detached.snapshot()
+    # Navigation must remain available to repair invalid historical holes.
+    # Actual manufacturing-source mutations are validated before commit.
+    if expected != original and action != "select":
+        candidate = deepcopy(dict(snapshot))
+        candidate["quantity"] = expected
+        require_valid_quantity_features(candidate)
+    if quantity_model.snapshot() != original:
+        raise ValueError("QUANTITY_VERSION_CHANGED_DURING_VALIDATION")
+    if expected == original:
+        return result
+    try:
+        committed = apply(quantity_model)
+        if quantity_model.snapshot() != expected:
+            raise ValueError("QUANTITY_VERSION_COMMITTED_SOURCE_DRIFT")
+    except Exception:
+        quantity_model._restore_validated_owner_snapshot(original)
+        raise
+    return committed
+
+
+def commit_operator_quantity_version_holes(
+    snapshot, quantity_model, *, version_id, role, features,
+):
+    """Validate and commit a captured Quantity Head/Tail version in one Engine call.
+
+    The incoming snapshot is a detached physical-source projection; the live
+    QuantityModel is the sole writable owner. Validate every version against
+    the canonical finished-face surfaces before a single change notification.
+    A stale, deleted or switched editor may not overwrite a different version.
+    """
+    from .receiving_quantity_versions import QuantityModel
+
+    if (not isinstance(snapshot, Mapping)
+            or snapshot.get("active_mode") != "quantity"
+            or not isinstance(quantity_model, QuantityModel)):
+        raise ValueError("QUANTITY_HOLE_SOURCE_REQUIRED")
+    original = quantity_model.snapshot()
+    if snapshot.get("quantity") != original:
+        raise ValueError("QUANTITY_HOLE_SOURCE_VERSION_DRIFT")
+
+    detached = QuantityModel.from_payload(original)
+    detached.set_version_features(version_id, role, features)
+    expected = detached.snapshot()
+    candidate = deepcopy(dict(snapshot))
+    candidate["quantity"] = expected
+    require_valid_quantity_features(candidate)
+    if quantity_model.snapshot() != original:
+        raise ValueError("QUANTITY_HOLE_SOURCE_CHANGED_DURING_VALIDATION")
+    if expected == original:
+        return False
+
+    try:
+        quantity_model.set_version_features(version_id, role, features)
+        if quantity_model.snapshot() != expected:
+            raise ValueError("QUANTITY_HOLE_COMMITTED_VERSION_DRIFT")
+    except Exception:
+        # Restore without notifying UI a second time after callback failure.
+        quantity_model._restore_validated_owner_snapshot(original)
+        raise
+    return True
+
+
+def _require_operator_receiving_quantity_source(snapshot):
+    """Return the real Quantity version and box, never a synthetic Bay owner."""
+    from .cabinet_types.policy import canonical_family_name
+    from .receiving_quantity_versions import QuantityModel
+
+    if (not isinstance(snapshot, Mapping)
+            or canonical_family_name(snapshot) != "受電箱"
+            or snapshot.get("active_mode") != "quantity"):
+        raise ValueError("RECEIVING_SINGLE_QUANTITY_MODE_REQUIRED")
+    if BOX_KEY not in snapshot or "quantity" not in snapshot:
+        raise ValueError("RECEIVING_SINGLE_QUANTITY_SOURCE_REQUIRED")
+    box = normalize_common_box(snapshot[BOX_KEY])
+    model = QuantityModel.from_payload(snapshot["quantity"])
+    return box, model
+
+
+def project_operator_receiving_quantity_size_count(snapshot):
+    """Read a physical common W/H/D and Quantity version piece counts.
+
+    This is a read-only operator projection, not a new persisted owner.
+    """
+    box, model = _require_operator_receiving_quantity_source(snapshot)
+    return {
+        "width": box["w"], "height": box["h"], "depth": box["d"],
+        "count": model.selected_piece_count,
+        "total_count": model.total_piece_count,
+        "version_count": model.version_count,
+    }
+
+
+def apply_operator_receiving_quantity_size_count(
+    snapshot, *, width, height, depth, count,
+):
+    """Detached Engine transaction for Quantity W/H/D and piece count.
+
+    The canonical Engine validates the entire resulting physical box,
+    selected version and all head/tail hole features BEFORE any GUI mode
+    publish. Never mutate the original project or calculate manufacture
+    geometry in the GUI.
+    """
+    from .receiving_quantity_versions import positive_piece_count
+
+    _, model = _require_operator_receiving_quantity_source(snapshot)
+    # Saved material T is a physical source: no fabricated GUI default.
+    positive_dimension(snapshot.get("t"), "t")
+    selected_count = positive_piece_count(count)
+    model.set_piece_count(selected_count)
+    projected = update_common_box(
+        snapshot, {"w": width, "h": height, "d": depth},
+    )
+    projected["quantity"] = model.snapshot()
+    require_valid_quantity_features(projected)
+    return projected

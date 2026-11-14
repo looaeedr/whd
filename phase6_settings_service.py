@@ -11,7 +11,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Mapping
 
+from ae_engine import manufacturing_api
+from phase6_settings_center import SETTING_SPECS
 import phase6_settings_transitions as settings_transitions
+
+_STAGE_SPECS = {spec.key: spec for spec in SETTING_SPECS}
 
 
 @dataclass(frozen=True)
@@ -105,17 +109,37 @@ class Phase6SettingsTransactionService:
         if destroying:
             return SettingsStagePlan(False, None, None)
         key = str(key)
-        if self._settings_values.get(key) == value:
+        spec = _STAGE_SPECS.get(key)
+        if spec is None:
+            raise ValueError(f"未定義的 Settings 欄位：{key}")
+
+        # Direct service/controller callers must obey the same public Engine
+        # source contract as Tk before touching any saved/pending draft.
+        if key in manufacturing_api.PHYSICAL_SNAPSHOT_SOURCE_KEYS:
+            staged_value = manufacturing_api.normalize_operator_source_dimension(
+                value, field=key,
+            )
+        else:
+            # The legacy adapter owns only UI text size; all other authored
+            # boolean/numeric settings go through the original public Engine.
+            normalized = settings_transitions.normalize_updates(
+                {key: spec.default}, {key: value},
+            )
+            if key not in normalized:
+                raise ValueError(f"{key} 設定來源無效，拒絕暫存")
+            staged_value = normalized[key]
+
+        if self._settings_values.get(key) == staged_value:
             return SettingsStagePlan(False, None, None)
-        self._settings_values[key] = value
-        self._input_snapshot[key] = value
-        self._pending[key] = value
+        self._settings_values[key] = staged_value
+        self._input_snapshot[key] = staged_value
+        self._pending[key] = staged_value
         return SettingsStagePlan(
             True,
             self._debounce_job,
             self.DEBOUNCE_MS,
             key,
-            value,
+            staged_value,
         )
 
     def drain_pending(self) -> SettingsFlushPlan:

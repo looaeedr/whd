@@ -58,8 +58,12 @@ def _apply_cabinet_family_endcap_policy(
             structure_state = None
     if thickness is None:
         try:
-            thickness = float(self.t_var.get())
+            # Preserve the raw UI source. Only the public Engine may qualify
+            # this physical T for EndCap geometry and family compensation.
+            thickness = self.t_var.get()
         except Exception:
+            # Preserve legacy missing-source handling for callers that have
+            # no live Tk control; the Engine owns the optional default.
             thickness = None
     return manufacturing_api.apply_cabinet_family_endcap_policy(
         policy, part_key, family_source=family_source,
@@ -167,7 +171,7 @@ def _export_authoritative_part(self, spec, output_path, context=None):
         )
     return manufacturing_api.save_part_render_data_dxf(
         render_data, output_path,
-        overwrite=bool(getattr(ctx, "overwrite", False)),
+        overwrite=getattr(ctx, "overwrite", False),
         verify_reopen=True,
     )
 
@@ -282,16 +286,11 @@ def _payload_topology_context(part_key, payload):
 
 
 def _payload_policy(self, data, corner_state, part, fw, unknown, thickness):
-    resolved = self._fold_designer_corner_policy_from_payload(corner_state, part, fw)
-    if resolved is None and not unknown:
-        resolved = manufacturing_api.corner_policy_from_payload(
-            corner_state, part, fw,
-            known_family=self._current_cabinet_type_name(),
-        )
-    return self._apply_cabinet_family_endcap_policy(
-        resolved,
-        part,
-        snapshot=data,
+    """Forward operator source; Engine owns certified fallback and Family FW."""
+    return manufacturing_api.resolve_operator_fold_designer_payload_corner_policy(
+        corner_state, part, fw,
+        unknown=unknown,
+        family_source=data,
         thickness=thickness,
         structure_state=data.get("box_body_structure"),
     )
@@ -299,43 +298,35 @@ def _payload_policy(self, data, corner_state, part, fw, unknown, thickness):
 def _door_part_spec_from_payload_context(
     self, data, w, h, t, fw, model, unknown, features, policy, door_cell
 ):
+    """Only forward original Door/Cell inputs; Engine owns real indicator holes."""
+    cell_source = None
     if door_cell is not None:
         cell_key = f"{door_cell.column_index}:{door_cell.row_index}"
-        states = dict(
-            data.get("door_layout_indicator_states")
-            or getattr(self, "door_layout_indicator_states", None)
-            or {}
+        # A present persisted inventory (including {}) outranks a stale GUI
+        # mirror. Only a truly absent legacy field may use the live editor.
+        if "door_layout_indicator_states" in data:
+            states = data["door_layout_indicator_states"]
+        else:
+            states = getattr(self, "door_layout_indicator_states", None)
+            if states is None:
+                states = {}
+        # Engine owns the entire saved physical-hole source schema. Do not
+        # replace False/[]/None with an empty inventory or skip a damaged cell.
+        manufacturing_api.project_operator_door_layout_indicator_snapshot_states(
+            states,
         )
-        state = manufacturing_api.project_operator_door_cell_indicator_manufacturing_source(
-            states.get(cell_key)
+        # An absent legacy cell is a plain Door. A present malformed row
+        # must reach the Engine unmodified, not the GUI display-repair path.
+        cell_source = states.get(cell_key)
+        if cell_source is None:
+            cell_source = {"mode": "none"}
+        # This public Engine gate must run BEFORE the PartSpec adapter: a
+        # malformed saved cell cannot become a seemingly valid GUI draft if
+        # downstream material resolution or a caller shim is unavailable.
+        # Discard the view; pass the original row to the same Engine owner.
+        manufacturing_api.project_operator_door_cell_indicator_manufacturing_source(
+            cell_source,
         )
-        mode = state["mode"]
-        groups = tuple(state["groups"][:state["layers"]]) if mode != "none" else ()
-        indicator_hole = (
-            manufacturing_api.indicator_box_opening_size(groups, thickness=t)
-            if mode == "indicator_box" else None
-        )
-        direct = groups if mode == "indicator" else ()
-        ind_offset = (float(state.get("offset_x", 0.0)), float(state.get("offset_y", 0.0)))
-        use_box_dist = bool(state.get("is_box_dist", False))
-    else:
-        box_enabled = bool(data.get("door_indicator_box_enabled"))
-        groups = (
-            manufacturing_api.normalize_fold_designer_indicator_groups(
-                data.get("indicator_layer_groups") or (),
-            ) if box_enabled else ()
-        )
-        direct_source = data.get("door_indicator_groups") or ()
-        direct = (
-            manufacturing_api.normalize_fold_designer_indicator_groups(direct_source)
-            if direct_source else ()
-        )
-        indicator_hole = (
-            manufacturing_api.indicator_box_opening_size(groups, thickness=t)
-            if box_enabled else None
-        )
-        ind_offset = tuple(data.get("door_indicator_offset") or (0.0, 0.0))
-        use_box_dist = bool(data.get("use_box_distance", False))
     return self._door_part_spec_from_values(
         {
             "w": w, "h": h, "t": t, "fw": fw,
@@ -345,10 +336,8 @@ def _door_part_spec_from_payload_context(
         },
         model_name=(None if unknown else model),
         features=features,
-        indicator_hole=indicator_hole,
-        door_indicator=(direct or None),
-        door_indicator_offset=ind_offset,
-        use_box_distance=use_box_dist,
+        indicator_source_state=cell_source,
+        fold_designer_indicator_source=(data if door_cell is None else None),
         corner_policy=policy,
         frame_edges=(door_cell.edges if door_cell is not None else None),
     )
@@ -404,7 +393,12 @@ def _fold_designer_part_spec_from_payload(self, part_key, payload):
             ),
         }
         resolved_cuts = data.get("resolved_assembly_relief_cuts")
-        if resolved_cuts is None and bool(data.get("_use_committed_relief")):
+        if (resolved_cuts is None and
+                manufacturing_api.normalize_operator_settings_boolean(
+                    data.get("_use_committed_relief", False)
+                )):
+            # A persisted "false" is not permission to attach physical CUTTING.
+            # Invalid present flags must fail before a head/tail PartSpec exists.
             resolved_cuts = self._resolved_committed_assembly_relief_cuts(
                 key, endcap_values, data.get("fold_profiles") or {}
             )

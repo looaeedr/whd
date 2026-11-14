@@ -7,38 +7,9 @@ from copy import deepcopy
 from dataclasses import dataclass, replace
 from pathlib import Path
 import tkinter as tk
-import ae_engine.ae as ae
 from ae_engine import manufacturing_api
-from ae_engine.cabinet_types import policy as cabinet_family_policy
-from ae_engine.receiving_layout import (
-    ensure_receiving_layout as ensure_receiving_preview_layout,
-    resize_receiving_bays as resize_receiving_preview_bays,
-)
-from ae_engine.receiving_joint_locks import resolve_receiving_joint_lock_pattern
-from ae_engine.contracts import BoxBodyPartSpec, ManufacturingContext
-from ae_engine.corner_type_ui import (
-    is_unknown_model,
-    normalize_custom_model_name,
-    known_model_corner_state,
-    policy_from_corner_state,
-)
-from ae_engine.sheetmetal_geometry import (
-    CornerTypeId,
-    CornerTypeSelection,
-    EDITABLE_CORNER_TYPE_IDS,
-    CORNER_TYPE_LABELS,
-    normalize_corner_selection,
-)
-from ae_engine.sheetmetal_drawing import CirclePrimitive, PolylinePrimitive
-from ae_engine.sheetmetal_part_adapters import (
-    DoorFrameEdges,
-    derive_door_layout_cells,
-    door_layout_part_key,
-    door_layout_export_filename,
-    door_layout_feature_map_to_part_features,
-)
+from ae_engine.sheetmetal_geometry import CornerTypeId
 from phase6_fold_profiles import formed_box_body_fw_widths
-from ae_engine.assembly_joint import AssemblyJointSource, migrate_legacy_snapshot_joints
 from phase6_endcap_semantics import (
     normalize_endcap_fw_state,
     ASSEMBLY_TYPE_LABELS,
@@ -477,7 +448,7 @@ def apply_settings_profile_projection(
     # ReceivingLayout validation (otherwise genuine ProfileFeature rows
     # become plain dicts and every Bay selector fails on a model switch).
     live = getattr(app, "_phase6_input_snapshot", {}) or {}
-    if str(snapshot.get("model") or "") in {"受電箱", "RECEIVING"}:
+    if manufacturing_api.operator_canonical_family_name(snapshot) == "受電箱":
         for key in ("receiving_layout", "part_features"):
             if key in live and key in snapshot:
                 snapshot[key] = deepcopy(live[key])
@@ -532,17 +503,14 @@ def refresh_profiles_from_settings(
     required = lambda name: self._required(namespace, name)
     workspace = app.designer_workspace
     snapshot = getattr(app, "_phase6_input_snapshot", {})
-    settings = dict(getattr(app, "_settings_values", {}) or {})
-    if str(snapshot.get("model") or "") in {"受電箱", "RECEIVING"}:
-        # The pure Settings projection overlays settings onto the current
-        # snapshot. Supply live Receiving W/H/D to this *detached request* so
-        # geometry, CUTTING and 3D track the active Bay/Quantity without
-        # mutating or using up the operator's saved default W/H/D.
-        current_box = getattr(app, "_phase6_box_whd", {}) or {}
-        settings.update({
-            axis: current_box[axis] for axis in ("w", "h", "d")
-            if axis in current_box
-        })
+    # The canonical Engine Registry decides whether live Receiving Bay W/H/D
+    # override cached Settings defaults. It validates physical dimensions
+    # before a Fold plan can be built; this GUI must not duplicate that rule.
+    settings = manufacturing_api.project_receiving_manufacturing_request_settings(
+        snapshot,
+        getattr(app, "_settings_values", {}) or {},
+        getattr(app, "_phase6_box_whd", {}) or {},
+    )
     request = required("SettingsProfileProjectionRequest")(
         settings_values=settings,
         input_snapshot=snapshot,
@@ -550,8 +518,8 @@ def refresh_profiles_from_settings(
         existing_profiles=workspace.part_profiles_snapshot(),
         box_body_profile=app.state.profiles_vault.get("箱身", []),
         active_part=workspace.active_part or "box_body",
-        reset_box_profile=bool(reset_box_profile),
-        reset_all_profiles=bool(reset_all_profiles),
+        reset_box_profile=reset_box_profile,
+        reset_all_profiles=reset_all_profiles,
     )
     plan = required("build_settings_profile_projection")(request)
     return self.apply_settings_profile_projection(
@@ -587,8 +555,8 @@ def settings_application_apply_profile_plan(
     try:
         return self.refresh_profiles_from_settings(
             namespace,
-            reset_box_profile=bool(reset_box_profile),
-            reset_all_profiles=bool(reset_all_profiles),
+            reset_box_profile=reset_box_profile,
+            reset_all_profiles=reset_all_profiles,
             render=bool(render),
         )
     finally:
@@ -632,6 +600,20 @@ def settings_application_project_ui_values(
         finally:
             app._phase6_baseline_guard = False
         return
+
+    # A saved "false" must never toggle a physical Settings control on.
+    # Validate *all* projected booleans through Engine before touching any
+    # editor snapshot, Family state or Tk variable; do not mutate the caller.
+    boolean_values = {
+        key: manufacturing_api.normalize_operator_settings_boolean(values[key])
+        for controls in (
+            getattr(app, "left_global_vars", {}),
+            getattr(app, "setting_vars", {}),
+        )
+        for key, var in controls.items()
+        if key in values and isinstance(var, original.tk.BooleanVar)
+    }
+    values.update(boolean_values)
 
     if bool(editor_commit) and editor_snapshot is not None:
         app._phase6_input_snapshot.update(dict(editor_snapshot or {}))
@@ -694,14 +676,25 @@ def settings_application_project_ui_values(
         if "fw" in values:
             state = getattr(app, "_phase6_endcap_fw_state", None)
             if isinstance(state, required("MutableMapping")):
-                required("commit_box_fw")(state, float(values["fw"]))
+                manufacturing_api.commit_operator_box_fw_takeover(
+                    state, values["fw"],
+                )
                 app._phase6_input_snapshot["endcap_fw"] = deepcopy(state)
 
         defaults = dict(getattr(plan, "defaults", {}) or {})
         if defaults:
-            for key, attr in (("w", "w"), ("h", "h"), ("d", "d")):
-                if key in defaults:
-                    setattr(app.state, attr, original.get_int(defaults[key]))
+            # The Engine already owns physical Family defaults. Revalidate
+            # every provided axis before touching GUI state or Tk widgets so
+            # invalid later axes cannot leave an earlier one half-applied.
+            physical_defaults = {
+                axis: manufacturing_api.normalize_operator_source_dimension(
+                    defaults[axis], field=axis,
+                )
+                for axis in ("w", "h", "d")
+                if axis in defaults
+            }
+            for axis, value in physical_defaults.items():
+                setattr(app.state, axis, value)
             app.v_w.set(str(app.state.w))
             app.v_h.set(str(app.state.h))
             app.v_d.set(str(app.state.d))
@@ -737,7 +730,7 @@ def settings_application_project_ui_values(
             if key == "ui_text_size":
                 var.set(required("ui_text_size_label")(values[key]))
             elif isinstance(var, original.tk.BooleanVar):
-                var.set(bool(values[key]))
+                var.set(values[key])
             else:
                 var.set(number_text(values[key]))
         for key, var in getattr(app, "setting_vars", {}).items():
@@ -746,7 +739,7 @@ def settings_application_project_ui_values(
             if key == "ui_text_size":
                 var.set(required("ui_text_size_label")(values[key]))
             elif isinstance(var, original.tk.BooleanVar):
-                var.set(bool(values[key]))
+                var.set(values[key])
             else:
                 var.set(number_text(values[key]))
     finally:

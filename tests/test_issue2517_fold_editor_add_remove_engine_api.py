@@ -74,7 +74,7 @@ def test_gui_add_remove_only_forward_operator_actions_preserving_vault_list(monk
     monkeypatch.setattr(manufacturing_api, "operator_fold_editor_remove_segment",
                         lambda segs, index, thickness, *, symmetric_box_body:
                         (called.append(("remove",index,thickness,symmetric_box_body)) or [{"len": 16}]))
-    state = SimpleNamespace(phase6_thickness=2.0, phase6_fold_ui_vault_key="箱身",
+    state = SimpleNamespace(phase6_thickness=2.0, active_bend="X", phase6_fold_ui_vault_key="箱身",
                             symmetric=True, profiles_vault={"箱身": rows})
     host = SimpleNamespace(
         state=state, save=lambda:None, _mark_workspace_dirty=lambda:None,

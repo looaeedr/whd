@@ -17,6 +17,8 @@ import math
 from enum import Enum
 from typing import Mapping
 
+from .operator_settings_transactions import normalize_operator_settings_boolean
+
 
 class BoxBodyStructureType(str, Enum):
     """箱身正式結構型態。"""
@@ -516,14 +518,26 @@ def side_rear_bend_dimension_space(state: Mapping[str, object] | None) -> str:
     return space
 
 
+def _side_rear_bend_physical_sources(
+    normalized: Mapping[str, object], thickness: object,
+) -> tuple[float, float]:
+    """Validate the same original physical sources for both direction reads."""
+    cfg = normalized["configs"][BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value]
+    value = _finite_dimension(cfg.get("side_rear_bend", 15.0), field="側板後折")
+    t = _finite_dimension(thickness, field="側板後折板厚")
+    if value <= 0:
+        raise ValueError("側板後折必須大於 0")
+    if t <= 0:
+        raise ValueError("側板後折板厚必須大於 0")
+    return value, t
+
+
 def side_rear_bend_material_length(
     state: Mapping[str, object] | None, thickness: float
 ) -> float:
     """Resolve the physical/material rear flange exactly once."""
     normalized = normalize_box_body_structure_state(state)
-    cfg = normalized["configs"][BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value]
-    value = _finite_dimension(cfg.get("side_rear_bend", 15.0), field="側板後折")
-    t = _finite_dimension(thickness, field="側板後折板厚")
+    value, t = _side_rear_bend_physical_sources(normalized, thickness)
     if side_rear_bend_dimension_space(normalized) == "OUTSIDE":
         value -= t
     if not math.isfinite(value) or value <= 0:
@@ -536,11 +550,13 @@ def side_rear_bend_outside_length(
 ) -> float:
     """Resolve the operator-facing outside rear flange without changing geometry."""
     normalized = normalize_box_body_structure_state(state)
-    cfg = normalized["configs"][BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value]
-    value = _finite_dimension(cfg.get("side_rear_bend", 15.0), field="側板後折")
-    t = _finite_dimension(thickness, field="側板後折板厚")
+    value, t = _side_rear_bend_physical_sources(normalized, thickness)
     if side_rear_bend_dimension_space(normalized) == "MATERIAL":
         value += t
+    elif value <= t:
+        # An OUTSIDE result without positive material cannot be an
+        # authoritative physical flange even if the display number is > 0.
+        raise ValueError("側板後折換算後料尺寸必須大於 0")
     if not math.isfinite(value) or value <= 0:
         raise ValueError("側板後折包外尺寸必須大於 0")
     return value
@@ -577,14 +593,24 @@ def apply_box_body_structure_numeric(
     state: Mapping[str, object],
     type_id: object,
     field: str,
-    value: float,
+    value: object,
     *,
-    total_w: float,
-    outside_family: bool = False,
+    total_w: object,
+    outside_family: object = False,
 ) -> dict:
+    """Validate original physical BoxBody sources before editing canonical state.
+
+    Old GUI float() coercion could turn Boolean 1-mm and NaN into real relief
+    or split dimensions. Outside-family is an Engine policy boolean, not the
+    truthiness of a serialized string such as "false".
+    """
     kind = BoxBodyStructureType(type_id)
     field = str(field)
-    value = float(value)
+    value = _finite_dimension(value, field=f"箱身結構 {field}")
+    total_w = _finite_dimension(total_w, field="箱身總寬")
+    if total_w <= 0:
+        raise ValueError("箱身總寬必須大於 0")
+    outside_family = normalize_operator_settings_boolean(outside_family)
     if (
         kind is BoxBodyStructureType.TWO_PIECE_W_SPLIT
         and field in {"left", "right"}

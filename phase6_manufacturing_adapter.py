@@ -448,13 +448,11 @@ def _cabinet_model(app: Any, snapshot: dict) -> str:
     live = _manufacturing_operator_var_get(
         getattr(app, "baseline_model_var", None), "baseline_model_var", "",
     )
-    value = str(live or "").strip()
-    if value:
-        return value
-    return str(
-        snapshot.get("model") or snapshot.get("cabinet_type")
-        or getattr(app, "_phase6_baseline_initial_model", "") or ""
-    ).strip()
+    return manufacturing_api.resolve_operator_manufacturing_family_source(
+        snapshot,
+        live_model=live,
+        initial_model=getattr(app, "_phase6_baseline_initial_model", ""),
+    )
 
 
 def build_manufacturing_request(
@@ -480,20 +478,10 @@ def build_manufacturing_request(
     settings = manufacturing_api.project_receiving_manufacturing_request_settings(
         snapshot, settings, box_dimensions,
     )
-    # A request assembled from a sparse input snapshot must still carry the
-    # actual operator W/H/D/T of THIS app, never infer geometry from a cached
-    # display or a different Bay. Existing authoritative values take priority.
-    for axis in ("w", "h", "d"):
-        if axis in box_dimensions:
-            snapshot.setdefault(axis, box_dimensions[axis])
-        elif axis in settings:
-            snapshot.setdefault(axis, settings[axis])
-    # Manufacturing T is operator-owned outside-source data, never a hidden
-    # 2 mm AE default when source reads fail or legacy snapshots are sparse.
-    # An existing project snapshot wins over a stale Settings cache.
-    raw_t = snapshot["t"] if "t" in snapshot else settings.get("t")
-    snapshot["t"] = manufacturing_api.normalize_operator_source_dimension(
-        raw_t, field="t",
+    # GUI forwards detached sources; Engine owns committed/live/Settings
+    # dimensional provenance and strict physical T before request construction.
+    snapshot = manufacturing_api.project_operator_manufacturing_request_snapshot(
+        snapshot, settings, box_dimensions,
     )
     corner_state = _mapping(getattr(app, "_phase6_corner_state", {}) or {})
     endcap_fw = _mapping(getattr(app, "_phase6_endcap_fw_state", {}) or {})
@@ -508,9 +496,13 @@ def build_manufacturing_request(
         snapshot, live,
     )
 
+    # Resolve operator physical-part inventory once via the Engine. Re-reading
+    # live Workspace after building the part DTOs could publish a self-
+    # contradictory immutable Request if selection changes during callbacks.
+    canonical_part_keys = _canonical_part_keys(app)
     part_inputs: list[ManufacturingPartInput] = []
     scene_values_by_part = {}
-    for key in _canonical_part_keys(app):
+    for key in canonical_part_keys:
         x_profile, y_profile = _profile_inputs_for_part(app, key)
         scene_values = _scene_values_for_part(app, key, scene_payload_builder)
         scene_values_by_part[key] = deepcopy(dict(scene_values))
@@ -557,7 +549,7 @@ def build_manufacturing_request(
         endcap_fw=endcap_fw,
         endcap_bottom_wrap=endcap_bottom_wrap,
         assembly_graph=_assembly_graph_inputs(snapshot),
-        canonical_part_keys=_canonical_part_keys(app),
+        canonical_part_keys=canonical_part_keys,
         parts=tuple(part_inputs),
         operator_finished_dimensions=_finished_dimensions_for_part(
             app, "box_body", finished_dimensions_provider

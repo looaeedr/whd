@@ -6,6 +6,1087 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] #2517 DXF 出圖見證須拒絕途中才接上的 Workspace／孔位來源（2026-11-13）
+
+- 原 `gui_modules.project.export_actions._current_authoritative_export_guard` 只在 `workspace_witness is not None` 時重新檢查工作區。因此開始出圖時 Workspace 尚未接入、原 snapshot() 讀回 None、或尚無 snapshot reader，後來確認視窗期間新載入真實 `part_features`／板件，Engine 實體出圖可能沿舊來源提交而守衛不知。這是 GUI 原始來源交易身份漂移，不等於製造幾何／DXF 算法缺陷。
+- 在原守衛同時封存 Workspace identity、是否有 callable snapshot reader 與其**完整回傳值（包括 None）**；任一條件在分組／資料夾／覆寫對話框及 Engine staged DXF 出圖提交期間變更即 fail-closed，舊圖不得覆寫。沒 Workspace 的歷史 headless 路徑保持同一 None 兼容；原 Engine 公開 `manufacturing_api.save_composed_panel_dxf`、真 CUTTING／BEND、2D/3D、DXF writer 不變。
+- `tests/test_issue2517_export_workspace_source_guard_real_dxf.py` 對 no-Workspace→新實體、reader 新增、None→孔位及真 `.p6fold` Save→Reload、Engine 原子 staged DXF／獨立重開測試進行拒絕與保留舊檔驗證。此為單一 GUI 製造出口保全子驗收，不代表 #2517 全箱 2D／3D／DXF／CADSplit／Windows UAT 完成。
+
+
+## [CURRENT] #2517 GUI 已確認的 Receiving DXF 分組操作不能在模態對話框中漂移（2026-11-13）
+
+- `gui_modules.project.export_actions._selected_dxf_live_operator_sources` 原在選資料夾／覆寫／NFB 部分確認前記錄即時尺寸、選片、孔位和 Indicator，但漏記同一製造工作的 `receiving_dxf_group_mode_var`（ALL／Set／END_VS_MIDDLE 等）。使用者在視窗確認期間更改分組，`_export_selected_resolved_parts` 讀新的操作意圖出圖，但 `_current_authoritative_export_guard` 在 Engine 原子提交時無法察覺，可能將未經當次確認的總計或各組 DXF 發布。
+- GUI 只增加對原始分組選單值的讀取與來源見證，不解析／重算正式 Engine 分組拓樸或加工圖。分組語意仍由 `manufacturing_api.plan_receiving_multibay_export_source`、`export_grouped_receiving_multibay_dxf` 決定；來源改變即沿既有 pre-commit guard 拒絕，已存在 DXF 不得被覆寫。正向以真 `.p6fold` Save→Reload、Engine 原 FinalScene／CUTTING／BEND 寫出 DXF 後獨立 reopen；負向確認分組切換與壞掉的操作來源不發布。無分組控制的舊版金庫型沿原 None 行為。此為操作交易一致性，不是整箱 2D／3D／DXF 或 Windows UAT 完成。
+
+
+## [CURRENT] #2517 Door 指示燈存檔物理 cell key 不得將 tuple 字串化（2026-11-13）
+
+- 已有正式 Engine 門格來源 `(0,0)`／`"0:0"` 可識別同一實體門板；原 `fold_designer_snapshot_dimensions.project_operator_door_layout_indicator_snapshot_states` 直接 `str(cell_key)` 會把 tuple 存成 `"(0, 0)"`，重載後 GUI／Engine 以 `"0:0"` 取不到原真實 IndicatorBox／Door 孔位。
+- 在原 Engine 保存投影中沿用 `door_layout_physical_remap._canonical_remap_cell_key`，驗證並轉正合法 Key，拒絕損壞／重複 alias；不改 MODE、孔位 groups／offset、Factory 公式、實體認證或 DXF writer。真實 GUI snapshot、`.p6fold` 保存／重載、Engine PartSpec／CUTTING DXF 重新開檔與非法來源反例列入測試。#2517 仍須整箱 3D／DXF／Windows UAT。
+
+## [CURRENT] #2517 非數值 CSV 的已配置受電箱底板 2D 不得回用舊 FinalScene（2026-11-13）
+
+- 原 `ae_engine.operator_base_plate_2d.project_receiving_base_plate_2d_snapshot` 對已配置 `receiving_base_plate` 但沒有數值 NFB CSV 的目前受電箱不做來源／實體形狀見證：使用者改變原實體底板 height／shrink／pattern 之後，GUI `base_plate_render_snapshot` 可能仍顯示快取的舊 `ResolvedManufacturingGeometry`，而同時正式製造已使用不同 PartSpec／FinalScene。這是來源漂移，不是允許顯示過期零件。
+- 依既有唯一 `receiving_base_plate_values` 取同一實體配置，無論經原 `nfb_config_submitted`、數值 CSV 或已存明確實體板型都驗 `render_data.unfolded_topology`、`receiving_bend_pattern` 與原實體平板尺寸；不從 GUI／DXF 算假來源、不變更 2D/3D/CUTTING/BEND 公式與正式製造資格。缺原配置不得回退通用底板。
+- 新增真實 GUI → Engine 2D／配置變更拒絕、原 PartSpec、`.p6fold` Save→Reload、3D Fold／DXF reopen 正負來源測試。此為底板顯示快取保全子驗收，不代表 #2517 全箱完成。
+
+
+## [CURRENT] #2517 FoldDesigner BasePlate 2D／PartSpec／3D／DXF 的合法 Receiving Family 別名不可拆成不同實體（2026-11-13）
+
+- 原 `ae_engine.fold_designer_snapshot_dimensions.project_fold_designer_snapshot_dimensions` 在投影底板 2D 時以 `model in {"受電箱","RECEIVING"}` 辨識受電箱；原 `ae_engine.operator_auxiliary_part_specs.resolve_fold_designer_base_plate_source` 與 `build_base_plate_operator_part_spec` 再各自做同樣硬寫判斷。真已配置 `receiving_base_plate` 的 `receiving`／大小寫別名儲存／重新開啟後，2D 底板尺寸可能退回通用收縮，而 3D／正式 DXF 的 PartSpec 未攜原實體 bend pattern。這不是合法的新機械板型。
+- 三處只改用原 `cabinet_types.policy.canonical_family_name` 正規化 Registry 身分，保留原 model_name 作追溯、原 Receiving 實體底板解算與 PartSpec、底板真 CUTTING/BEND、3D Fold Mesh、舊金庫型通用回退和未配置／非法來源 fail-closed；不改尺寸公式、不另造 GUI/CADSplit 出圖、不放行未完成的正式認證。
+- `tests/test_issue2517_baseplate_alias_snapshot_finalscene_dxf_parity.py` 使用原實體 Receiving BasePlate 配置與 GUI 公開投影、真 `.p6fold` Save→Reload、Headless PartSpec、實體 FinalScene CUTTING/BEND、同一 Fold 的 3D Mesh、DXF 寫出後獨立 reopen 及負向資料檢查。僅為指定底板鏈的端到端子驗收，#2517 全面入口與 Windows／CADSplit 完整整箱仍 OPEN。
+
+
+## [CURRENT] #2517 CornerType CROSS 槽位與旋轉來源在真 Save→Reload 不得降成假 STANDARD（2026-11-12）
+
+- 原 Engine 公開 corner_policy_from_payload 由原 corner_type_ui 實作，對已存 raw Corner 先 int(rotation_quadrants) 導致布林或小數成為合法旋轉，對 FW 先 float(fw) 導致 True → 1 mm；更未將 CROSS 的 slot_width／slot_straight_depth／slot_radius 傳入原 CornerTypeSelection。Project codec 已保存這三個物理欄位，但 Reload 所用的政策丟棄，可能讓真 2D CUTTING／3D 陰影／DXF 來源不一致。
+- 原 Engine corner_policy_from_payload 現直接傳 raw 旋轉和 CROSS 三個槽位給既有 CornerTypeSelection.__post_init__，由原型別驗有限整數、bool、CROSS 槽位參數。FW 不再 float(True) 或放過 NaN/Inf，維持原非負 FW draft 相容；未完成的無 Family 四角仍不憑空補角，只有完整手動來源或既有 Certified Registry Family fallback 可得到 Policy。GUI 只呼叫公開 API，沒有增加尺寸、孔位或 Registry 製造公式。
+- tests/test_issue2517_saved_cross_corner_slot_raw_engine_parity.py 使用原 project_feature_codec 真 .p6fold Save→Reload 比對 typed/raw CROSS 槽位完整回讀、原 Engine corner_selection_residual 與 GUI 公開 API 同源；反例拒絕布林／非整數旋轉、非法槽位、非物理 FW 和 None 角來源。這是 Corner 來源一致性子集合，不是全面 FinalScene／DXF／CADSplit／Windows UAT 核准；#2517 維持 OPEN。
+
+
+## [CURRENT] #2517 受電箱 Save→Reload 已確認 Corner Policy 必須還原原始 Engine 型別而非重置 Family（2026-11-12）
+
+- 真 `.p6fold` 由原 `project_feature_codec._encode` 將 `FourCornerTypePolicy`／`CornerTypeSelection` dataclass 展成完整 JSON 字典；讀取經 `project_operator_project_for_read` 不會重建此非 Feature 型別。原 `receiving_factory_requests._saved_operator_state` 只接受直接執行時的 `FourCornerTypePolicy` 實例，令相同已確認的受電箱頭／尾實體截角在 Saved→Reload 後遭誤判為不完整，無法由 Factory 接回 2D／3D／DXF。
+- 只在原 Engine saved Factory 源頭對**完整且精確** codec Policy 欄位／各 CornerTypeSelection 欄位還原原有 dataclass，重用原 `CornerTypeSelection.__post_init__` 及 `FourCornerTypePolicy.fw_for` 嚴格校驗實際類型、有限 FW、截角型別、旋轉、槽寬等；不補造遺漏的物理選片、不套 Family default、不在 GUI 重算機械幾何。實體 W/H/D/T、BoxBody Fold、Head/Tail 成形 Corner 與真 CUTTING 維持既有 Engine owner；型別異常原子拒絕。
+- `tests/test_issue2517_receiving_saved_corner_policy_true_reload_2d3d_dxf.py` 以已確認 2×2 受電箱 Door、已保存真孔位與頭尾 Corner，經實際 `.p6fold` Save→Reload、同源 Factory 2D FinalScene、頭尾成形 3D Mesh 及 9 張正式 DXF 寫出／重開核對；負向損壞欄位不得出圖。此子集合不等於完整受電箱全部板件／Set-Bay／NFB、CADSplit 或 Windows UAT；#2517 保持 OPEN。
+
+
+## [CURRENT] #2517 PAD＋底板 PART_ONLY CHECK/Q 出圖須在對話框及原子發布前後維持同一實體來源（2026-11-12）
+
+- 原 `gui_modules.project.export_actions.export_receiving_pad_base_part_only_dxf` 在輸入材質、製程、數量與選資料夾之前已取已確認 Bay、Hole Editor 與 3D `assembly_parts`；當 Modal Dialog 期間操作者改掉已提交快照／Workspace 時，原公開 `export_verified_pad_base_part_only` 仍可把舊場景製成 CHECK/Q DXF。舊 Engine 已逐件檢查真實 CSV／底板 CUTTING／PAD 世界 3D／完整 T 進孔貼合，但未比對當下即時操作來源，不能視為同一個 CURRENT source。
+- GUI 僅重用原 `_current_authoritative_export_guard` 讀取已存 Snapshot＋Workspace 見證；對話框後先重驗，將同一 callable 經公開 `manufacturing_api.export_verified_pad_base_part_only(..., pre_commit_guard=...)` 傳入原 Engine `receiving_nfb_pad_pair_manufacturing`。Engine 在解幾何前、建立 Stage 前、每批真 DXF reopen 與 CHECK/Q manifest 之後／原子發布前後反覆核對，來源漂移須移除本次新發布檔夾、不得碰舊檔。未提供 guard 的合法 headless 舊呼叫保持原契約，非法 guard 型別先拒絕。
+- 真 `installed_pair()` 的 CSV 物理孔位、PAD 四耳實體與 Base CUTTING／BEND、FinalScene 世界位置、Q 數量和 DXF reopen 維持原 Engine owner，不借 GUI 重算或新增 CADSplit 專屬出圖；`tests/test_issue2517_pad_base_pair_final_source_guard.py` 驗證中斷、發布後變更與回滾以及 GUI Modal 漂移，仍不是整箱 MFG-2／焊接／Windows UAT 核准。#2517 保持 OPEN。
+
+
+## [CURRENT] #2517 直接 DoorPartSpec→Engine 2D／3D／DXF 使用原始實體來源閘門（2026-11-12）
+
+- 原 GUI `build_door_operator_part_spec` 已嚴格檢查 W/H/T/FW、Gap 與 Fold 來源，但可由 headless／CADSplit 提供已確認的 `DoorPartSpec` 直接走 `door_finished_face_size`、`build_part_scene`、`build_part_render_data`、`generate_part`；共同 Engine `manufacturing_door_indicator._resolved_door_params` 原先用 `float(spec.width/height/thickness/frame_width/gap/fold)` 過早丟失來源型別，讓布林製造尺寸誤成 1 mm、非有限 Gap/Fold 進入 FinalScene／DXF。
+- 同一原 `_resolved_door_params` 現在直接重用 `normalize_operator_source_dimension`（W/H/T/FW 必須正有限非 bool）及 `door_operator_part_spec._finite_operator_number`（Gap／Fold 必須有限非 bool，保留原可為零或負的已確認語意）；Family 原本 `door_material_frame_width`、既有 Policy fallback、料長、孔位、BEND/CUTTING、FinalScene、DXF writer 不變。GUI 沒有新增製造責任；直接確認 PartSpec 也不能繞開同一 Engine gate。
+- `tests/test_issue2517_direct_door_partspec_original_source_engine_gate.py` 逐項測同一源對 GUI/headless DoorPartSpec、成品 W/H／2D/3D FinalScene／DXF 入口的非法來源原子拒絕、合法 signed Gap/Fold、Project Save→Reload、金庫型原 `門.dxf` 的真實 FinalScene 與獨立 DXF reopen。#2517 整箱與 Windows UAT 仍 OPEN。
+
+## [CURRENT] #2517 Relief Registry 候選 3D／Mesh 實體 T 與已驗布林須與正式 Engine 一致（2026-11-12）
+
+- 原 `fold_designer_bridge._phase6_registry_validate_candidate_3d`／`_phase6_mesh_profiles_for_part` 對原始 T 用 `_num(settings.get("t", snapshot.get("t", 2.0)), 2.0)`，可能掩蓋非法／缺值、讓過時 Settings 蓋過已提交 Snapshot；原 Engine `operator_relief_candidate_3d.validate_operator_relief_registry_candidate_3d` 對 headless 直接 T 未先驗來源，且用 `bool(solution.verified)` 可把損壞的 `"false"`／`"true"`／`1` 冒充 3D 已通過。
+- GUI 兩路只消費原公開 `manufacturing_api.project_operator_manufacturing_request_snapshot(snapshot, settings, {})["t"]` 的實體原始來源，候選取 Scene 前必須先驗；原 Engine 候選 API 直接以 `normalize_operator_source_dimension(..., field="t")` 驗 T，解算結果只在 `verified is True` 時才認為零干涉。保留合法數值小數、原 3D Fold／Relief／Registry 計算及 DXF 製造限制，任何 CHECK/顯示不能自行提升為正式製造。
+- `tests/test_issue2517_relief_registry_mesh_physical_t_parity.py` 驗直接 headless、不可信已驗旗標、GUI 原子拒絕、`.p6fold` Save→Reload 與同一正式 Request。#2517 仍待逐項 API、全箱 2D／3D／DXF 及 Windows UAT。
+
+
+## [CURRENT] #2517 Indicator SmallDoor Operator FW／Gap／Fold 正式來源驗證（2026-11-12）
+
+- 原 GUI `gui_modules.application.manufacturing_adapter._indicator_door_part_spec_from_values` 已只傳送 operator 原始 T/FW/門縫/折邊，公開 `manufacturing_api.indicator_small_door_operator_spec` 在 Engine 內仍以 `float(frame_width)`、`float(door_gap_w/h)`、`float(indicator_door_fold)` 直接建立 Factory Policy，會把 `True` 投影成 1 mm，也允許非有限值混入實體小門尺寸與 DXF。這不是 GUI 可自行修復的製造責任。
+- 原 SmallDoor Engine 函式沿用 `operator_settings_transactions.normalize_operator_source_dimension(frame_width, field="fw")`（FW 必須正有限且非布林），及既有 `door_operator_part_spec._finite_operator_number`（Gap／Fold 有限、非布林，可為零／帶符號），原 T、Group 嚴格驗證保持。缺少明確 Fold 才沿用原 Factory default；不改小門成品／料長公式、Policy、PartSpec、孔位、CUTTING/BEND 或原 `小門.dxf` 基準檔。
+- `tests/test_issue2517_indicator_small_door_policy_raw_source_engine_api.py` 驗金庫型／受電箱 GUI 與 headless 相同 raw 來源、非法 FW/Gap/Fold fail-closed、合法帶符號來源、真實 Project Save→Reload 及已存在小門 DXF 出圖獨立 reopen。#2517 整櫃 API 與 Windows UAT 仍待完成。
+
+## [CURRENT] #2517 IndicatorBox／SmallDoor 直接尺寸 API 共用正式原始群組與板厚閘門（2026-11-12）
+
+- 原 `ae_engine.manufacturing_door_indicator.indicator_box_unfolded_size`、`indicator_small_door_spec`、`door_indicator_offset_for_finished_center` 在直接 headless 呼叫路徑用 `tuple(int(v) for v in groups)`，可能將 `True`、`2.5` 轉為可製造燈孔群組；原 SmallDoor operator 又提前用 `float(thickness)`，使非法原始 T 可成為板厚。相同已提交 GUI/Hole Editor 的 `validate_door_indicator_fit` 早已使用嚴格來源閘門，direct API 不可例外。
+- 沿用原 `fold_designer_snapshot_dimensions.normalize_fold_designer_indicator_groups` 與 `operator_settings_transactions.normalize_operator_source_dimension(..., field="t")`，Group 必須是層列序列，不允許 scalar string/mapping、非整數、bool；T 只能正有限且非 bool。修正後所有公開尺寸、成品、淨開口、SmallDoor PartSpec／Operator spec 及原中心偏移入口共用相同來源資格，保留合法數值字串、整數浮點、毫米小數與原公式。既有 `ae.get_indicator_box_data`、Factory Policy、`盒子.dxf`／`小門.dxf`、CUTTING/BEND、FinalScene／DXF 寫入及製造資格均不變；GUI 仍只轉送來源。
+- `tests/test_issue2517_indicator_size_small_door_direct_engine_source_gate.py` 驗直接 Headless 負向來源不進製造、GUI／原 API 一致、JSON 與 Project Save→Reload、實際基準檔 IndicatorBox DXF save/reopen；本切片不等於全箱／Set-Bay／Windows UAT 完成，#2517 保持 OPEN。
+
+## [CURRENT] #2517 `.p6fold` Save→Reload 目標檔不得在完整 Engine 快照提交前截斷（2026-11-12）
+
+- 原 `phase6_project_file.write_project` 先由公開 Engine `project_operator_project_for_write` 取得可存檔權威資料，最後卻直接 `Path.write_text` 覆寫 `.p6fold`；磁碟空間、寫入或替換失敗會讓既存可讀的實體 Door／內門框／孔位來源變成空檔或半套 JSON，無法保證 2D／3D／DXF Save→Reload 可回復。
+- 只改 GUI Project I/O 交易為同目錄完整 UTF-8 JSON 暫存、flush／fsync 後 `os.replace` 原子提交；無論既有檔或新檔失敗，原檔 bytes／Engine readback 不變，清理暫存。原 Engine schema／來源驗證／預覽不入檔規則與 FinalScene／DXF exporter 均不變，不增加新收據或管理流程。負向 I/O 中斷與正常專案更新測試位於 `tests/test_issue2517_project_save_reload_engine_authority.py`。此為存檔資料保全，並非全箱或 Windows 實機驗收完成。
+
+
+## [CURRENT] #2517 GUI 批次 DXF 最終發布須檢查當下尺寸／選片／STOCK／指示燈來源（2026-11-12）
+
+- 原主 GUI `export_selected_dxf` 已用 `_current_authoritative_export_guard` 監看已存快照與 Workspace 孔位，並經原 Engine 生成／重開 DXF 後才原子發布；但資料夾／覆寫確認期間 `get_float_values` 的即時尺寸或 checkbox/STOCK/Indicator 原始控制可能改變而沒有寫入 Workspace，舊的製造結果仍可能取代既存檔。
+- 沿用同一 GUI 來源見證／原子回滾，新增未解算的 operator source（尺寸欄位、`_selected_export_flags` 透過 Engine 投影的選片、STOCK、門格與指示燈控制及已編輯 Features），原值前後比較；只核對操作來源，不在 GUI 判斷實體幾何。輸入改變或讀取失敗不得發布舊 DXF，原資料夾已存 DXF 必須保留。引擎 `PartSpec`、FinalScene、CUTTING/BEND 與 DXF Writer 不變。真實重開與覆寫回滾測試在 `tests/test_issue2517_gui_final_dxf_publish_source_guard.py`；不得聲稱已完成全箱 2D／3D／DXF 或 Windows UAT。
+
+
+## [CURRENT] #2517 EAR 側板獨立 MARKING／CHECK-only DXF 最後發布需重驗操作來源（2026-11-11）
+
+- 原兩個獨立 GUI 出圖按鈕在 `askdirectory` 之前讀取正式已提交快照與解析實體幾何，但資料夾選擇期間 Workspace 孔位或提交來源可能變動；其原有 Engine 真實左／右側板 3D 接觸→UV→CUTTING/BEND/MARKING 與 DXF 回讀，不能因此被拿去發布過期來源。已存在 `_current_authoritative_export_guard` 必須在 GUI 取當次快照後保留到正式出圖。
+- 同一套 Engine 正式 `manufacturing_api.export_receiving_ear_side_manufacturing_marking_dxf(..., pre_commit_guard=...)` 及 `export_receiving_ear_side_check_only_dxf(..., pre_commit_guard=...)` 接受可選來源 witness；Engine 在 staging 前、真 DXF 重開後、搬移舊檔／新檔前後重驗並原子回滾。未提供 guard 的既有 headless 調用維持原契約，非法 guard 來源明確拒絕；不另建 GUI 製造計算／第二份 DXF executor。
+- `tests/test_issue2517_ear_side_live_source_dxf_guard.py` 使用真實 EAR 3D 物理貼合與獨立 DXF reopen、檔案確認期間 Workspace 變更、雙側 DXF 覆寫期間來源漂移與既有檔還原；原 CHECK-only 絕非製造圖，正式 MARKING 亦僅左右側板，**不核准** EAR/PAD 焊接、NFB MFG-2、整櫃製造、NC、Windows UAT；#2517 持續 OPEN。
+
+## [CURRENT] #2517 Quantity 封頭尾 Hole Editor 實體 T 與正式 Request 同源（2026-11-11）
+
+- 原 GUI `gui_modules.application.quantity_version_ports.quantity_ports.source` 將 live Settings 覆蓋在已確認 Project Snapshot 上，導致 Quantity Head/Tail Hole Editor 與 Confirm 孔位時的 T 被舊 Settings 取代，與正式 `project_operator_manufacturing_request_snapshot` 的已存 Snapshot T 優先規則矛盾。原 Engine 唯讀 Quantity EndCap projector 又對缺 T 內隱填入 2 mm，畫出無可信來源的實體孔面。
+- 原 GUI `holes` 開啟與提交都取相同既存公開 Engine Request source projection 的 W/H/D/T；保留 navigation/版本切換在歷史資料不足時仍可修復。Engine `project_operator_quantity_endcap_hole_editor_geometry` 現對缺少 T 明確拒絕，不再製造假的 2 mm Hole Editor；合法 Settings-only 舊存檔先經同一 Request API 投影後仍可使用。Receiving Quantity `receiving_quantity_box` 的原真實 W/D 仍優先於全域值，沒有改寫其物理位置。
+- `tests/test_issue2517_quantity_hole_t_source_parity_engine.py` 驗 headless／GUI 同一 T、實體 Hole surface、真 `.p6fold` Save→Reload、Confirm 孔位提交、非法與缺少 T 原子拒絕；不放行獨立 candidate、Receiving Set/Bay 未確認輸出、整箱 DXF 或 Windows UAT。#2517 仍 OPEN。
+
+
+## [CURRENT] #2517 Fold Designer 舊內門框實體 T 須經公開 Engine 嚴格驗證（2026-11-11）
+
+- 原 `ae_engine.fold_designer_physical_selection.resolve_fold_designer_frame_part` 在無 Family 派生 API 的 legacy inner-door `frame_spans` 路徑，以 `float(data.get("t", default_thickness))` 提前清洗物理來源。明確的 `True` 因而成為合法看似真實的 `1 mm` 框，卻繞過既有 Engine 對板厚 T 的原生型別限制。GUI `_inner_door_frame_from_payload` 已只呼叫公開 API，錯在 Engine 內部來源門。
+- 原 Engine selector 改直接復用 `operator_settings_transactions.normalize_operator_source_dimension(..., field="t")`；已提供 T 必須是正有限且非布林，缺值才沿用原 Engine legacy default。Family 派生來源、上／左／右框 A/B/D 的方向與原 DXF／幾何／孔位、stable ID、選片與認證不變。
+- `tests/test_issue2517_legacy_inner_door_frame_thickness_public_api.py` 覆蓋 headless/GUI、真 legacy 框、非布林與負向非法來源、Save→Reload 僅保留原始 T 且正確剔除衍生 frame_spans、重新提供獨立確認的 span 後才可真 Frame FinalScene→DXF reopen；不因此宣稱整櫃實機、焊接或 MFG-2 已放行。
+
+## [CURRENT] #2517 多門格 2D 中隔／內門框預覽不准將非法物理來源變空板件（2026-11-11）
+
+- 原公開 `manufacturing_api.project_operator_door_divider_frame_preview`（`ae_engine.operator_door_2d_preview`）在計算前對 Door cell W/H 使用 `float()`，也對 W/H/D/T/FW 使用 `float(...default)`；例如 `True` 可成為 1 mm，缺實際 T/D 可變 2/350 mm。隨後獨立 Divider／內門框推導的 `except Exception: pass` 會把無效來源或物理拓樸失敗顯示成「沒有板件」，與 canonical Save→Reload、3D／DXF 來源矛盾。
+- 本批在原同一公開 API 增加 **推導前**實體 W/H/D/T/FW 輸入 Gate（重用 `operator_settings_transactions.normalize_operator_source_dimension`）及 canonical `derive_door_layout_cells` 門格拓樸 Gate；Snapshot W/H、即時 D/T/FW 的原優先序維持，明確非法不可往下 fallback。缺 T/D 不再自行填 2/350；未提供 FW 沿用既有原 `ae.FW` baseline default，已提供壞 FW 直接拒絕。GUI `door_layout_divider_frame_snapshot` 仍只調用公開 Engine，不重算。
+- 保留合法金庫型／受電箱 Divider Family Fold/Span／world placement 與內門框來源，且只對實際後續 **顯示放置不可用** 保留既有獨立 N/A 兼容（不是製造批准）。`tests/test_issue2517_door_divider_preview_raw_source_engine_api.py` 核對非法來源早拒絕、GUI/headless/JSON、實體 Divider 及 3D placement 同源、原 preview N/A。整櫃 DXF/Windows UAT 仍屬 #2517。
+
+## [CURRENT] #2517 主 GUI 指示燈盒／門板指示燈層數選單由公開 Engine 驗證（2026-11-11）
+
+- 原 `gui_modules.parts.panels.indicator_box.rebuild_layers_config_ui` 與 `gui_modules.parts.panels.door.rebuild_door_layers_config_ui` 在清除舊控件後以 GUI `int()` 決定物理層數，非法來源被暗中改成 3／1，超過六層還可能索引超出原控制。這不是可信的製造輸入。
+- 公開 `manufacturing_api.normalize_operator_indicator_layer_count`（`ae_engine` 根包亦公開）重用唯一 Engine `normalize_fold_designer_indicator_groups`；僅允許 1–6 的實體整數層，拒絕 bool、分數、缺值與範圍外來源。兩個 GUI 入口先驗後建控件，非法來源不毀損已存在 UI，亦不由 GUI 製造新孔位。
+- 不變更合法 1–6 層／各層 1–8 組的原 PartSpec、FinalScene、CUTTING/BEND/DXF；已停用舊單門 Hole Editor 的 1–6 柔性顯示回復仍由原 display-only Engine API 獨立擁有，**不得**拿新 live gate 替換。定向 `tests/test_issue2517_gui_indicator_layer_editor_engine_api.py` 包含 headless／GUI、負向原子拒絕、JSON readback 與真 DXF reopen。#2517 其他全面 API、整箱 2D／3D／DXF、Windows UAT 仍未完成。
+
+## [CURRENT] #2517 Fold Designer 中隔物理輸入只經公開 Engine API（2026-11-11）
+
+- 原 `gui_modules.parts.panels.divider.collect_divider_input` 在 GUI 自行把門格 W/H、D、T、layout scope、把手邊和 Family 轉成中隔實體製造輸入；正式 `resolve_fold_designer_divider_part` 隨後再使用原 Engine `derive_box_body_dividers` 解析板件身分與幾何。同一 Part 的 GUI/headless 來源解析不能由 GUI 擁有。
+- 現將原同等輸入正規化移至 `ae_engine.fold_designer_physical_selection.project_operator_fold_designer_divider_input`，透過 `manufacturing_api` 與 `ae_engine` 根包公開；GUI 只呼叫 API，原 physical selector、Family Policy、折向／料長、stable ID、2D／3D／DXF 製造與原缺資料拒絕不變。這是同一 Engine 的來源轉接，不是第二個 Divider resolver 或 CADSplit 專用 API。
+- `tests/test_issue2517_fold_designer_divider_input_public_api.py` 核對 GUI/headless 相同 source→同一個 canonical Divider、真 DXF 存取／獨立 reopen、Project Save→Reload、非法來源與錯誤 stable ID 拒絕；整櫃完整驗收及 Windows UAT 仍屬 #2517 待完成。
+
+## [CURRENT] #2517 舊單板 DXF 實體檔名由公開 Engine 決定（2026-11-11）
+
+- 原 `gui_modules/project/export_actions._export_selected_parts` 在沒有 Phase6 Designer 的相容單板 PartSpec 出圖路徑，自行硬寫箱身、封頭／尾、單門、底板及 Indicator 的七個加工 DXF 檔名；多門格與 Set/Bay 已由 Engine 命名。GUI 不能再持有這七個加工板件身分到輸出檔名的對照。
+- 沿用 `ae_engine.sheetmetal_part_adapters` 正式板件 kind，新增純命名公開 `manufacturing_api.legacy_single_part_dxf_filename(part_kind)`（亦由根包 re-export）。嚴格只接受七個已存在的實體種類，拒絕未知／布林／假身份，不改任何既有檔名、PartSpec、CUTTING／BEND、DXF 原子輸出或製造資格。GUI 只傳選擇與呼叫 Engine 回傳檔名，沒有第二套幾何或製造 executor。
+- `tests/test_issue2517_legacy_single_part_dxf_filename_engine_api.py` 驗證七種檔名、非法種類拒絕、真 GUI 相容出口一致性，以及已保存金庫型單門 PartSpec→Engine→DXF reopen。這僅涵蓋舊單板命名入口，不能取代 #2517 整箱／多 Bay 2D／3D／DXF 及 Windows UAT 驗收。
+
+## [CURRENT] #2517 受電箱 EAR／PAD 真實組合 3D 顯示的 Family 別名來源由 Engine Registry 統一（2026-11-10）
+
+- 原 `receiving_ear_display_sources.resolve_receiving_ear_assembly_display_skins`、`receiving_pad_display_sources.receiving_pad_assembly_display_active`、`receiving_nfb_pad_assembly_preview.build_committed_pad_assembly_display` 與 GUI `phase6_final_scene_view._formed_ear_assembly_preview` 都硬比 `model in ("受電箱", "RECEIVING")`。相同已確認實體盤件從 JSON 儲存的合法 `receiving`／大小寫／前後空白別名可能靜默不顯示 EAR/PAD 3D；這不是合法的 Family 變化。
+- 沿用原 `cabinet_types.policy.canonical_family_name(snapshot)` 身分權威。EAR 新增 `receiving_ear_assembly_display_active`（公開 `manufacturing_api` 與根包），PAD 沿原公開 active API，PAD 真實 Mesh builder 不再重做 Family 決策；GUI 僅呼叫公開 Engine 閘門。保留 `nfb_config_submitted is True` 嚴格來源及原 EAR 成形 BEND／真實世界放置、PAD 四孔實體 CUTTING／Mesh 貼合、拒絕未驗來源、製造與焊接未認證限制；不改 Factory、尺寸、DXF serializer 或 Family Registry。
+- `tests/test_issue2517_receiving_assembly_3d_family_alias_engine_api.py` 檢查原 one/two-tier EAR、實體 PAD、GUI／headless 顯示、Family aliases 與 Project Save→Reload、負向拒絕；仍須 #2517 全功能 2D／3D／DXF 整箱及 Windows UAT，不得以此宣稱全盤驗收。
+
+
+## [CURRENT] #2517 FinalScene 3D 箱型來源讀取必須與製造 Request 同步嚴格拒絕（2026-11-10）
+
+- 原 `phase6_manufacturing_geometry._phase6_current_cabinet_family` 在 3D 組合入口直接讀 `baseline_model_var.get()`，遇到已存在的 Tk 控制損壞則 `except Exception: live_model=None`，默默改用舊 Snapshot Family；同一正式製造 Request 的 `phase6_manufacturing_adapter._cabinet_model` 已經會以 `MANUFACTURING_OPERATOR_SOURCE_READ_FAILED:baseline_model_var` 拒絕。這是 FinalScene 與製造製程在 **Family 原始操作者來源**上的差異，不能讓 3D 退回舊箱型冒稱同源。
+- 3D 這條 GUI 相容入口現只重用原 `_cabinet_model` 嚴格操作來源 reader；即時／已存／初始 Family 優先順序由原公開 `manufacturing_api.resolve_operator_manufacturing_family_source` 決定，最後仍由公開 `resolve_live_cabinet_family`／Registry 正規化合法別名與舊缺來源 Vault fallback。未增加第二套 GUI 選型演算法或 Engine 製造 API。已存在但不可讀控制原子拒絕；合法來源不變。
+- 定向 `tests/test_issue2517_finalscene_family_control_source_parity.py` 覆蓋真 3D 入口、Headless／GUI、初始來源、存檔別名、JSON Save→Reload、壞控制不改狀態；不動 PartSpec、2D／3D／DXF、Fold、Factory 或 Set/Bay，#2517 其他入口與 Windows UAT 仍待驗。
+
+
+
+
+## [CURRENT] #2517 多門格 IndicatorBox／IndicatorDoor 實體 DXF 檔名只由 Engine 物理門格 ID（2026-11-10）
+
+- 原主 GUI `export_multi_door_indicator_box_parts` 直接把 `column_index + 1`／`row_index + 1` 組成製造檔名；同一一般 Door 已有 Engine 唯一 `door_layout_part_key`／`door_layout_export_filename`。實體加工板件命名不應由 GUI 重算。
+- 原 Engine `sheetmetal_part_adapters` 新增 `door_layout_indicator_export_filename(cell, part_kind=...)` 並公開於 `manufacturing_api` 與根包；沿用原門格合法整數身分，保留檔名與 DXF 寫出流程不變，非法 ID／輸出種類拒絕。既有 GUI 僅傳操作來源及消費回傳檔名。定向測試 `tests/test_issue2517_multi_door_indicator_export_identity_engine_api.py` 連接真 `.p6fold` Save→Reload、2D 門格、GUI／headless 與實體 DXF reopen。全箱 3D／DXF／Windows UAT 仍屬 #2517 未完成驗收。
+
+
+## [CURRENT] #2517 FinalScene 3D／組合 T 必須與 Engine Request 使用同一來源優先序（2026-11-10）
+
+- 原 `phase6_final_scene_view.Phase6FinalSceneViewAdapter.build_request` 與 `query_assembly_render_data` 在 GUI 端自行採 `Settings["t"]` 優先，缺欄時回退 `snapshot.get("t", 2.0)`；但已合入的公開製造 Request API 對同一實體 T 使用**已存 Snapshot 優先、沒有才取 Settings、明確非法不可回退、兩處都缺時不得捏造 2 mm**。舊路徑可讓 3D 實體板厚／成形尺寸文字與製造 Request 的原料 T 不同。
+- 本批**不建立新製造 API**：FinalScene 單板、組合 formed-size readback 改消費同一原 Engine `manufacturing_api.project_operator_manufacturing_request_snapshot(snapshot, settings, {})["t"]`；組合 redraw 在任何 geometry resolve 前驗**已提供的 T**，若實際有實體板件則缺 T 必須拒絕；若沒有實體板件且只顯示已驗來源缺陷的警告，仍可讀取診斷但不虛構 T2 或成品尺寸。明確非法布林、零、非有限均拒絕。保留合法 Settings-only 舊版資料、毫米小數、已認證固定片 metadata T 的既有獨立 Engine gate；Snapshot/Settings 皆不突變。
+- `tests/test_issue2517_finalscene_thickness_public_engine.py` 正反驗證兩 Family 的單板／組合、Save→Reload、真 formed-size 回讀、無來源、來源衝突與非法 T 原子拒絕。此批不改 Fold/CUTTING/BEND、2D／3D 幾何公式、DXF Writer、Factory／Family 或製造資格；#2517 全功能逐項覆蓋與 Windows UAT 仍 OPEN。
+
+
+
+## [CURRENT] #2517 Door 格刪除／重映射不得遺失已存實體孔與非門格來源（2026-11-10）
+
+- 原 `ae_engine.door_layout_physical_remap.remap_receiving_door_layout_after_delete`（由 `manufacturing_api` 給 GUI／headless）在執行刪除欄／層時，已存無法解析的 `column:row` 直接被視為 None 丟棄；對 Workspace 的 `door_c*` 無差別刪除，未連接 `door_layout_features` 的合法既存實體孔可能全部遺失。此為原 Engine 所有權移轉缺口，不得由 GUI 猜測修復孔位。
+- 在同一 Engine 所有者中嚴格核對原始 cell key，若已有真實 `door_cN_rN` 身分但缺原可編輯 Feature map 必須事前拒絕；只重鍵真正的 `door_cN_rN`，保留其他 `door_c*` 來源。合法 upper/lower/cNrN 不變，原 GUI Adapter／實體板件／Feature／FinalScene／DXF 算法不變。負例驗證原子拒絕、正例驗證原本公開 API 的孔位／身分、`.p6fold` Save→Reload 與 Engine 2D feature readback。尚不代表 3D/DXF 全盤驗收或 Windows UAT。
+
+
+## [CURRENT] #2517 Receiving 已選 Bay 的 Scene 門孔／NFB 來源由原 Engine Family Registry 保護（2026-11-10）
+
+- 原公開 `ae_engine.manufacturing_scene_payload.project_manufacturing_scene_settings_overlay` 在檢查已提交 Receiving Runtime Selection 時，以硬寫字串 `("受電箱", "RECEIVING")` 判斷 Family，遺漏 Registry 已註冊的小寫、混合大小寫與含空白別名，使舊全域 Settings 的 Door／NFB／Bay 來源可能覆蓋已選中實體 Bay 的確認資料。GUI 雖已呼叫公開 Engine API，但同一製造 operation 不能因合法 Family 別名不同而取得不同來源。
+- 保留原 Engine、Facade 及 GUI 呼叫鏈，僅將原 Family 判斷交給 `cabinet_types.policy.canonical_family_name(snapshot)`；已選 Bay 時所有 Receiving 別名都保留已確認門格／NFB／Set-Bay 來源，金庫型、未選 Bay 或未實作 Family 仍維持原全域覆蓋規則。測試 `tests/test_issue2517_scene_payload_engine_authority.py` 驗 headless／真 GUI、舊來源不突變與合法別名一致性。
+- 此修正不重寫 Family Policy、孔座標、BEND／CUTTING、PartSpec、2D／3D／DXF 或外部 source-only 製造資格；仍須完成 #2517 全功能 GUI API 覆蓋及 Windows UAT。
+
+
+
+## [CURRENT] #2517 DXF 已存／即時選板旗標須由公開 Engine 解碼，不能靠 bool()（2026-11-10）
+
+- 原 `manufacturing_export_selection.selected_project_export_flags`、`select_resolved_export_geometry` 與 `manufacturing_selected_export` 的選片／路由／出圖仍以 Python `bool(raw)` 判定勾選。JSON `"false"` 會成為 True，可能錯誤輸出未選的 Door／BasePlate／Side／共用下 C 框。
+- 沿用原 `operator_settings_transactions.normalize_operator_settings_boolean`；新公開 `manufacturing_api.normalize_operator_selected_export_flags` 讓正式選片、Receiving 路由、失敗部分重試與 DXF 接口都在任何實體選板前核對來源，非法值 fail closed、不建立 DXF。保留最新受電箱「選門也需保留 verified 共用 C 框」規則，及原 Family、NFB、Set/Bay、CUTTING／BEND／MARKING、DXF writer／獨立重開驗證和所有製造批准條件。GUI 只收原始操作值。定向 `tests/test_issue2517_selected_dxf_boolean_source_engine_api.py` 驗 headless/GUI、JSON Save→Reload、負向隔離及真 DXF 重開。#2517／Windows UAT 仍 OPEN。
+
+## [CURRENT] #2517 製造 Request 的 W/H/D/T 原始來源優先序歸 Engine（2026-11-10）
+
+- 原 `phase6_manufacturing_adapter.build_manufacturing_request` 在 GUI 自行決定專案快照 W/H/D 優先、缺欄時採目前箱體 W/H/D、再缺欄採 Settings，並直接挑選快照 T 或 Settings T 驗證。這是決定製造 PartSpec／FinalScene 入口的物理來源優先序，不應由 GUI 持有。原始已存 T 即使無效也必須拒絕，不可退回舊 Settings 或虛構 2 mm。
+- 原 `ae_engine.operator_settings_transactions` 新增公開 `project_operator_manufacturing_request_snapshot`，經既有 `manufacturing_api`／根包轉出原 callable；採**相同來源順序**組裝 detached Request snapshot，重用 `normalize_operator_source_dimension(..., field="t")` 的正有限、非布林驗證，保留合法小數與既有 W/H/D 延後製造驗證責任。GUI 只讀取已脫離 UI 的來源後委派，不重算、不污染原專案；同來源 headless 與 GUI 應生成相同 immutable request input。
+- `tests/test_issue2517_manufacturing_request_physical_source_engine_api.py` 與原 T／Receiving request 回歸核對合法與非法來源、缺欄、JSON Save→Reload、GUI/headless 一致性及無 Engine → GUI 依賴。此切片不增加另一套 Family/Factory／CUTTING／BEND／2D／3D／DXF 公式或製造資格；#2517 全功能覆蓋、Windows UAT 與正式 X 仍另行驗收。
+
+
+## [CURRENT] #2517 FinalScene／製造 Request 的即時、已存、初始 Family 來源順序由公開 Engine（2026-11-10）
+
+- 原 `phase6_manufacturing_adapter._cabinet_model` 在 GUI 自行選擇即時 `baseline_model_var`、已存 `model/cabinet_type`、未存初始箱型的優先序，同時控制 FinalScene、Request 與快取；這是實體製造 Family 來源決策，不應留在 GUI。原資料未通過即時 Tk 控制讀取時仍須在建立請求之前拒絕，不能用已存值靜默補上。
+- 新的 `ae_engine.live_cabinet_family.resolve_operator_manufacturing_family_source` 經原 `manufacturing_api` 與根包公開，保留**同樣的原始字串與優先序**、不替別名猜測機械規則；`resolve_live_cabinet_family`／Family Registry 保留正式 canonical/授權判定。GUI 只收原始 live/初始/已存資料並委派，所有呼叫者消費同一結果。負向測試檢查損壞控制原子拒絕；正向核對 JSON Save→Reload、headless、FinalScene 與 immutable Request 及相同製造 Family。這不更動 2D／3D／DXF／CUTTING／BEND、板件及認證。
+
+
+## [CURRENT] #2517 Fold Designer Live Sync 刪除孔位／Relief 子物件不得誤認來源未改（2026-11-10）
+
+- 前批 Engine 已統一即時同步的接收／發布 revision 與 force 來源驗證，但原中立傳輸 `phase6_sync_envelope.actual_delta` 僅迭代 `after` 現有鍵，完全忽略 `before` 有、`after` 刪除的鍵。因此 Hole Editor 清空 `workspace.part_features` 或 host Relief 從有值恢復空物件時，可能得到 `_UNCHANGED`、`delta={}`，進而不發布本來應傳到主 GUI 的正式完整實體狀態。這不屬於 Engine 的新幾何或孔位推導，而是既有 GUI 交易傳輸遺漏來源刪除。
+- 現在原 `phase6_sync_envelope.actual_delta` 若偵測到子 Mapping 有鍵刪除，會把該**更新後的完整子物件**視為 authoritative replacement；例如 `{"workspace":{"part_features":{"door":[...]}}}` 清空為 `{"workspace":{"part_features":{}}}`，差異必須包含 `{"workspace":{"part_features":{}}}` 而不是「沒改」。最上層資料全部被清空的少數情況即使 delta 仍為 `{}`，也由原 fingerprint 核對真實 previous/current 來源不同後發佈 full payload，不以空 delta 跳過。只有原始資料真相等才維持 no-op／無回聲。
+- 單一 Engine Source of Truth 仍是既有公開 `manufacturing_api` 的已驗製造狀態、來源與版本；`phase6_sync_envelope` 僅保存 detached 來源差異供原 callback 使用，不製造 Feature、Joint、Factory 或 DXF，也不改 JSON 欄位 schema、Family／Topology、2D／3D／CUTTING／BEND。定向 `tests/test_issue2517_live_sync_deleted_physical_sources.py` 驗巢狀孔位刪除、Relief 強制清空、真 GUI 發布、Save→Reload 型態與無來源變更不重送；#2517 與 Windows UAT 仍 OPEN。
+
+
+## [CURRENT] #2517 Relief 3D 認證候選資格不能由 GUI bool() 虛構已驗證（2026-11-10）
+
+- 原 `phase6_registry_diagnostics_controller.build_promotion_candidates` 在 GUI 以 `bool(solution.verified)`、字串 `trust_level` 自行決定 Head/Tail 是否有資格建立 Relief 認證候選；同一個原 Engine `certified_relief_registry.build_relief_promotion_candidate` 也用 `bool()` 判讀已求解的 verified。若已驗證來源遭污染為 `"false"`，Python 會將其視為 True，GUI 與直接 Headless Engine 都可能建立看似合格的候選 manifest。
+- 沿用原 `ae_engine.certified_relief_registry` 權威，新增只讀 `operator_relief_promotion_candidate_eligible(solution)` 並透過既有 `manufacturing_api`、根包公開同一 callable。原 3D Solver 的 `verified` 必須為原生 bool，無來源／False 與非 `PROVISIONAL_3D` 不能成為候選；來源為字串、數值或其他型別一律 fail closed。GUI controller 僅委派公開 Engine 查詢、保留顯示與候選清單持久狀態；直接呼叫 `build_relief_promotion_candidate` 也必須經相同 gate，不能繞過 UI 重驗。
+- 保留原候選 `PROMOTION_CANDIDATE` 僅供操作、不修改 Registry，正式升版 `promote_relief_rule_candidate` 的 regression/matrix/zero-penetration/candidate-specific 嚴格證據與 3D Solver／CUTTING／BEND／2D／3D／DXF 一概不變。定向 `tests/test_issue2517_relief_promotion_verification_engine_api.py` 覆蓋 headless／GUI 共用 owner、合法 Head/Tail、錯型 verified 原子拒絕、未核准 trust、JSON 布林來源一致性。#2517 全面覆蓋與 Windows UAT 仍 OPEN。
+
+
+## [CURRENT] #2517 Side/Back 後折雙向尺寸換算拒絕非法 T 與無實體料長（2026-11-10）
+
+- 受電箱三片式側板後折 side_rear_bend_material_length／side_rear_bend_outside_length 是公開 Engine API，共用同一 canonical state。原本只檢查有限數值及轉換後正數；當 T 為 0／負數，可能仍回傳合法外觀的料長；當儲存為 OUTSIDE 且後折包外 <= T，單向 readback 也可能回傳非零外尺寸，實際料長卻為零／負數。
+- 原 BoxBody structure owner 現在兩個 API 先共用原始 side_rear_bend > 0 與 T > 0 有限且非布林尺寸檢查；OUTSIDE readback 額外拒絕 side_rear_bend <= T。MATERIAL／OUTSIDE 對相同非法來源必須一致 fail-closed；合法小數、OUTSIDE↔MATERIAL 單次 T 換算、儲存 JSON→Reload、GUI Settings 公開投影與成形後料尺寸仍一致。此修正不新增公式、Family、製造認證或 DXF exporter。測試 tests/test_issue2517_box_structure_settings_projection_engine_api.py。Windows UAT 與整體 #2517 尚未結案。
+
+
+
+
+## [CURRENT] #2517 Fold Designer 發布即時製造狀態的來源版本與強制旗標由公開 Engine（2026-11-10）
+
+- 前批已將接收端 Fold Designer → Main GUI 的單調版本來源驗證移回 Engine；但反向 `phase6_sync_envelope.plan_live_sync_envelope` **發布端**仍做 `int(current_revision or 0)` 和 `current_revision + 1`，可能將原始 `True`、小數、含底線字串變成看似合法且比舊資料更新的實體製造狀態版號。原 Bridge `fold_designer_composition_state.publish_live_state` 又在呼叫規劃器前 `force=bool(force)`，使字串 `"false"` 錯誤觸發 host Relief 強制修復／發布。這些是版本／Relief 提交來源資格，不能在 GUI 中強制轉型。
+- 延用原 Engine `operator_settings_transactions._external_sync_revision_number` 的嚴格 parser，新增只讀 `project_operator_fold_designer_publication_revisions(raw_current_revision)`，回傳凍結 `OperatorFoldDesignerPublicationRevisions(current_revision,next_revision)`，由 `manufacturing_api`、根包公開。未初始化 None／空白來源維持原 0→1，合法原生整數／ASCII 整數字串保留次序；非法 bool／浮點／非有限／含底線／負數先於 fingerprint、delta、callback 拒絕。發布規劃器及 `LiveSyncPublicationPlan` 的版本型別一致引用此 Engine 原始來源規範，不再用 GUI `int()` 或自行 `+1`。
+- `force`、`host_relief_present` 走原公開 `normalize_operator_settings_boolean`，發布端保留原操作旗標直送，`"false"` 不再變成真。合法的 delta、fingerprint 防重送、一次發布只加一版、既有 host Relief 強制同步及 Main GUI 接收端、實體 Save→Reload／Family／Factory／2D／3D／DXF 契約不變。這仍非外部製造授權或 #2517 完成，Windows UAT 另驗。定向 `tests/test_issue2517_fold_designer_publication_revision_engine_gate.py` 加原 live-sync／#503 測試。
+
+## [CURRENT] #2517 Fold Designer → 主 GUI 即時製造狀態的 revision 由公開 Engine 嚴格判定（2026-11-10）
+
+- 原 `gui_modules.application.lifecycle._apply_fold_designer_live_snapshot` 在主 GUI 接受外來 Fold Designer 即時來源時，以 Python `int(payload.get("revision", 0) or 0)` 將 `True` 變成 1、`2.5` 截成 2、`"2_0"` 變成 20；再將舊版最後版本也 `int()` 強制轉型。這個版本號控制的後續寫入包含 Settings、Corner、Joint、Workspace 與實體孔位，不能在進入 Engine 驗證前由 GUI 虛構較新的物理提交版本。
+- 延用原 `ae_engine.operator_settings_transactions._external_sync_revision_number`（外部 Settings 版本的嚴格正規化 owner），新增只讀 `plan_operator_fold_designer_live_revision(raw_revision, *, last_revision)`，由 `manufacturing_api` 與根包輸出同一 callable，回傳 `OperatorFoldDesignerLiveRevisionPlan(accepted, revision, reason)`。只有原生非布林整數或合法 ASCII 整數字串可通過，來源缺值／空白仍按舊版 0 視為 stale；非法來源、損壞的已提交版號與過期重送在任何 GUI guard、Settings、Corner 或 Workspace 改動前 fail closed。合法 1→2、字串 `" 2 "`、既有 fingerprint 防重送、selection-only 路徑與主 GUI ↔ Fold Designer 既有同源提交不變。
+- 此切片僅移轉跨 UI 製造狀態的接收順序決策，不修改金庫型／受電箱 Family、PartSpec、Factory、CUTTING/BEND、2D／3D／DXF、儲存 schema 或外部 source-only CLI 的認證資格；不宣稱全功能 #2517 已完成。定向測試 `tests/test_issue2517_fold_designer_live_revision_engine_gate.py` 加原 live-sync 回歸；Windows UAT 與全鏈製造驗收仍需另外核對。
+
+## [CURRENT] #2517 Receiving Quantity／Set-Bay 預覽 W/H/D 不得默默清洗成 Family 預設（2026-11-10）
+
+- 原公開 `ae_engine.receiving_operator_projection.receiving_default_preview_dimensions` 用 `float(box[axis])` 直接解讀已保存的實體 W/H/D，布林 `True` 可變成有效樣子的 1mm；Quantity `receiving_quantity_box` 或 Set/Bay `receiving_layout` 即使明確存在但空／損壞，也可能被 `or BOX_BODY_DEFAULTS` 靜默變成受電箱 Family 標準預覽尺寸。這與同一 Engine 對原始製造實體尺寸的非布林正有限來源約束不符。
+- 現由原公開 `manufacturing_api.receiving_default_preview_dimensions(snapshot)` 的 **原 Engine owner** 直接檢查原始資料，僅在沒有此來源 key 的未開始／Family 示意情境回退原 `BOX_BODY_DEFAULTS`；明確存在的 Quantity box 或 Set/Bay 必須具有真實實體欄位與列，並對全部 W/H/D 共用既有 `normalize_operator_source_dimension`。bool、非有限、非正、缺欄及 malformed schema 先拒絕且不變動來源；合法小數保留原精度與選取模式。GUI `default_preview_dimensions` 繼續只委派原公開 API，不提供另一套補值。
+- 這僅收斂展示與預覽的物理來源，未新增 Family、Topology、零件、CUTTING、BEND 或 DXF 認證；原來真正缺來源的 Family 示意、已保存合法 Quantity／Set/Bay 值均保留。定向 `tests/test_issue2517_receiving_default_preview_physical_source.py` 驗 headless／GUI、非法來源無突變、合法小數與缺來源示意；#2517 全面覆蓋及 Windows UAT 仍 OPEN。
+
+## [CURRENT] #2517 Receiving 套／連概覽草圖的物理 Bay W/H 與門縫來源由公開 Engine 投影（2026-11-10）
+
+- 原 `gui_modules.application.receiving_multi_settings_window.paint_connected_bays` 對保存的 Bay dict 與舊 tuple 實體 W/H 自行 `float()`，可能把 tuple 中 `True` 顯示為 1 mm 及以畫面最小值掩蓋非正／非有限來源，且先清除 Canvas 再驗後續 Bay；GUI 不應自行解釋或修補來源成有效幾何。
+- 原 `ae_engine.receiving_operator_projection` 擁有 `receiving_default_preview_dimensions` 與 `project_receiving_operator_bay_door_split_ratio`（既有 canonical Door seam/Topology）；新增同 owner 的只讀 `project_receiving_operator_bay_sketch_dimensions(bay)` 並透過原 `manufacturing_api`、根包公開。缺少 Bay 僅作 Family 預設的示意草圖，已保存 dict／舊 tuple 的 W/H 全走原公開 `normalize_operator_source_dimension`，拒絕 bool／非正／非有限／缺實體值；Door seam 繼續委派原投影，不在 GUI 算 1100 mm 假孔。
+- GUI 在任何 Canvas 清除與選取顯示變更前先驗全部 Bay；合法小數 W/H 與既有展示比例、來源序號、分縫、盤名、實體 Set/Bay 保存、2D/3D/FinalScene/DXF 均不更改。此 API 是來源顯示資格，不授予加工認證或產出製造平面。定向 `tests/test_issue2517_receiving_bay_sketch_public_engine.py` 核對公開 Facade／root 與原 Engine owner、合法來源、非法原子拒絕及無 Canvas 操作；#2517 仍 OPEN。
+
+## [CURRENT] #2517 Receiving BasePlate GUI 不得將未編輯縮量虛構為 1 mm（2026-11-10）
+
+- 原 Phase6 底板選型 GUI 將不可編輯的四邊 shrink source 經 setting_number_text 和 float 轉為數值再提交；舊檔 True 會被格式化為「1」，失去 Engine 對布林實體來源的 fail-closed 拒絕能力。
+- 現在 GUI 在開啟設定時保留四邊縮量 raw 來源值；未修改的隱藏欄位仍交原 public Engine commit 處理，不能把 Boolean 原值清洗成 1 mm。舊 #1502 GUI 頁面仍可程式化輸入尚未配置的尺寸：明確修改的 shrink 及 height/bend 文字，先以新增的公開 manufacturing_api.normalize_operator_receiving_base_plate_number 正規化為 float，再走原 commit_operator_receiving_base_plate_settings → receiving_base_plate_values / 底板展開與 EAR 全檢查。GUI 沒有第二套製造公式，合法既有保存數值型別及 DXF／實體 EAR 相同。非法 shrink/height 保持專案權威來源不變；原金庫型底板與 NFB CSV 來源權責不變，未擴大製造認證；#2517 仍 OPEN。測試 tests/test_issue2517_receiving_base_plate_settings_engine_api.py 及 tests/test_issue1502_receiving_gui_base_bridge.py。
+
+
+## [CURRENT] #2517 BoxBody Side/Back Settings 公開投影拒絕虛構的物理 T／後折／補償（2026-11-10）
+
+- 原公開 Engine 三片式側／背板 Settings 投影在 Receiving 包外模式用 float(snapshot.get("t", 2.0))，缺失 T 就虛構 2 mm，布林 True 也可能轉成 1 mm。改用既有 normalize_operator_source_dimension(field="t") 嚴格驗證實體來源，缺值、布林、非有限與非正 T 一律拒絕，有效小數仍依原本 material→outside 定義轉換。
+- 同一投影的已保存 side_rear_bend 和 back_width_comp_t 原始欄位共用 Engine _finite_dimension 及既有正數／非負規則，防止舊檔非有限值與布林虛構實體尺寸；金庫型 MATERIAL 來源不強迫有 Receiving T。沒有新的幾何、Factory、DXF 出口與認證擴張；仍需完整 Save→Reload、2D／3D／DXF 和 Windows UAT 驗收。定向測試 tests/test_issue2517_box_structure_settings_projection_engine_api.py；#2517 仍 OPEN。
+
+
+## [CURRENT] #2517 DXF 覆寫權限來源由 Engine 嚴格布林驗證（2026-11-10）
+
+- 原 Fold Designer `_export_authoritative_part` 用 `bool(context.overwrite)` 將字串 `"false"` 誤變 `True`，並送到公開 `save_part_render_data_dxf`，有機會覆蓋既有實體 DXF；原多片箱身 `generate_box_body_structure_parts` 也有相同強制轉型。原公開單片／批次製造 DXF 寫入器及 `generate_part` 只憑 truthiness 判斷已存在輸出，沒有在寫檔前證實授權來源是 `bool`。
+- 沿用原 `ae_engine.manufacturing_export` 單一儲存 owner，新增內部 `require_dxf_overwrite_boolean(raw)`；公開 `manufacturing_api.save_part_render_data_dxf`、`generate_part`、`save_composed_panel_dxf` 及多片箱身 Engine 出圖、原子批次寫入都在接觸任何目的資料夾／暫存檔前拒絕非原生布林（包括 `"false"`、`"true"`、數字 0/1、`None`）；GUI 原樣傳送 context 的 raw flag，不再先做 Python truthiness。合法 `False` 必拒絕覆寫既存 DXF，合法 `True` 保留原原子 stage→Save→Reload→commit。
+- 測試 `tests/test_issue2517_dxf_overwrite_engine_flag_gate.py` 驗 Headless、GUI 呼叫、既存檔無副作用、多片箱身與單板來源；原 2D／3D、CUTTING/BEND、原始工程尺寸、Factory、CSV 認證、DXF 內容／命名與未認證來源阻擋不變。這是來源覆寫授權邊界，不是新製造資格，#2517 仍 OPEN。
+
+## [CURRENT] #2517 受電箱內門 Confirm All 的 CSV 物理提交分流由公開 Engine 決定（2026-11-10）
+
+- 原 `gui_modules.application.receiving_inner_door_hole_editor.open_inner_door_hole_editor` 的直接實體內門 Confirm All 會在 GUI 對 `NFB_CSV_SOURCE` 逐個檢查以決定是否提交候選；`ae_engine.receiving_nfb_csv_committed_config.preview_quantity_inner_door_confirm` 又維護相同一份 CSV 孔來源分流。現歸同一原 Engine owner 的 `receiving_inner_door_nfb_confirm_required(staged_config, features)`，從 `manufacturing_api`／根包公開；GUI 只請求 Engine 分流，不再知道 NFB 孔來源字串。
+- 沒有暫存設定或已確認沒有 CSV 型孔時保留原本一般實體孔位保存；包含 CSV 型（即使型別偽造／待核對）必須交後續既有嚴格 `prepare_receiving_inner_door_physical_confirm`／`commit_receiving_quantity_inner_door_confirm` 驗證，不能在 GUI 默默當手動孔位保存。非法暫存設定或不可重複讀取的 Feature 來源在任何 GUI 寫入前拒絕；查詢不改原始來源。
+- 原 Confirm All 候選 modal 的 `operator_receiving_inner_door_commit_target`、原子 Bay／Quantity 提交、CSV SHA、物理身份、Family／NFB 製造資格、Save→Reload、2D／3D／DXF 保持原權威。本次只是來源分流責任遷移，不新授權 DXF。定向 `tests/test_issue2517_inner_door_nfb_confirm_route_engine_api.py` 核對公開 Engine、真實 CSV／一般孔、非法來源、GUI 委派與 Quantity 非提交路徑；#2517 全面 API 覆蓋及 Windows UAT 仍 OPEN。
+
+## [CURRENT] #2517 Door Grid 公開 Engine 固定欄寬／高度原始尺寸不能透過 float(bool) 變成實體 1mm（2026-11-10）
+
+- 原 Engine `ae_engine.door_layout_numeric_transitions._normalized_auto_columns` 僅驗證固定／自動旗標的原始布林與各層長度，之後 `recompute_door_layout`、`validate_width_commit`、`validate_height_commit` 在真正固定欄寬／層高上使用 `float(column.width)`／`float(row_height)`。Headless 或已保存不可信原始來源若為 `True`，會被轉成合法的 1mm 固定板寬／層高，與 `manufacturing_api.normalize_operator_door_grid_dimension` 的原本嚴格物理 W/H 規範相衝突；而且驗某一欄時，未核對的其他固定欄／層仍可能影響 `other_fixed` 與上限。
+- 依原 Engine Owner 在 **三個原有公開 API 共用的 `_normalized_auto_columns`** 對 `width_auto=False` 的固定 width 與 `height_auto=False` 的固定高度直接使用既有 `_positive_total`；非法 bool、0／負值、非有限及非數字來源必須在任何 `complete_partition`、`other_fixed` 或結果發佈前 fail closed，完全不動原始值。自動欄／自動層的儲存草稿並非實體固定尺寸，不以其 `True`／空草稿製造 1mm；仍由既有 `complete_partition` 算剩餘 W/H 與自動身份。原 tolerance=0.01、W/H／Door stable ID、Topology、Save→Reload、2D/3D/CUTTING/DXF Factory、Family 補償及外部認證全部不變。
+- 定向 `tests/test_issue2517_door_grid_engine_fixed_mm_raw_source.py` 檢查三個公開 Engine 入口對固定來源非法型別均原子拒絕、有效小數經 JSON Save→Reload 後物理 cell／DXF key 相同、自動未使用草稿不污染固定料尺寸。#2517 全面覆蓋和 Windows UAT 仍 OPEN。
+
+
+
+## [CURRENT] #2517 多門格 W/H 即時提交目標索引與已提交快取不可由 GUI Python 強制轉型（2026-11-10）
+
+- 原 GUI `gui_modules.application.door_layout_host_adapter.commit_door_layout_width/height` 在呼叫已存在公開 Engine `validate_door_layout_width_commit/height_commit` **之前**，先以 `door_layout_columns[column_index]`、`height_vars[row_index]` 讀取物理格子與 `float(width_committed/height_committed)` 做錯誤回復。Python `True`、`-1`、`0.5` 等無效／過期 callback，可能先讀錯欄／列、改寫錯誤 Entry 或直接丟 `IndexError`；壞快取布林 `True` 可被 `float` 變成合法 1mm，與 Engine W/H 嚴格來源不同。
+- 本次沿用 **原 Engine** `ae_engine.door_layout_numeric_transitions._physical_cell_index`，僅加入薄公開 `validate_operator_door_grid_edit_index(index, *, count, axis="column"/"row")` 並於 `manufacturing_api` 與根包匯出同一 callable。它拒絕非原生 int、bool、負數、越界、非法 count／axis；回傳的只能是現有合法索引，不會自行建立 Door Cell、板件身份或門片 Geometry。GUI 在讀任何 column/row 控制項前呼叫此 Engine 入口，再以原已公開 `normalize_operator_door_grid_dimension(raw,field="column_width"/"row_height")` 驗已提交 rollback 快取，絕不使用 `float(True)`。`validate_door_layout_width_commit/height_commit` 仍是**唯一**實體尺寸與餘數計算 owner。
+- `tests/test_issue2517_door_grid_live_commit_target_engine_api.py` 涵蓋合法小數保留、兩軸 stale/bool/負值/浮點索引拒絕且沒有任何 GUI 寫入或計算、錯誤快取 fail closed、公用 Facade/root 同一 Engine owner。原合法 Tk 操作、Door Layout 2D/3D/FinalScene、Save→Reload 及 DXF Factory 不變；此切片不代表 #2517 全面覆蓋或 Windows UAT 完成。
+
+
+
+## [CURRENT] #2517 多門格開孔編輯器選板在任何 GUI 狀態改變前由公開 Engine 核對實體身份（2026-11-10）
+
+- 原主 GUI `gui.py::Phase6ApplicationHost.open_door_layout_cell_editor` 先以 `f"{int(column_index)}:{int(row_index)}"` 改寫 `door_layout_selected_var`，隨後 `get_selected_door_layout_cell()` 找不到目標時會**回退第一格**。布林 `True`、浮點索引 `0.5`、舊格子消失與物理來源／DoorPartSpec 錯誤均可能令 GUI 錯誤選取、開啟或留下另一片實體 Door 的 Hole Editor 目標。
+- 同一 Engine Owner 已公開 `manufacturing_api.resolve_operator_door_layout_cell(cells,column_index,row_index)`，驗證兩軸只能為非負原生整數，且在現行 canonical Cell 集合中必須唯一存在；使用同一 `door_layout_part_key` 的製造身份。現在多門格 Hole Editor 直接呼叫原公開 API 取得真 Cell，不再 `int()` 或呼叫「顯示選取缺失時回第一格」的 UI 相容讀取；等來源驗證、DoorPartSpec、baseline、Hole Editor geometry 均成功後才改選 GUI 目標。不存在／非法來源只顯示錯誤，不部分改寫選取或開孔資料。
+- 保留原 `select_door_layout_cell` 導覽 Engine API、金庫型／受電箱共用 Door cell 穩定身份、實體孔位與 Fold／2D／3D／DXF Factory 不變。定向 `tests/test_issue2517_multidoor_hole_editor_selection_engine_gate.py` 真呼叫主 GUI 方法，檢查各種非法索引不開窗、不改選取、合法身份對應 DXF key、幾何建立失敗原狀。#2517 全面覆蓋未因此結案，Windows UAT 和 X 正式發布另驗。
+
+
+## [CURRENT] #2517 Door Hole Editor 單門／多門格提交不可走顯示修補，嚴格來源由公開 Engine（2026-11-10）
+
+- 主 GUI 的 `gui_modules.project.export_actions._apply_single_door_indicator_state` 與 `_apply_multi_door_indicator_state` 原本在 **Hole Editor Confirm All 的實際提交階段**呼叫 `_normalize_door_indicator_state`，其實體 Owner 只是 `manufacturing_api.project_operator_door_indicator_display_state` 的*寬鬆舊版顯示投影*。若一個直接呼叫的 GUI 提交入口接到非法啟用孔數、布林、缺少層組或非有限偏移，會將非法製造來源顯示修補為合法預設，再寫入單門啟用控制或多門格 `door_layout_indicator_states`／FoldDesigner Snapshot，違反同一條製造權威鏈。Modal 的正常收集預驗證不授權後續提交入口再次「柔性修正」物理來源。
+- 現在**單門寫入**先呼叫原公開 `manufacturing_api.project_operator_door_cell_indicator_manufacturing_source(raw)`，僅把 Engine 已驗的 mode、六個 groups、offset、is_box_dist 投影到 Tk 控制；不以 `bool("false")`、`float`、`int` 構造提交來源。**多門格寫入**先呼叫原公開 `manufacturing_api.project_operator_door_layout_indicator_snapshot_states({cell_key:raw})`，取得附帶原有 `enabled/box_enabled` 相容欄位的已驗 detached row，再原位更新 live map 和 FoldDesigner Snapshot。無效啟用來源在任何寫入／重繪前 fail closed；停用模式仍無任何實體指示燈開孔。
+- **讀取顯示**依舊可以使用 `project_operator_door_indicator_display_state` 的舊版相容投影，但絕不可作為物理 Save/Factory/CUTTING/DXF 的資格；原 DoorPartSpec／Feature／2D／3D／NFB／Family／Registry／檔案 schema 不變。定向 `tests/test_issue2517_door_indicator_gui_commit_engine_source.py` 驗兩個真 GUI 寫入函式、壞來源無部分提交、金庫型／受電箱 Engine PartSpec 和 Project Save→Reload。#2517 全面覆蓋仍 OPEN；Windows UAT 與正式 X 發布分開。
+
+
+## [CURRENT] #2517 主 GUI EndCap PartSpec 不得由缺失的 FW 偽造 25 mm（2026-11-10）
+
+- 原 `gui_modules.application.manufacturing_adapter._end_cap_part_spec` 對製造來源 `val.get("fw", 25.0)` 設預設 25 mm，送 `_effective_endcap_fw` 後可通過 Engine 的正有限 FW 硬閘門；若上游漏傳箱身 FW，GUI 會在 Head/Tail 製造請求前捏造一個正數物理尺寸，與已確認的製造來源 fail-closed 原則相違背。
+- 以既有公開 `manufacturing_api.normalize_operator_source_dimension(val.get("fw"), field="fw")` **先驗實際製造來源、再讀取折邊 Profile／EndCap FW 四態**；缺欄、bool、NaN/Inf、非正或非法內容在建立任何 EndCap PartSpec 前拒絕。合法小數直接送原 `_effective_endcap_fw`，不改 `project_operator_endcap_fw_controls`、`resolve_endcap_fw` 的 FOLLOW_BODY／FOLLOW_HEAD／FOLLOW_TAIL／INDEPENDENT 權威，維持 Head/Tail 分離、現有 PartSpec、BEND／CUTTING／3D／DXF 所有原本 Engine owner。
+- 測試 `tests/test_issue2517_main_gui_endcap_spec_box_fw_no_fallback.py` 驗 Head/Tail 缺失與非法 FW **在 Profile/PartSpec 前**即被拒絕、有效小數經 Engine 四態得到與 Save→Reload 相同的結果、GUI 不再帶 25 mm fallback。這一批不是完整 #2517 驗收、也不是新增 Factory 或 CADSplit 製造資格。
+
+
+## [CURRENT] #2517 Receiving Set/Bay 小數 W/H/D 由公開 Engine 原值同步至 Fold 即時狀態（2026-11-09）
+
+- `gui_modules.application.fold_designer_composition_receiving.sync_receiving_current_bay` 原已從 `project_receiving_bay_legacy_aliases` 取得 Engine canonical Bay W/H/D，卻在非 Quantity 路徑以 `fold_designer_original.get_int`（`int(round(float(value)))`）覆寫 `app.state.w/h/d`，例如原始 820.25 mm 被 GUI 四捨五入成 820 mm；即時 Fold State／後續刷新與已保存 Set/Bay 物理來源不同。既有 `fold_designer_bridge.load_phase6_snapshot` 已使用 `manufacturing_api.normalize_operator_live_box_dimensions`，不允許讀取來源時取整，屬同一 #2517 單向責任鏈。
+- 現兩模式 `set_bay`、`quantity` 同用原公開 `manufacturing_api.normalize_operator_live_box_dimensions(projected)` 在任何 GUI snapshot、Workspace、Fold state 或 Tk 變數變更前驗證原值，保留正有限小數 W/H/D；失敗完全不更新 GUI，成功以同一不可修改的驗證結果同步 `_phase6_box_whd`、`app.state.w/h/d`、GUI 顯示。不可用 `get_int`、`round`、`abs` 或 GUI fallback 來偽造物理尺寸，不更改 receiving_layout、PartSpec、BEND、2D／3D 或 DXF 原製造 owner。另外查明 `fold_designer_original.MainApp.do_update` 在所有後續渲染又用 `int(round(float(v_w/h/d)))` 覆寫 `state.w/h/d`；同批將 `fold_designer_bridge` 三個實際舊重繪入口接入 `_phase6_render_with_engine_live_dimensions`：沿用原本 Tk 的 symmetric／enable_y／alpha_bend／alpha_face／renderer API，但在渲染前先通過同一 Engine `normalize_operator_live_box_dimensions`，禁止重新取整或用舊 fallback。
+- `tests/test_issue2517_receiving_bay_live_fractional_readback_engine.py` 包含真 Engine ReceivingLayout decimal Bay readback、兩模式狀態／JSON Reload 同源、非法 bool/NaN/Inf/非正 W/H/D 在所有 GUI 副作用之前拒絕、實際 Fold Bridge legacy renderer 小數一致、非法來源不繪圖與 source guard。此增量不代表 #2517 全面覆蓋或 Windows UAT 已完成。
+
+
+
+
+## [CURRENT] #2517 EndCap BOTTOM WRAP 新交易啟用旗標一律由公開 Engine 嚴格驗證（2026-11-09）
+
+- 原 `ae_engine.endcap_bottom_wrap_state.commit_endcap_bottom_wrap_joint` 及 `commit_endcap_bottom_wrap(..., enabled=...)` 在**新操作提交**前以 `bool(enabled)` 決定 BOTTOM Joint WRAP／INSERT 與 Head/Tail Linked/FOLLOW/INDEPENDENT 已存啟用狀態；因此 JSON／Tk 原始字串 `"false"` 會被當成 True，實際可能建立錯誤 BOTTOM WRAP 關係。這不是舊版顯示問題，而是實體 Joint／下方截角相關的製造來源資格。
+- 現統一由 Engine 既有 `operator_settings_transactions.normalize_operator_settings_boolean` 在任何新交易改動前驗證原始啟用值：原生 bool、合法序列化 true/false/on/off/1/0 維持相同製造語意；未知值、NaN/Inf 或容器 fail closed，不得部分改寫 Head/Tail。GUI `phase6_endcap_semantics` 僅保留相同公開 API 轉送，不增加 GUI 條件或物理計算。
+- **歷史儲存來源的 `normalize_endcap_bottom_wrap_state`／`resolve_endcap_bottom_wrap` 柔性讀回與 Joint Graph 優先規則維持不變**，不能將新操作的嚴格驗證反向強套已保存相容資料；原有 WRAP reserve、Family、BEND/CUTTING、Assembly/FinalScene、Save→Reload 和 DXF owner 不變。定向 `tests/test_issue2517_endcap_bottom_wrap_enabled_public_engine.py` 驗公開 Joint relation、兩側跟隨、非法來源原子拒絕及序列化回讀。#2517 仍 OPEN。
+
+
+
+## [CURRENT] #2517 單門 Hole Editor 已停用指示燈的顯示修復與層數上限只歸 Engine（2026-11-09）
+
+- 主 GUI `gui_modules.project.export_actions._single_door_indicator_state_snapshot` 舊版在指示燈 `mode=none` 時，直接 `int`、`float`、`bool` 修補層數、群組、偏移及箱距旗標。序列化 `"false"` 會被 `bool` 變成真，損壞的非物理舊設定可能在開 Hole Editor 前拋錯或因不足六個群組而失敗。這是已停用欄位的顯示相容處理，不是合法實體加工來源。
+- 現改將原始 inactive 控制值直接交公開 `manufacturing_api.project_operator_door_indicator_display_state(raw, legacy_inactive_single_door=True)`（仍由原 `ae_engine.fold_designer_snapshot_dimensions` Owner 維護）。該顯示-only 選項保留單門 Hole Editor 舊版層數 `max(1,min(6,int(value)))` 的 **1–6 上下限顯示**（例如已停用層數 9 顯示 6）；一般既有 display API 預設值與多門格行為不變。損壞層組、偏移改由同一 Engine 顯示投影柔性回復；已停用原始來源不改寫。啟用 `indicator/indicator_box` 時仍使用嚴格 `normalize_operator_hole_editor_indicator_state`，不得把 display 投影當已核准孔位或 Save／CUTTING／DXF。
+- 原 `tests/test_issue2517_single_door_indicator_live_source_engine_api.py` 的 9→6 舊行為由 Engine 保留；新增 `tests/test_issue2517_single_door_inactive_indicator_display_engine.py` 驗 raw false/true、上限、異常／少量舊欄位與 enabled fail-closed，並由 exact HEAD CI 驗證。此批無新實體板件、孔位、Fold、Factory、DXF 或外部製造資格；#2517 全面覆蓋仍 OPEN。
+
+
+## [CURRENT] #2517 Receiving Bay W/H/D 實體相依板件重建採用原 Engine 交易變更回報（2026-11-09）
+
+- 原 `gui_modules.application.fold_designer_composition_receiving.commit_receiving_current_bay_controls` 先以三筆 `normalize_operator_source_dimension` 驗證 GUI 操作值，但隨後在 GUI 做 `any(float(current_bay[key]) != float(value) ...)`，自行判斷是否應重建 Divider／InnerDoor。這個決策與實際 Engine 儲存交易不在同一個來源；若兩者語意演進不同，即使 Engine 改變 Bay Topology，GUI 仍可能錯誤跳過相關實體重新推導。
+- 現直接使用既有 `ReceivingSetBayAdapter.update_current_bay(**requested)` 的 `changed` 回報。此 adapter 本來即呼叫同一公開 `manufacturing_api.update_receiving_bay`，該 Engine owner 驗證原始 Layout 與 W/H/D、重新補齊 Door Partition、作 NFB X RECONFIRM_REQUIRED 並產生完整更新後的 canonical Bay；GUI 只依該交易結果決定是否觸發 `sync_authoritative_derived_parts`。不再用 GUI 的 `float()` 來認定物理尺寸是否改變；無變更仍不重建。
+- `tests/test_issue2517_receiving_live_bay_controls_engine_dimensions.py` 覆蓋真實 ReceivingSetBayAdapter/headless Engine 交易、合法小數、無變更、重新推導、非法原始 Bay 不製造及 GUI 無第二份比較。原 W/H/D、Door partition、Divider CROSS 與 NFB 認證政策不改；#2517 其他 GUI 製造入口仍待查核。
+
+
+## [CURRENT] #2517 Fold Designer Head/Tail FW 的 Fold 儲存來源與四態交易由公開 Engine（2026-11-09）
+
+- 原 `gui_modules.application.fold_designer_part_session.Phase6PartSessionOwner.save_current_part` 在儲存封頭／封尾時，先 `stash_profiles` 改變來源，接著自行以 `_num(snapshot.fw,25)` 回退箱身 FW、`_ui_len(raw_len)` 與 `float(edited_fw)` 解碼實體 Fold 寬，再由 GUI 決定是否呼叫 `commit_endcap_fw`。缺少或非法的原始物理 FW 可能被偽造成 25 mm／1 mm 或留下部分草稿，且四態跟隨決策散落 GUI。
+- 新公開 `manufacturing_api.commit_operator_endcap_fw_profile_save(input_snapshot, state, part_key, fw_segment)` 由現有 `ae_engine.operator_endcap_settings_transactions` owner 統一管理：先驗箱身 FW 正有限、保存的 Head/Tail 來源列及原始 Fold `len`（Receiving material route 額外驗 `ui_len_add`），只以原 Engine `fold_material_segment_outside_length` 轉換既有整數 UI Fold 長度；物理 FW 正有限才比較 `resolve_endcap_fw`，實際編輯才交原 `commit_operator_endcap_fw_value`／四態 FOLLOW_BODY、FOLLOW_HEAD、FOLLOW_TAIL、INDEPENDENT。完整 staging 成功後才原地更新原 dict 與 nested Head/Tail 身分；不存在的 legacy `ui_len_add` 仍按原規則視為 0，**已存在但非法值不得無條件回退**。
+- GUI `save_current_part` 只送原始 `y.get("fw")` 與 snapshot/state，完成既有 X/Y 來源檢查後才觸發公開 Engine 交易及板件 Profile 保存，維持 Undo、Save→Reload、Family／BEND／CUTTING／DXF 正式製造 owner。測試 `tests/test_issue2517_endcap_fw_profile_save_engine_api.py` 覆蓋兩種 Family、現有四態跟隨／分離、非法 bool/NaN/Inf、未提交原子性、有效缺欄相容及 JSON reload。整體 #2517 仍 OPEN；本批不增加新 Factory 或 NFB 認證。
+
+
+## [CURRENT] #2517 Hole Editor 新增／旋轉實體孔角度由公開 Engine 交易（2026-11-09）
+
+- 原 `gui_modules/editors/hole_editor.py::HoleEditorFeatureFactory.make_feature` 以 `int(TkVar.get().replace("°", ""))` 在 GUI 解碼實體孔角度；`HoleEditorSelectedFeatureActions.rotate_selected` 把 360° 自行換成 0°，組合層再以 `dataclasses.replace(feature, rotation_deg=rotation)` 直接產生實體旋轉孔，繞過公開 Engine Feature mutation 入口。原 `ae_engine.sheetmetal_feature_core._normalize_rotation` 才是所有 Rect／Circle／Profile hole Feature 的 0/90/180/270/360° 正式旋轉權威。
+- 現新增 `manufacturing_api.operator_hole_rotation_from_control(raw)` 與 `operator_hole_feature_with_rotation(feature, raw_angle)`（`ae_engine.operator_hole_feature_rotation` 原 Engine Core owner）：前者僅去除 UI 角度表示與合法 ASCII 整數字串之包裝，沿用同一 `_normalize_rotation`，拒絕布林、浮點小數、NaN/Inf、畸形字串；後者只接受既有物理 `CircleFeature/RectFeature/ProfileFeature`，驗證後以不可變 dataclass copy 回傳旋轉候選，不改原孔或來源。
+- GUI 新增孔、編輯孔顯示及旋轉按鈕使用上述公開 API，沒有 GUI dataclass Feature mutate 或第二套角度計算。已存在的 `feature_from_definition`、`feature_is_within_surface`、`HoleEditorSession` 的 Undo／Cancel／Confirm All、同源 Save→Reload 與最終 2D／3D／DXF 保持原先程序。旋轉造成越界時，控制值與孔草稿均維持原狀；未選孔時，按鈕僅改下次插入角度。新測試 `tests/test_issue2517_hole_editor_rotation_public_engine_api.py` 驗 GUI/headless 同源、合法／非法角度、4 種實體行為、不可變性、JSON rotation reload、越界、Undo 與先插入預設。這不構成 #2517 全面覆蓋已完成或外部 Worker 製造放行。
+
+
+## [CURRENT] #2517 單門 2D 指示燈／指示燈盒的原始啟用旗標由公開 Engine 決策（2026-11-09）
+
+- 原 `gui_modules.application.render_snapshots.single_door_render_snapshot` 直接使用 `if host.is_indicator_box_var.get()` 及 `if host.is_door_indicator_var.get()` 決定要不要建立 CUTTING 開孔／直接指示燈，會將舊 JSON/Tk 來源字串 `"false"` 轉成 Python True，可能錯誤生成實體孔。舊版已確認可同時傳送盒孔和直接指示燈，不能為修正布林來源而擅自改成互斥拒絕。
+- 現以 `manufacturing_api.project_operator_single_door_indicator_mode(box_enabled, door_indicator_enabled)`（原 `ae_engine.door_operator_part_spec` owner）使用既有嚴格 `normalize_operator_settings_boolean` 驗證原生／序列化旗標，回傳 `none`／`indicator_box`／`indicator`／`both` 模式；雙真時保留既有盒孔＋直接指示燈同源模式，非法旗標則在預覽／PartSpec 前拒絕。GUI 只依 Engine 模式收集已啟用的層組資料，開孔尺寸仍走原 `indicator_box_opening_size` 公開 API，主門 `build_door_operator_part_spec` 與實體 DXF 同源，不另寫模式／幾何公式。
+- 新測試 `tests/test_issue2517_single_door_indicator_mode_engine.py` 覆蓋 GUI/headless、原始與 JSON Reload 同義、`"false"` 不誤生孔、合法雙真組合原樣保留、非法來源繪圖前拒絕及單一模式共用原 PartSpec。這是主 GUI 單門 2D 模式來源 hardening，並未更動多門格既有 Mode／製造認證、CUTTING/BEND/DXF 算法；#2517 全功能 API 覆蓋仍維持 OPEN。
+
+## [CURRENT] #2517 Door Indicator fit 成品面 W/H 原始來源只能由 Engine 驗證（2026-11-09）
+
+- 主 Hole Editor `HoleEditorIndicatorFitValidation.validate` 舊實作將 Engine finished-face `context.finished_width/finished_height` 先在 GUI 透過 `float()` 轉成數值；公用 `manufacturing_api.validate_door_indicator_fit` 亦以 `float(finished_width/height)` 驗基本正值，但布林會被化為 1/0，NaN/Inf 會略過非正與外框比較，可能使不可信成品面尺寸參與實體指示燈/IndicatorBox fit。
+- GUI 現只傳來源原值；同一 `ae_engine.manufacturing_door_indicator.validate_door_indicator_fit` 在啟用的 `indicator`、`indicator_box` 分支，沿用原公開 `normalize_operator_source_dimension(finished_width, field="w")`、`(...finished_height, field="h")` 正有限、非 bool 毫米來源硬閘門；合法小數與 JSON 數字字串無截斷。仍維持停用 `mode="none"` 不建立任何物理孔、原 no-fit 相容，以及既有 Group、Offset、T、Family/CUTTING/BEND/DXF 公式與資格。
+- `tests/test_issue2517_door_indicator_fit_raw_finished_face_engine.py` 覆蓋 GUI/headless 同一非法 W/H 拒絕與 Confirm 停用、不可進 AE/Indicator 幾何、合法小數與 JSON parity、來源不變和 none 兼容。本批不新增平行 API／Exporter；#2517 全面覆蓋及 Windows UAT 仍待驗。
+
+## [CURRENT] #2517 Door Indicator fit 的原始層組數與偏移只經 Engine 一致驗證（2026-11-09）
+
+- 既有公開 `manufacturing_api.validate_door_indicator_fit` 原先對直接 headless / GUI 操作 `groups` 以 `int(v)` 轉成物理孔群數，`True` 與 `2.5` 等來源會分別被製造成 1、2 組；X/Y offset 亦直接 `float(...)`，NaN/Inf 或 bool 可在 fit 的 bbox 比對中避開合法邊界。GUI 前段已有來源 gate 不能代替公開 Engine 本體的最終資格檢查。
+- 在原 `ae_engine.manufacturing_door_indicator.validate_door_indicator_fit` 啟用的 `indicator`、`indicator_box` 路徑中重用 Engine 現有 `normalize_fold_designer_indicator_groups(groups)` 與 `normalize_fold_designer_indicator_offsets(x,y)`；不再自行整數截斷或造偏移，保留合法的原生整數／JSON 數字字串、實體負偏移與小數精度。停用 `none` 模式仍不製造/檢查任何隱藏組數與偏移；不變更真實幾何/Factory Policy。
+- `tests/test_issue2517_door_indicator_fit_raw_layout_engine.py` 驗 GUI/headless 非法組數與非有限／布林偏移無幾何和提交、合法來源等價、JSON 不被改寫及停用相容。與原物理 T gate 組成同一 public fit Engine 契約，不新增第二條製造路徑、CADSplit 專用 API 或 source-only 外部出圖認證；#2517 全面覆蓋與 Windows UAT 尚待驗收。
+
+## [CURRENT] #2517 Door Indicator fit 的實體板厚原始來源必須經公開 Engine 驗證（2026-11-09）
+
+- GUI `HoleEditorIndicatorFitValidation.validate` 在正式 fit 檢查前原先透過 `float(door_thickness_provider() or 0.0)` 轉換物理 T；同一公開 `manufacturing_api.validate_door_indicator_fit` 在 `manufacturing_door_indicator` 仍直接 `float(thickness)`，使 `True` 被視為 1 mm、NaN/Inf 可能流入指示燈盒製造尺寸。這是有實體 Indicator Box 的 Door live fit 來源資格缺口，不能由 GUI 預先轉型填補。
+- 現在 GUI 僅直傳操作來源，Engine 在啟用的 Indicator／IndicatorBox fit 分支、任何正式製造幾何前，重用原有 `operator_settings_transactions.normalize_operator_source_dimension(thickness, field="t")` 驗證正有限、非 bool 實體 T；合法小數／JSON 字串維持原精度。停用 `mode="none"` 不製造孔位；保留其原 no-fit 操作，不另創 Family、Set/Bay 或第二套幾何公式。
+- `tests/test_issue2517_door_indicator_fit_raw_thickness_engine.py` 驗公共 headless 和真 GUI 同步拒絕錯誤原始 T 且不進行 AE 幾何、停用 Confirm、合法小數同一 fit 結果、JSON 原來源不變及停用模式。這批不改合法 CUTTING/BEND/DXF 幾何或放行 source-only 外部 CLI。#2517 全面 GUI API 覆蓋及 Windows UAT 仍待驗。
+
+## [CURRENT] #2517 BasePlate／IndicatorBox PartSpec 與 2D 快照保留原始物理來源至 Engine（2026-11-09）
+
+- 原 `ae_engine.operator_auxiliary_part_specs.build_base_plate_operator_part_spec`、`build_indicator_box_operator_part_spec` 以及 Fold Designer BasePlate legacy source 仍以 `float()` 在公開 PartSpec 組裝前轉換原始 W/H/T/FW、縮量／折邊；原生 `True` 會變成物理 1 mm，NaN／Inf 亦可能進入幾何。單門及底板 `gui_modules.application.render_snapshots` 在 Engine 收到前還先 `float()`，讓原始非法型別失去來源證據。
+- 這批在**原** Engine auxiliary PartSpec owner 以既有公開 `normalize_operator_source_dimension` 驗 W/H/T（Fold Designer legacy source 亦驗 FW），有號 Fold／四向縮量重用原 `normalize_operator_settings_updates` 的有效有限數值語意；保留原合法負折邊／舊版來源，不將手動編輯專用縮量非負 gate 擴張到其他工程來源。原 `build_door_operator_part_spec` 的 Gap/Fold 嚴格數值 gate 不變。GUI 快照僅傳原始操作值，底板 2D 世界框投影則使用 Engine 已驗的 PartSpec 數值。
+- `tests/test_issue2517_auxiliary_raw_part_specs_public_engine.py` 檢查合法小數、舊來源 JSON Reload、原值未變、布林／NaN／Inf／無效實體尺寸拒絕、GUI 在任何繪製前原樣送 Engine，以及單門同一 Door API 拒絕；這只修公開請求原始來源資格，不變更 BasePlate／IndicatorBox 幾何公式、CUTTING／BEND/DXF 或任何外部製造認證，#2517 仍 OPEN。
+
+## [CURRENT] #2517 BasePlate 部分 INI 儲存不可寫入未選取的四邊縮量（2026-11-09）
+
+- `phase6_settings_center.save_defaults_to_ini(ae_module, values, context="base_plate", keys=...)` 在寫入合法選取欄位後，原本仍將整份 Settings snapshot 交給既有公開 Engine `operator_legacy_shared_base_plate_shrink(values)`，導致只儲存 `base_plate_bend` 等部分欄位，也可能因未選取四邊同值改寫舊版 `BASE_PLATE/shrink`，或因未選取非法縮量阻擋合法 INI 保存。這會影響之後重新載入的物理底板縮量，並非單純 GUI 顯示。
+- 現 GUI INI adapter 只提交實際寫入的 `changed_keys` 對應來源給原公開 Engine 四向相同策略；**只有四邊都在本次選取且同值時**才同步舊版 `BASE_PLATE/shrink`。原 Engine 擁有 shrink 判定公式，未新增 GUI 製造計算或獨立 BasePlate exporter；保留合法舊版 INI、現行 per-edge 優先與 Save→Reload 相容。
+- `tests/test_phase6_settings_center.py` 增加單存 Bend、未選取合法／非法縮量不寫入、不破壞 runtime 與 Reload，以及四邊明確全選同值仍同步 legacy 值。未修改 Factory Geometry、CUTTING/BEND/DXF 算法或外部製造資格；#2517 全面 GUI API 覆蓋與 Windows UAT 仍未完成。
+
+## [CURRENT] #2517 Engine runtime Settings 部分欄位提交不得洩漏未選取的實體策略（2026-11-09）
+
+- `manufacturing_api.apply_operator_runtime_settings_to_ae(ae_module, values, *, keys=...)` 已把 GUI 與 headless 的 AE runtime 製造提交歸原 Engine；但原實作只在 scalar 階段檢查 `keys`，其後把整份原始 `values` 交給舊 Vault EndCap 固定孔與 BasePlate 四邊相等相容策略。未選取的四邊縮量因此可能自行寫入 `base_plate_shrink_def`，或在其他合法欄位已提交後才因無效值報錯；未選取的掛孔欄位也會觸發非本次交易的政策重建。
+- Engine 原 `ae_engine.operator_settings_transactions` owner 現只將**已選取且全部通過原 Engine 驗證**的正規化欄位交予 `apply_operator_legacy_runtime_manufacturing_policies`；保留已選取固定孔、Relief、四邊等值的舊製造行為與既有欄位 schema，未選取來源不得參與任何實體政策副作用。GUI adapter 只傳原操作欄位，不新增第二套判斷。
+- `tests/test_issue2517_runtime_settings_engine_commit_api.py` 增加實際 GUI/headless 相同 `keys` 的無效/有效未選取四向縮量、固定孔隔離與選取非法來源的原子拒絕測試；此次不改 Family、CUTTING、BEND、DXF 計算或外部 source-only CLI。#2517 全面覆蓋與 Windows UAT 仍未完成。
+
+## [CURRENT] #2517 AE runtime Settings 的實體屬性寫入交易由公開 Engine 決策（2026-11-09）
+
+- 原 `phase6_settings_center.apply_settings_to_ae` 儘管以 `_coerce` 經公開 Engine 驗來源，仍在 GUI/Phase6 層自行按 `SettingSpec.runtime_attr/relief_attr` 將製造值 `setattr(ae_module, ...)`，再呼叫既有 `apply_operator_legacy_runtime_manufacturing_policies`；此段屬製造狀態提交權責，不只是呈現。
+- 透過公開 `manufacturing_api.apply_operator_runtime_settings_to_ae(ae_module, values, *, keys=None)` 交給原 `ae_engine.operator_settings_transactions` owner：依已合併的 Engine `operator_settings_catalog`，對被選欄位的 W/H/D/T/FW、bool、Fold/孔位/Relief 非實體數值重用**同一原公開來源驗證**，全部成功才原次序更新 AE runtime scalar、Relief、Vault 固定 CUTTING policy 與舊底板四向等值相容策略。GUI 只傳合法欄位選取與操作者來源；純 UI `ui_text_size` 不寫任何 Engine 製造屬性。既有 `SettingsService.update`、INI Save/Reload 與 Family/CUTTING/DXF 制造邏輯保留。
+- 測試 `tests/test_issue2517_runtime_settings_engine_commit_api.py` 及擴充既有 Runtime policy tests 驗 GUI/headless/JSON reload 同一結果、實體小數、合法負折邊、Bool、Relief／固定孔與底板相容、非法後續值不得造成部分寫入；未實際認證的外部 DXF／CLI 不因本改動放行。#2517 總體工作維持 OPEN。
+
+
+
+## [CURRENT] #2517 Fold Designer Factory Defaults 透過公開 Engine API（2026-11-09）
+
+- 原 `gui_modules.application.fold_designer_snapshot_projection._snapshot_base_state` 直接匯入 `ae_engine.ae` 並呼叫 GUI/Phase6 `load_factory_defaults_from_ae(ae)`，由 GUI 製造設定清單解析原始 `default_config`；造成重置初始值的製造來源繞過公開 API。現將原有 45 項 Settings 欄位 schema（含相容 INI section/option、legacy fallback、原始預設值與操作 context）**原樣移到** `ae_engine.operator_settings_catalog`，由公開 `manufacturing_api.OPERATOR_SETTING_SPECS` 供 GUI 只作欄位與版面呈現；不新增第二份規格。
+- `manufacturing_api.project_operator_factory_default_settings()` 由 Engine 原 `ae.default_config` 當次產生 detached Factory Defaults，經既有公開 W/H/D/T/FW、Bool、非實體 Fold/孔位/Relief 數值來源驗證；已存在但損壞的 factory 欄位只退到**該已確認 SettingSpec 的原值**。不使用 `config.ini` 或可變的 `ae.W` 等 runtime 取代出廠值，不容任意未知欄位加入；`source_config` 參數僅用於既有自訂 Host/相容測試，不能當認證製造來源。
+- GUI `phase6_settings_center.project_fold_designer_factory_snapshot` 只呼叫公開 API 並在 GUI 將 `ui_text_size` 轉成顯示選項（小/中/大）；保留既有 `SettingsService`、`load_factory_defaults_from_ae` 的 host 相容介面、舊 INI/中文選項與 Fold Designer Factory Reset。新測試 `tests/test_issue2517_factory_defaults_public_engine_api.py` 驗原始 Engine source 與 GUI/headless/JSON Reload 一致、非法值 fail-closed fallback、配置不改動、Factory 與 runtime 隔離、無 Engine 逆向 GUI 匯入。這批**不變更製造物理孔、BEND、CUTTING 或 DXF**，#2517 維持 OPEN。
+
+
+
+## [CURRENT] #2517 Receiving 新 Family 實體 T 不可被 float／2 mm fallback 偽造（2026-11-09）
+
+- `ae_engine.cabinet_types.receiving.apply_family_defaults` 是主 GUI `operator_apply_fresh_family_defaults` 與 headless Family Transition 共用的原 Engine Policy owner。先前 `float(result.get("t", 2.0))` 會將原生布林 `True` 轉成 T1、放行 NaN/Inf，或將明確存在但格式錯誤的 T 靜默改成 2 mm，接著產生實體內門／隔板來源；這不是合法的物理來源驗證。
+- 現在原 Family owner 重用公開 `normalize_operator_source_dimension(..., field="t")`，在生成 `default_inner_doors` 及任何新 Receiving Set/Bay 前拒絕明確非法 T；合法小數與合法數字字串保留原值。**只有來源真正缺少欄位 `t`** 的歷史新 Family 路徑才維持原 2 mm default；不透過 GUI、測試資料或另一個 Factory 公式猜 T。
+- `tests/test_issue2517_receiving_fresh_family_t_engine_source.py` 覆蓋 public API 原始 owner、非法 T 並未進入內門物理推導、毫米小數、缺席舊版相容、Family Transition／真實 GUI 事件原子拒絕及 JSON Save→Reload。未修改 CUTTING／BEND／DXF 算法或 source-only CLI 認證；#2517 全面 API 覆蓋與 Windows UAT 仍保持未完成。
+
+
+## [CURRENT] #2517 Vault 基準型號的 Head/Tail FW 跟隨交易歸原公開 Engine（2026-11-09）
+
+- 主 GUI `gui_modules/application/cabinet_controller.on_baseline_changed` 在已由公開 Engine 取得基準 `read_operator_baseline_fold_defaults` 後，舊程式卻直接 `setdefault` 與 `bool(item.get("follow_box"))` 修改封頭／封尾 FW：舊 JSON 字串 `"false"` 被誤認為跟隨，並由 GUI 自行決定實體 FW。基準型號刷新不是使用者明確重提「箱身 FW 接管」，不能破壞既有 `FOLLOW_HEAD / FOLLOW_TAIL / INDEPENDENT` 領導、分離狀態。
+- 現由 `manufacturing_api.commit_operator_baseline_endcap_fw`（原 `ae_engine.operator_endcap_settings_transactions` owner）實行既有四態／舊版來源交易。入口以公開 Engine 正有限 `FW`、`project_operator_endcap_fw_controls` 預檢完整 Head/Tail 列與序列化布林，再送同一 Engine `normalize_endcap_fw_state` 判定跟隨身分；僅跟隨箱身者取新基準 FW，Head/Tail 領導與獨立值維持原值。原 live dict 與既有 Head/Tail row 物件身分保留；任何非法來源在 mutation 前拒絕。GUI 只呼叫 API 與更新輸入顯示；拒絕不安排製造重繪。
+- `tests/test_issue2517_baseline_endcap_fw_original_engine_commit.py` 驗 Vault/Receiving 公開 Engine 四態、GUI Vault 事件、舊版真假字串／缺列、非法來源原子拒絕與 `.p6fold` Save→Reload 的原 Fold readback。無新 Family/幾何/DXF 公式或製造資格；完整 #2517、Windows UAT 均未因此自動宣稱完成。
+
+
+## [CURRENT] #2517 受電箱內門 Hole Editor Confirm All 提交目標由 Engine 決策（2026-11-08）
+
+- 原 `gui_modules.application.receiving_inner_door_hole_editor.inner_door_commit_target` 在 GUI 自行決定「實體內門」與「候選版本」保存目的，並被 `fold_designer_composition_receiving` 多個入口複用。現正式權威改為 `manufacturing_api.operator_receiving_inner_door_commit_target(settings_mode)`（`ae_engine.operator_receiving_inner_door_source`），GUI helper 僅為相容轉送；所有多連／單只入口及 Confirm All 候選判斷讀同一 Engine API。
+- 僅編輯入口 `candidate` 送候選、`single` 或獨立實體入口 `None` 送實體；未知 mode 必須拒絕，不准由目前 Set/Bay／Quantity 模式、未提交 NFB 分頁、任意其他視窗狀態推測保存目的。原實體確認仍使用 `prepare_receiving_inner_door_physical_confirm`、`commit_receiving_quantity_inner_door_confirm` 及 Set/Bay 原子交易；候選仍保留 Confirm All 再寫入、取消不改來源的契約。
+- 測試 `tests/test_issue2517_inner_door_confirm_target_engine_api.py` 驗 GUI/headless/save-reload 字串一致性、非法 mode 無視窗及來源寫入、GUI 不重算提交目標。這是保存目標的權責遷移，不新增/批准 NFB 物理孔、DXF 或外部 source-only 製造。#2517 仍 OPEN。
+
+
+## [CURRENT] #2517 圓孔排列預設孔心距由 Engine 公開 API 決定（2026-11-08）
+
+- Hole Editor 圓孔排列視窗原以 GUI `max(2 × 圓孔直徑, 50 mm)` 產生可編輯孔心距初始值。現由 `manufacturing_api.operator_round_hole_default_center_distance(diameter)`（`ae_engine.operator_round_hole_projection` owner）統一決定，原合法數值不變。此初始值僅是操作欄位預設，不是已確認加工孔位，不繞過原 `plan_operator_round_hole_preview`、Session commit 與正式製造。
+- 原始孔徑為 bool、非正、非有限或兩倍計算溢位時，由 Engine fail-closed 拒絕；GUI 在建立／grab Tk modal 前先呼叫 API，拒絕不修改編輯 session 與原來源。測試 `tests/test_issue2517_round_hole_default_pitch_public_engine.py` 驗合法預設、非法來源及 GUI 無視窗副作用；此切片不表示 #2517 全面完成，亦不改 2D／3D／DXF canonical 幾何或放行外部 export。
+
+
+## [CURRENT] #2517 External Settings monotonic revision 原始來源由公開 Engine 嚴格核對（2026-11-08）
+
+- `ae_engine.operator_settings_transactions.plan_operator_external_sync` 是 Fold Designer 接收 Main GUI Settings 更新的既有唯一公開 Engine 判定 owner；原 `int(envelope.revision)` 對 JSON 布林 `true`、浮點 `2.5`、`2.0` 會將原始非整數版本轉成可接受整數，可能搶先佔用 revision 或把較舊/非法製造設定當作新交易。GUI 路徑 `phase6_settings_transitions.plan_external_sync` 與 `Phase6SettingsTransactionService.plan_external_sync` 均沿用該公開 API，無需新 owner。
+- Engine 入口現在對外部原始 revision 只接收原生非 bool 整數及合法 ASCII 整數字串（保留舊有可解析前後空白／正負號）；拒絕布林、浮點截斷、NaN/Inf、底線數字別名、非整數字串及容器，統一返回原 `INVALID_REVISION` 計畫且不更新 service revision、transaction ID 或製造 Settings。未提供、空字串、None 仍與原有 revision 0 過期處理相容；有效交易維持 `STALE_REVISION`、`OK`、`WRONG_ORIGIN` 原回值與舊同步資料欄位。
+- `tests/test_issue2517_external_sync_revision_raw_engine.py` 驗公開 Engine 與 GUI 相同結果、非法來源不消耗 revision、合法整數字串與遞增／過期次序及 JSON Save→Reload；不改任何 Factory／CUTTING／DXF 製造計算，#2517 整體 API 覆蓋與 Windows UAT 尚未宣稱完成。
+
+## [CURRENT] #2517 外部 Settings 同步與最終 Engine Commit 的 T／FW 必須同 W/H/D 硬拒絕非法來源（2026-11-08）
+
+- 既有公開 `ae_engine.operator_settings_transactions.normalize_operator_source_dimension` 已對 W/H/D/T/FW 做正有限、拒絕 bool 的實體輸入規則；然而 `normalize_operator_settings_updates` 的外部同步與 `commit_operator_settings_state` 的最終交易只對 W/H/D 檢驗，讓外部 T/FW 的 nan、零與負值被略過或直接寫入保存來源，繞過 GUI Panel 及最新 Stage Service 的來源硬閘門。
+- 現由原 Engine owner 兩個入口在任何 commit／來源寫入前重用**同一個** `normalize_operator_source_dimension` 和 `PHYSICAL_SNAPSHOT_SOURCE_KEYS=(w,h,d,t,fw)`。非法值直接拒絕，合法毫米小數不截斷；仍只將 W/H/D 更新到 `box_whd`，T/FW 僅更新原 Settings／Snapshot；其他非實體 legacy numeric skip、布林及 UI-only 文字選項不變。沒有新增 Engine API、Family、Factory、CUTTING、DXF 製造資格或第二份公式。
+- 更新 `tests/test_issue2517_operator_settings_transactions_engine_api.py` 的過時非法 FW 可略過預期，改為**非實體** Fold 無效數值可略過；新增 `tests/test_issue2517_operator_settings_final_physical_engine_gate.py` 覆蓋直接 Engine、外部 Transition、GUI Controller、原子拒絕、全五欄合法小數與 JSON Save→Reload。#2517 全面覆蓋與 Windows UAT 仍未完成。
+
+## [CURRENT] #2517 Phase6 Settings 直接暫存交易仍須經公開 Engine 原始來源驗證（2026-11-08）
+
+- `Phase6SettingsPanel` 雖已檢核輸入，`phase6_settings_service.Phase6SettingsTransactionService.stage_setting_update` 原可由 Controller／其他直接呼叫者不經檢驗就改寫 Settings／Snapshot／pending；T/FW=0 或負、NaN/Inf、錯誤序列化布林及未知製造欄位可在 Commit 前污染草稿。
+- 服務只沿用 `phase6_settings_center.SETTING_SPECS` 識別已定義欄位，修改任何原來源前，W/H/D/T/FW 呼叫既有公開 `manufacturing_api.normalize_operator_source_dimension`，Fold／Bool 呼叫原 `phase6_settings_transitions.normalize_updates`（經公開 `manufacturing_api.normalize_operator_settings_updates`）。非法來源拒絕且三份狀態不動；UI-only `ui_text_size` 維持原規則，合法負折邊、毫米小數及 150ms debounce 不變。未新增製造公式、API、Factory/DXF 權限或資料 schema。
+- `tests/test_issue2517_settings_staging_public_engine_gate.py` 驗直接 Service、Controller、全部實體 W/H/D/T/FW、序列化布林、非法值原子拒絕、未知 key、UI 選項、pending／JSON roundtrip。此切片不是 #2517 全功能／Windows UAT 驗收。
+
+## [CURRENT] #2517 使用者新增 AssemblyJoint 的一／二段 Solver Topology 原始來源由公開 Engine 驗證（2026-11-08）
+
+- `fold_designer_bridge._phase6_joint_form_add` 原在 GUI 對 `relief_joint_topology_var.get()` 做 `int()`，使 bool 或非整數浮點可能被轉為合法的物理一／二段；原 Engine 公開 `manufacturing_api.commit_operator_user_assembly_joint` 由 `ae_engine.assembly_joint.add_user_assembly_joint` 實作，僅拷貝原始 `solver_constraints`，未在交易邊界檢驗拓樸級數，且非 Mapping 的空容器會默默成為空預設。
+- 原 Fold Designer 控制允許一段／二段。GUI 現直傳原始值；原 Engine Joint owner 在產生 `USER_ADDED` 前沿用**相同** `ae_engine.certified_relief_formula_io.normalize_operator_relief_topology_levels`（Certified Registry 一／二段語意），只驗有明確提供的 `solver_constraints.topology_levels`，拒絕 bool／小數／非有限值／非 1 或 2 級或非法容器。未提供 constraints 的合法舊呼叫仍為空；其他 metadata 原樣深拷貝，既有保存 Joint 不主動重寫。
+- `tests/test_issue2517_user_joint_topology_raw_public_engine.py` 證實 GUI→公開 Engine 的原始操作來源、1/2 級數合法與非法 fail-closed、不可變原快照及 JSON Save→Reload 維持實體 Joint 來源。此為 Operator Joint 編輯交易，不新增 Assembly Solver／Registry 放行、CUTTING／DXF 能力；#2517 全面 GUI API 覆蓋與 Windows UAT 仍待驗。
+
+## [CURRENT] #2517 主 GUI 實體內門與 Indicator 板件啟用旗標只能經公開 Engine 原始布林驗證（2026-11-08）
+
+- `gui.Phase6ApplicationHost._commit_receiving_inner_door_checkbox` 原以 `bool(var.get())` 推算內門實體啟用，`"false"` 會誤判為 True；欄位不存在又會直接假定 False，導致無操作員明確停用指令就刪除原有內門物理來源。`on_indicator_box_toggle`、`on_door_indicator_toggle` 亦在使用者切換實體 Indicator 板件／排他狀態前自行套 Python truthiness。
+- 現 GUI 僅取得 Tk/序列化原始值，先送既有公開 `manufacturing_api.normalize_operator_settings_boolean`（根源為 `operator_settings_transactions`），再呼叫原 Engine `apply_operator_receiving_inner_door_presence`（嚴格 bool、原子來源交易）或原 Workspace UI 交付。來源遺失或非法值拒絕且不改內門列、Indicator 板件狀態、快取與 UI；合法 False 與 True 均保留原製造語意。所有 Checkbox 的物理身分仍由原 Engine／Door layout owner 判斷，無第二套 Family／孔／折／DXF 公式。
+- `tests/test_issue2517_main_gui_part_presence_boolean_engine.py` 覆蓋有效序列化真/假、原生 bool/Tk control、invalid/missing input fail-closed、內門資料不變／UI 不提前產生副作用、Indicator 排他狀態與公開 API 呼叫證據。與既有 Receiving atomic source、JSON Save→Reload 測試共同驗收；未獲 Windows UAT，#2517 全面 API 覆蓋仍需逐項查核。
+
+## [CURRENT] #2517 主 GUI BoxBody 與 Head/Tail 展開摘要由公開 Engine Blank Topology 量測（2026-11-08）
+
+- 原 gui_modules/application/calculation_controller.update_calculations 在 GUI 對 RenderData 材料 bbox 各軸相減；這忽略 Engine 已有的 UnfoldedBlankTopology 料鏈權威，局部截角挖除最外角時可能把製造 blank 誤縮。多片箱身 exploded preview 不得當成一片 blank。
+- 唯一 owner ae_engine/manufacturing_render_data.py 增加公開只讀 project_operator_main_blank_summary_dimensions(render_data, *, part_key)：箱身由原 canonical_strip_render_data（多片但無 strip 則拒絕）量摘要，封頭／封尾讀 committed final sheet；所有數字透過原 measure_unfolded_blanks，先使用 UnfoldedBlankTopology，僅 legacy 無拓樸可退回既有材料量測。manufacturing_api 及根包公開同一 callable，GUI 僅格式化結果；不改 Factory、BEND、CUTTING 或 DXF 寫出。
+- tests/test_issue2517_main_blank_summary_public_api.py 覆蓋真 PartRenderData、multipart canonical strip 與 exploded 不混用、relief 面積不改 blank 尺寸、GUI delegate 與非法來源拒絕；既有 GUI mock 改用真 Shapely 材料。#2517 全部功能覆蓋及 Windows UAT 仍未完成。
+
+## [CURRENT] #2517 Settings Panel 即時 W/H/D/T／Fold／Relief 草稿值須經公開 Engine 驗證後才暫存（2026-11-08）
+
+- `phase6_settings_panel.Phase6SettingsPanel` 原本在上方全域 W/H/D/T 與右側設定 Numeric `trace_add` callback 以 `float(raw)` 將輸入直接送到 `Phase6SettingsService.stage_setting_update`；該暫存服務會立即改寫 `settings_values`／`input_snapshot`，因此可讀的 `nan`／`inf` 在下游 Engine 檢核前就污染製造草稿，物理 T=0 或負數亦可提前進入，且上方值對比的 GUI 1e-9 容差會忽略合法小數變更。
+- 不新增 API／設定狀態第二份 owner：上方全球 W/H/D/T 操作來源以既有公開 `manufacturing_api.normalize_operator_source_dimension` 驗正有限，並以兩個已驗值做精確相等比較；右側實體欄位沿用同入口，非實體 Fold/Gap/Relief 數字經 `normalize_operator_settings_updates`，布林透過 `normalize_operator_settings_boolean`。沒有合法 Engine 回值就不呼叫原暫存 callback，保留 GUI 無效草稿供編修；非實體負折邊與零值照原規範合法。
+- `tests/test_issue2517_settings_panel_live_staging_public_api.py` 驗四軸非法輸入無暫存、精確小數、不改既有草稿、Fold/Relief 受 Engine 允許的負數、布林原值與真實 Tk 控制的 API parity。本切片不修改 Family／PartSpec／CUTTING／BEND／2D／3D／DXF 公式，#2517 與 Windows UAT 仍未全部完成。
+
+## [CURRENT] #2517 Receiving 封頭／封尾 Family Policy 的實體板厚 T 原始來源由公開 Engine 驗證（2026-11-08）
+
+- `fold_designer_manufacturing_projection._apply_cabinet_family_endcap_policy` 原先 `float(self.t_var.get())`，將明確可讀但錯誤的來源提前轉型；`manufacturing_api.apply_cabinet_family_endcap_policy` 亦有 `float(thickness)`，可能讓原生 bool 成為 T1、NaN/Inf 流入封頭／封尾下方有效 FW。這會影響 Receiving EndCap Family 成品料與 2D/3D/DXF 同源計算，不能由 GUI 靜默製造。
+- 沿用原公開 Engine API（不新增接口），Receiving Head/Tail 進入 Family bottom-FW 之前，以既有 `normalize_operator_source_dimension(value, field="t")` 驗證原始操作輸入的正數／有限／非布林／小數精度。GUI 只交 `TkVar.get()` 原始值，未連接 Tk 的既有相容呼叫仍交 `None`，由 Engine 保留顯式缺席的 legacy default；金庫型及非 EndCap 仍原樣 no-op。
+- 擴充 `tests/test_issue2517_endcap_family_policy_api.py` 真實 GUI seam、Engine API headless parity 與非法輸入不呼叫 Family 函式／不突變；只限 source qualification，無新折彎、截角、Factory、CUTTING、DXF 公式。#2517 完整覆蓋與 Windows UAT 仍需後續逐項驗收。
+
+## [CURRENT] #2517 Receiving 多連設定的實體 Set/Bay 選取與盤名只經公開 Engine（2026-11-08）
+
+- `fold_designer_composition_receiving.open_receiving_multi_settings` 原本在選連、改盤名、讀既有設定與門板來源標記的 callback 中先執行 `int(set_index)`／`int(bay_index)`；bool、fraction、或過期連位可被當成另一實體來源，其中先切換 Set 再發現 Bay 無效還會留下部分 GUI 選取。
+- 既有 `receiving-layout-v1` Engine owner 提供只讀公開 `project_receiving_operator_set_bay_selection(layout, *, set_index, bay_index)`，公開 facade／根包指向同一 callable。它沿用 `project_receiving_operator_set_preview_target` 和 `normalize_receiving_operator_topology_integer`，先確認兩個實體索引與既存連數，返回 detached `set_index`、`set_id`、`bay_index`。GUI 四個 callback 只接受返回的已驗來源，再進行原有 UI 選擇或既有 Engine rename／投影；非法來源不可修改 Layout 或留下部分選取。
+- `tests/test_issue2517_receiving_multi_modal_selection_public_api.py` 驗相同公開 callable、實體兩套 Set/Bay、合法舊 Tk 文字、非法 bool/fraction/stale/underscore 不變動實體與選取、GUI modal callback 及 Save→Reload；不新增 2D／3D／CUTTING/BEND／DXF 公式或放行。#2517 和 Windows UAT 仍待全部完成。
+
+## [CURRENT] #2517 Receiving 套／連 2D 預覽實體來源只經公開 Set/Bay Engine（2026-11-08）
+
+- 舊 GUI `receiving_layer_preview_payload` 與 `open_receiving_layer_preview` 的 `int(layer_index)` 會把 bool/fractional 誤指另一個實體 Set；舊 Switch 相容 facade 的廠牌來自目前選取 Set，而非實際預覽目標 Set。此舊 UI「套」的資料來源為 `receiving-layout-v1`，**不是** `receiving-switch-layout-v1` 的 Switch 開孔 tier。
+- 唯一 Set/Bay owner `ae_engine.receiving_layout` 新增只讀 `project_receiving_operator_set_preview_target(layout, layer_index)`，並經 `manufacturing_api`／根包同一 callable 公開。**沿用**既有 `normalize_receiving_operator_topology_integer` 作原始索引驗證（不可自行重刻 regex），再由 Engine 真實 Set/Bay 正規化核實存在性、Set stable ID、physical Bay 數和目標 Set 廠牌；非法來源不可啟動 FinalScene 預覽、不更動持久化來源。
+- 測試 `tests/test_issue2517_receiving_layer_preview_engine_target.py` 使用真 `ReceivingSetBayAdapter` 和 `ReceivingSwitchProjectionAdapter` 及兩套不同品牌做 headless／GUI parity、非法數值與 schema 拒絕、只讀、JSON 穩定與既有開窗 callback。這只修一條展示前的來源資格，不是開孔 CUTTING／NFB／Factory 製造放行，不改 2D/3D/DXF 幾何或認證；#2517 及 Windows UAT 尚未結案。
+
+## [CURRENT] #2517 NFB 草稿 X／四分之一圈角度直接送公開 Engine 原始來源（2026-11-08）
+
+- `gui_modules/application/fold_designer_composition_receiving.inner_edit` 原在 NFB 手動 X 草稿提交前 `float(TkVar.get())`，旋轉草稿提交前 `int(TkVar.get())`；其中非標準文字角度如 `"090"` 會被轉成合法 90 度，且物理來源轉型權留在 GUI。這些值只屬尚未證實 DXF/CUTTING 的 NFB 暫存，不得當成已驗證世界 X 或製造旋轉。
+- 原公開 `manufacturing_api.set_receiving_nfb_draft_manual_x`、`set_receiving_nfb_draft_layer_rotation`、`set_receiving_nfb_draft_slot_rotation` **不新增第二套 API**；直接由其既有原始 owner `receiving_nfb_ui1a_edits` 正規化操作來源。X 接受明確空白重設、正負小數毫米與零；拒絕布林、非有限及非法字串。旋轉僅允許原生整數 0/90/180/270 或 Tk 原始同文字選項；布林、小數、前導零與非四分之一圈拒絕，保留已保存整數 schema。
+- `tests/test_issue2517_receiving_nfb_raw_x_rotation_public_engine.py` 驗既有公開 facade 與 owner 身份相同、真實 GUI 內層 callback、合法／非法來源原子拒絕、X reset impact、旋轉更改使原世界 X datum 失效、Undo/Save→Reload；不動 Factory、Receiving CSV 模型、實際孔、2D/3D/DXF 或輸出認證。#2517 完整覆蓋與 Windows 實機仍待驗。
+
+## [CURRENT] #2517 主 GUI 25 項製造數值輸入統一公開 Engine 實體／Fold 驗證（2026-11-08）
+
+- 原 `gui_modules/application/cabinet_controller.get_float_values` 是主 GUI 計算、單門／多門 Hole Editor 及 PartSpec 共同數值入口；逐項 `float(TkVar.get())` 先把布林 True 變成 1.0，也讓 NaN／Inf 越過入口，直到下游才可能拒絕。主 GUI 不應消除原始製造來源的錯型證據。
+- 原 25 項 TkVar 的操作順序不變，改將 raw 來源交給既有 `manufacturing_api.normalize_operator_source_dimensions` 驗 W/H/D/T/FW 正有限值，再以 `manufacturing_api.normalize_operator_settings_updates` 驗其餘 Fold／Gap／BasePlate 有限值；任何欄位被略過皆禁止返回部分資料供 2D／3D／DXF。Vault 手動底板非負限制作為另一條操作約束，不能侵入一般 Fold／INI 負數相容，沿用 #3112 契約；不新增主幾何公式。
+- `tests/test_issue2517_main_gui_numeric_source_public_engine.py` 覆蓋 GUI／headless 全 25 欄 parity、W/H/D 小數精度、負折邊及負縮量相容、非法 bool/nonfinite 來源 fail-closed、不突變、JSON Save→Reload。PartSpec、Topology、Registry、CUTTING／BEND／DXF Writer 均未改。#2517 其他入口及 Windows UAT 持續待驗。
+
+## [CURRENT] #2517 Receiving Switch 開孔確認只接受 Engine 已存在的層／連位（2026-11-08）
+
+- 原 `gui_modules/application/fold_designer_composition_receiving.confirm_receiving_opening` 把層索引、連位索引做 `int(raw)` 後才送到外部開孔 resolver；布林 `True`、小數 `1.9` 或過期索引可能錯指另一實體 Switch Cell。這不是有效的來源／實體開孔認證，且 GUI 不能藉轉型製造位置資格。
+- 沿用現有 `ae_engine.receiving_switch_layout.normalize_receiving_switch_layout` 的 Switch 層／連位物理拓樸，新增只讀 `validate_receiving_switch_opening_target(layout, layer_index, connection_index, brand)`，經 `manufacturing_api`／根包同一 callable 公開。Engine 核對 exact 整數或既有 Tk 整數字串、非負及確實存在的 layer/connection、合法品牌；拒絕 bool、fraction、過期／越界索引、非法品牌；返回 detached 目標值，輸入資料不突變。合法選取依然由原 canonical opening resolver 決定孔規格、模型與真實製造權限，不直接產生 CUTTING 或 DXF。
+- GUI `confirm_receiving_opening` 僅傳原始操作者索引與當前 Switch Layout 給公開 Engine，驗證成功才呼叫原 resolver；resolver 未提交則不得通知 geometry 更新。定向 `tests/test_issue2517_receiving_switch_opening_target_public_api.py` 驗真 GUI callback、公開 Engine、合法 StringVar／int 同義、非法來源不呼叫 resolver、不提交、來源不變、JSON roundtrip。Factory、NFB CSV、2D／3D／DXF 及 Project schema 不變，#2517 其他入口／Windows UAT 尚未結案。
+
+## [CURRENT] #2517 主 GUI 25 項製造數值輸入統一公開 Engine 實體／Fold 驗證（2026-11-08）
+
+- 原 `gui_modules/application/cabinet_controller.get_float_values` 是主 GUI 計算、單門／多門 Hole Editor 及 PartSpec 共同數值入口；逐項 `float(TkVar.get())` 先把布林 True 變成 1.0，也讓 NaN／Inf 越過入口，直到下游才可能拒絕。主 GUI 不應消除原始製造來源的錯型證據。
+- 原 25 項 TkVar 的操作順序不變，改將 raw 來源交給既有 `manufacturing_api.normalize_operator_source_dimensions` 驗 W/H/D/T/FW 正有限值，再以 `manufacturing_api.normalize_operator_settings_updates` 驗其餘 Fold／Gap／BasePlate 有限值；任何欄位被略過皆禁止返回部分資料供 2D／3D／DXF。Vault 手動底板非負限制作為另一條操作約束，不能侵入一般 Fold／INI 負數相容，沿用 #3112 契約；不新增主幾何公式。
+- `tests/test_issue2517_main_gui_numeric_source_public_engine.py` 覆蓋 GUI／headless 全 25 欄 parity、W/H/D 小數精度、負折邊及負縮量相容、非法 bool/nonfinite 來源 fail-closed、不突變、JSON Save→Reload。PartSpec、Topology、Registry、CUTTING／BEND／DXF Writer 均未改。#2517 其他入口及 Windows UAT 持續待驗。
+
+
+## [CURRENT] #2517 Receiving NFB 兩層實體 Y 高度只在 Engine 驗操作來源（2026-11-08）
+
+- `gui_modules/application/fold_designer_composition_receiving.inner_edit` 原本在顯示已保存層高、讀取操作員兩個欄位與切換一／二層時自行 `float(...)`，既有已保存布林值 True 可能轉成 1 mm，且 GUI 複製了 Engine 的層高數值解碼。這些數值影響 Receiving 內門 NFB 名義 Y，但預覽及草稿不可擅自授權 CUTTING。
+- 以原 `ae_engine.receiving_shared_settings.validate_setting('inner_door_layer_heights_mm', ...)` 為唯一物理層高規則，新增 `normalize_receiving_operator_nfb_layer_heights(raw)` 並經 `manufacturing_api`／根包公開同一 callable；GUI 只轉送兩個原始欄位，Engine 將合法數字字串／舊保存數值轉為兩個有限數字，再由現有正式正數、由上往下遞增限制驗證。布林、NaN／Inf、缺值、非法格式與倒序都 fail closed；保留合法小數、單層 550 與雙層 330／830、未改自訂 Y 與 work-area 界限。
+- `tests/test_issue2517_receiving_nfb_raw_heights_public_engine.py` 驗 facade/root 與 Engine owner 同義，實際 GUI 內層欄位讀取與 Engine 結果一致、JSON Save→Reload、非法來源不修改來源及未產生合法 NFB 層高。原 Set／Bay、實體孔、NFB CSV、Y 投影、2D／3D／DXF 與 Project schema 均不變；#2517 全面 API 覆蓋及 Windows 實機驗收未結案。
+
+## [CURRENT] #2517 多門格選取及實體 W/H 來源只能由公開 Engine API（2026-11-08）
+
+- 主 GUI `gui_modules/application/door_layout_host_adapter.select_door_layout_cell` 原用 `int(column_index/row_index)` 拼選擇鍵，再自行產生 `door_cN_rM` 交 Corner Data；布林、負索引、浮點與已刪除的格子可能被選中或當成合法實體 ID。原 `sheetmetal_part_adapters.door_layout_part_key` 自身沒有拒絕非法的物理格索引；錯誤導覽可能變更視窗選取和實體孔位編輯對象。
+- 仍由既有 `ae_engine.sheetmetal_part_adapters.door_layout_part_key` 擁有唯一 stable Door ID（製造／DXF 不另造名稱），拒絕非原生 int 與負數；既有 `door_layout_numeric_transitions` 增 `resolve_operator_door_layout_cell(cells,column_index,row_index)`，使用現有 canonical Door Cell 集合核對真實存在、唯一身份，非法值在 GUI 選取狀態改變前拒絕。Facade/root 公開同一 callable，GUI 只用返回的真實 Cell 與公開 Engine `door_layout_part_key`，不自創門片 ID；顯示文字和 Canvas 高亮維持原狀。
+- 多門格 `gui_modules/parts/panels/door._parse_layout_value` 原另存一份 bool／有限／正數物理 W/H 判準；現沿用 Engine `door_layout_numeric_transitions._positive_total` 原有核准規則，公開 `normalize_operator_door_grid_dimension(raw,field)` 區分盤 W/H 與門格欄寬／層高，GUI 只轉送 raw、顯示錯誤，欄寬小數精度／保存回讀維持相同；沒有改 Fold／CUTTING／BEND／DXF 或 Family 補償。
+- `tests/test_issue2517_door_grid_raw_dimensions_and_identity.py` 覆蓋 headless 公開 Engine/raw GUI 來源、合法 fractional mm、非法 bool/NaN 來源、真實 Cell 及 stale／負索引禁止 GUI 修改選取、stable Door IDs 與原檔、JSON roundtrip 不突變。#2517 仍須持續全功能、Windows 實機與真 DXF 驗收。
+
+## [CURRENT] #2517 主 GUI STOCK 與單門指示燈距離旗標須保留公開 Engine 原始來源（2026-11-08）
+
+- `gui_modules/application/manufacturing_adapter._manufacturing_context` 原先在送正式 DXF `ManufacturingContext` 前 `bool(draw_stock)`，使序列化 `"false"` 變 True，開啟不應有的 STOCK；單門 `_single_door_part_spec` 也預先 `bool(self.is_box_dist_var.get())`，使 `"false"` 變 True，偏移指示燈孔的位置語意。此前 #3107 處理 Fold Designer STOCK 交易，但未涵蓋這條主 GUI 出圖 Adapter。
+- 原 `ae_engine.operator_settings_transactions.normalize_operator_settings_boolean` 已由 `manufacturing_api` 公開：主 GUI 僅使用該 Engine 正規化值建 `ManufacturingContext`，拒絕非法 flag；單門則保留 `is_box_dist_var.get()` raw 原始值交給原 `manufacturing_api.build_door_operator_part_spec`，由 Engine 僅在實際啟用指示燈時嚴格判定，停用時保留歷史無孔容錯。不增寫任何 CUTTING／STOCK／距離公式或第二份 DXF Writer。
+- `tests/test_issue2517_main_gui_manufacturing_raw_boolean_engine.py` 核對主 GUI 與 headless 同一 Context／PartSpec、序列化旗標 false／true、非法來源 fail-closed、停用指示燈保留舊檔、JSON Save→Reload。2D／3D／DXF 仍來自 Engine canonical 結果，Windows 實機 UAT／#2517 全面覆蓋未完成。
+
+## [CURRENT] #2517 Registry 截角一／二段拓樸須由公開 Engine 原始來源驗證（2026-11-08）
+
+- 原 `gui_modules/application/fold_designer_composition_registry_edges.registry_collect_rule_form` 先將候選 `topology_levels` 做 `int(float(TkVar.get()))`；`1.9` 被截斷為 1 段、`True` 被當成 1 段、`0` 被悄悄改為預設段數。原 `certified_relief_registry._validate_editable_rule_record` 同樣使用 `int(...)`，headless API 可以接受有害的原始拓樸。這是 Certified Registry 候選對 AssemblyJoint/Corner 幾何段數的來源資格，不可由 GUI 提前造出合法候選。
+- 維持原 `ae_engine.certified_relief_formula_io` 單一 Formula/Topology owner，新增 `normalize_operator_relief_topology_levels(raw)` 並經 `manufacturing_api`／根包公開同一 callable；接受數值 1/2、JSON 數字或數值上恰好整數的字串／浮點數以維持已保存相容性，拒絕 bool、0、負值、分數、非有限與錯字。原公開 `validate_operator_relief_registry_rule_record`、`evaluate_operator_relief_registry_formula_record` 共用驗證，未驗完不可保存或評估 Formula。GUI 只交原始來源給公開 Engine 驗段數後決定有無第二段表單；空白／缺席仍採原有依 Assembly Intent 的 UI 初始預設，明確非法的原始值不能假裝缺席。
+- 同一 Registry 公式矩陣的範例 `T/FW/side_fold/ytop1/mating_width` 原由 GUI 先 `float(TkVar)`，可能將 `True` 誤當 1 mm；原 Formula evaluator 亦直接 `float(variables[name])`。現新增公開 `normalize_operator_relief_formula_sample`（原 Formula owner；facade/root 同 callable），GUI 僅收 raw 交 Engine，一次驗證五個有限、非 bool 的原始數字，投影原有 `effective_mating_width/fold_u/fold_v/clearance` 給原矩陣，保持負數測試資料可輸入及原公式結果禁負規則。直接公開 Formula evaluator 也拒絕布林，避免 headless 路徑繞過。
+- `tests/test_issue2517_relief_registry_topology_raw_engine_api.py` 驗 Engine/GUI 同義、合法候選保留精確段數、非法來源不得產生保存檔、原始 Record 不突變、JSON Save→Reload、範例變數與真 GUI 收集不提前轉型。保留原 Certified Registry 規則、Factory/Family、截角 CUTTING/BEND、正式 2D/3D/DXF 與 Project schema；#2517 全面覆蓋與 Windows UAT 仍待持續驗收。
+
+## [CURRENT] #2517 Receiving 內門 1／2 層操作選項由公開 Engine 原始來源驗證（2026-11-08）
+
+- 原 `gui_modules/application/receiving_set_bay_controls._build_receiving_settings_editor` 的未套用匹配預覽與正式「編輯／套用」都使用 `int(value_var.get())` 直接轉換實體層數。GUI 的預先轉型可把 `"01"`、`"02"` 或錯型來源變成 1／2，繞過 `ae_engine.receiving_shared_settings.validate_setting("inner_door_layers", value)` 對已存實體 Bay 層數必須是精確整數的限制；preview/apply 各有第二份來源轉換。
+- 沿用原 `receiving_shared_settings` owner 的已確認 1／2 層約束，新增公開 `normalize_receiving_operator_inner_door_layer_choice(raw)`（`manufacturing_api`／根包同一 callable），只把 Tk readonly 的原始選項 `"1"` 或 `"2"` 正規化為整數，再交原 `validate_setting` 驗證；既有整數 1／2 適用，bool、float、帶前導零／小數字串及非法輸入 fail closed。GUI 的預覽與 Apply 均僅呼叫此同一 API，真實 SharedSettings／Bay 交易、連動來源、NFB heights、Factory／FinalScene/2D／3D／DXF 一律不變。
+- 定向 `tests/test_issue2517_receiving_inner_layer_raw_operator_choice.py` 驗 facade/root 同一 Engine owner、合法／非法 raw 來源、物理 Bay 未提交預覽、套用語意、實體 Tk 誤值不呼叫 change、來源不突變；維持 Project Save→Reload 既有共享設定 schema。#2517 其他 GUI 製造入口及 Windows UAT 繼續驗收。
+
+## [CURRENT] #2517 Vault 底板四邊縮量以公開 Engine 非負有限來源交易為準（2026-11-08）
+
+- 原 `gui_modules/application/fold_designer_composition_registry_edges.commit_base_plate_edge_shrink` 直接 `float(raw_value)` 再比 `value < 0`；操作來源 `True` 被轉成 1 mm 實體縮量，`NaN` 因比較不成立，則可能被報成套用成功。原 Engine 泛用 Settings 交易對非物理數值的 skip 容錯也會掩蓋這類底板實體縮量來源錯誤。
+- 現由既有 `ae_engine.operator_settings_transactions` 新增 `normalize_operator_base_plate_edge_shrink(raw)`，經 `manufacturing_api`／根包同一 callable 公開；沿用 GUI 原本禁止負縮量的實體規則，接受零與合法小數毫米，拒絕布林、負值、非有限與非法字串。這個 Engine validator **僅限手動縮量操作**，GUI 在 stage 前拒絕非法來源；原 `normalize_operator_settings_updates` 與 `commit_operator_settings_state` 的通用 Fold／INI 相容路徑保留負數、原 skip 語意及有效小數，不能因手動欄位的操作限制改寫其他來源契約。
+- 保留 `manufacturing_api.operator_base_plate_edge_shrink_editable` 已有的 Family 身分硬閘門；受電箱底板來源導出、不得提供手動縮量欄位，金庫型按已存在四邊入口操作。定向測試 `tests/test_issue2517_base_plate_shrink_raw_public_engine.py` 核對公開 helper／GUI 操作、非法輸入原子性、Receiving 禁止手動編輯、零與小數精度、通用 Fold 負數相容及 JSON Save→Reload 同義。不新增底板 CUTTING／BEND／DXF 公式、Factory、Topology、認證或 Project schema；#2517 其他 API 與 Windows UAT 仍需續驗。
+
+## [CURRENT] #2517 Fold Designer 截角 T 係數與成對開關直通 Engine（2026-11-08）
+
+- 原 `gui_modules/application/fold_designer_composition_registry_edges.corner_target_var_changed` 與已獨立修復的主 GUI `gui_modules/parts/panels/assembly_corner.selection_from_manual_corner_controls` 在呼叫原 Engine Corner 交易／`CornerTypeSelection` 前先對 `amount_t`、`secondary_retain_t`、`secondary_depth_t` 做 `float(TkVar.get())`；布林 `True` 因而變成 1.0T，繞過原 `sheetmetal_geometry_core.CornerTypeSelection` 對 boolean/nonfinite 製造截角參數的拒絕。Fold Designer `corner_pair_var_changed` 還以 `bool("false")` 誤將保存的獨立角組合成同一對角。
+- 沿用已合入 #3108 的公開 `manufacturing_api.commit_corner_parameters` 原始輸入交易／主 GUI 修正，及原 `commit_corner_pair`、`CornerTypeSelection`：Fold Designer GUI 只轉送原始 Tk 參數，不預先 `float()`，讓原 `CornerTypeSelection` 驗證真正參與切孔的 T 係數；合法序列化小數保留精度，非法／布林／非有限參數拒絕且不改已提交狀態。成對旗標原樣由 Engine `normalize_operator_settings_boolean` 判定，非法來源 GUI 不執行狀態通知。對無作用的附加欄位保留原 CornerTypeSelection 現有拓樸語意，不新增第二套公式。
+- `tests/test_issue2517_corner_raw_controls_public_engine.py` 覆蓋 Head/Tail 成對 Corner 實體身份、公開 Engine 與兩個 GUI 入口的 raw/非法來源、1.75T 有效精度及 JSON Save→Reload 不變。Factory、Family、Certified Registry、Corner CUTTING／BEND、同源 2D／3D／DXF 算法及 schema 未更改，正式 Product Regression／Windows UAT 仍依既有門檻驗收；#2517 其他 GUI 製造 API 入口繼續核對。
+
+## [CURRENT] #2517 Door grid 舊 GUI callback 物理孔身分重映射禁止提前轉型（2026-11-08）
+
+- 原 `door_layout_host_adapter._remap_door_layout_owned_data` 先用 `int(target[0/1])` 轉換舊 positional callback 的目的座標，`(True, 0)` 與 `(1.5, 0)` 都可能錯當 `1:0`；原 `ae_engine.door_layout_physical_remap.remap_receiving_door_layout_after_delete(operation="map_cells")` 只驗字串型別，`{"0:0": "invalid"}` 可進入 cell store，最後在 physical alias 重建時靜默略過，遺失真實 Door 孔的所有權。
+- 同一既有公開 `manufacturing_api.remap_receiving_door_layout_after_delete` 現由 Engine 對 `map_cells` 全部來源與目標鍵先行驗證；相容既有 `"欄:列"` 字串／明確 `None` 刪除，亦接收 GUI 傳來的原始 `(column, row)` 整數座標。布林、小數、負數、損壞鍵與不存在格式一律 fail closed，不能改寫 cell／physical feature stores。GUI 只呼叫既有 mapper 取得原始操作位置並轉送 Engine，未添加第二份 physical ID、CUTTING、2D／3D／DXF 規則。
+- `tests/test_issue2517_door_grid_callback_raw_transition_engine.py` 覆蓋直接 Engine 字串／原始 tuple parity、非法目標及來源原子拒絕、真實 GUI host callback 不得先 `int` 並禁止任何已保存孔資料失真。原正規刪列／刪欄、inner-door stable ID、Save→Reload 與 DXF 由既有 Engine 及 Product Regression 驗證；#2517 全面覆蓋／Windows 實機仍 OPEN。
+
+## [CURRENT] #2517 Fold Designer「輸出 STOCK」原始旗標由公開 Engine 決定（2026-11-08）
+
+- 原 `gui_modules/application/fold_designer_composition_state.commit_output_draw_stock` 在呼叫 ProjectController 前自行 `bool(TkVar.get())`，`phase6_project_controller.Phase6ProjectController.commit_output_stock` 又以 `bool(value)` 再解碼。已保存字串 `"false"` 會被當作 True；`draw_stock` 是正式 Engine 製造 Context 的 DXF STOCK 圖層控制來源，不得由 GUI truthiness 決定。
+- 原路徑保持不變：GUI 直接傳原始操作值，ProjectController 重用既有公開 `manufacturing_api.normalize_operator_settings_boolean` 後才呼叫 `stage_setting("draw_stock", committed)`；合法 bool、序列化 true/false、on/off、1/0 和現有 Engine 規則一致，非法來源 fail closed，先驗完整旗標再提交。沒有新 DXF Writer、STOCK 幾何或 ManufacturingContext 公式。
+- `tests/test_issue2517_output_stock_raw_boolean_public_engine.py` 驗直接 Engine Settings 與 GUI 相同結果、真實 staging 副作用、字串 JSON Save→Reload、非法輸入禁止提交及來源不突變。保留原 2D／3D／DXF 統一 Engine 出圖及現有資料 schema；#2517 全面 GUI API 與 Windows UAT 仍須續驗。
+
+## [CURRENT] #2517 Receiving Settings 2D 封頭尾核心原點旗標以公開 Engine 原始來源驗證（2026-11-08）
+
+- 原 `gui_modules/application/receiving_settings_preview_2d._assembly_world_meshes` 在呼叫公開 Engine 世界座標實體網格前先以 `bool(preserve_endcap_core_origin)` 解碼；Save→Reload 的字串 `"false"` 會被誤判 True，使 Head/Tail 世界定位預覽與同源 headless Engine 語意分裂。Engine 原 `resolve_assembled_endcap_world_skins` 同樣有寬鬆 truthiness。
+- 保留原有 `manufacturing_api.resolve_receiving_settings_assembly_world_meshes`／`resolve_assembled_endcap_world_skins` 公開入口與 canonical Assembly Geometry，兩者均沿用現有 Engine `normalize_operator_settings_boolean`，於組合幾何建構前驗 raw source；合法 true/false、on/off、1/0 依 Engine 單一定義解析，非法來源 fail closed，不得因無實體 Head/Tail 而略過。GUI 只傳原始操作／已保存值，不做物理旗標 truthiness，缺席欄位仍保留 False 相容預設。
+- 定向 `tests/test_issue2517_receiving_settings_assembly_world_mesh_engine_api.py` 覆蓋兩個公開 Engine 入口、真實 source meshes、GUI raw 委派、序列化布林、非法來源不進入定位和原資料不突變。僅修顯示組合網格的來源驗證，不授予 Preview 製造認證，不改原 Factory/Registry、已確認 FinalScene、2D/3D/DXF 加工公式或 Project schema；#2517 其他 API 與 Windows 實機驗收仍須逐項核對。
+
+## [CURRENT] #2517 自訂圓孔／方孔 CUTTING 與 BLIND_HOLE 來源以 Engine 布林交易核對（2026-11-08）
+
+- 原 `ae_engine.hole_catalog.custom_circle_definition`、`custom_rectangle_definition` 對操作輸入 `blind` 採 `"BLIND_HOLE" if blind else "CUTTING"`，導致已保存／外部 API 傳入的字串 `"false"` 錯誤產生實體 `BLIND_HOLE`；非法 `"maybe"`、數字 `2` 等也能誤作啟用。這屬孔 Feature 的製造加工來源，不能在 GUI 顯示層另訂解釋。
+- 保持原 `ae_engine.hole_catalog` 為 Catalog 與 Feature 唯一 owner，兩個自訂 Definition 改直接使用既有 `operator_settings_transactions.normalize_operator_settings_boolean(blind)`，公有 `manufacturing_api.operator_custom_{circle,rectangle}_definition` 與 root callable 自動使用同一規則。正常 bool、`0/1`、合法序列化 `"true"/"false"` 可還原正確 CUTTING／BLIND_HOLE；非法旗標於建立任何 Definition／Feature 前 fail closed。GUI 保持傳遞原始來源，不重建孔位／尺寸／折彎／DXF、Factory、Registry 與 Project schema。
+- `tests/test_issue2517_custom_hole_blind_public_engine.py` 驗金庫型／受電箱、圓孔／方孔、公開 Engine 與真 GUI Factory 對照、有效旗標、非法旗標、實體 Feature 層、無來源突變及 JSON Save→Reload 同義；其他 2D／3D／DXF 由完整 Product Regression 驗收。#2517 其餘 GUI 入口與 Windows 實機仍 OPEN。
+
+## [CURRENT] #2517 自訂開孔尺寸與 Catalog 製造入口一律由公開 Engine 驗證（2026-11-08）
+
+- 原 `gui_modules/editors/hole_editor.HoleEditorFeatureFactory.make_feature` 先對自訂圓孔徑、自訂矩形 W/H 做 GUI `float(TkVar)`；布林 `True` 因而變成 `1.0 mm`，繞過原 `ae_engine.hole_catalog._positive_hole_mm` 的布林禁令，產生未經原始來源驗證的實體 CUTTING／BLIND_HOLE。旋轉選項的 `int(...)` 又在 GUI try/except 外，損壞輸入會例外逃逸；主 `gui.py` 另外直接匯入 `ae_engine.hole_catalog` 私有模組而非經製造公開 API。
+- 由原 `ae_engine.hole_catalog` 保持唯一孔徑／矩形尺寸、Catalog CSV、Feature 建構與旋轉幾何 owner；同一 callable 透過 `manufacturing_api.operator_{load_hole_catalog,load_pipe_catalog,hole_feature_from_definition,custom_circle_definition,custom_rectangle_definition}` 與 `ae_engine` 根包公開。GUI Composition 僅注入公開 callable，FeatureFactory 只轉送原始 Tk 尺寸，絕不先 float；孔型 Definition 的數值與實體 Feature 只由 Engine 驗證。旋轉輸入格式錯誤用原 GUI 錯誤呈現，最終孔旋轉合法性仍由 `feature_from_definition` 原 Engine `_normalize_rotation` 判定；無新孔徑、旋轉或 DXF 公式。
+- `tests/test_issue2517_custom_hole_raw_dimensions_public_engine.py` 驗 TRUE/False 不能變 1mm、兩種箱型與 Circle/Rect 有效尺寸與非法來源、實體 Feature／Geometry、公開 alias 同一實作、錯誤不產生孔、主 GUI 不再私有匯入。保留 `tests/test_issue293_t5_feature_factory_slice.py` 的原依賴注入邏輯，更新測試以查證原始 Tk 傳遞而非模擬者自行轉型；Save→Reload／2D／3D／DXF 仍由原製造 Owner 完整回歸。
+
+
+## [CURRENT] #2517 Receiving Set／Bay 連數控制與套用不可由 GUI 自動補出一連（2026-11-08）
+
+- `receiving_multi_settings_window.paint_connected_bays/refresh_rows/apply` 與 `receiving_set_bay_controls.open_receiving_layer_preview/refresh_receiving_layer_rows` 原分別使用 `max(1, int(count))` 將 0、負數、浮點數、True 或由資料修復產生的不合法套／連數錯誤當成「1連」。尤其「套用」直接選中實體 Bay0，可能讓 GUI 顯示身份與已保存 Receiving Layout 拓樸不同。ReceivingSet1 至少一連的實體約束本來由 Engine `receiving_layout.normalize_receiving_layout`／Resize transaction 掌管，GUI 無權替非法來源補 Bay。
+- Engine 原 `ae_engine.receiving_layout` 增加純函式公開 `normalize_receiving_operator_connection_counts(raw_counts)`，同一 callable 經 `manufacturing_api` 與根包輸出。它接受有序正整數連數序列（單套也是序列），逐套保留原始數值；空套、0、負數、bool、浮點、字串、非序列與混合非法資料一律拒絕，不建立任何盤位，也不寫入來源。GUI 所有上述五個入口只呼叫此公開 Engine 投影；在畫面修改、預覽視窗建立或已套用選取更新前先驗完整連數。保留原有 Set/Bay、SharedSettings、NFB、Joint、Save→Reload／2D／3D／DXF 原 API 與物理幾何。
+- `tests/test_issue2517_receiving_connection_counts_public_source.py` 覆蓋 Engine Facade/root 同一 callable、真實 ReceivingLayout 的 Set/Bay 連數、所有不合法來源 fail closed、源不突變、預覽視窗不建立、示意 Canvas 不清空、Rows 不重建、GUI 不再以 `max(1, int(...))` 偽造真實連數；實體 Tk 正常流程維持原測試。#2517 其他製造入口及 Windows UAT 仍須持續驗證。
+
+
+## [CURRENT] #2517 Hole Editor 開孔參考距離非負有限值須由公開 Engine 管理（2026-11-08）
+
+- 原 `gui_modules/editors/hole_editor.HoleEditorReferenceActions.apply_reference_value` 自行將 X／Y 邊／鄰孔距離做 `float()`、`isfinite()` 與負值拒絕；同一物理移孔 operation 的 `ae_engine.sheetmetal_feature_reference.move_feature_by_reference_distance` 雖驗有限與非布林，卻允許負距離直接幾何移孔，造成 GUI 與 headless API 對同一操作者輸入結果不一致。
+- 沿用原 `ae_engine.sheetmetal_feature_reference` owner 新增 `normalize_operator_hole_reference_distance(value)`，透過 `manufacturing_api` 與根包公開同一 callable，統一有限、非布林、非負距離（0 與合法小數保留），並由原 `move_feature_by_reference_distance` 執行相同驗證才可改實體 Hole Feature。GUI 只轉送原始輸入並呈現錯誤，不再持有製造距離規則。缺少選取／空字串仍是 UI 操作空動作。FeatureSurface、CUTTING／MARKING、Anchor、Save→Reload、DXF Writer 與 Factory／Registry 不改。
+- `tests/test_issue2517_hole_reference_distance_engine_api.py` 驗合法／非法距離的公開 Engine＋實際幾何入口、金庫型／受電箱共用 GUI Event 與 Session 不變、壞來源不執行移孔、合法小數移孔與靜態反向再生檢查；其餘 #2517 與 Windows UAT 仍需續驗。
+
+
+## [CURRENT] #2517 Head/Tail 已提交 Assembly Relief 切孔開關以 Engine 公開布林來源為準（2026-11-08）
+
+- `gui_modules/application/fold_designer_manufacturing_projection._fold_designer_part_spec_from_payload` 原用 `bool(data.get("_use_committed_relief"))` 決定要不要載入已提交的 Head/Tail Assembly Relief CUTTING；從 Save→Reload 載入字串 `"false"` 會因 Python 非空字串而誤判 True。這是製造切孔來源資格，不能由 GUI truthiness 決定。
+- 現有公開 `manufacturing_api.normalize_operator_settings_boolean` 已定義原始 true/false、on/off、1/0 與非有限／非法來源的明確規則。當 `resolved_assembly_relief_cuts` 缺席時，GUI 直接交原始 `_use_committed_relief` 給 Engine；僅缺席欄位使用既有 False 相容預設，**存在但非法**的來源要先 fail closed，不能呼叫 `_resolved_committed_assembly_relief_cuts` 或把切孔送進 `EndCapPartSpec`。當直接提供 resolved cuts 時維持原既有優先序，不重新解讀未使用的 switch。
+- 定向 `tests/test_issue2517_endcap_committed_relief_switch_engine_boolean.py` 比較 GUI 與公開 Engine true/false 行為、保存字串、非法輸入不導致任何 cut/PartSpec 寫入、保留直接已解決 CUTTING 的優先序和來源不突變。原 Engine 救濟求解、CROSS certified geometry、Head/Tail 身分、Family 補償、2D／3D／DXF 及 Project schema 均不變。#2517 的全面 GUI 接線與 Windows UAT 尚待逐項驗證。
+
+
+## [CURRENT] #2517 GUI 開孔入口的實體板件路由必須使用公開 Engine 身分投影（2026-11-08）
+
+- 原 `gui_modules/editors/hole_editor.open_part_hole_editor` 在 GUI 使用 `startswith`／正規式／金庫型與受電箱字串判斷 Head/Tail、單格門、箱身實體子板、底板 NFB 固定片、內門與 CustomFold 應走哪個編輯器；甚至在辨識非法板件身分**之前**呼叫 Workspace `set_active_part`。這是物理板件操作入口的身分判斷，不該由 GUI 複製。
+- 原 `ae_engine.physical_part_identity` 現提供 immutable `OperatorHoleEditorRoute` 與 `project_operator_hole_editor_route(part_key, model, multi_door_enabled, has_fold_designer)`，並透過 `manufacturing_api`／根包同一 callable 公開：沿用既有實體 ID 語意與 Family Registry 正規化，把存檔的多門字串 `"false"` 經原 Engine Bool API 解碼，合法 `door_cN_rM` 回傳零起始 GUI 操作索引，非法零位及不認識的板件 fail closed。這只投影 GUI 要開的編輯器，不認證板件存在、洞位、FinalScene、BEND/CUTTING 或 DXF；實際編輯者繼續用原公開 Engine context 並驗實體來源。GUI 不再複製板件前綴／Family 邏輯，且先驗候選再切換操作狀態；原檔 schema 與製造幾何不變。
+- `tests/test_issue2517_hole_editor_public_route_identity.py` 覆蓋金庫型／受電箱、實體子板、Head/Tail、門格零起始欄列、內門與 Receiving 底板雙入口、序列化多門布林、未知身分拒絕與真 GUI callback 不改動來源；#2517 其他功能 API 與 Windows 實機仍需續驗。
+
+## [CURRENT] #2517 Vault 盤名／Receiving 內門欄位以 Engine Family Registry 決定 UI 編輯資格（2026-11-08）
+
+- `phase6_settings_panel.Phase6SettingsPanel.refresh_panel_name/commit_panel_name` 與 `fold_designer_composition_receiving.commit_vault_panel_name` 原以 GUI 硬編碼 `"金庫型"` 比對 Family；`gui_modules/parts/panels/door.rebuild_door_layout_ui` 則用 `{"受電箱","RECEIVING"}` 決定是否建立內門勾選／內退控制列。這些並非 GUI 格式檢查，而是 Registered Family 操作資格；合法 `VAULT`、大小寫混合 `ReCeIvInG` 等別名會錯誤消失控制項或拒絕輸入。
+- Engine 原 `cabinet_types.policy.canonical_family_name` 仍為唯一 Registry 權威；新增無狀態公開 `ae_engine.panel_naming.operator_vault_panel_name_editor_allowed(source_model)`（`manufacturing_api` 與根包同一 callable），使 Vault 單箱盤名的三個 GUI 入口只依 Engine 決定編輯資格，盤名提交仍由原 `set_cabinet_panel_name` 驗證並回傳 detached 候選。受電箱多門格內門控制直接重用**既有**公開 `manufacturing_api.receiving_family_supports_back_panel_mode` Registry 身分投影，不新建另一個 InnerDoor Family 規則；後續已確認 Bay／NFB／孔位／DXF 仍照原 Engine 能力審查。
+- `tests/test_issue2517_gui_family_operator_controls_public_api.py` 覆蓋 Vault／Receiving 別名與未知箱型、公開 API root callable、Tk 真實盤名／內門欄位顯示、合法操作提交、已保存來源不突變及 GUI 不再硬判身份。這只是 UI 編輯資格 API 缺口修正，不改箱型註冊、幾何公式、PartSpec、2D／3D／DXF 或 Save→Reload schema，#2517 全面 API 和 Windows 實機仍另驗。
+
+
+## [CURRENT] #2517 Head/Tail／Divider 手動截角 Pair 的序列化布林由原 Engine 交易判定（2026-11-08）
+
+- 原 `ae_engine.corner_state_transactions.ensure_corner_part` 對舊 Project／INI 的 `corner_pair_same.top/bottom` 僅補缺席預設而未正規化既有字串值。已保存的 `"false"` 在 GUI Settings 的 pair 分支會被判成 True，使應分開的左右實體角在讀取時合併顯示；直接公開 `commit_corner_pair(..., enabled="false")` 原也誤把字串當 True，複製左角至右角。
+- 現沿用同一 Engine 已存在的 `normalize_operator_settings_boolean`，`ensure_corner_part` 先對兩個 Pair 旗標在 detached source 一次驗證，合法 `"false"/"off"/0` 轉 False、`"true"/"on"/1` 轉 True，非法來源 fail closed。原 `commit_corner_pair` 同樣採 Engine 解析後決定是否複製實體右角；GUI 只消費既有公開 Engine 交易與左右實體角身份投影。舊版缺席仍預設 True，Factory／Registry、截角幾何公式、2D／3D／DXF 與 Project schema 不變。
+- `tests/test_issue2517_corner_pair_serialized_boolean_engine.py` 驗金庫型／受電箱可通用的 Head/Tail/Divider 成對身份、合法序列化布林、非法值與來源原子性、獨立角不被覆蓋、Save→Reload 以及 Fold Designer Settings 真 GUI 讀取；#2517 其他 GUI 製造入口與 Windows 實機仍需持續查核。
+
+
+## [CURRENT] #2517 Door Indicator 舊檔顯示修復投影由 Engine 公開 API 接管（2026-11-08）
+
+- 原 `gui_modules/parts/panels/door.normalize_door_indicator_state` 在 GUI 自行判斷舊版指示燈 `mode/enabled/box_enabled`、層數／群組及偏移值；它對壞來源回退畫面預設，和製造必須拒絕非法實體孔位的規則分成兩份實作。當 GUI 將修復的顯示資料誤用作開孔輸入時，會憑空把非法 `False` 組數轉成 2 組燈。此次只移動**顯示相容投影**，絕不可讓它作為正式 Save 或 Factory 資料來源。
+- 公開 `ae_engine.fold_designer_snapshot_dimensions.project_operator_door_indicator_display_state(raw)`，經 `manufacturing_api` 與根包同一 callable 輸出 detached 顯示資料；合法舊式 flag、六層群組及偏移的 UI 相容語意保持原樣。GUI 只轉送 raw，沒有第二份數值／製造模式判斷。嚴格 `manufacturing_api.project_operator_door_cell_indicator_manufacturing_source`、`project_operator_door_layout_indicator_snapshot_states` 仍直接接原始 raw，非法已啟用的來源要 fail closed，絕不能拿這份寬鬆顯示投影送到 DoorPartSpec／2D／3D／DXF。
+- 定向 `tests/test_issue2517_door_indicator_display_public_api.py` 對照金庫型／受電箱、遺留旗標字串、有效小數／非法數值顯示、raw 來源不突變、重複投影、Save→Reload 原樣及真實製造拒絕。原洞切／BEND、Family/Topology/FinalScene、DXF、Project schema 均不變；#2517 其餘 GUI 製造入口與 Windows UAT 繼續逐一驗收。
+
+
+## [CURRENT] #2517 Family 切換的包外 W/H/D 預設資料必須由 Engine 驗證後原值顯示（2026-11-08）
+
+- `cabinet_family_model_transition.plan_cabinet_family_model_transition` 於新箱型切換產生 `defaults` 時，以既有 `operator_settings_transactions.normalize_operator_source_dimension` 逐軸驗證**存在的** W/H/D 有限正數、非 bool，保留小數精度。驗證在 `snapshot.update(defaults)`、新 Receiving Set/Bay 初始化及 GUI Settings 交易提交**之前**進行，非法來源拒絕且不能部分變更外部狀態。
+- `gui_modules/application/fold_designer_composition_shell_settings.settings_application_project_ui_values` 不再以 `original.get_int` 將 Engine Family 候選 W/H/D 取整或把非法值折成 0。GUI 使用相同公開 `manufacturing_api.normalize_operator_source_dimension` 先檢查所有有提供的實體軸，再更新 Tk 與 State；缺席軸保留原值。其他非實體設定、箱型 Policy、Fold／CUTTING／BEND／DXF 公式、Project schema 不變。
+- 回歸 `tests/test_issue2517_family_defaults_whd_engine_precision.py`：Family 公開交易正數精度／不改來源、非法各軸、GUI UI 顯示完整小數與禁止部分更新，仍須 exact-HEAD CI／適用 2D／3D／DXF 驗證。此批是 #2517 製造來源接線修正，不宣稱所有 GUI 入口已覆蓋。
+
+
+## [CURRENT] #2517 主 GUI 封頭／封尾截角 Policy 讀取有效 FW 只由公開 Engine（2026-11-08）
+
+- `gui.Phase6ApplicationHost._effective_endcap_fw` 原先在解析封頭／封尾 Corner Policy 前以 GUI `float(TkVar)`、缺設定則 fallback 到固定 25、並可將未驗證的損壞 Head/Tail FW 來源交給寬鬆舊 `resolve_endcap_fw`；沒有掛上實體控制項的 `_box_body_corner_policies` 相容呼叫也在 GUI 自行做 `float(fw)`。這些是來源合法性，不是 GUI 顯示。
+- 現一律重用既有公開 `manufacturing_api.normalize_operator_source_dimension` 驗證包外 FW，並以已公開 `project_operator_endcap_fw_controls` 對已存在 Head/Tail 來源完整檢查後，再呼叫原 `manufacturing_api.resolve_endcap_fw` 決定四態機械值；缺省來源不再虛構 FW=25。相容無 Head/Tail state 時只回已驗 box FW；沒有實體控制項的舊 caller 也使用同一 Engine 正數有限來源驗證。GUI 沒有新的 FW、折彎、截角公式或第二種 Factory Policy。
+- `tests/test_issue2517_main_gui_effective_endcap_fw_public_source.py` 以金庫型／受電箱 Head/Tail、有效儲存四態、非法 box FW／損壞對側來源、缺輸入、相容 caller、Project Save→Reload 與原 Engine Fold 測試，要求拒絕前來源不變。後續 canonical 製造與 2D／3D／DXF 由原 Engine 決定；全面 #2517 與 Windows UAT 仍需續驗。
+
+
+## [CURRENT] #2517 Head/Tail FW 控制列純讀取由 Engine 公開投影（2026-11-08）
+
+- 原 `gui_modules/parts/panels/assembly_corner.sync_endcap_fw_controls` 在單純重新整理 GUI 時，使用 `endcap_fw_state.setdefault` 補建 Head／Tail 製造來源，並在 UI 以 `float`／`bool` 解讀顯示值；序列化 `"false"` 被當 True，損壞的對側列又可能在第一個控制項更新後才報錯。
+- 新增 `ae_engine.endcap_factory_fold.project_operator_endcap_fw_controls(state, box_fw)`，由 `manufacturing_api` 與根包提供同一原 owner callable；一次驗兩個來源列與操作 FW，使用既有 `normalize_operator_settings_boolean`、`normalize_operator_source_dimension` 取得 detached Head／Tail `follow_box`／`display_fw`。缺少的舊版列僅投影 FOLLOW_BODY 預設，不寫回 source；已有損壞列、非法布林或啟用的非法實體 FW fail closed。GUI 只呈現完整已驗輸出，不再修改製造來源。
+- `tests/test_issue2517_endcap_fw_controls_read_only_engine_projection.py` 核對金庫型／受電箱、合法四態、遺留缺列與字串布林、非法來源時兩個控制列皆無部分更新、重複 refresh、JSON Save→Reload 與 Engine canonical Fold。正式 EndCap FW 四態提交、Factory／Registry／2D／3D／DXF 製造公式與 schema 不變；#2517 其餘 API 及 Windows UAT 仍需持續驗收。
+
+
+## [CURRENT] #2517 主 GUI EndCap FW Follow 原始操作來源直接交 Engine（2026-11-08）
+
+- 主 `gui.Phase6ApplicationHost.on_endcap_fw_follow_changed` 原先在 GUI 以 `float(TkVar)`、`bool(TkVar)` 先定物理 Box FW 與 Head/Tail follow，序列化字串 `"false"` 會錯判 True，NaN 也能流入舊的就地修改。現在直接送原始操作來源給現有公開 `manufacturing_api.operator_endcap_fw_follow`（與 `ae_engine` 根包同一 Engine callable），由既有 `normalize_operator_source_dimension`、`normalize_operator_settings_boolean` 與原 `set_endcap_fw_follow` 決定合法狀態；GUI 只接受 detached 成功候選，不再自行解析製造布林／FW。
+- Engine `operator_endcap_settings_transactions._stage_operator_endcap_fw_source` 在共用 Head/Tail Follow／Override 候選前先拒絕非 Mapping 的損壞已保存實體列，避免舊 owner 在檢視相對尾片前部分改寫。既有舊版缺列可沿原 Engine 相容行為，不創造新 Family/FW 公式或 DXF 製造准入。非法操作不改已提交 GUI state 或 2D／3D／DXF cache。
+- 定向 `tests/test_issue2517_main_gui_endcap_fw_follow_raw_api.py` 驗證金庫型／受電箱、Head／Tail、序列化 true/false、物理 FW 小數、非法布林／非有限來源、損壞對側列、GUI 真委派、Project Save→Reload 與原 Engine Fold。#2517 其他 GUI 入口和 Windows UAT 持續個別驗收。
+
+
+## [CURRENT] #2517 Receiving Settings → Fold Profile 與已確認 Feature 來源改走 Engine 身分（2026-11-08）
+
+- 原 `gui_modules/application/fold_designer_composition_shell_settings.py` 的 `refresh_profiles_from_settings` 以 GUI 字串清單 `{"受電箱", "RECEIVING"}` 決定是否由現行 Bay W/H/D 覆蓋舊 Settings；已註冊小寫別名 `receiving`／`ReCeIvInG` 會錯走舊尺寸，且自行疊加時未通過 Engine 已有的實體數值來源驗證。
+- GUI 改呼叫**既有公開** `manufacturing_api.project_receiving_manufacturing_request_settings(snapshot, settings, live_box)`，由 Engine Family Registry 決定來源優先序，已提供的現行 Bay W/H/D 保留小數並驗證有限正數／非布林，非法資料在任何 Settings Fold plan 建立前拒絕且來源不突變；非受電箱仍保留原 Settings 優先序。其後實體 Fold／PartSpec／2D／3D／DXF 仍使用既有 canonical Engine 規則。
+- 同一 Settings profile 投影套用時，已確認 Receiving Layout／Hole Editor Feature 的型別保留條件改用既有公開 `operator_canonical_family_name`，避免大小寫別名把已確認實體 Feature 降成 Settings 冷凍的顯示 dict。此層只保留已確認來源型別，無新增孔位製造公式或准入；驗收 `tests/test_issue2517_receiving_settings_fold_profile_source_public_api.py`。
+
+
+## [CURRENT] #2517 主 GUI 明確箱身／封頭／封尾 FW 選取經公開 Engine 原子交易（2026-11-08）
+
+- 原 `gui.Phase6ApplicationHost.on_fw_selected("z"|"head"|"tail")` 在 GUI 側先 `float(TkVar.get())` 再呼叫舊的 in-place `commit_box_fw` / `commit_endcap_fw`；`NaN`、`Inf` 可成為物理 FW，而舊 `commit_endcap_fw` 對未帶 mode 的損壞快照可能先清除狀態才檢查輸入。既有驗證交易僅涵蓋 Settings Controller／Fold Designer 特定 BoxFW 入口，主 GUI 此路徑尚未完整保護。
+- 主 GUI 的箱身 explicit takeover 現重用既有公開 `manufacturing_api.commit_operator_box_fw_takeover`；Head/Tail 新公開 `manufacturing_api.commit_operator_endcap_fw_value`（同原 `ae_engine.endcap_factory_fold` owner、根包同 callable）先檢查 `head/tail` 真正板件身份、物理 FW 與 box FW 有限且正數、舊版／晚出錯 Head/Tail row，於 detached state 執行原 `commit_endcap_fw` 四態乾跑，全部成功才在原物件提交。合法輸入維持原 `FOLLOW_BODY → FOLLOW_HEAD/TAIL → INDEPENDENT`、封頭／封尾原資料引用與已存專案相容；非法輸入保持整個來源及 2D／3D／DXF cache 不變，GUI 只恢復輸入顯示並停止後續重算。
+- 測試 `tests/test_issue2517_main_gui_fw_explicit_atomic_api.py` 驗證金庫型及受電箱 Head/Tail 四態、數值精度、實際 Engine Fold、舊 Project、非有限／布林／非法 part identity、晚失敗列與 GUI 有效／無效路徑。不改任何 Registry、FW 幾何公式或 DXF 製造認證。#2517 全功能接線與 Windows GUI UAT 仍依真實證據驗收。
+
+
+## [CURRENT] #2517 Fold Designer 專案載入／舊版直接保存保留包外 W/H/D 原值（2026-11-08）
+
+- 先前雖然即時尺寸、D–W–D 和 Export 已改公開 Engine，`Phase6FoldDesignerApp.load_phase6_snapshot` 載入 `.p6fold` 仍使用 `original.get_int` 將操作者包外 W/H/D 取整，非法值又默默回退至 0；其 legacy `export_phase6_snapshot` 將 H 取整並受 BoxBody Fold 料長讀回覆寫實體 W/D。這是源狀態錯誤，不可依渲染器或測試 fixture 重新定義尺寸。
+- 此批重用既有公開 `manufacturing_api.normalize_operator_live_box_dimensions`，先在任何 Snapshot/Editor 更新前驗證輸入，Receiving Set/Bay authoritative Bay 投影後再驗一次現行尺寸；UI State／Tk 展示使用未取整實體包外浮點值，並保留原先 EndCap/BoxBody Fold、Family、2D/3D/Save→Reload 路徑。Legacy 直接 Export 先驗三軸再 `bend_ui.save`，最後以實際上方 W/H/D 覆蓋只供 Fold readback 的整數材料段，不新造第二份材料轉換公式。
+- 負向來源必須在 GUI 來源與 Fold 快取改動前拒絕，合法 nested settings 僅當 top-level 欄位缺失才能 fallback。定向 `tests/test_issue2517_fold_designer_load_whd_public_api.py` 核對 Vault／Receiving 別名、遺留快照、已確認 Bay、無效尺寸及直接 Export，並交由 exact HEAD Product Regression 與實體 DXF Save→Reload 验收。本切片不新增 Factory/DXF 製造准入或 Project schema；#2517 全面入口仍需逐條核對。
+
+
+## [CURRENT] #2517 箱身 D–W–D 實體 Fold 優先序及改料長由公開 Engine 交易（2026-11-08）
+
+- 原 `Phase6FoldDesignerApp._sync_dwd_with_top_whd` 直接在 GUI 判定 Quantity／Receiving Set/Bay 是否接管箱身 D-W-D，再自行比對上方 W/D 與核心折段、以 `get_int` 取整並修改核心 material `len`，這是物理尺寸、相鄰 BEND 補償與來源優先序，不可留第二份 GUI 規則。
+- 公開 `ae_engine.operator_box_body_dwd_sync.plan_operator_box_body_dwd_sync(snapshot, profile, *, top_width, top_depth, previous_width, previous_depth)`（`manufacturing_api` 與根包同一 callable）完整回傳 detached `OperatorBoxBodyDwdSyncPlan`，由原 Engine Family Registry、BoxBody Fold generator 與材長轉換擁有單一機械解算。Quantity 共用箱來源優先、Receiving Set/Bay 已提交包外來源優先、其他原有 D-W-D 上方直接編輯優先；保留 UI 手動 Fold 段整數顯示，僅全箱實體 W/D 採用既有 Engine 正數有限驗證與精度保留。已存小數全箱尺寸不可被未編輯的整數 Fold 列視覺取整回寫。
+- GUI 僅呼叫公開 Engine 一次、顯示需要變更的 Tk 數值、套回已驗證的 profile 候選並記住最後提交的 W/D；非法上方、前次或任一核心段在候選建構前完整拒絕，不突變原始 Fold 或來源。保留原 PartSpec、Family/CUTTING/BEND/FinalScene、DXF、Save→Reload schema；新測試 `tests/test_issue2517_box_body_dwd_live_fold_public_api.py` 核對 Vault、Receiving、Quantity、分片、無效欄位、精度、原有手動段顯示和 GUI 真委派。#2517 其他 GUI 製造入口仍需逐一驗收。
+
+## [CURRENT] #2517 Fold Designer Door／Cell 指示燈孔位改收原始來源、由 Engine PartSpec 決策（2026-11-08）
+
+- 舊 GUI `gui_modules/application/fold_designer_manufacturing_projection._door_part_spec_from_payload_context` 原本在真正呼叫公開 DoorPartSpec 前，自己判定 `indicator`／`indicator_box` 模式、將燈群推導為開孔尺寸、計算 active offsets，單門還以 `bool("false")` 將序列化的 false 誤解為 true。這些都是製造孔位及製造來源資格，不是 UI 顯示。
+- 現沿用原公開 `manufacturing_api.build_door_operator_part_spec`／根包 `ae_engine.build_door_operator_part_spec`，增加可選的 `fold_designer_indicator_source` 原始單門操作來源；Engine 原 `door_operator_part_spec` 以 `normalize_operator_settings_boolean` 決定是否啟用指示燈盒，並以既有 `normalize_fold_designer_indicator_groups`、`indicator_box_opening_size`、`normalize_fold_designer_indicator_offsets` 推導實體孔位。未啟用的盒體群組不得虛構開孔，啟用來源非法時 fail closed；同時提供已製成孔位與原始來源拒絕 `DOOR_OPERATOR_INDICATOR_DUPLICATE_SOURCE`。
+- 門格現直接將保存的 `door_layout_indicator_states[cell_key]` 傳入**既有** `indicator_source_state`，只由 Engine `project_operator_door_cell_indicator_manufacturing_source` 驗證 mode/layers/groups/offset/box distance，並建立唯一 `DoorPartSpec`。GUI 不再先自行解碼或建立製造 opening；缺門格舊來源維持 plain Door。主 GUI 既有 `_door_layout_part_spec` 也使用同一 Engine 原始來源入口，兩個 caller 不得分裂。
+- 定向驗收金庫型／受電箱適用的單門與格門、合法舊值、非法布林與孔數／座標 fail closed、raw JSON Save→Reload 等價及 GUI 真委派；原 Door 裁切／展開、指示燈基準板、Family/Registry／FinalScene、2D／3D／DXF 仍由原 Engine 擁有，不新增任何製造出口准入。#2517 全面覆蓋及 Windows 實機另驗。
+
+
+
+
+
+## [CURRENT] #2517 Fold Designer 快照匯出須保留 Engine 已驗現行盤 W/H/D（2026-11-08）
+
+- 原 `_fix11_export` 再以 `_ui_len` 整數化全箱包外 W/H/D，最後 `result.update(_settings_values)` 可能以舊 Settings 覆蓋已確認的金庫型／受電箱 Bay 尺寸；封頭／尾折型料長讀回也可能覆寫先前已提交的小數 W/D。修正重用現有 `manufacturing_api.normalize_operator_live_box_dimensions`：任何 GUI 存檔副作用前驗證 W/H/D，保存時以已提交實體 Box 來源定案，不由 GUI 取整，也不借舊 Settings 覆寫。
+- Head/Tail 的 X/Y Fold material readback 只更新其原本的 FW／折段來源；全箱 W/D 保持先前由公開 `reconcile_endcap_live_outside_dimensions` 提交的值。Quantity 已保存的共用箱 W/D 用既有 Engine 實體來源正數有限檢查後整對更新，任何非法值不進行部分 W/D 更新。原 PartSpec、Fold 製造公式、Factory、FinalScene、DXF 與儲存 schema 不增加替代實作。
+- 定向 `tests/test_issue2517_fold_designer_export_live_dimensions_public_api.py` 核對 Vault／Receiving、一般板件、Head/Tail、Quantity 與非法值。完整 Product Regression、實體 2D／3D／DXF、Save→Reload 仍以同版 CI／實測證據為準，#2517 全面 API 覆蓋仍待逐入口確認。
+
+
+## [CURRENT] #2517 Fold Designer 實體 W/H/D 輸入由公開 Engine 驗證（2026-11-08）
+
+- 舊版 fold_designer_bridge._fix11_do_update / _sync_active_endcap_and_global_whd 透過 fold_designer_original.get_int 把操作員輸入的包外 W/H/D 先做整數 round；非法值回落至 0，再流入 BoxBody／Head／Tail 的已提交來源。這不是 GUI 格式驗證，而是製造尺寸篡改；應 fail closed 並保留操作小數。
+- 唯一 Engine operator_settings_transactions.normalize_operator_live_box_dimensions({w,h,d}) 利用既有 normalize_operator_source_dimension 對三軸一併驗證大於零的有限、非 bool 原始值，再回傳 detached W/H/D float；manufacturing_api 與 ae_engine 根包公開完全同一 callable。GUI 不再使用 original.get_int 讀取包外三軸，也不產生第二份數值公式；BoxBody 先完成全欄驗證，才允許 Receiving Bay 提交；其他實體板件亦然。
+- Head/Tail 先驗三軸與 previous W/D，再將原始精度送入既有公開 Engine reconcile_endcap_live_outside_dimensions；Fold Profile 與 EndCap Core 的拓樸／折型取捨仍由 Engine 負責，不增加任何製造身份、CUTTING、BEND、Factory、Registry、DXF 型態或 Save→Reload schema。Windows RED→GREEN tests/test_issue2517_live_box_dimension_source_public_api.py。
+
+## [CURRENT] #2517 Fold Designer 尺寸重算的 Receiving Settings W/H/D 優先序由公開 Engine（2026-11-08）
+
+- fold_designer_bridge._phase6_recalculate_part_dimensions 原以 GUI Family 分支判斷是否忽略舊版 Settings W/H/D，再重算實體板件尺寸；這是製造來源選擇，不應留在 UI。新增 operator_settings_transactions.project_operator_part_dimension_settings_overlay(input_snapshot, settings_values) -> detached dict，並由 manufacturing_api、ae_engine 根包公開同一 callable；保留金庫型／自訂 Settings 優先序，Receiving Family（含大小寫別名）只保留非 W/H/D 更新，現行 Bay 尺寸仍以原 Snapshot 為準。
+- GUI 現只送操作者 Snapshot/Settings，接收 Engine 來源投影，原 project_part_dimensions、PartSpec、FinalScene、DXF／Save→Reload 無變更。不新增製造准入，也不清洗或覆蓋非法來源。Windows RED→GREEN 測試 tests/test_issue2517_part_dimension_settings_source_public_api.py，並受全套 Product Regression 覆蓋。
+
+## [CURRENT] #2517 BoxBody 三片式實體側板／後板 Fold 編輯提交唯一 Engine API（2026-11-08）
+
+- 原 `fold_designer_bridge._phase6_commit_box_body_physical_piece_profile` 在 GUI 側自行把 `left_side/right_side` 的實體 Fold material len 鏡射回箱身 `zl1/zl2/FW/D/zr2/zr1`、計算後面板 `back_width_comp_t=max(0,(W-back_panel_material_len)/T)`，並決定右側板 native BEND traversal、已儲存後折的 piece-local ownership。這些是製造來源與版型、非視覺呈現，不能留第二套 GUI 公式。
+- 新 `ae_engine.operator_box_body_piece_fold_transaction.plan_operator_box_body_piece_fold_commit`（公開於 `manufacturing_api` 與 `ae_engine` 根包）收原始操作 `box_body:left_side/back/right_side`、piece X Fold、共用 BoxBody profile、box_body_structure_state、W/H/T／snapshot；產生獨立 `OperatorBoxBodyPieceFoldPlan(structure_state, aggregate_profile, settings_values)`。Engine 重用既有 `box_body_structure_state.set_side_back_piece_profile/set_side_back_geometry`、`box_body_editor_readback.reverse_box_body_fold_traversal/read_box_body_outside_dimensions` 和 `box_body_fold_profile.apply_outside_dimension_compensation`；只對資料來源完成驗證後才傳回候選。不改左／右對稱共用 D/FW 的既有已核准物理語意；左右的 side_rear_bend 必須保留各自 piece-local，後板寬由原 MATERIAL W 與 T 得到，不能把包外當料長重扣 T。
+- GUI 僅採用候選寫入既有 settings／workspace service，衍生 PartSpec、Assembly/FinalScene 和 DXF 一律保留原 Engine pipeline。非法 part_key、非有限/布林/非正的 W/H/T 或 piece `len`、late malformed row 都 fail closed、不修改來源。金庫型及受電箱左／右／背三片、精度、right-side 順序、JSON Save→Reload、GUI 真呼叫定向驗收。此切片不新增 Factory 放行或製造 DXF 類型；#2517 全面核對與 Windows 實機 UAT 仍待完成。
+
+## [CURRENT] #2517 Head/Tail 連動折型的 Receiving Bay 尺寸來源由公開 Engine 投影（2026-11-08）
+
+- 原 fold_designer_bridge._phase6_rebuild_linked_endcaps 在 GUI 以字串清單判定是否為受電箱，再決定現行盤位 _phase6_box_whd 的 W/H/D 能否覆寫 Settings 舊盤尺寸；大小寫別名 receiving 因不匹配而採到舊盤，非法 live 尺寸也可能流入連動 Fold。這是 Family／Bay 來源優先序，不應由 GUI 判定。
+- 公開 ae_engine.operator_settings_transactions.project_operator_linked_endcap_source_snapshot(input_snapshot, settings_values, working_box) -> dict 由 manufacturing_api 與根包 ae_engine 匯出同一函式。複製來源與 Settings，由 canonical Family Registry 判斷 Receiving；只有 Receiving 採用現行盤位 W/H/D，存在的三軸全部由 normalize_operator_source_dimension 驗證大於零、有限且非 bool。非法資料在 Head/Tail profile 建立前拒絕、不改輸入。金庫型／自訂維持 Settings 的原優先序。已確認 Family 身分在輸出中 canonicalized，供既有 build_linked_endcap_xy_fold_profiles 使用。
+- GUI 只傳入 Snapshot、Settings 與現行 Box W/H/D；後續 Head/Tail 折型仍由原公開 Engine build_linked_endcap_xy_fold_profiles 推導，GUI 只更新 Workspace/當前折型選單。沒有引進第二份截角／BEND／CUTTING／尺寸補償或 DXF exporter；Save→Reload/2D/3D/DXF 由原 FinalScene 保護。RED→GREEN 測試 tests/test_issue2517_linked_endcap_live_source_public_api.py；其他 GUI 製造 API 仍需繼續核對。
+
+## [CURRENT] #2517 上下截角的左右實體角身份由公開 Engine 投影（2026-11-08）
+
+- manufacturing_api.project_operator_corner_pair_members(pair_key) 與 project_operator_corner_selection_target(target_key)（根包 ae_engine 同一 callable）直接重用 Engine corner_state_transactions.MANUAL_CORNER_PAIR_KEYS／MANUAL_CORNER_KEYS：top→(top_left,top_right)、bottom→(bottom_left,bottom_right)；pair 點選採首個實體角，個別角原樣保留。非法、空白、布林或非字串來源明確拒絕，無源狀態突變。
+- 主 GUI 的手動截角選擇與成對取消、截角操作面板的目標提示／左右按鈕，均透過上述公開 API 讀 Engine 身份；GUI 不再以私有 CORNER_PAIR_CORNERS 當實體選片規則。原 operator_apply_manual_corner_selection／operator_set_manual_corner_pair_same 交易、Family/Registry、C02／CROSS、暫時 UI 鎖、儲存、CUTTING/BEND/2D/3D/DXF 均不變。測試：tests/test_issue2517_corner_pair_public_gui_mapping.py 與 Corner 回歸。
+
+
+## [CURRENT] #2517 Fold Designer 手動截角型式／參數解鎖實體資格改由公開 Engine（2026-11-07）
+
+- 原 `fold_designer_bridge._phase6_corner_type_editable` 及 `_phase6_corner_parameters_unlockable` 在 GUI 直接硬編指示燈盒／小門／箱身／global 這些實體或上下文不能編輯截角型式／解鎖參數的機械資格；設定頁顯示與 Registry 提交 guard 都從這兩個舊函式讀取。已確認模型是否為自訂的來源本來由 `manufacturing_api.is_unknown_operator_model` 提供，不得在 GUI 另算 Family。
+- 公開 Engine `ae_engine.cabinet_model_choices.project_operator_corner_part_editability(part_key, *, model_corner_type_editable)` 以已解析的型號可編輯布林及實體 part key 回傳 immutable `OperatorCornerPartEditability(type_editable, parameters_unlockable)`，`manufacturing_api` 與根包匯出同一 callable；對非法 part key 或非布林來源 fail closed，合法舊 Part key 結果保持既有策略。
+- Bridge 的兩個相容函式只委派這個 Engine API；`_phase6_parameters_unlocked` 是 3D 畫面一次共用的暫時操作鎖，仍由 GUI 操作，不是製造幾何或製造許可。既有 Engine `commit_corner_type/commit_corner_parameters`、CornerState／PartSpec／Registry／2D／3D／DXF 來源和 Save→Reload 格式都不修改；測試核對根包/facade/owner identity、兩型號能力、各實體與錯誤來源、GUI 真委派及暫時鎖語意。仍須當次 exact SHA 完整 GitHub CI。
+
+## [CURRENT] #2517 Fold Designer CornerType Payload 選片／Family 補償統一公開 Engine API（2026-11-07）
+
+- 原 `gui_modules/application/fold_designer_manufacturing_projection.py::_payload_policy` 在 GUI 先呼叫公開 `corner_policy_from_payload`，缺角又自行判定 `not unknown` 決定是否附 `known_family` 取 Certified Registry，再個別套用 `apply_cabinet_family_endcap_policy`。雖然每個計算都在 Engine，但最後採用哪個製造截角政策仍由 GUI 分支，不符 GUI 只傳輸來源的硬性權責。
+- 現新增 `manufacturing_api.resolve_operator_fold_designer_payload_corner_policy`（根包 `ae_engine` 同一 callable）：以原 Engine `corner_policy_from_payload` 完整手動優先、已確認 Family 缺角可用 Certified Registry、Unknown 不可偷借已知製造規則，再以原 `apply_cabinet_family_endcap_policy` 套受電箱 Head/Tail 正式下緣 FW／BoxBody 結構／板厚；非法 Unknown 身分或 CornerType 直接拒絕、不更動來源。保留舊兩個公開函式的全部相容呼叫。
+- Fold Designer `_payload_policy` 只從原 `resolve_fold_designer_payload_topology` 拿操作者狀態／FW／T、同一來源的 `model` 與 `box_body_structure`，一次交公開 Engine 決策，不再依回傳 None 自行分流。只有手動 CornerType 不完整時，Engine 才由同份 Family source 判定 Registry 回退的箱型；不得讓 GUI 提前讀私有 host Family 方法。定向驗證金庫型、受電箱、Head/Tail、完整與缺角手動來源、自訂不能借 Registry、無效狀態隔離、GUI 真委派與兩個原 Engine 函式等價；同源 2D/3D/製造受完整 exact-SHA Product Regression 保護。未新增 2D／3D／DXF 公式、Save→Reload schema、Factory 或任何新的製造准入資格；Windows UAT 另驗。
+
+## [CURRENT] #2517 Corner Data 後面板形式編輯資格統一由公開 Engine Family／Topology 判斷（2026-11-07）
+
+- 原 `phase6_corner_data_view_adapter.Phase6CornerDataViewAdapter.back_panel_mode_is_applicable` 自行以選取 `box_body:back`、字串「受電箱」、以及 GUI 傳入的 `THREE_PIECE_SIDE_BACK_SPLIT` 來決定是否顯示後面板形式控制。這屬於 Family／實體板件／箱身組合拓樸資格，不是畫面規則。
+- 唯一 Engine owner `ae_engine.cabinet_types.policy.corner_data_back_panel_mode_applicable(source, structure_state, *, selected_part_key)` 使用既有 Family Registry canonical 名稱及 `box_body_structure_state.normalize_box_body_structure_state` 和 `BoxBodyStructureType` 決定是否適用；`manufacturing_api.operator_corner_data_back_panel_mode_applicable` 與根包 `ae_engine` 匯出同一函式。無效的結構輸入／板件身分型別明確拒絕；不對自訂或金庫型開放受電箱後板控制。
+- `fold_designer_composition_assembly_corner` 只轉送原始操作者來源、Engine 已解析結構與所選板件，View Adapter 只依 bool 顯示／隱藏。新測試覆蓋受電箱別名、非 Receiving Family、非背板與非三片拓樸、非法資料來源原子拒絕、公開 API 同一 callable 與 GUI 真委派。本批不改板件/尺寸/孔位/CUTTING/BEND/FinalScene、BackPanelMode Save→Reload、2D／3D／DXF 認證；完整 CI 與 Windows UAT 另驗。
+
+## [CURRENT] #2517 Fold Designer 截角選項清單只消費公開 Engine Catalog（2026-11-07）
+
+- 原 `fold_designer_bridge` 直接從私有 `sheetmetal_geometry.EDITABLE_CORNER_TYPE_IDS` 與 `CORNER_TYPE_LABELS` 複製製造可編輯的截角型式 ID／名稱清單；這應由既有 Engine `cabinet_model_choices.project_operator_corner_selection_catalog` 決定，而不是 GUI 自建 Policy。
+- 同一原 Engine callable 已由 `manufacturing_api` 公開，現在根包 `ae_engine.project_operator_corner_selection_catalog` 也匯出相同物件。GUI 使用已公開的 `operator_default_custom_model_name` 請求 catalog，僅把 `labels` 轉成 UI 所需 tuple／dictionary，維持原排列與名稱。其餘 UI 的中文提示、選取及實體截角操作不變。
+- 定向測試驗證 root／facade／原 Owner identity、所有實際 ID 與標籤 parity、兩種 Family 的可編輯資格、來源不變和 GUI 不再引用私有清單常數。唯讀呈現遷移，不新增 CornerType、AssemblyJoint、CUTTING／BEND、2D／3D／DXF 製造資格；完整 exact-SHA CI 和 Windows UAT 仍各自驗證。
+
+## [CURRENT] #2517 Fold Designer 自訂／舊版基準型號身分由公開 Engine 判定（2026-11-07）
+
+- 原 `fold_designer_bridge._phase6_is_unknown_baseline` 在 GUI 直接匯入私有 `corner_type_ui.CUSTOM_MODEL_NAME`、`LEGACY_CUSTOM_MODEL_NAMES` 並自行比對；此判斷會影響手動截角是否可編輯，且保存過的 `baseline_unknown_value` 還可能是獨立自訂名稱。GUI 應只傳遞來源與顯示，不再自建模型身分規則。
+- 保留既有公開 `manufacturing_api.is_unknown_operator_model(name)` 單參數相容，增加可選 `explicit_unknown_value`：使用原 `corner_type_ui.is_unknown_model` 的自訂／舊名別名規則，另外只對已保存明確名稱按原 strip 後完全相等判定；未匹配的金庫型／受電箱不得被當作自訂。原 `CUSTOM_MODEL_NAME` 由 `manufacturing_api.operator_default_custom_model_name`／根包公開唯讀值，並保留單一 Engine 來源。
+- Fold Designer 只將使用者／Project 的原始 model 與已保存 explicit 名稱送到公開 API，再依其布林結果控制截角 UI；初始化缺值也使用 Engine 公開自訂名稱。測試覆蓋 Root／Facade 一致、舊版名稱、明確名稱、非匹配型號、來源不變與 GUI 真委派。本次不新增 CornerType、AssemblyJoint、CUTTING／BEND、Save→Reload 格式、2D／3D／DXF 製造能力；完整 GitHub CI 與 Windows GUI UAT 另驗。
+
+## [CURRENT] #2517 Canvas 特徵面、孔位與孔型錄來源使用公開 Engine（2026-11-07）
+
+- 主 `gui.py` 與共用 `gui_modules/rendering/canvas_2d.py` 原直接依賴 `ae_engine.ae.feature_surface_from_drawing_scene` 及私有 `resolve_surface_features`。現以 `manufacturing_api.project_operator_feature_surface_from_drawing_scene`（與唯一 `ae_door_indicator.feature_surface_from_drawing_scene` **同一 callable**）和既有 `manufacturing_api.resolve_hole_editor_canvas_features` 取得真正 CUTTING 邊界及孔位；無封閉 CUTTING 時拒絕，不能假造矩形。
+- 統一孔位編輯器原要求主 GUI 注入私有 `ae`，只為呼叫 `baseline_hole_catalog_root_path`。完整 GUI 回歸發現這個依賴尚未改接；現由 `manufacturing_api.operator_hole_catalog_root_path`／根包 `ae_engine` 公開**同一原 `ae_endcap.baseline_hole_catalog_root_path` callable**，保持孔型錄共用根路徑、原 CSV／DXF 型錄兩條載入鏈與缺來源拒絕。
+- 並行已合入的 `manufacturing_api.project_operator_resolved_feature_drawing_primitives` 是箱身面板 `ResolvedFeature → DrawingPrimitive` 唯一公開 Owner；本批保留 GUI 使用該入口，不另增重複的 BoxBody 基準 scene API。僅為 2D／編輯器 readback，不新增 CUTTING／BEND／NFB／DXF 認證或 Save→Reload 通行證；新舊測試均須 exact-SHA 全量回歸核對。
+
+## [CURRENT] #2517 數量孔型版本控制列的件數與最後版本資格由公開 Engine 投影（2026-11-07）
+
+- 原 GUI quantity_version_controls.py::refresh 自行使用 len(rows) 與 sum(piece_count) 計算製造數量，delete 又自行透過版本長度決定能否刪掉最後孔型版本。真實 QuantityModel 雖已由 Engine 管理，GUI 卻保有第二套版本下限和總件數計算。
+- ae_engine.receiving_quantity_versions.project_operator_quantity_version_controls(payload) 透過 QuantityModel.from_payload 完整驗證原 schema、版本身分與件數，回傳拷貝的原版本欄位及 version_count、total_piece_count、selected_piece_count、can_delete_selected。manufacturing_api 與 root ae_engine 公開同一 callable，金庫型和受電箱 Quantity 共用；不建立另一個保存來源。
+- GUI quantity_version_ports.snapshot 唯讀委派 Engine，QuantityVersionControls 僅使用其回傳的總件數、選中版本件數及是否能刪除最後版本；全部實際修改仍走既有 commit_operator_quantity_version_action。非法來源須拒絕、不修改原狀。測試覆蓋 headless API、GUI ports／controls、最後版保護、Save→Reload，無新 Set/Bay、孔、FinalScene／2D／3D／DXF 製造資格。
+
+
+
+## [CURRENT] #2517 受電箱內門畫面讀取與提交同一 Engine 來源驗證（2026-11-07）
+
+- 主 GUI `Phase6ApplicationHost._receiving_inner_door_enabled`／`_receiving_inner_door_inward_offset` 先前在 `receiving_inner_doors` 手寫 `any`／`next`，遇到重複門格、重複實體 stable ID 或壞列時可能只取第一筆，與前述 Engine 原子交易的 fail-closed 規則不一致。
+- 現由 `manufacturing_api.project_operator_receiving_inner_door_cell_source(rows, *, cell_key)`（根包同一原 callable）先沿用 `operator_receiving_inner_door_source._stage_operator_receiving_inner_door_rows` 對**整份** saved rows 做身份與唯一性檢查，才返回指定格的 detached raw source 或 `None`；GUI 用這一份來源顯示 enabled／內退，內退的合法數值與 Family 缺值預設仍由既有 `resolve_operator_receiving_inner_door_inward_offset` 計算。無 GUI 解析 Stable ID、NFB CSV 孔位、2D／3D／DXF 或其他第二套製造規則。
+- 擴充 `tests/test_issue2517_receiving_inner_door_atomic_source_transactions.py` 驗證 GUI 真正呼叫、無門格 fallback、非法重複來源 fail closed、回傳與原來源深拷貝隔離。讀取是 UI-only readback，不提升製造資格；仍需完整 exact SHA CI、Windows 實機驗收。
+
+
+
+## [CURRENT] #2517 受電箱內門勾選／內退尺寸整份來源清單原子交易（2026-11-07）
+
+- 主 GUI `Phase6ApplicationHost._set_receiving_inner_door_enabled` 與 `_set_receiving_inner_door_inward_offset` 先前仍自己複製、篩選、排序並提交 `receiving_inner_doors`；這是實體內門來源清單而不只是 Tk 呈現。遇到無效 row、重複 Door cell／stable_id，不能由 GUI 默默捨棄或半途更新。
+- `manufacturing_api.apply_operator_receiving_inner_door_presence(family_source, rows, *, cell_key, enabled)` 和 `apply_operator_receiving_inner_door_inward_offset(rows, *, cell_key, inward_offset_mm)` 由 `ae_engine/operator_receiving_inner_door_source.py` 原 Owner 定義，根包同步公開。Engine 仍復用既有 `project_operator_receiving_inner_door_enabled_source`、`receiving_inner_door_stable_id_for_cell`、Family `default_inner_door_inward_offset_mm` 及有限非負 mm 驗證；一次驗證、deepcopy 與回傳 detached 全清單，GUI 只有一次賦值，失敗不得改動來源。保存的孔位／NFB／Fold／DXF 原製造 Owner 及資格不因此提升。
+- `tests/test_issue2517_receiving_inner_door_atomic_source_transactions.py` 覆蓋真實 GUI 勾選／內退、已存來源與 NFB 草稿保留、重複 ID／壞列 fail-closed、非法數值、無效目標、.p6fold Save→Reload。CI 需跑 exact SHA 完整回歸；Windows GUI 實機與 #2517 全面接線另驗。
+
+
+
+## [CURRENT] #2517 2D 基準來源字串與封頭尾自訂模型判斷統一公開 Engine（2026-11-07）
+
+- 原 `gui_modules/application/render_snapshots.py` 仍透過 `ae_engine.ae` 私有匯入查指示燈盒、門格、箱身基準狀態，並直接匯入內部 `corner_type_ui.is_unknown_model` 決定 EndCap 自訂預覽標籤。即使屬只讀顯示，基準檔是否存在不能由 GUI 自己判斷或默認為已確認加工來源。
+- 在既有 `manufacturing_api` 直接公開 **原 callable** `operator_indicator_shared_baseline_source_label`、`operator_baseline_source_label`，保留已有 `operator_box_body_baseline_source_label` 及 `is_unknown_operator_model`；根包 `ae_engine` 同步輸出這四個 readback API。GUI 僅轉交原參數並顯示原輸出，沒有複製基準檔探測、Family 規則或任何孔位／Fold／CUTTING／DXF 認證。
+- `tests/test_issue2517_render_baseline_labels_public_api.py` 驗證原 Engine owner callable identity、缺基準檔不造假來源、Indicator／DoorGrid／BoxBody／EndCap 實際 GUI snapshot 呼叫、私有匯入消除。屬 2D status only：Save→Reload／2D／3D／DXF 原物理來源不變，仍依 exact HEAD canonical Product Regression 與 Windows UAT 驗收。
+
+
+## [CURRENT] #2517 箱身面板 2D Feature／CUTTING／MARKING 圖元只由公開 Engine 投影（2026-11-07）
+
+- 原主 GUI `Phase6ApplicationHost._box_body_face_baseline_scene` 從 Engine 取得已解析的 BoxBody 面板孔位後，仍直接呼叫私有 `sheetmetal_drawing.resolved_features_to_primitives` 轉為 2D 圖元。此 Owner 含正式 Circle／Rect／Profile、`BLIND_HOLE` 中心線、`CUTTING` 主輪廓、外部 DXF process layers 與避免重複切線的語意；GUI 不可重算或默默遺漏。
+- `manufacturing_api.project_operator_resolved_feature_drawing_primitives` 與根包 `ae_engine` 公開**同一原函式** `sheetmetal_drawing.resolved_features_to_primitives`。GUI 只把既有 resolved Features 交給 API，將回傳 `DrawingPrimitive` 加入顯示 `DrawingScene`；無第二份 CUTTING／MARKING 演算法，也不以示意圖承諾正式 DXF 製造。
+- `tests/test_issue2517_box_body_resolved_primitives_public_api.py` 逐一驗證 `BLIND_HOLE`、`DATUM`、`CUTTING`、`MARKING`、`FROM_DXF` 不重複切線、原 Engine parity、GUI 一次委派與無效 Feature fail-closed；來源 Feature 不變。此純 2D readback 不改 PartSpec、FinalScene、儲存或 DXF writer；仍須 exact-SHA canonical Product Regression，Windows UAT 未藉此完成。
+
+## [CURRENT] #2517 工程標註 2D 預覽只消費公開 Engine projection（2026-11-07）
+
+- 原 `gui.py`、`gui_modules/application/door_render_host_adapter.py` 及 `gui_modules/rendering/overlays.py` 直接匯入 `ae_engine.engineering_drawing.build_engineering_drawing_projection` 與 `sheetmetal_features.CanvasTransform`，雖然只是工程標註的 2D 呈現，仍把 GUI 接在非公開的 Engine 內部投影來源上。
+- 現由 `manufacturing_api.project_operator_engineering_drawing_annotations`／根包 `ae_engine` 以**同一 callable**公開既有 `engineering_drawing.build_engineering_drawing_projection`；主 GUI 與模組化 GUI 只傳入已解出的 canonical `PartRenderData`，從同一 Engine 取得尺寸／文字標註，`CanvasTransform` 使用原已有的公開 API。保留原來源有效性拒絕、`strict` 與碰撞診斷、`DIMENSION/TEXT` 限制及原 `DrawingScene` 不可變檢查。
+- 此為 annotation-only readback，**不新增** material／CUTTING／BEND／孔位或 DXF export 資格；正式 2D／3D／DXF 仍需 consume 同一 canonical 製造來源。定向測試 `tests/test_issue2517_operator_engineering_drawing_public_api.py` 核對 callable identity、annotation parity、非法來源拒絕不污染、GUI adapter 委派與公開 CanvasTransform；GitHub exact-SHA 完整產品回歸另驗。
+
+## [CURRENT] #2517 Receiving 解除連動須由公開 Engine 回傳原共享實體 Bay 身分（2026-11-07）
+
+- 原 `ReceivingSetBayAdapter.unlink_setting(kind)` 已使用公開 `unlink_receiving_shared_setting` 進行單 Bay 來源更改，但不問是否實際解除，就只對當前 Bay 標 `session_dirty`；而原本共享同一參照的其他 Bay 沒有被列入當次來源關聯變更保護。原 `receiving_settings_ports.unlink` 對已獨立的 Bay 也照常提交 geometry intent，造成無變更的假 dirty／重算。
+- 保留既有唯一 `receiving_shared_settings.unlink_setting` 與舊公開 API 全部相容；新增同 owner 的 `unlink_setting_with_affected_ids(layout, *, set_index, bay_index, kind)`，先以原 `normalize_receiving_layout`、`normalize_set_settings` 驗證實體 Set／Bay／Setting，再沿**同一份 canonical refs** 擷取解除前的實體共享 Bay 群組；以原 `unlink_setting` 原子建立 detached 候選。回傳 `(candidate, affected_ids)`：只有 ref 確實分離才返回原共享群組中的完整實體 IDs（包含本次操作者 Bay），已獨立 no-op 返回空 tuple，輸入來源不變。相同設定值但不同 refs 不算連動，不製造新的幾何或 NFB model。
+- `manufacturing_api.unlink_receiving_shared_setting_with_affected_ids` 與根包 `ae_engine` 匯出同一 Engine 函式；GUI 只在 affected 非空時儲存候選、標記 Engine ID 及提交 geometry intent；錯誤／no-op 不寫來源也不觸發假提交。測試 `tests/test_issue2517_receiving_unlink_affected_ids_public_api.py` 驗 Root／Facade、既有 unlink 等價、非連續共享群組、no-op／非法來源不變、GUI 真實 port 與 Project Save→Reload。這是 Set/Bay 實體來源參照權威，不新增任何 CUTTING、BEND、FinalScene、DXF 或未認證的製造能力。
+
+
+## [CURRENT] #2517 Receiving Joint 對齊只標記真正改變的實體 Joint ID（2026-11-07）
+
+- 舊 ReceivingSetBayAdapter.update_joint_alignment 雖經原 Engine update_receiving_joint_alignment 驗證並執行 FRONT／REAR、TOP／BOTTOM，但 GUI 無條件把選中 Joint stable_id 放入 session dirty。當相鄰 Bay 的 D/H 相等導致對齊軸不可編輯、或操作者提交相同值時，Engine 並未更改 Joint，GUI 卻製造「待保存實體」及後續刪除保護假訊號。
+- 唯一現有 ae_engine.receiving_layout Owner 新增 update_receiving_joint_alignment_with_affected_ids(layout, *, set_index, joint_index, depth_alignment=None, height_alignment=None)，由 manufacturing_api 和根包 ae_engine 原 callable 公開。先規範來源，復用原 Engine update_receiving_joint_alignment 全部尺寸／相鄰 Bay／合法方向硬閘門，僅比較同一 canonical Joint 交易前後物理 row；回傳 (detached_layout, tuple(changed_joint_stable_id))，相同或不可編輯的軸返回空集合。非法方向／失效 ID 必須拒絕，輸入 Layout 不可更動。
+- GUI 只提交操作者方向及目標 joint index，消費 Engine 決定的受影響 ID；有真實變更才更新 layout 與 session dirty，不再由 UI 假定任何點擊都改造 Joint。未觸及 Receiving Bay 包外尺寸、FRONT=+Z／TOP=+Y 3D 座標公式、BEND/CUTTING 或 DXF 製造權限；2D／3D／FinalScene 仍由既有 canonical source 解析。測試核對不可編輯 no-op、重複提交 no-op、真實 Joint ID、非法輸入 failure isolation、Assembly offset 同源及 Project Save→Reload，完整 GitHub exact-SHA regression 尚須驗收。
+
+
+
+
+## [CURRENT] #2517 手動 CornerType 縮圖 canonical CUTTING／BEND 來源只經公開 Engine（2026-11-07）
+
+- 原 `gui_modules/parts/panels/assembly_corner.draw_corner_type_icon` 直接匯入內部 `corner_type_ui.build_corner_type_preview_geometry` 取得真實 EndCap CUTTING／BEND 的語意預覽。這不是 GUI 可再算一份的截角幾何，且不代表出圖准入。
+- `manufacturing_api.project_operator_corner_type_preview_geometry` 與根包 `ae_engine` 以相同 callable 身分公開原 `corner_type_ui.build_corner_type_preview_geometry`；直接保留 CornerType legacy C01–C04 正規化、裁切現有 canonical CUTTING 與 BEND 的唯一來源，輸入錯誤由既有 Owner 拒絕，輸入 selection 不變。GUI 只將回傳的 `cut_paths`／`bend_paths` 繪製成縮圖，無第二套加工公式。
+- 測試 `tests/test_issue2517_corner_preview_public_engine_api.py` 驗證 root/facade/原 Owner identity、四種現行 CornerType 和 C02 legacy 的原始路徑 parity、真實 GUI delegate 與線數／層分色、不合法輸入不修改來源；原 `tests/test_corner_type_ui.py` 的 CUTTING/BEND 含義維持。完整 2D／3D／DXF Product Regression 與 Windows GUI UAT 仍需各自驗收，#2517 不因縮圖公開就結案。
+
+
+## [CURRENT] #2517 Receiving 跨套 +/- 連數必須使用同一公開 Engine 候選，不得先切換 GUI 套數（2026-11-07）
+
+- 原 `ReceivingSwitchProjectionAdapter.resize_connections` 由 GUI 自行 `max(1, current+delta)` 決定實體連數，然後先 `adapter.select_set(index+1)` 再 `set_bay_count`。即使 Engine Family 預設／來源校驗失敗或被保存 Bay 刪除確認拒絕，原 Layout 不變但 GUI `selection` 已移到其他 Set；違反同一操作者動作的全有或全無來源／選取語意。單獨 `set_bay_count` 與 `set_set_count` 已經有保留原子候選的 API，不重做其幾何／孔位。
+- 新增現有 `ae_engine.receiving_layout` 的 `resize_receiving_operator_connections_by_delta_with_removed_ids(layout, *, set_index, delta)`，由 Engine 嚴查真實零基 Set／整數 delta、沿 canonical Layout 算新連數（最少一連）、委派既有 `resize_receiving_operator_topology_with_removed_ids` 原子確認真實刪除 Set／Bay／Joint ID，回傳 `(detached_candidate, removed_ids, changed)`。No-op 的候選仍 detached 且不遷移 GUI 選取；原非法 Layout、無效增減、Family 預設拒絕不更動輸入。
+- `ReceivingSetBayAdapter.resize_connections` 先讀完整 Engine 候選，必要時詢問原保存／dirty 刪除確認，全部合法才更新 layout、protected IDs 與一次性 Set／Bay selection；`ReceivingSwitchProjectionAdapter.resize_connections` 只轉交操作者數字，不自行算連數、也不先選 Set。原絕對連數 API 與其他 GUI 入口相容。這是操作交易與實體身分保護，**不**改 Family W/H/D、NFB、AssemblyJoint、PartSpec、FinalScene、2D／3D／DXF 出圖，也不授予新製造資格。測試 `tests/test_issue2517_receiving_operator_delta_resize_public_api.py` 驗證 Engine parity、合法舊文字操作、跨套取消／Engine failure 不改 Layout/selection/dirty、被刪除真實 IDs、原 UI 傳遞；完整回歸依 GitHub exact-head CI。
+
+## [CURRENT] #2517 Receiving 實體 +套／−套改為公開 Engine Set 數量交易（2026-11-07）
+
+- 舊 ReceivingSwitchProjectionAdapter.add_layer/remove_layer 在 GUI 使用 len(layout["sets"]) +/- 1 直接推導正式物理 Set 數量、最低 Set1 限制，再叫絕對數量 Engine API。這項正式 Set/Bay/Joint 拓樸規則應由 Engine 決定，GUI 只提交 +/- 操作及確認被移除的已保存來源。
+- 新增 ae_engine.receiving_layout.adjust_receiving_operator_set_count_with_removed_ids(layout, *, delta)，從 manufacturing_api 與根包 ae_engine 公開同一 callable。完整驗證 canonical layout 與純整數 delta，原子投影 max(1, count+delta) Set1 最小數量，復用原 resize_receiving_operator_topology_with_removed_ids 的正式新 Set 來源、真實 removed Set/Bay/Joint IDs 與不可重用的盤名序號；回傳 detached (layout, removed_ids, changed)，沒有變化不留假 dirty，原來源不改。
+- GUI ReceivingSetBayAdapter.apply_set_delta 先取 Engine 完整候選及真實 removed IDs，沿既有 persisted／session dirty 刪除確認；確認後才一次提交 layout、protected IDs、現在 selection。原 ReceivingSwitchProjectionAdapter.add_layer/remove_layer 只委派這個動作，沒有第二套業務件數算法。刪除拒絕或 Engine 失敗不影響選取、保存狀態或原始工單。
+- 同時期 PR #3033 正在處理跨 Set +/- Bay，這批 Set 專項不實作第二份 Bay delta；現有 Bay 改動與絕對 resize 原子契約不受此變更影響。無新增 Family W/H/D、NFB 孔、PartSpec／FinalScene 或 DXF 製造資格。驗收使用 Engine Set resize 實體 ID 對照、盤名單調遞增、no-op、拒絕保護、GUI 真按鈕接線與 Save→Reload，再由 exact-SHA GitHub CI 完整回歸。
+
+
+
+## [CURRENT] #2517 封頭／封尾 FW 操作候選對來源有效性 fail closed（2026-11-07）
+
+- 原公開 `operator_endcap_fw_override` 仍透過 `_num(value)` 將非法操作者 FW 預設為 0，對 `NaN`／`Inf` 也未阻擋；`operator_endcap_fw_follow` 對字串 `"false"` 使用 `bool(...)` 造成錯誤跟隨，且兩者都在已確認 Settings box-FW 欄位缺失／損壞時套入預設 25。這些都可能污染 Head/Tail 的正式四態製造來源，不符合操作者 FW＝包外尺寸的 CURRENT 07。
+- 由原 `operator_endcap_settings_transactions` 公開 API owner 先驗證 input snapshot／settings／existing EndCap FW state 是 Mapping；由原 Engine `normalize_operator_source_dimension(field="fw")` 要求箱身 FW 與輸入 Head/Tail FW 為有限正數、拒絕 bool 和非法字串；由原 Engine `normalize_operator_settings_boolean` 正確解析 follow 開關。全部在 detached state 完成，成功仍委派原 `endcap_factory_fold.commit_endcap_fw`／`set_endcap_fw_follow` 的四態語意，不新增截角、BEND、CUTTING 或 DXF 公式。
+- Fold Designer 封頭／封尾 GUI `on_endcap_fw_value_selected` 只傳原操作員輸入，由 Engine 決定是否接受，非法輸入不觸發 state commit 或 linked geometry refresh。驗收對照兩 Family 的原 Engine 狀態、非法輸入 source isolation、legacy 未載入四態、直接 GUI event、真正 .p6fold Save→Reload、2D/3D/DXF canonical Product Regression；完整驗收及 Windows UAT 另依實證，不以本 API 存在推論 #2517 結案。
+
+
+## [CURRENT] #2517 Receiving 實體底板型式選項必須取自公開 Engine（2026-11-07）
+
+- 原 `phase6_settings_panel_owned_render._render_owned_receiving_base_plate` 由 GUI 事件內直接匯入私有 `sheetmetal_part_adapters.RECEIVING_BASE_PATTERN_LEFT/CENTER/RIGHT`，然後自行建立三種實體板件的選型值。這些是底板 `pattern` 製造來源識別，不是 GUI 可定義的新物理型式。
+- 原 Engine 唯一製造 owner `sheetmetal_part_adapters` 新增只讀 `project_operator_receiving_base_plate_pattern_choices()`，在**原三個 pattern 常數**的正式 LEFT／CENTER／RIGHT 順序返回 immutable `(role, pattern_id)` tuples；`manufacturing_api` 與根包 `ae_engine` 公開**同一 callable**。GUI 只對應中文顯示標籤與操作選取，不再 import 內部幾何模組、也不製造 pattern ID。
+- 實體底板套用／取消、真實 EAR 孔及面積來源仍走既有 `commit_operator_receiving_base_plate_settings`／`validate_receiving_base_plate_settings`；此新 API 不認證任何尚未提交的板件來源，不變更 shrink、BEND、CUTTING、DXF 及 2D／3D 正式幾何。驗收 `tests/test_issue2517_receiving_base_plate_pattern_choices_public_api.py` 對照 owner pattern 集合、GUI 真實函式委派、合法來源原驗證與輸入不變；仍需 exact SHA GitHub 回歸與 Windows UAT。
+
+## [CURRENT] #2517 NFB 品牌交易須回傳受影響的真實 Set／Bay dirty IDs（2026-11-07）
+
+- 原 Receiving GUI 的 `set_brand`／`set_global_brand` 雖然使用 Engine 原子 Parent Brand 更新，卻沒有把改品牌的實體 Set 與各繼承品牌 Bay 記入 session dirty。未保存的來源在縮減 Bay／Set 時可能略過刪除保護；Switch GUI 還自己比較前後品牌來推測變更，重複了 Engine 的權威狀態。
+- 在唯一 `receiving_nfb_brand_transition` Owner 新增 `update_receiving_one_set_nfb_parent_brand_with_affected_ids` 和 `update_receiving_all_set_nfb_parent_brand_with_affected_ids`，沿用原公開 Brand Transaction 完整來源驗證及不可逆 CONFIRMED X 失效處理，回傳 `(detached_layout, changed, affected_stable_ids)`。後者只列實際改變品牌的 Set 與旗下全部實體 Bay 的 canonical 身分；無變更則空 tuple，非法來源無輸出／不寫回。原舊二元回傳 API 完全相容；`manufacturing_api` 與根包公開同一 Engine callable。
+- GUI 只消費 Engine 回傳的 affected IDs 更新 dirty，且 Switch 操作直接取 Engine changed，禁止自行逐 Bay 推斷孔位、來源或狀態。此為來源／刪除保護 API，不新產生 NFB 世界 X、CUTTING、FinalScene、DXF 或 MFG-2 資格。新增 `tests/test_issue2517_receiving_brand_affected_ids_public_api.py` 與原 NFB 品牌操作測試覆蓋新版 headless／GUI 同源、非法來源失敗不變、no-op、未保存的實體 Bay／Set 刪除保護；完整回歸由 GitHub exact-head CI 驗證。
+
+## [CURRENT] #2517 Box FW 接管 Head/Tail 的兩個 GUI 寫入入口統一公開 Engine 交易（2026-11-07）
+
+- Phase6 Settings Controller 的 `commit_editor_fw_takeover` 與 Fold Designer `settings_application_project_ui_values` 原先先在 GUI 呼叫 `float(value)`，再直接套用舊式 `commit_box_fw` 到 live `_phase6_endcap_fw_state`。原 Engine 遺留函式是就地寫入，沒有物理有限正數硬閘門；布林、NaN／Inf、零或負值可能經 GUI 先轉型而污染 Head/Tail FW，已有 malformed Tail 的來源也可能在 Head 被修改後才拋錯。
+- 新公開 `manufacturing_api.commit_operator_box_fw_takeover(state, value)`（根包 `ae_engine` 同一 callable）由原 `endcap_factory_fold` 負責，先用既有 `normalize_operator_source_dimension(field="fw")` 核實操作員輸入的正值、有限數字及 bool 拒絕，再把原 `commit_box_fw` 在完整 detached state 上預先跑通，最後由同一原 owner 就地提交；保持 Head/Tail live nested dict 身分、FOLLOW_BODY 語意與原有合法輸出完全相同。舊 Engine 低階函式供原有合法相容呼叫繼續保留，不使 GUI 擁有任何新 FW 公式。
+- 兩個 GUI 入口只傳原操作員 FW 及共用狀態給公開 API，無 GUI 先做 `float` 的物理來源轉型；不合法來源不可改變 mode、Head、Tail 或 input snapshot。定向測試涵蓋兩箱型、Engine root/facade/原 owner parity、全套非法值／晚期壞 Tail、同物件 identity、Controller 與 Shell GUI 接線、實體 EndCap FW 投影及 Save→Reload；2D／3D／DXF Product Regression 須驗 exact SHA。此提交不宣稱 Windows R5 或整箱 NC 已驗收。
+
+
+
+
+## [CURRENT] #2517 主 GUI／Fold Designer 箱身 FW 即時修改統一由公開 Engine 四態投影（2026-11-07）
+
+- 原 `gui_modules/application/state_sync.on_main_setting_var_changed` 與 `gui_modules/application/lifecycle._apply_fold_designer_live_settings` 在操作者改箱身邊框寬度 FW 時，仍由 GUI 對封頭／封尾 `endcap_fw_state.setdefault` 自行依 `follow_box` 更新值。這條路徑可能保留已失效的 FOLLOW_HEAD／FOLLOW_TAIL／INDEPENDENT 物理 ownership；原主 GUI 另有明確 `on_fw_selected("z")` 使用 Engine `commit_box_fw` 的一致語意。
+- 新公開 `manufacturing_api.project_operator_box_fw_live_state`（`ae_engine` 根包同函式）先以原 Engine `normalize_operator_source_dimension(field="fw")` 驗證變更前後包外 FW，複製已保存四態來源，**只有 FW 數值實際變動**才委派原 `endcap_factory_fold.commit_box_fw`，讓 BoxBody 重新控制 Head／Tail；相同 FW 的同步回放不得意外重置既有封頭／封尾獨立設定。非法 bool、零、負數、NaN／Inf 或非 Mapping state 一律拒絕且不修改來源。這是既有四態製造來源轉移，沒有另建 FW 補償公式。
+- 主 GUI 與 Fold Designer 的 live commit 均先取得 detached Engine 候選，在既有 `SettingsService.update` 成功且 FW 實際被接受變更後才替換來源並同步 UI。Fold Designer 單次多欄送來非法 FW 時，不阻擋其他合法 Settings 更新。原 `.p6fold` EndCap FW 四態持續由 `normalize_endcap_fw_state`／`resolve_endcap_fw` 重開；單筆有效操作在 GUI／headless Engine 得到相同 Head/Tail FW。現有幾何、2D／3D、DXF、CUTTING 和權限不變；本批需要 exact HEAD Product Regression、GUI API Gate 和 Windows GUI 人工驗收，並不等於 #2517 全面完成。
+
+
+
+
+## [CURRENT] #2517 FinalScene 實體折後包外量測統一公開 Engine（2026-11-07）
+
+- 原 `phase6_final_scene_projection._phase6_folded_outside_envelope` 為 FinalScene 2D／3D 操作量測的 GUI 相容入口，直接匯入 `ae_engine.display_dimensions.folded_outside_envelope`。該內部 owner 根據**已成形實體三角網格與板厚**回傳 dimensions/world bounds；這是物理尺寸 readback，不可由 GUI 再算一套，也不得回寫原 Fold material `len`、BEND 或正式 CUTTING。
+- 公開 `manufacturing_api.project_operator_folded_outside_envelope` 與根包 `ae_engine.project_operator_folded_outside_envelope` 指向原本**同一個 `display_dimensions.folded_outside_envelope` callable**。GUI 只能送 mesh 和原始 T；原封不動沿用有限 world XYZ、完整三角面與合法板厚 fail-closed gate、法向厚度外擴及空網格 `None` 語意。此項為來源量測 API，沒有新尺寸公式或製造認證。
+- 驗收 `tests/test_issue2517_final_scene_folded_envelope_public_api.py` 核對公開 identity、真正 world 三角網格尺寸與 FinalScene GUI 一致、無效 mesh/T 不修改來源及既有 2D/3D finished dimensions readback。完整 GitHub exact-HEAD Product Regression 必須通過，Windows UAT 與 #2517 不因此結案。
+
+## [CURRENT] #2517 一般實體板件 Hole Editor 孔型保存前須經公開 Engine 全量驗證（2026-11-07）
+
+- 原 `gui_modules/application/physical_part_hole_editor.py::open_workspace_sheet_editor.commit` 在獲得引擎核准的 physical sheet editor context 後，仍直接把可變 Hole Editor Feature 草稿 `stash_features` 寫入 workspace，缺少提交**當刻**對整批已編輯孔位的實際物料面重驗；無效 Feature 可能先存成專案來源，直到日後 2D／3D／DXF 再拒絕。
+- 新增 `manufacturing_api.propose_operator_physical_sheet_hole_features(part_key, context, features)`（根包 `ae_engine` 同一 callable）到原 `physical_sheet_editor_context` owner。Engine 的 `PhysicalSheetEditorContext` 保留物理 `part_key` 身分；先驗證 context 真實角色／Features 完整清單，透過原 `legacy_hole_to_feature` 及 `resolve_surface_features` 對全部物料面孔位、形狀輪廓進行原算法檢查。返回 detached、原格式（legacy dict／typed Feature）的完整候選，GUI 只有驗證成功才寫入 workspace；非法資料、錯誤板件、越界一次拒絕，不先寫入任何孔位。
+- 這不是新的孔位公式或製造認證，不修改 `with_physical_sheet_features`、CustomFold PartSpec、CUTTING／BEND／MARKING／DXF Writer。此入口只處理已開啟的實體板件 Hole Editor 提交源，後續 canonical 2D／3D／DXF、Save→Reload、來源授權仍按原 Engine Gate；不能以候選有效取代正式 DXF 加工驗證。測試 `tests/test_issue2517_physical_sheet_hole_commit_public_api.py` 覆蓋 Engine／GUI 同源、兩種 CustomFold 軸、legacy/typed 特徵、非法／越界不改來源和既有 context API。
+
+## [CURRENT] #2517 Receiving Set/Bay 縮減候選及被移除實體 ID 由公開 Engine 單次交易（2026-11-07）
+
+- 原 `ReceivingSetBayAdapter.set_bay_count/set_set_count` 在取得預先刪除 ID 並確認後，**先**從 GUI 已保存 ID 與 session dirty 集合刪除，**後**才做 Engine Resize。若物理 Layout／Family 新 Bay 預設錯誤使 Engine 拒絕，正式 Layout 未改但已失去重做時的刪除保護。
+- 公開 `manufacturing_api.resize_receiving_operator_topology_with_removed_ids(layout, *, set_index, bay_count)` 或 `(..., *, set_count)` 直接輸出 `(detached_layout, tuple(removed_physical_ids))`；根包 `ae_engine` 同一函式。唯一 `receiving_layout` Engine owner 先完成原 Family 新 Bay 預設／Set resize，再以原 `receiving_destructive_tail_ids` 與前後 canonical Set/Bay/Joint stable ID 差集交叉確認。兩種操作混用、非法來源或任何不一致全數拒絕，輸入 Layout 不動。
+- GUI 僅在**完整 Engine 候選成功後**提示操作者批准移除；批准才一次套用 candidate、保護集合與 selection。取消／Engine 拒絕不得失去任何 protected ID。原 `resize_receiving_bays_with_family_defaults`、`receiving_destructive_tail_ids` 與 `resize_receiving_sets` 維持相容。新增 `tests/test_issue2517_receiving_operator_topology_atomic_api.py` 覆蓋來源不動、刪除真實 physical IDs、不同尺寸、新增及拒絕／失敗之 UI 原子性；無新幾何、NC 或 DXF 製造資格。
+
+## [CURRENT] #2517 數量模式版本新增／刪除／選取／件數只經公開 Engine（2026-11-07）
+
+- 原 `gui_modules/application/quantity_version_ports.py::quantity_ports` 四個按鈕動作直接呼叫 live `QuantityModel.select/add_version/delete_selected/set_piece_count`，讓 GUI 而不是 Engine 提交數量版本身分與件數。
+- `manufacturing_api.commit_operator_quantity_version_action(snapshot, quantity_model, *, action, version_id, piece_count=None, confirmed=False)`（根包 `ae_engine` 同一 callable）要求 Quantity 模式、live `QuantityModel` 與一致版本來源；在 detached model 執行既有四個操作，再檢查來源漂移。新增／刪除／件數變更沿用全部版本既有 finished-face 孔位檢查，錯誤或通知失敗不留下部分提交。選取只是導覽／修復入口，舊非法孔位不能阻擋進入編輯。
+- GUI 只提交 action、ID、件數或刪除確認，保留原工作區 `changed()` 投影；版本 ID、NFB 來源複製、孔位及件數規則仍屬 Engine。無第二套 Set/Bay／製造幾何／DXF 授權。必須核對兩種 Family、非法輸入隔離、callback rollback、GUI port、Save→Reload 與 GitHub exact-SHA 產品回歸。
+
+
+
+## [CURRENT] #2517 Receiving Head/Tail 候選數量草稿增減只由公開 Engine 管理（2026-11-07）
+
+- 原 `ReceivingQuantityAllocationUI._count` 在 GUI 自行取草稿數量並以 `max(0, current + delta)` 決定 Head/Tail 候選版本的下限，繞過統一的 Engine 編輯來源判準。此規則不應留在操作畫面。
+- 新增 `manufacturing_api.adjust_receiving_candidate_draft_quantity(draft, role, version_id, delta)`（根包 `ae_engine` 同 callable），直接在原 `receiving_quantity_allocation.AllocationDraft` owner 僅接受真實 draft、合法 role／版本、恰好單步 +1 或 -1、已存在的非負整數數量。Engine 對零下限處理，並復用既有 `set_quantity` 清除過期 Bay 指派、返回第一步；非法輸入或零時減一不更動任何草稿狀態。
+- GUI 只送操作者增減事件，既有確認配置仍走原公開 `validate_receiving_candidate_quantity_preview` 與 `apply_receiving_endcap_quantity_configuration` 的全 Bay 驗證／原子提交。這是未提交候選 draft 的編輯 API，不更改已保存 Bay、PartSpec、FinalScene、CUTTING、2D／3D／DXF 或製造資格。負向 source isolation／GUI/headless API 一致性由 `tests/test_issue2517_receiving_allocation_draft_count_public_api.py` 檢查，完整回歸仍交 exact-SHA GitHub Actions。
+
+## [CURRENT] #2517 數量模式封頭／封尾孔型版本提交只經公開 Engine（2026-11-07）
+
+- 原 `gui_modules/application/quantity_version_ports.py::holes.commit` 將編輯中的孔清單複製進 GUI 自建 `QuantityModel`，再由 GUI 將 `candidate["quantity"]` 覆寫、呼叫 `require_valid_operator_quantity_features`，最後另一次修改 live Model。這使版本身分、完整孔型合法性與提交順序被 UI 分兩段主導，模型無通知 rollback 保證。
+- `manufacturing_api.commit_operator_quantity_version_holes(snapshot, quantity_model, *, version_id, role, features)`（根包 `ae_engine` 同一 callable）在既有 `receiving_quantity_box` Engine owner 內先要求 Quantity 模式、真實 live QuantityModel 與完整一致版本來源；在 detached 版本中以捕捉的 version_id 設定 Head/Tail Features，再對**全部版本**重用原 `require_valid_quantity_features` 成品面孔位檢查，完全通過才提交到 live Model。刪除的版本、錯誤 role／非法特徵、來源版本漂移在提交前拒絕；通知失敗回滾原 Model，不重複通知，不更動 detached input snapshot。
+- GUI 只收編輯器操作者 Features、captured version ID，呼叫公開 API 後沿原 `changed()` 傳播；僅當實際修改且當前選中版本相同才觸發 2D geometry refresh，跨版本 modeless editor 的 inactive 修改不多算一次幾何計算。既有金庫型／受電箱 Quantity 都走同一入口，沒有新增孔位公式、實體 Bay、出圖或 NC 製造資格。測試覆蓋 root/facade、非法來源與版號不修改、跨版本保存、callback rollback、GUI 真實 port 及 Save→Reload；完整 2D／3D／DXF exact-SHA 回歸仍需 GitHub Actions 驗證。
+
+
+
+## [CURRENT] #2517 Registry 候選保存／認證的 GUI 私有 Engine 匯入收斂為公開 API（2026-11-07）
+
+- Fold Designer Registry 的公式預檢、九組條件矩陣、候選保存及驗證後升級原由 `gui_modules/application/fold_designer_composition_registry_edges.py` 在事件函式內直接匯入 `ae_engine.certified_relief_registry`，包含私有 `_validate_editable_rule_record` 與兩個會寫入 Registry 的 backend。
+- `manufacturing_api` 與 `ae_engine` 根包現公開 `validate_operator_relief_registry_rule_record`、`evaluate_operator_relief_registry_formula_record`、`save_operator_relief_registry_candidate`、`promote_operator_relief_registry_candidate`，**全部為原 Engine callable 的 identity-preserving aliases**，沿用原候選隔離、公式白名單、回歸證據與 candidate-specific 3D 證據、版次認證、原子 JSON 寫入規則。GUI 原 Controller 僅安排時序、傳入操作者資料和可見狀態，不再引用 Registry 私有實作。無新截角公式／Policy／幾何／DXF 輸出。
+- 驗收 `tests/test_issue2517_relief_registry_candidate_public_api.py` 核對公開 callable identity、原候選的真實檔案存取、非法公式及不具完整證據無候選／認證寫入、GUI 實際委派函式；最終 canonical Product Regression 在 GitHub Actions 上核對。#2517 與 Windows UAT 不因此結案。
+
+## [CURRENT] #2517 單只尺寸 W/H/D＋數量版本件數由公開 Engine 完整交易（2026-11-07）
+
+- `fold_designer_composition_receiving` 的單只尺寸設定舊路徑：GUI 直接引入 `phase6_quantity_model.QuantityModel`，自己讀選中版本數量，接受操作者 W/H/D/件數後自行 `set_piece_count`、`update_common_box`、覆寫 `candidate["quantity"]`，再做 `require_valid_operator_quantity_features`。這些版本與實體尺寸關聯的結果是製造來源，不能讓 GUI 擁有跨兩個 Engine 入口的交易順序。
+- 新正式 `manufacturing_api.project_operator_receiving_quantity_size_count(snapshot)` 只從 Receiving Quantity 的 `receiving_quantity_box` 和 `QuantityModel` 讀取目前 selected 件數、所有版本總件數與物理 W/H/D；`manufacturing_api.apply_operator_receiving_quantity_size_count(snapshot, *, width, height, depth, count)` 以同一來源驗證 Family／模式／完整版本／共用箱體／真實 T，使用原 `positive_piece_count` 更新 detached selected 版本、原 `update_common_box` 更新物理 W/H/D，再 `require_valid_quantity_features` 檢查所有版本的封頭尾 CUTTING 孔是否仍在實體 finished-face 之內。未全部成功就不返回可提交的候選；輸入 snapshot 不改動。根包 `ae_engine` 亦公開同一 Engine callable。
+- GUI 僅送操作者四個欄位並用既有 `_apply_mode_snapshot` 刷新工作區，沒有第二份 QuantityModel 操作、物理計算或新製造預設。Set/Bay、NFB CSV、共同箱體的保存權威不變；非 selected 版本件數不可被目前編輯污染，真實 W 變更時 NFB datum recheck 與孔位越界仍服從既有 Engine Policy，並非輸入成功就獲 DXF 放行。
+- Headless 對照原 Engine `QuantityModel + update_common_box + require_valid_quantity_features`、非法件數/Family/模式/W/H/D/T/Quantity/Box 不改來源、選中與其他版本獨立、Save→Reload 及相關 2D/3D/DXF exact-SHA Product Regression 全部須驗證。
+
+
+## [CURRENT] #2517 Quantity 實體底板共用箱體的 W/T 與焊耳孔由公開 Engine 一次投影（2026-11-07）
+
+- Fold Designer 原 `receiving_base_plate_for_current_mode` 在 Quantity（單只／數量模式）分支先以 GUI 的 `_settings_values` 暫時驗底板，再以另一個 `manufacturing_api.update_common_box` 寫入 `receiving_quantity_box`。其中 GUI Settings W/H/D 是開新專案用的**預設種子**，可與當前保存的共用箱體 W 不同；兩段式驗證會以錯誤 W 檢查焊接 EAR 孔，並把尚未綁定此實體箱寬的 config 當成有效來源。
+- 新正式 `manufacturing_api.project_operator_receiving_quantity_base_plate_settings(snapshot, config)`，亦從 `ae_engine` 根包公開同一 callable。Engine 先要求正確 Receiving／Quantity Family、明確 `receiving_quantity_box` 與真實 `QuantityModel`、明確有限正數 T，再依已保存共用箱體重投影 W/H/D／單 Bay 假別名；重用原 `validate_receiving_base_plate_settings` 的原始 CENTER／LEFT／RIGHT 實體板、真實 EAR 孔及原製造幾何，以共用箱體 W、來源 T 驗證，且只用 validated accepted config 經 `update_common_box` 生成完整 detached 來源。
+- GUI 僅交目前模式 snapshot 和操作者 config，消費 Engine 回傳結果供原 `_apply_mode_snapshot` 同步畫面；禁止把 GUI Settings default W 當成 Quantity 實體箱寬。未保存 Quantity／共用箱體、非法 Family／T／EAR 孔距、錯誤實體板型，均不得改動呼叫者來源。非 Quantity 單板仍走已存在的公開 Engine 原子提交，無新製造公式／DXF Writer。
+- 需核對 headless API 與原 Engine 同源，顯式取消、舊 root 寬度和 Settings default 漂移、負向拒絕及 Quantity Save→Reload；這個 API 成功不代表 FinalScene／DXF MFG-2 加工放行，仍需 exact-SHA Product Regression 及適用時的 DXF Save→Reload。
+
+
+## [CURRENT] #2517 同源分組另存 CHECK-only debug 檢查圖及真實孔型 Q（2026-11-07）
+
+- 受電箱的 `emit_debug=True` 僅允許透過已通過逐片物理 FinalScene 與原始 DXF/CSV source guard 的 `manufacturing_api.export_grouped_receiving_multibay_dxf` 既有交易。加入同一 staged 原子提交的一張 `YYYYMMDDHHmm_p1~p16debug.dxf`；所有內容在 CHECK 層並標明 DEBUG ONLY／NOT FOR NC，不可當作 CUTTING/BEND 正式加工圖，不推導新工藝或形狀；未要求 debug 時原本所有 3 種分組交付數量不變。
+- debug 用原實體板件的 DrawingScene 平移排版：左側／後面／右側、後板上方封頭與下方封尾、上門／下門、上框、左框／內門／右框、下框／中隔、最下底板，每盤顯示盤名，最上方依同**角色加上完整 CUTTING／BEND／MARKING／BLIND_HOLE 幾何局部座標**簽章計 Q。不同側板角色、相同尺寸但任何一顆孔／加工層不同都不合計；來源的物理出圖與鎖孔不改。
+- 原基準 `基準檔/受電箱/左側板.dxf` 與 `右側板.dxf` 的 9 個圓特徵本就不同：左 8 CUTTING + 1 BLIND_HOLE，右 6 CUTTING + 2 MARKING + 1 BLIND_HOLE。現有 `receiving_bay_joint_face_features` 僅對相鄰 Joint 兩個實體參與面投影相鎖孔；最外側面不得繼承相鎖孔。這是來源差異／回歸與 debug 可視化，不代表未知現場 CNC 錯孔已修復，必須再取得缺陷的物理孔位比較證據，不准把 Q 合併當成幾何修補。
+
+- **2026-11-07 多盤側板實體孔位修復（待 exact SHA CI 與 Windows 原圖驗收）：** 原 Receiving 左／右專用側板的 9 個圓特徵中各有 6 個 Ø10.5 CUTTING 相鎖孔；其餘左側 2 CUTTING Ø5.1 + 1 BLIND_HOLE、右側 2 MARKING Ø13.1 + 1 BLIND_HOLE 是不同獨立基準特徵。現改由唯一 Engine `receiving_layout.derive_bay_lock_state` 根據每套相鄰 Bay 決定左右面：每套首 Bay 左自由／右相鎖、中 Bay 雙側相鎖、末 Bay 左相鎖／右自由；單 Bay 左右均自由。Factory/GUI 的 BoxBody PartSpec 在真實 Set/Bay 身分與 W/H/D 相符後，重用原 `receiving_bay_joint_face_features` 重建相鄰 Joint Ø16 來源；`manufacturing_scene_orchestration` 對有此權威狀態的三片製造板件才讓 `receiving_panel_baselines` 保留或去除該側六顆 Ø10.5，相鎖面以外的固定孔及加工層保持原樣。無法辨識多盤實體 Bay 或已保存身份／尺寸不一致一律 fail closed；沒有 Set/Bay 身分的舊 standalone PartSpec 維持原契約；特別是 fresh_family_confirmed 原 Family 名義單 Bay 預設 Layout 非實際來源尺寸證明，Factory 須排除該暫態預設 Layout，不能誤拒絕自來源核准的新建尺寸，也不能冒用它產生 Joint 孔，並非多盤製造認證。預覽、同源 DXF 與真實 Save→Reload 回歸不能互相替代，也不能據此宣稱 MFG-2／NC 或現場 CNC 已驗收。
+- 測試包含真 DXF Save→Reload、debug 全 CHECK audit、原始 FinalScene 完全不變、來源缺口／非法旗標拒絕、實體側板孔層分組與 Join 邊界 3 Bay。Windows 現場原圖與整箱 MFG-2／NC 需獨立驗收。
+
+
+
+
+
+## [CURRENT] #2517 CornerType INI 保存／重開語意由公開 Engine 管理（2026-11-07）
+
+- 主 GUI `phase6_settings_center.load_corner_defaults_from_ini/save_corner_defaults_to_ini` 原在讀寫 `config.ini` 時自行組出每個 CornerType 的旋轉、CROSS 模式、方向和 `*_t` 製造來源欄位。這些來源會由 EndCap/其他 PartSpec 和 FinalScene 消費，不應在 GUI 保留第二份物理轉換邏輯。
+- 公開 `manufacturing_api.project_operator_corner_ini_load_section`、`project_operator_corner_ini_save_options`（`ae_engine` 根包同 callable）由原 `corner_state_transactions` owner 投影單一 INI section，不讀寫檔案、不依賴 Tk。C02 舊式旋轉、非 C02 旋轉歸零、成對布林、有限數值的 skip/reject、沒有參數時清除舊 option，延用原行為；非法來源須在存檔前拒絕、不得改寫既有 INI。
+- GUI 只做 `ConfigParser` 檔案傳輸與已保存 part section 的選擇；Engine 返回 detached 欄位映射。測試覆蓋舊 Corner 類型、完整 INI Save→Reload、非 Corner section 保持、原始來源不變與非法資料失敗隔離。不新增截角幾何、Relief、CUTTING、DXF 製造公式或新 Family 加工資格；受影響產品回歸依 GitHub exact-SHA 驗收。
+
+
+
+
+
+
+## [CURRENT] #2517 主 GUI 專案讀回與 Legacy 基準箱型身份全面經公開 Engine（2026-11-07）
+
+- `gui_modules/application/lifecycle.py::_current_cabinet_type_name` 原在 GUI 自行調用私有 Family Registry 及自訂型號正規化，決定已註冊箱型／舊版未知基準目錄的 Legacy Family；`_apply_phase6_project_snapshot` 與 Live FoldDesigner 更新也直接調用私有自訂型號 codec。
+- 現由公開 Engine `manufacturing_api.operator_resolve_legacy_baseline_manufacturing_family` 封裝**現有** `normalize_custom_model_name`＋`resolve_cabinet_type` 的 Family 身分選路，連同原有「未註冊或自訂目錄使用舊金庫型基準」相容語意一起移出 GUI；已註冊但未實作的 `RO` 仍保留 RO 身分，不能偽裝金庫型進製造。兩個 Project／3D 保存模型讀取直接走既有 `operator_normalize_custom_model_name`。
+- 此 API 只投影既有 Legacy Family 身分，**不是**未知型號製造許可；Family Registry、Factory Policy、未實作 Family 的 fail-closed 製造閘門原封不動。新測試覆蓋 aliases、舊自訂名、未實作 Family、GUI 實際呼叫與非法公開 Engine 拒絕不改來源；無新板件公式、幾何、2D／3D／DXF exporter。#2517 全面驗收與 Windows R5 UAT 仍 OPEN。
+
+## [CURRENT] #2517 主 GUI 已保存手動截角快照完整還原只由公開 Engine 原子候選（2026-11-07）
+
+- 原 `gui_modules/application/lifecycle.py::_apply_manual_corner_snapshot` 在 Project／Family runtime 恢復時由 GUI 逐角解析 raw `CornerTypeSelection` 並原地寫入 `manual_corner_state`／`manual_corner_pair_same`，再用已認證 Family 修正；後段來源或 Registry 錯誤可能留下前段已寫入的實體截角。
+- 唯一 Engine typed Corner owner `corner_type_ui.propose_operator_saved_manual_corner_snapshot`（透過 `manufacturing_api` 與根包公開同一 callable）以深複本保留舊專案 `dict`／舊字串 CornerType ID、逐角非法值忽略、配對 bool、同類型人工參數、已認證 Family 不重設等原語意；最後呼叫原 `propose_operator_known_model_corner_draft`，完整成功才返回候選。無效整份來源、不可遍歷的晚期部分與 Registry 錯誤拒絕，呼叫者保存狀態不動。
+- GUI 僅接收完整候選並在相同巢狀 dict 身分下同步，不再持有 decode 與先寫後驗的製造來源邏輯。Save→Reload／已知與自訂 Family／舊資料相容與非法來源隔離須通過 exact SHA full regression；無新 CUTTING、Relief/Corner 公式、2D／3D／DXF exporter，Windows R5 UAT 和 #2517 全面驗收仍待完成。
+
+## [CURRENT] #2517 Quantity 內門 NFB 確定全部必須同時提交版本與保存來源（2026-11-07）
+
+- 正式的單只／Quantity 受電箱內門「確定全部」，包含原 Fold Designer 設定入口及 3D 直接雙擊內門，原先雖由 `manufacturing_api.preview_quantity_inner_door_confirm` 先驗證 Factory Box 和 NFB CSV 實體來源，但接著在 GUI 分別 `quantity.set_version_nfb_config` 與 `_phase6_input_snapshot.clear/update`。任何中途失敗都有可能留下版本已提交、專案尚未對應的半交易；GUI 不可決定兩份製造來源的提交順序。
+- 新公開 `manufacturing_api.commit_receiving_quantity_inner_door_confirm`（`ae_engine` 根包相同 callable）重用原 Engine 全量 preview；以目前 QuantityModel 的 selected version 重新推導應提交的版本快照，核對正式 projected `quantity` 身分一致後，才在同一 Engine 函式內提交專案快照及原 QuantityModel NFB。原 `QuantityModel` 僅新增 Engine 內部無通知 rollback，若版本 on_change 中途失敗，兩份原始來源完整還原；非法 Family／Box／型號、非 CSV CUTTING、扭曲輪廓、錯誤模式、版本漂移都 fail closed。
+- GUI 的兩個「確定全部」入口只消費此交易結果並同步 workspace／畫面快取；既有 `include_missing_heights=True` 的 3D 直接進入語意與單只設定不強制清除舊層高的語意維持。Native-only Feature 確認不得虛構 NFB submitted；CSV 模型、原始 source SHA、physical CUTTING 及 `manual_x_state=UNVERIFIED_BASIS` 仍由既有 Engine 驗證，不因提交成功而給予加工放行。
+- 正反測試需覆蓋實際雙層 CSV Source、選中版本／其他版本不互借、原快照不被 preview 寫入、非法輸入不改來源、變更通知失敗無第二次通知且同時 rollback、兩條 GUI 路由無來源寫入；完整 Product／2D／3D／DXF Save→Reload 以本批 exact-HEAD CI 驗收。這個來源提交 API 不是全盤 MFG-2 認證或 #2517 整體完工。
+
+
+## [CURRENT] #2517 使用者最新確認：合併 DXF 母盤完整盤名＋底線（2026-11-07）
+
+- 2026-11-07 使用者明確修正先前各群各取局部盤號規則：所有正式合圖檔案**共同使用整份已確認母盤 Set/Bay 的完整盤名跨度**，不是各組 subset 範圍。台灣時間 12 碼之後要有**一個底線**。例如 `202611071258_p1~p16全部.dxf`、`202611071258_p1~p16第1套.dxf`、`202611071258_p1~p16第2套.dxf`、`202611071258_p1~p16頭尾盤.dxf`、`202611071258_p1~p16中間盤.dxf`（第3套同規則）。分組內容的 Bay 身分和實際數量不變；僅名字共同引用母盤總範圍。自訂盤名仍保留真實資料，不得偽造連續 P 身分；其他未確認幾何不得因命名放行。
+
+## [CURRENT] #2517 受電箱合併加工 DXF 日期時間與盤名範圍命名（2026-11-07）
+
+- 使用者確認正式輸出 DXF 的檔名要包含**台灣日期時間 YYYYMMDDHHmm + Engine 已保存盤名範圍 + 合併模式**，例如 202611071258p1~p16全部.dxf。這是原 DXF Save→Reload 核心製造交易的檔案命名，不得由 CADSplit 自行改名或重寫檔內 CUTTING/BEND。
+- Engine `receiving_dxf_groups.commit_verified_receiving_groups` 在一次多盤原子交易的開始取**同一個台灣分鐘時間**；`plan_receiving_grouped_dxf(layout, mode, file_stamp=...)` 用原 canonical Set/Bay 實體盤名推導每個群組的檔名；無 file_stamp 的既有唯讀分組計畫回傳未加日期的標準分組名稱，維持既存分組 API 相容。每套或頭尾／中間盤仍依該群實際參與的盤位，不從母圖名稱或文字預覽猜數量。
+- 標準 P 數字盤名按當群最小至最大編號命名（例如 p1~p16）；自訂盤名保持實際已保存標籤並依原規範檔名檢查，無效時間與過長檔名須在 Engine 提交前 fail closed。DXF 的幾何、NFB 原生孔位、成品／組裝 Topology、分組資格、來源 guard、完整重開與原子 rollback 不得因檔名改變。
+- 使用者另要求**獨立 debug 排列／同板同孔統計 DXF** 與**修正左右側板相鎖孔源頭**；此為相互關聯但未因改名就獲認證的獨立驗收範圍，不能把既有固定命名的 CADSplit 測試當成新版本實機驗收。
+
+
+
+
+## [CURRENT] #2517 Fold Designer 快照的折邊／門縫預設值改由公開 Engine 投影（2026-11-07）
+
+- 主 GUI `fold_designer_snapshot_projection._snapshot_base_state` 原在準備保存快照時直接讀 `ae.zl1_def` 等 14 類 Fold／Gap 常數，並在指示燈折邊讀 `ae.indicator_*_fold_def` 伴隨 GUI 硬編 `49.0`／`19.0`。這些設定會寫入 persisted source 並由原 Engine PartSpec／FinalScene 消費；GUI 不應複製預設製造數值。
+- `manufacturing_api.project_operator_fold_designer_snapshot_numeric_defaults`（`ae_engine` 根包同公開 callable）直接重用 Engine `operator_fold_designer_numeric_source._legacy_defaults` 的現行執行期來源，加上原 UI 舊式底板收縮／折邊和指示燈盒相容預設；所有預設在公開 Engine 以有限數值守衛，`nan` 等非法執行期來源 fail closed。此投影**完全不包含 W/H/D/T/FW**；原 GUI 的 W/H/D/T/FW 必須由操作者實際輸入經 `normalize_operator_source_dimension` 驗證，不能使用任何 Engine 常數填補。
+- GUI 只將原有數值控件與 Engine 當下回傳的完整預設值配對，保留舊表單空缺時的呈現語意及 Settings／INI 其他流程；GUI 不增 Formula、成品尺寸推導或 FinalScene，且不改現有 `load_factory_defaults_from_ae` UI Schema 相容呼叫。Headless 測試核對兩 Family 共用的原執行期 defaults、動態更新、非法預設拒絕、root/facade API 同源、GUI 不再私讀製造數值以及原物理 W/H/D/T/FW fail closed；完整 2D／3D／DXF／Save→Reload 仍交 exact-SHA 回歸。
+
+
+## [CURRENT] #2517 Fold Designer 多門格實體 W/H 保存改為公開 Engine 同源投影（2026-11-07）
+
+- 原 `gui_modules/application/fold_designer_snapshot_projection._snapshot_base_state` 雖透過 `door_layout_host_adapter.get_door_layout_columns` 收取操作員的真實多門格欄寬、各列高度，仍在 GUI 自行 `float(width)`／`float(height)` 組裝 `.p6fold` 保存來源；布林會暗中轉成 1mm，並與 Engine 的原實體門格 `derive_door_layout_cells` 規則分岔。這是操作資料到已保存實體 Door-grid 身分的轉換，不是畫面格式化。
+- 原 `ae_engine.door_layout_feature_projection` 新增 `project_operator_saved_door_layout_columns(columns)`，沿用原 `sheetmetal_part_adapters.derive_door_layout_cells` 的同一有效正尺寸、有限小數、Door-grid 拓樸，按真實原一基 `door_cN_rN` 順序輸出 detached `[[width_mm,[height_mm,...]],...]`，不修改來源；單門歷史來源 `None`／空序列仍保存空清單，非法型別、bool、零／負數、NaN／Inf、空列在同一 Engine 回傳前拒絕，不發布部分候選。未增加任何新的 W/H 尺寸公式、CUTTING、BEND 或 DXF 製造資格。
+- `manufacturing_api.project_operator_saved_door_layout_columns` 與根包 `ae_engine` 公開原 Owner 同一 callable；GUI 只收 `get_door_layout_columns` 的操作者欄值並消費 Engine 結果，不再自行再轉一份座標／尺度。既有 `project_fold_designer_snapshot_part_features` 仍對同一保存欄位進行物理 Feature 身分投影，保存後 `project_snapshot_state.normalize_authoritative_door_state` 接續原正式權威。定向測試 `tests/test_issue2517_saved_door_grid_dimensions_public_api.py` 驗證 GUI 實際接線、失敗不部分更新、負值／非法 bool、不變原始 Feature 身分與真實 `.p6fold` Save→Reload；完整 exact-SHA Product Regression 與 Windows GUI UAT 另核對。
+
+## [CURRENT] #2517 主 GUI 多門格實體 Feature 讀回只透過公開 Engine（2026-11-07）
+
+- 原 `gui_modules/application/lifecycle.py` 的 `_apply_phase6_project_snapshot` 與 `_apply_fold_designer_live_snapshot` 在重開正式專案、同步 Fold Designer 實體門板時直接呼叫私有 `sheetmetal_part_adapters.door_part_features_to_layout_feature_map`，將已保存的 `door_cN_rN` 孔位來源映回 `col:row` 的主 GUI 2D 門格編輯儲存。這是實體來源 ID 轉換，不得由 GUI 另造規則。
+- `manufacturing_api.project_operator_door_layout_cell_features_from_parts(columns, part_features)` 與根包 `ae_engine` 都公開**原 Engine `door_part_features_to_layout_feature_map` 的同一 callable**，保留一基實體門板、零基操作格、原始孔位 List 與空格 readback 的既有語意。兩個主 GUI 還原入口只委派此公開 API，未知部件不當作合法 Door、非法門格由原 Engine fail closed，不修改輸入來源。
+- 本次沒有增補 Feature/孔位幾何、CUTTING、BEND、DXF 或 Family 加工權限；既有 Fold Designer `project_fold_designer_snapshot_part_features` 仍負責反方向「操作者格 → 實體 Part Features」的提交。正反向 ID 等價、主 GUI 真實讀回委派、非法來源不改與 `.p6fold` Save→Reload 由 `tests/test_issue2517_main_gui_door_layout_feature_readback_public_api.py` 驗證；完整產品回歸及 Windows UAT 依原有驗收路徑。
+
+## [CURRENT] #2517 主 GUI 頭／尾盤舊版 2D 孔位讀回必須為同一 Engine 原子投影（2026-11-07）
+
+- 原 `gui_modules/application/lifecycle.py` 在 .p6fold 專案載入、Quantity 版本切換、Fold Designer 同步三條路徑各自以私有 `feature_to_legacy_hole` 逐一轉換 `head`／`tail` 已保存實體 Feature，轉成主 GUI 舊版 2D 用的 `head_holes`／`tail_holes`。若第一個板件成功、第二個板件轉換失敗且被既有相容捕捉吞下，兩份快取可能被部分提交、與同一保存來源失配。
+- 正式 `ae_engine.operator_legacy_endcap_hole_projection.project_operator_endcap_legacy_hole_rows(source_features, *, width, depth)` 在 Engine 先驗證 operator finished-face W/D，再沿原 `sheetmetal_features.feature_to_legacy_hole` 權威轉換兩個物理角色，檢查非有限 finished-face 座標、完整建構 detached candidate，任何非法角色來源／孔型都拒絕整份候選，絕不修改輸入。未提供的 Head/Tail 角色不產出；明確空清單用於舊專案清孔。 `manufacturing_api` 與根包 `ae_engine` 公開同一 callable。
+- 主 GUI 三條路徑只收 Engine 結果，Head/Tail 成功後才一起更新快取；原數量模式缺失角色與舊專案資料相容的例外處理維持。此 API 是**舊 2D 顯示快取 readback**，不是獨立 Feature/CUTTING/孔位、FinalScene 或 DXF 製造資格；任何正式加工仍走原 Engine 製造鏈。驗收 `tests/test_issue2517_endcap_legacy_hole_atomic_public_api.py` 包含直接 Owner 相等、真 GUI 專案還原、頭合法尾非法不得部分提交、非有限尺寸／座標拒絕與實際 `.p6fold` Save→Reload；需 exact-head Product Regression 與 Windows UAT。
+
+## [CURRENT] #2517 受電箱實體底板設定改由公開 Engine 原子提交（2026-11-07）
+
+- 原 GUI `receiving_base_plate_settings_transaction.commit_receiving_base_plate_settings` 已經先調用 `manufacturing_api.validate_receiving_base_plate_settings` 驗證實體底板收縮、折邊與焊接 EAR 孔，但隨後在 GUI 直接修改已保存 `receiving_base_plate` 並執行失敗回滾。這個來源交易會影響 PartSpec／FinalScene／CUTTING，不該由 UI 決定寫入。
+- 正式 `manufacturing_api.commit_operator_receiving_base_plate_settings`（`ae_engine` 根包亦公開）委託原 `receiving_base_plate_settings_validation` owner：先驗證 Family／底板配置／真實焊耳孔，再於原專案 snapshot 提交或移除這一個物理選擇。Headless 客戶端可不傳通知；GUI 僅傳已存在的 update callback，若 callback 失敗則還原原本欄位存在性與原物件身分，非法 callback／Family／EAR 來源在寫入前拒絕。回傳 detached 接受結果，不把 GUI 視為第二份幾何權威。
+- 舊 GUI 入口維持同一參數以相容原 3D 設定按鈕，但僅 forwarding。測試涵蓋直接 API／GUI 成功提交與明確取消一致、非法輸入未改來源、callback 失敗且 rollback 不破壞原物件及 GUI AST 無物理設定寫入。底板材料尺寸、LEFT／CENTER／RIGHT 焊耳座標公式、2D／3D／DXF 真實製造與驗證條件未修改；仍需 exact-SHA Product Regression。#2517 全功能／Windows GUI 操作 UAT 仍未結案。
+
+
+## [CURRENT] #2517 FinalScene 使用者新增 Joint 實體板件資格改由公開 Engine 投影（2026-11-07）
+
+- Fold Designer 的 `FinalSceneCompositionPorts.user_joint_parts` 原在 GUI 取已遷移快照後自行比較 `AssemblyJointSource.USER_ADDED` 並解析 subject／target。這決定哪個實體板件進入正式 resolved geometry，屬 Manufacturing Joint 來源資格，不是 GUI 呈現邏輯。
+- 原 AssemblyJoint owner `ae_engine.assembly_joint.project_operator_user_assembly_joint_parts` 在既有 `migrate_legacy_snapshot_joints` 後投影不可變 `frozenset`，只包含已保存的 USER_ADDED 兩端有效實體板件；未支援未來 schema 使用原 Engine 錯誤拒絕，快照不寫回。公開 `manufacturing_api` 和 `ae_engine` 根包為同一 callable，GUI 不再解析私有 Joint enum。
+- 不增加 Joint 關係、裝配/Relief/Corner 新公式或 FinalScene 第二套 resolver；正常、舊 schema、其他來源類型、錯誤版本和 GUI 路由有正反 headless 測試，製造 2D／3D／DXF 仍需 exact SHA 完整產品回歸。Windows R5 UAT 與 #2517 全面接線尚未結案。
+
+
+
+## [CURRENT] #2517 同一已確認 NFB 來源中的「獨立核心板件＋成對 NFB」合圖（2026-11-06）
+
+- CADSplit 新建受電箱由來源 DXF／CSV 建立同一份 WHD 核准 Layout，Engine 正式 grouped DXF 使用該已提交 NFB 的保存 Layout，重新衍生每個 Bay 的完整 immutable pair Request 並比較 manufacturing fingerprint。不可僅看相同 stable ID／W/H/D，也不能讓外部輸入以未核准來源或預覽繞過 #2987 防混圖閘門。
+- 同一來源內原 DXF／CSV／Engine PartSpec 已確認的 BoxBody、外門、封頭、封尾是獨立核心製造板件；它們不應因為該 Project 已提交 NFB 就被錯誤要求取得另一範圍的 EAR／PAD 整箱 MFG-2 放行。只在 nfb_pair_requests 存在、只選 box_body/door/head/tail、同一保存 Layout 的每個 NFB pair 逐一重新驗證且原子批次重開時，允許原核心板件的原有獨立 Save→Reload 閘門。base_plate／inner_door／PAD／EAR、未配置底板與未核准 NFB 不能藉此取得整櫃資格；不允許未知選取 flags。
+- 保留 COMPOSED_NFB_PHYSICAL_SOURCE_MISMATCH 跨專案拒絕、原 CSV SHA 與工程 source guard、每片真實 identity、2D／3D／DXF／整組 Save→Reload 與 staging 原子性。#2692 三模式：預設 ALL 全部.dxf、明確 PER_SET 第N套.dxf、明確 END_VS_MIDDLE 頭尾盤.dxf＋有中間盤時 中間盤.dxf。
+- R5-2600 於隔離工作目錄，以正式 A-PT1～A-PT16 DXF 與現場 CSV 覆核本修復候選版本：ALL 1 張／16 Bay、PER_SET 3 張／4-3-9、END_VS_MIDDLE 2 張／6-10，NFB Door/Base 每 Bay 各一、各模式物理 CHECK 清單一致、DXF audit 0、來源 SHA 不變。此為隔離環境實機驗收，不代表正式 Windows 工作目錄已同步，也不代表整箱 MFG-2／NC 放行。
+
+
+
+
+## [CURRENT] #2517 主 GUI 合併出圖自動納入同源已確認 NFB pair（2026-11-06）
+
+- 之前的 Engine `export_grouped_receiving_multibay_dxf(nfb_pair_requests=...)` 已能驗證並排入每 Bay 內門＋底板；但主 GUI 的選取出圖按鈕沒有傳入 NFB Requests，造成使用者必須額外呼叫獨立 NFB 出口，不能以主按鈕得到一份已確認板件的 DXF。
+- 本次主 GUI 只傳 `include_saved_nfb_pairs=True` 給原有公開 Engine grouped 出口，絕不在 GUI 建構 X、PartSpec、孔位、幾何或決定實體 Bay 身分。Engine 僅在操作者**同時選擇 Door＋BasePlate**且存在已提交 NFB 的同一份已保存 Layout 時，要求**每個 Bay 都已確認**；部分確認直接整批拒絕，全數確認則用既有 `receiving_committed_nfb_pair_request_for_bay` 重建原始不可變請求，並由原有 `_verified_nfb_composed_pair_rows` 逐個比對最新來源 SHA／PartSpec、DXF Save→Reload。
+- Engine 在配對出圖時只從核心預覽排除將由該 pair 取代的 NFB 內門／底板物理鍵，避免同一板件在合併檔中重複；HEAD、TAIL、外門、箱身與 EAR/PAD 的既有製造政策不放寬。未選內門＋底板的 Head-only 不會偷偷輸出 NFB，未提交 NFB 的歷史 Legacy 行為不變。原子合併仍只寫正式分組檔，沒有獨立 NFB 生產資料夾。
+- 以上仍是已核對的 NFB PART_ONLY 併排，不代表軟體 MFG-2 完整箱體認證；Quantity 與 CADSplit 對同一主出圖入口的接線仍需各自驗收。
+
+
+## [CURRENT] #2517 單 Bay 受電箱 ALL 合併不再退回逐板件（2026-11-06）
+
+- GUI 原本已將受電箱 DXF 合併預設設為 `ALL`，但 `plan_receiving_multibay_export_source` 針對只有一個 Bay、且不是僅 Head/Tail/Outer Door 的選取，仍回傳 `use_multibay=False`，因此可能退回逐板件 DXF；使用者要求所有盤體預設合併，受電箱另可選 `PER_SET` 或 `END_VS_MIDDLE`。
+- 公開 Engine 來源路由現在對一個真實 Bay、明確選定任一合法 group mode 也使用既有 `export_grouped_receiving_multibay_dxf`；未選 group mode 的歷史單 Bay 呼叫仍保留舊路徑。僅 Head/Tail/Outer Door 的 NFB-independent 預覽資格不變；其他板件使用**未遮蔽**的同一份保存 NFB／CSV／PartSpec／FinalScene，原 Engine EAR/PAD、來源 SHA、逐片與單檔 DXF Save→Reload、原子批次提交與拒絕仍不可跳過。
+- GUI 的合併選項僅顯示於 Engine Registry 確認的受電箱（包括小寫別名），不由 GUI 寫死 Family 字串；金庫型仍維持既有單 DXF。正反驗收涵蓋單 Bay BoxBody＋Head 合併單檔、缺實體來源零輸出、單 Bay NFB 不被預覽快取遮蔽。Quantity 版本出圖仍走現有獨立 Engine 數量流程，**不得宣稱已使用此 Set/Bay grouping**；#2517 整體和 Windows UAT 尚未完成。
+
+
 ## [CURRENT] #2517 NFB 併入每 Set DXF 必須與同一份保存來源完全同義（2026-11-06）
 
 - 原 `export_grouped_receiving_multibay_dxf(nfb_pair_requests=...)` 的 Engine 私有驗證只對照 Set/Bay stable ID、W/H/D 和 Request 內自行核准的 NFB source；不同 Project 若同樣有預設 stable ID、尺寸，可能拿「別的 Bay 核准 Request」併入本 Project 核心出圖，形成同檔但不同源的 CUTTING。
@@ -236,6 +1317,8 @@ whd_schema: WHD_DOC_META_V1
 - 原 Engine `receiving_nfb_brand_transition` owner 新增 `update_receiving_all_set_nfb_parent_brand(layout, proposed_brand)`；透過 `manufacturing_api` 與 `ae_engine` 根包重匯同一 callable。Engine 先查驗品牌與真實完整 Layout，使用原 `rebase_receiving_set_parent_nfb_brand` 一套套對 detached candidate 執行**全有或全無**的 Set 來源變更，回傳 `(detached_layout, changed)`。GUI 僅提交操作者品牌、保存 Engine 結果，不再自行遍歷實體 Set／推定 NFB 世界 X 是否失效。
 - 舊單套、Quantity 版本及 impact preview 公開 API 不變；保持現行 CSV、INHERIT/OVERRIDE、已確認 X 撤銷保護及 Save→Reload Schema。回歸 `tests/test_issue2517_nfb_parent_brand_operations_public_api.py` 驗跨兩套真實已提交來源、與原 Engine 單套 transition 一致、非法後套原子拒絕、原始 Layout 不修改及 GUI API seam。此提交不製造 NFB 孔、CUTTING、FinalScene、DXF；#2517／Windows UAT 與全櫃製造驗收仍 OPEN。
 
+
+- #2517 單套廠牌提交亦必須為整份 Layout 的公開交易：新增同一既有 Engine owner 的 `update_receiving_one_set_nfb_parent_brand(layout, set_index, proposed_brand)`，由 Engine 嚴格驗證零基底 Set index、原始 Layout 與品牌，再委派原單套 rebase；回傳 `(detached_layout, changed)`。GUI `ReceivingSetBayAdapter.set_brand` 不再自行複製、替換實體 Set，非法輸入無任何中途提交。與全套及 Quantity 版本品牌路徑並存，不新增製造孔、FinalScene 或 DXF 資格；驗收 `tests/test_issue2517_single_set_nfb_brand_atomic_api.py`。
 
 ## [CURRENT] #2517 NFB 成對部分出圖實體底板 XYZ 非有限與極大整數一律安全拒絕（2026-11-06）
 
@@ -586,6 +1669,12 @@ whd_schema: WHD_DOC_META_V1
 
 - `phase6_project_file` 原有 `_encode/_decode/_decode_feature/_as_vec2` 全部以**原語意**搬到 `ae_engine.project_feature_codec`，透過 `manufacturing_api.encode_project_value`、`decode_project_value`、`decode_project_feature`、`project_vec2_from_raw` 公開；舊 GUI 名稱僅是相同物件 aliases，GUI 只操作 FilePath/JSON 文字傳輸與 Windows 檔案關聯。Circle/Rect/Profile Feature 與 Vec2 的反序列化和 Anchor/offset/source_params/layered_profiles 語意不再由 GUI 定義。
 - 原 `.p6fold` `__phase6_type__` wire 與既有專案 schema、Receiving/Vault 來源權威和 `project_operator_project_for_write/read` 的 Save→Reload 檢核保持完全相容；沒有從預覽重建未驗證 Feature，也未增加外部製造認證或修改物理公式。新測試 `tests/test_issue2517_project_feature_codec_engine_api.py` 與既有專案存讀整合回歸證明 UI/headless 同源及無逆向依賴；#2517 仍 OPEN。
+
+## [CURRENT] #2517 Fold Designer 保存實體 Workspace 清單／有效選取須由公開 Engine 同次投影（2026-11-07）
+
+- 原 `gui_modules/application/fold_designer_snapshot_projection._snapshot_workspace_state` 即使從正式 Workspace Controller 取得已確認的 `current_existing_parts`，仍在 GUI 硬寫七種板件順序，並用 GUI 條件決定 `active_part` 不存在時改選第一張板。這兩份結果直接寫入 `.p6fold`，涉及實體板件保存身份，不得再由 GUI 自行維持第二份製造板件名單規則。
+- 在原 `ae_engine.workspace_state` canonical `PART_ORDER`／`normalize_existing_parts`／`_repair_active` owner 新增純函式 `project_operator_fold_designer_workspace_presence(current_existing_parts, workspace_existing_parts, active_part)`，由實際 present IDs 與已提交 Workspace 的動態板件順序構成 immutable `OperatorWorkspaceSnapshotPresence(existing_parts, active_part)`。已知箱身／頭／尾／門／底板／指示燈板按原 Engine 順序，確實存在的自訂／衍生板依已提交順序排列；缺席／無效選取依原儲存規則回退第一張實體板。來源不是板件序列或包含非法空 Key 必須拒絕，不修改原資料，也不替無來源的候選創建正式加工資格。
+- `manufacturing_api` 和根包 `ae_engine` 公開原 owner 同一 callable／結果型別；GUI 只提交 Workspace 來源、消費結果寫入 `snapshot["existing_parts"]` 與 `snapshot["active_part"]`，原 AssemblyJoint 快照和 Feature 保存順序沿用。回歸 `tests/test_issue2517_fold_designer_saved_presence_public_api.py` 驗 Root／Facade 同一 owner、標準與動態板件的身份排序、無效或缺席 selection、非法來源不可部分提交、真實 Fold Designer snapshot 接線與 `.p6fold` Save→Reload。沒有新增板件／Family／Hole／CUTTING／BEND／FinalScene／DXF 製造權限；完整 GitHub exact-SHA Regression 及 Windows UAT 仍按真實執行。
 
 ## [CURRENT] #2517 Main／Designer 共享實體 Workspace 狀態由 Engine 公開 API 單獨擁有（2026-11-03）
 
@@ -1473,6 +2562,36 @@ Validation 維持單向：contact probe、collision、fixture expected、pytest 
 
 
 ---
+
+## [CURRENT] #2517 Receiving 內門板／框與半片後面板須共用 Engine 原始 Door Topology 來源（2026-11-08）
+
+- `ae_engine.cabinet_types.receiving.derive_inner_door_panels`／`derive_inner_door_frame_sets`／`inner_door_vertical_frame_contract` 原以 `bool(data['multi_door_enabled'])` 作為製造拓樸，Save→Reload 字串 `"false"` 仍為 True；將 `door_layout_columns` 的所有數值先 `float()`，使未被選中的實體 Door cell 上的 Boolean `True` 偷渡為 1mm。這直接影響已儲存的 Receiving 內門板件及折邊框的有無、ID、折後 W/H 和后續孔位工作區，不能由 GUI 或第二份候選公式決定。
+- 沿用同一 `ae_engine.operator_settings_transactions.normalize_operator_settings_boolean`（公開 Settings 布林來源契約）與 `ae_engine.sheetmetal_part_adapters.derive_door_layout_cells`（既有實體門格身份、正數且有限原始尺寸）。在生成任何內門板／框之前，Engine 先驗原始多門旗標，若合法 disabled 則不生成，若 enabled 則驗**全部**實體門格；垂直邊框的 h/t/d/fw 也沿用同 Family 非布林有限正值驗證。既有 `inner_door_panel_vertical_contract` 用同 `_inner_door_physical_mm` 檢查 cell H、T、非負 Y gap，拒絕 NaN/Inf/Boolean；公開 `resolve_inner_door_hole_editor_context` 不再提早 `float(gap_h)`。受電箱 HALF 後面板不沿用內門的舊文字布林容錯，**維持既有明確原生 bool True 才有製造授權**的嚴格驗收；數字 1、字串 `"true"`／`"false"` 均不得放行 HALF，且不修改原有後面板認證契約。
+- 內門既有 Factory／Family 尺寸、上框／側框與 Divider 端點、後面板 1124mm certified Half（對 1100mm 上層）、CUTTING/BEND、FinalScene、DXF Writer 未另造公式。`tests/test_issue2517_receiving_inner_door_layout_raw_engine.py` 驗公開 Hole Editor→Family panel identity、真實 Frame 身份、legacy `"true"/"false"`、未選中錯誤格、非有限 vertical、HALF 後板、JSON Save→Reload、非法來源不修改專案。#2517 全面覆蓋及 Windows UAT 仍未結案。
+
+## [CURRENT] #2517 BoxBody 結構截角／避讓毫米數及 Family 空間旗標須以 Engine 原始來源驗證（2026-11-08）
+
+- `ae_engine.box_body_structure_state.apply_box_body_structure_numeric` 是金庫型／受電箱現有 BoxBody 二片 W 分割、三片 W 分割、三片側背分離、接合折邊及 EndCap/BasePlate relief 的原製造交易。原先先做 `float(value)`，可把 `True` 變成 1 mm，或讓非有限 NaN/Inf 進入直接 `update_structure_config` 的 Relief 參數；`outside_family="false"` 在 `side_rear_bend_dimension_space` 使用 Python truthiness 時誤設為 OUTSIDE。此外 GUI `_phase6_box_structure_w` 先將錯誤 saved W `True` 轉成 1.0，導致公開 Engine 原始類型驗證失效。
+- 由唯一 Engine `ae_engine.box_body_structure_state.apply_box_body_structure_numeric` 在**任何**箱身結構設定落盤前，對真實 `value`、`total_w` 做原 `_finite_dimension` 有限非布林檢查，箱身總 W 必須正數；對 Family Policy 布林原始值復用既有 `ae_engine.operator_settings_transactions.normalize_operator_settings_boolean`，不得用 `bool("false")`。原有二件式／三件式實體 Fold、座標、Registry、CUTTING／DXF 公式都不變。GUI `fold_designer_bridge` 經 `manufacturing_api.normalize_operator_source_dimension(field="w")` 讀 W，數值欄位原始值不先 `float()`，僅向原 Phase6 Settings controller 轉交，由既有公開 Engine 單一交易負責來源及實體結果。
+- `tests/test_issue2517_box_structure_raw_source_engine_api.py` 應覆蓋四個 Relief 欄位 Boolean／NaN／Inf 拒絕、錯誤總 W 拒絕、側背分離 `"false"` 與 False 同結果／`"true"` 與 True 同結果、GUI 直接操作錯誤來源不物理提交、合法 5.25 relief 和 JSON Save→Reload。非原始 operator 真實數值由 Engine fail closed；本輪只驗這條鏈，#2517 仍 OPEN、Windows GUI UAT 不推定通過。
+
+## [CURRENT] #2517 Receiving Head/Tail 下方 WRAP 預留量原始輸入禁止 GUI 或 Engine 靜默截為零（2026-11-08）
+
+- `fold_designer_bridge._phase6_commit_receiving_bottom_wrap_controls` 原在送原公開 `operator_endcap_bottom_wrap` 前先執行 `max(0.0, float(TkVar.get()))`；Engine 原 `operator_endcap_bottom_wrap` 亦提前 `float()`，而低層公開 `commit_endcap_bottom_wrap` 對負值截為零。這使 `True` 可成為 1mm、負值成為 0mm、非有限值越過輸入邊界，改變 Receiving 下方 WRAP 的真正 L 型預留與 Joint 裝配間隙。
+- 沿用原 `ae_engine.endcap_bottom_wrap_state.commit_endcap_bottom_wrap` 實體 Head/Tail LINKED／FOLLOW／INDEPENDENT 交易與原公開 `manufacturing_api.operator_endcap_bottom_wrap`。在唯一 Engine owner 先完整驗證兩軸的非布林、非負、有限毫米來源（含合法 0 與小數）；不合法在 mode／Head／Tail 修改前拒絕。公開 operator transaction 需要兩軸來源，不先 `float()`，Controller／Phase6 Settings adapter 只轉送 raw。GUI 保持原無效輸入不提交的行為，成功才清快取／刷新 3D。
+- 本批只針對**新的操作提交** fail-closed，舊保存 `normalize_endcap_bottom_wrap_state`／readback 相容投影不擅自改變；CURRENT 07 的 STANDARD 15×15、已確認 WRAP 預留 2／1 → 28×14+15×1 公式、Family／Registry／正式 CUTTING／DXF 均不改。`tests/test_issue2517_bottom_wrap_raw_reserve_engine_api.py` 驗 Engine 直接呼叫、GUI 真 callback、設定交易不部分提交、合法零／小數 Save→Reload、錯誤來源不改當前 Joint／快照。#2517 全面覆蓋及 Windows UAT 尚未結案。
+
+## [CURRENT] #2517 多門格自動補寬／補高旗標由既有 Engine Door Layout 交易解碼（2026-11-08）
+
+- 原 `gui_modules/application/door_layout_host_adapter._new_door_layout_column` 和 `_door_layout_controller_columns` 用 `bool(width_auto)`／`bool(height_auto)` 決定固定或自動補足門格；序列化字串 `"false"` 會變 `True`，使 400mm 固定門格從 `recompute_door_layout` 輸入被排除、影響真實 Door cell ID、尺寸與後續孔位來源。這不是 UI 文字判定，而是物理分片拓樸，權威必須留在 Engine。
+- 沿用既有 `ae_engine.operator_settings_transactions.normalize_operator_settings_boolean`，在原 `ae_engine.door_layout_numeric_transitions.recompute_door_layout` 與寬／高編輯驗證入口先解碼 raw 自動旗標、核對逐欄高度與旗標數量一致；拒絕不合法旗標與不完整列數。`manufacturing_api` 原公開 Door API 的函式名稱及 payload 不變。GUI 傳原始 flags 給公開交易，只有 Tk StringVar 建立前所需的欄狀態顯示才經既有公開 Engine 布林來源驗證，不再自行 `bool()`。既有固定寬／高、尾端自動補足、合法字串舊存檔、GUI/headless 身份一致維持原規則。
+- `tests/test_issue2517_door_grid_auto_flags_engine_source.py` 驗固定 400mm、450／550mm + 自動補寬 600mm 真實 Door IDs、三種 Engine 入口及 GUI raw source parity、非法旗標不提交、欄／層旗標長度拒絕、JSON 門格 Save→Reload。原 Factory、CUTTING、BEND、Registry、DXF 出圖與認證不變；此切片不等於 #2517 全面完成或 Windows 實機已驗收。
+
+## [CURRENT] #2517 Receiving Set／Bay／Joint 整數來源驗證只由公開 Engine（2026-11-08）
+
+- 原 `gui_modules/application/receiving_set_bay_adapter._operator_integer` 在 GUI 對實體 Set、Bay、Joint 身分及 Set/Bay 件數使用 Python `int(raw)`；其中 `int('1_0') == 10` 會把非標準操作字串當成十套或十連的合法整數，並由後續原 Engine transaction 真正建立實體拓樸。GUI 不應把不可信操作來源先轉成可信的實體選取／數量。
+- 現有唯一物理拓樸權威 `ae_engine.receiving_layout` 增加純來源驗證 `normalize_receiving_operator_topology_integer(value, *, name)`，由 `manufacturing_api` 與根包公開同一 callable。原生整數與舊 Tk 十進位整數文字（含前導零及明確正負號）保留；布林、浮點、非法容器、底線數字別名、空白或非 ASCII 整數來源一律拒絕，物理範圍／有效性仍由原先 Set/Bay/Joint transaction／選擇流程確認。GUI `_operator_integer` 只轉送原始來源、不得自行 `int()`。
+- `tests/test_issue2517_receiving_operator_topology_index_public_api.py` 驗原公開 facade／root 相同 owner、合法舊來源、非法來源不改原始 Layout/selection、包含高風險的 `set_set_count('1_0')`、以及 Set/Bay Save→Reload。未改 Family、PartSpec、製造幾何、CUTTING/BEND、NFB、DXF、2D/3D 認證。#2517 仍待其餘功能全面覆蓋及 Windows UAT。
 
 ## [HISTORICAL/SUPERSEDED] Legacy ae_engine notes
 

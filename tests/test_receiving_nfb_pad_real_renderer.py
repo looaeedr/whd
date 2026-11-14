@@ -30,7 +30,7 @@ def _source(name,w,h,d,px,py,diameter):
 @pytest.mark.parametrize("rotation",(0,90,180,270))
 def test_real_matplotlib_assembly_renderer_draws_selected_pad_with_no_mfg_authority(rotation):
     a=_source("100HN-s",75,130,68,25,111,3.2)
-    b=_source("3P400SN",140,257,107,44,194,5.1)
+    b=_source("3P400",140,257,107,44,194,5.1)
     pad,=generate_nfb_pad_patterns((a,b),plate_thickness_mm=2,
                                    tooling=read_pad_tooling_rule())
     world=pad_physical_preview_world_mesh(
@@ -76,7 +76,7 @@ def test_real_matplotlib_assembly_renderer_draws_selected_pad_with_no_mfg_author
 def test_mfg_approved_pad_is_rejected_by_display_not_smuggled_into_parts():
     from dataclasses import replace
     a=_source("100HN-s",75,130,68,25,111,3.2)
-    b=_source("3P400SN",140,257,107,44,194,5.1)
+    b=_source("3P400",140,257,107,44,194,5.1)
     pad,=generate_nfb_pad_patterns((a,b),plate_thickness_mm=2,
                                    tooling=read_pad_tooling_rule())
     triangles=pad_physical_preview_world_mesh(

@@ -24,7 +24,7 @@ def test_portable_package_keeps_one_authoritative_source_and_no_gui_main(tmp_pat
     verify = extraction / "verify_standalone.py"
     verify.write_text(
         "from ae_engine.receiving_nfb_pad_standalone import PadSelection, build_pad_preview\n"
-        "p = build_pad_preview([PadSelection(1, '士林', '3P400SN'), "
+        "p = build_pad_preview([PadSelection(1, '士林', '3P400'), "
         "PadSelection(1, '士林', '100HN-s')], plate_thickness_mm=2)\n"
         "assert len(p.jobs) == 1\n"
         "assert p.jobs[0].pattern.rise_mm == 39\n"

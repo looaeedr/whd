@@ -92,7 +92,7 @@ def test_native_only_confirmation_projects_settings_without_submitting_nfb():
 
 def test_gui_paths_delegate_precommit_to_public_api_without_local_csv_calculation():
     direct = inspect.getsource(open_inner_door_hole_editor)
-    assert "manufacturing_api.preview_quantity_inner_door_confirm(" in direct
+    assert "manufacturing_api.commit_receiving_quantity_inner_door_confirm(" in direct
     assert "preview_quantity_nfb_submission(" not in direct
     assert "update_common_box(" not in direct
 
@@ -104,12 +104,12 @@ def test_gui_paths_delegate_precommit_to_public_api_without_local_csv_calculatio
     start = src.index("def confirmed(actual_part, features, staged_config):")
     end = src.index('if mode == "single":', start)
     confirm = src[start:end]
-    assert "manufacturing_api.preview_quantity_inner_door_confirm(" in confirm
+    assert "manufacturing_api.commit_receiving_quantity_inner_door_confirm(" in confirm
     assert "preview_quantity_nfb_submission(" not in confirm
     assert "committed_csv_nfb_config(" not in confirm
-    assert confirm.index("manufacturing_api.preview_quantity_inner_door_confirm(") < (
-        confirm.index("quantity.set_version_nfb_config(")
-    )
+    assert "quantity.set_version_nfb_config(" not in confirm
+    assert "self.app._phase6_input_snapshot.clear()" not in confirm
+    assert "self.app._phase6_input_snapshot.update(" not in confirm
 
 
 def test_quantity_engine_projected_snapshot_drops_stale_physical_bay_selection():
@@ -145,14 +145,16 @@ def test_quantity_engine_projected_snapshot_drops_stale_physical_bay_selection()
 def test_quantity_gui_applies_whole_engine_projection_without_private_selector():
     direct = inspect.getsource(open_inner_door_hole_editor)
     assert "from ae_engine.receiving_layout import RECEIVING_RUNTIME_SELECTION_KEY" not in direct
-    assert "current.clear()" in direct
-    assert direct.index("current.clear()") < direct.index("current.update(projected)")
+    assert "manufacturing_api.commit_receiving_quantity_inner_door_confirm(" in direct
+    assert "current.clear()" not in direct
+    assert "current.update(projected)" not in direct
     from pathlib import Path
     source = (Path(__file__).resolve().parents[1] /
               "gui_modules/application/fold_designer_composition_receiving.py"
               ).read_text(encoding="utf-8")
     assert "from ae_engine.receiving_layout import RECEIVING_RUNTIME_SELECTION_KEY" not in source
-    assert "app._phase6_input_snapshot.clear()" in source
-    assert "self.app._phase6_input_snapshot.clear()" in source
-    assert source.index("self.app._phase6_input_snapshot.clear()") < source.index(
-        "self.app._phase6_input_snapshot.update(projected)")
+    block = source.split("def confirmed(actual_part, features, staged_config):", 1)[1]
+    block = block.split('if mode == "single":', 1)[0]
+    assert "manufacturing_api.commit_receiving_quantity_inner_door_confirm(" in block
+    assert "self.app._phase6_input_snapshot.clear()" not in block
+    assert "self.app._phase6_input_snapshot.update(projected)" not in block

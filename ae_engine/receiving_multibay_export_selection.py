@@ -37,7 +37,8 @@ def plan_receiving_multibay_export_source(
     """Choose original multi-Bay exporter; all actual DXF gates remain unchanged.
 
     Ungrouped legacy one-Bay snapshots retain the established exporter.
-    Grouped one-Bay is limited to physically NFB-independent sheet selection.
+    Explicit grouping includes a single physical Bay for any sheet selection;
+    all NFB/CSV/EAR/PAD and FinalScene gates still run in the actual exporter.
     """
     if not isinstance(saved_snapshot, Mapping) or not isinstance(flags, Mapping):
         raise TypeError("RECEIVING_MULTIBAY_SOURCE_SNAPSHOT_REQUIRED")
@@ -61,7 +62,7 @@ def plan_receiving_multibay_export_source(
     eligible = (
         resolve_live_cabinet_family(saved_snapshot) == "受電箱"
         and saved_snapshot.get("active_mode", "set_bay") == "set_bay"
-        and (count > 1 or (count == 1 and group_mode is not None and independent))
+        and (count > 1 or (count == 1 and group_mode is not None))
     )
     if not eligible:
         return ReceivingMultiBayExportPlan(False, count, independent, None)

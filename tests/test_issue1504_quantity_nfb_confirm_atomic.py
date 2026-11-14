@@ -99,16 +99,16 @@ def test_valid_projection_shows_current_version_only_but_live_owner_stays_unmodi
         "model_filename"] == numeric_model_ref("士林", "2P400")
 
 
-def test_main_confirm_all_orders_detached_projection_before_live_version_write():
+def test_main_confirm_all_delegates_quantity_and_snapshot_commit_to_one_engine_api():
     source = GUI.read_text(encoding="utf-8")
     start = source.index('def confirmed(actual_part, features, staged_config):')
     end = source.index('if mode == "single":', start)
     quantity_commit = source[start:end]
-    precheck = quantity_commit.index("manufacturing_api.preview_quantity_inner_door_confirm(")
-    mutation = quantity_commit.index("quantity.set_version_nfb_config(")
-    assert precheck < mutation
-    # Public Engine facade is imported at module scope; a nested import shadows
-    # it for sibling Single/Candidate Confirm paths (UnboundLocalError).
+    assert "manufacturing_api.commit_receiving_quantity_inner_door_confirm(" in quantity_commit
+    assert "quantity.set_version_nfb_config(" not in quantity_commit
+    assert "self.app._phase6_input_snapshot.clear()" not in quantity_commit
+    assert "self.app._phase6_input_snapshot.update(" not in quantity_commit
+    # Public Engine facade remains module-scoped, not a shadowing local import.
     assert "from ae_engine import manufacturing_api" in source.split("\ndef ", 1)[0]
     assert "from ae_engine import manufacturing_api" not in quantity_commit
     assert "from ae_engine.receiving_nfb_csv_committed_config import (" not in quantity_commit

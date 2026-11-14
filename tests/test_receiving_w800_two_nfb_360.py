@@ -106,7 +106,7 @@ def test_real_w800_same_tier_two_csv_screw_groups_keep_360_pitch_and_four_mounts
     from tests.test_issue1502_csv_v5_part_only_manufacturing import _current
     from tests.test_issue1502_current_csv_original_pair_dxf import _scene, _export
 
-    snapshot = _current(model_second="3P400SN")
+    snapshot = _current(model_second="3P400")
     for hole, x in zip(snapshot["nfb_config"]["holes"], (-180., 180.)):
         hole["manual_x_mm"] = x
     snapshot["receiving_layout"]["sets"][0]["bays"][0]["nfb_config"] = deepcopy(

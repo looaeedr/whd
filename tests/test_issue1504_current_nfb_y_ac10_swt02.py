@@ -165,7 +165,10 @@ def test_nfb_ac10_fresh_original_editor_keeps_current_330_830_not_legacy_overrid
     assert "manufacturing_api.receiving_inner_door_legacy_layer_height_defaults()" in source
     assert 'SETTING_DEFAULTS["inner_door_layer_heights_mm"]' not in source
     assert 'initial["layer_heights_mm"] = [550.0, 800.0]' not in source
-    assert 'for v in initial["layer_heights_mm"]' in source
+    assert "manufacturing_api.normalize_receiving_operator_nfb_layer_heights(" in source
+    assert 'initial["layer_heights_mm"]' in source
+    assert "for v in initial_heights" in source
+    assert 'for v in initial["layer_heights_mm"]' not in source
     assert 'layer_height_vars = tuple(' in source
     assert validate_setting("inner_door_layer_heights_mm", [330.0, 830.0]) == [330.0, 830.0]
     # Historical saved operator heights are legitimate explicit values and

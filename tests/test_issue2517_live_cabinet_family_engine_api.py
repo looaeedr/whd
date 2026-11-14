@@ -30,8 +30,8 @@ def test_live_selector_overrides_snapshot_without_mutating_source():
 
 def test_phase6_gui_delegates_without_canonicalizing_or_selecting_model(monkeypatch):
     observed = []
-    def fake(snapshot, live):
-        observed.append((snapshot, live))
+    def fake(snapshot, live_model=None):
+        observed.append((snapshot, live_model))
         return "ENGINE_FAMILY"
     monkeypatch.setattr(manufacturing_api, "resolve_live_cabinet_family", fake)
     app = SimpleNamespace(_phase6_input_snapshot={"model": "legacy"}, baseline_model_var=SimpleNamespace(get=lambda: "operator"))
@@ -42,11 +42,30 @@ def test_phase6_gui_delegates_without_canonicalizing_or_selecting_model(monkeypa
     assert "金庫型" not in source
 
 
-def test_invalid_widget_getter_uses_saved_snapshot_not_hidden_gui_policy():
+def test_invalid_widget_getter_rejects_stale_saved_family_before_3d_render():
     def bad_get():
         raise RuntimeError("widget torn down")
-    app = SimpleNamespace(_phase6_input_snapshot={"model": "受電箱"}, baseline_model_var=SimpleNamespace(get=bad_get))
-    assert _phase6_current_cabinet_family(app) == "受電箱"
+    app = SimpleNamespace(
+        _phase6_input_snapshot={"model": "受電箱"},
+        baseline_model_var=SimpleNamespace(get=bad_get),
+    )
+    before = dict(app._phase6_input_snapshot)
+    with pytest.raises(
+        ValueError, match="MANUFACTURING_OPERATOR_SOURCE_READ_FAILED:baseline_model_var",
+    ):
+        _phase6_current_cabinet_family(app)
+    assert app._phase6_input_snapshot == before
+
+
+def test_missing_live_selector_retains_saved_family_registry_without_guessing():
+    # A missing selector is not the same as an existing but broken Tk control.
+    snapshot = {"cabinet_type": "receiving"}
+    host = SimpleNamespace(_phase6_input_snapshot=snapshot)
+    assert _phase6_current_cabinet_family(host) == "受電箱"
+    assert snapshot == {"cabinet_type": "receiving"}
+    assert _phase6_current_cabinet_family(
+        SimpleNamespace(_phase6_input_snapshot={})
+    ) == "金庫型"
 
 
 def test_phase6_manufacturing_service_uses_engine_request_not_local_family_policy():

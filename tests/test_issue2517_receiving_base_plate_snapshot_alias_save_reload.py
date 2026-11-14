@@ -85,6 +85,10 @@ class SnapshotHost:
         self.endcap_fw_state = {}
         self.door_layout_scope = "main"
         self.manual_corner_pair_same = {}
+        # Keep boolean operator-source controls representative of real Tk vars.
+        # The Engine now validates them instead of bool(2.0) GUI coercion.
+        self.is_box_dist_var = Var(False)
+        self.multi_door_enabled_var = Var(False)
         self._collect_main_setting_values = lambda: {}
         self._serialize_manual_corner_state = lambda: {}
         self._baseline_model_choices = lambda: ("金庫型", "受電箱")

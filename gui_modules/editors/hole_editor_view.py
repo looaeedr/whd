@@ -10,17 +10,6 @@ from __future__ import annotations
 import tkinter as tk
 from tkinter import messagebox, ttk
 
-from ae_engine.sheetmetal_features import (
-    CircleFeature,
-    RectFeature,
-    align_circle_to_neighbor,
-    circle_center_distance_from_gap,
-    circle_gap_from_center_distance,
-    feature_finished_point,
-    feature_is_within_surface,
-    generate_round_fill,
-    generate_round_refill,
-)
 from phase6_hole_editor_session import HoleEditorAction
 from phase6_hole_editor_canvas_view import Phase6HoleEditorCanvasView
 

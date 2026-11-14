@@ -7,38 +7,9 @@ from copy import deepcopy
 from dataclasses import dataclass, replace
 from pathlib import Path
 import tkinter as tk
-import ae_engine.ae as ae
 from ae_engine import manufacturing_api
-from ae_engine.cabinet_types import policy as cabinet_family_policy
-from ae_engine.receiving_layout import (
-    ensure_receiving_layout as ensure_receiving_preview_layout,
-    resize_receiving_bays as resize_receiving_preview_bays,
-)
-from ae_engine.receiving_joint_locks import resolve_receiving_joint_lock_pattern
-from ae_engine.contracts import BoxBodyPartSpec, ManufacturingContext
-from ae_engine.corner_type_ui import (
-    is_unknown_model,
-    normalize_custom_model_name,
-    known_model_corner_state,
-    policy_from_corner_state,
-)
-from ae_engine.sheetmetal_geometry import (
-    CornerTypeId,
-    CornerTypeSelection,
-    EDITABLE_CORNER_TYPE_IDS,
-    CORNER_TYPE_LABELS,
-    normalize_corner_selection,
-)
-from ae_engine.sheetmetal_drawing import CirclePrimitive, PolylinePrimitive
-from ae_engine.sheetmetal_part_adapters import (
-    DoorFrameEdges,
-    derive_door_layout_cells,
-    door_layout_part_key,
-    door_layout_export_filename,
-    door_layout_feature_map_to_part_features,
-)
+from ae_engine.sheetmetal_geometry import CornerTypeId
 from phase6_fold_profiles import formed_box_body_fw_widths
-from ae_engine.assembly_joint import AssemblyJointSource, migrate_legacy_snapshot_joints
 from phase6_endcap_semantics import (
     normalize_endcap_fw_state,
     ASSEMBLY_TYPE_LABELS,
@@ -127,11 +98,10 @@ def registry_collect_rule_form(self):
     intent = str(
         app.relief_registry_intent_var.get() or "INSERT_OVERLAY"
     )
-    topology = int(
-        float(
-            app.relief_registry_topology_var.get()
-            or (2 if intent == "INSERT_OVERLAY" else 1)
-        )
+    raw_topology = app.relief_registry_topology_var.get()
+    topology = manufacturing_api.normalize_operator_relief_topology_levels(
+        (2 if intent == "INSERT_OVERLAY" else 1)
+        if raw_topology is None or raw_topology == "" else raw_topology
     )
     main_target = str(
         app.relief_registry_target_role_var.get() or "BOX_SIDE"
@@ -229,7 +199,6 @@ def registry_collect_rule_form(self):
 def registry_sample_variables(self):
     """Project the Registry sample controls into evaluator variables."""
     app = self.app
-    values = {}
     mapping = {
         "T": app.relief_registry_sample_t_var,
         "FW": app.relief_registry_sample_fw_var,
@@ -237,29 +206,20 @@ def registry_sample_variables(self):
         "ytop1": app.relief_registry_sample_ytop_var,
         "mating_width": app.relief_registry_sample_mating_var,
     }
-    for key, var in mapping.items():
-        values[key] = float(var.get())
-    values["effective_mating_width"] = values["mating_width"]
-    values["fold_u"] = values["side_fold"]
-    values["fold_v"] = values["ytop1"]
-    values["clearance"] = 0.0
-    return values
+    return manufacturing_api.normalize_operator_relief_formula_sample(
+        {key: var.get() for key, var in mapping.items()}
+    )
 
 def registry_validate_formula_form(self):
     """Validate the editable Registry form through the existing controller."""
-    from ae_engine.certified_relief_registry import (
-        evaluate_relief_formula_record,
-        _validate_editable_rule_record,
-    )
-
     app = self.app
     controller = self.capabilities.registry.diagnostics()
     try:
         result = controller.validate_formula(
             self.registry_collect_rule_form(),
             self.registry_sample_variables(),
-            validator=_validate_editable_rule_record,
-            evaluator=evaluate_relief_formula_record,
+            validator=manufacturing_api.validate_operator_relief_registry_rule_record,
+            evaluator=manufacturing_api.evaluate_operator_relief_registry_formula_record,
         )
         text = (
             f"公式有效：{result['primary_u']:.3f}"
@@ -286,10 +246,6 @@ def registry_preview_payload(self):
 
 def registry_save_candidate_form(self, namespace):
     """Persist one candidate through the existing Registry controller."""
-    from ae_engine.certified_relief_registry import (
-        save_relief_rule_candidate,
-    )
-
     app = self.app
     required = lambda name: self._required(namespace, name)
     result = self.registry_validate_formula_form()
@@ -300,7 +256,7 @@ def registry_save_candidate_form(self, namespace):
         controller = self.capabilities.registry.diagnostics()
         item = controller.save_candidate(
             record,
-            saver=save_relief_rule_candidate,
+            saver=manufacturing_api.save_operator_relief_registry_candidate,
         )
         required(
             "_phase6_sync_registry_diagnostics_compatibility_mirrors"
@@ -317,11 +273,6 @@ def registry_save_candidate_form(self, namespace):
 
 def registry_run_formula_matrix(self, namespace):
     """Run the Registry regression matrix through the existing controller."""
-    from ae_engine.certified_relief_registry import (
-        evaluate_relief_formula_record,
-        _validate_editable_rule_record,
-    )
-
     app = self.app
     required = lambda name: self._required(namespace, name)
     try:
@@ -329,8 +280,8 @@ def registry_run_formula_matrix(self, namespace):
         evidence = controller.run_formula_matrix(
             self.registry_collect_rule_form(),
             self.registry_sample_variables(),
-            validator=_validate_editable_rule_record,
-            evaluator=evaluate_relief_formula_record,
+            validator=manufacturing_api.validate_operator_relief_registry_rule_record,
+            evaluator=manufacturing_api.evaluate_operator_relief_registry_formula_record,
         )
         required(
             "_phase6_sync_registry_diagnostics_compatibility_mirrors"
@@ -379,16 +330,12 @@ def registry_preview_assembly_3d(self, namespace):
 
 def registry_promote_form(self):
     """Promote the current candidate through the existing controller."""
-    from ae_engine.certified_relief_registry import (
-        promote_relief_rule_candidate,
-    )
-
     app = self.app
     controller = self.capabilities.registry.diagnostics()
     try:
         promoted = controller.promote_candidate(
             self.registry_collect_rule_form(),
-            promoter=promote_relief_rule_candidate,
+            promoter=manufacturing_api.promote_operator_relief_registry_candidate,
         )
         app.relief_registry_status_var.set(
             f"已認證新版次：{promoted['revision']}"
@@ -431,9 +378,14 @@ def corner_pair_var_changed(
         app, part_key
     ):
         return None
-    self.settings_transactions().commit_corner_pair(
-        part_key, pair_key, bool(var.get())
-    )
+    try:
+        # The original Engine transaction decodes saved "false"/"true".
+        # No bool("false") conversion is permitted in GUI.
+        self.settings_transactions().commit_corner_pair(
+            part_key, pair_key, var.get()
+        )
+    except (TypeError, ValueError, tk.TclError):
+        return None
     required("_phase6_notify_corner_change")(app)
     self.invalidate_settings_page(part_key)
     self.render_settings_context(namespace, part_key)
@@ -514,7 +466,7 @@ def corner_target_var_changed(self, namespace, part_key, target_key):
     try:
         amount_var = app.corner_amount_vars.get(target_key)
         amount = (
-            float(amount_var.get())
+            amount_var.get()
             if amount_var is not None
             else current.amount_t
         )
@@ -537,12 +489,12 @@ def corner_target_var_changed(self, namespace, part_key, target_key):
         retain_var = app.corner_secondary_retain_vars.get(target_key)
         depth_var = app.corner_secondary_depth_vars.get(target_key)
         retain = (
-            float(retain_var.get())
+            retain_var.get()
             if retain_var is not None
             else current.secondary_retain_t
         )
         depth = (
-            float(depth_var.get())
+            depth_var.get()
             if depth_var is not None
             else current.secondary_depth_t
         )
@@ -606,13 +558,13 @@ def set_endcap_fw_override(
 def on_endcap_fw_value_selected(
     self, namespace, part_key, value_var
 ):
+    # Pass the raw operator FW to Engine: float(True), NaN and Inf are not
+    # accepted physical source, and a rejected edit never refreshes geometry.
     try:
-        value = float(value_var.get())
+        value = value_var.get()
+        return self.set_endcap_fw_override(namespace, part_key, value)
     except (TypeError, ValueError):
         return None
-    return self.set_endcap_fw_override(
-        namespace, part_key, value
-    )
 
 def on_box_symmetry_changed(self, namespace):
     app = self.app
@@ -787,10 +739,9 @@ def commit_base_plate_edge_shrink(
         return False
     original = required("original")
     try:
-        value = float(raw_value)
+        # Keep the raw operator type; Engine owns nonnegative finite mm.
+        value = manufacturing_api.normalize_operator_base_plate_edge_shrink(raw_value)
     except (TypeError, ValueError, original.tk.TclError):
-        return False
-    if value < 0:
         return False
     self.stage_setting_update(namespace, key, value)
     self.flush_pending_settings(namespace)

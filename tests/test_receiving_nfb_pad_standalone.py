@@ -10,7 +10,7 @@ from ae_engine.receiving_nfb_pad_standalone import (
 
 def test_current_numeric_v5_source_generates_real_39mm_pad_without_cabinet():
     plan = build_pad_preview(
-        [PadSelection(1, "士林", "3P400SN"),
+        [PadSelection(1, "士林", "3P400"),
          PadSelection(1, "士林", "100HN-s")],
         plate_thickness_mm=2,
     )
@@ -23,7 +23,7 @@ def test_current_numeric_v5_source_generates_real_39mm_pad_without_cabinet():
 
 def test_each_tier_owns_its_own_deepest_reference_and_pad():
     plan = build_pad_preview(
-        [PadSelection(1, "士林", "3P400SN"),
+        [PadSelection(1, "士林", "3P400"),
          PadSelection(1, "士林", "100HN-s"),
          PadSelection(2, "士林", "100HN-s"),
          PadSelection(2, "士林", "100HN-s")],
@@ -36,8 +36,8 @@ def test_each_tier_owns_its_own_deepest_reference_and_pad():
 def test_unknown_or_incomplete_or_invalid_tier_fail_closed():
     for rows in (
         [], [PadSelection(1, "士林", "MISSING-MODEL")],
-        [PadSelection(True, "士林", "3P400SN")],
-        [PadSelection(0, "士林", "3P400SN")],
+        [PadSelection(True, "士林", "3P400")],
+        [PadSelection(0, "士林", "3P400")],
     ):
         with pytest.raises(ValueError):
             build_pad_preview(rows, plate_thickness_mm=2)
@@ -57,7 +57,7 @@ def test_equal_depth_requires_no_pad():
 def test_draft_dxf_is_visibly_nonmanufacturing_and_cannot_overwrite(tmp_path):
     ezdxf = pytest.importorskip("ezdxf")
     plan = build_pad_preview(
-        [PadSelection(1, "士林", "3P400SN"),
+        [PadSelection(1, "士林", "3P400"),
          PadSelection(1, "士林", "100HN-s")],
         plate_thickness_mm=2,
     )

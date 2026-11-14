@@ -24,6 +24,7 @@ class PhysicalSheetEditorContext:
     width: float
     height: float
     reference_guide: object
+    part_key: str | None = None
 
 
 def resolve_physical_sheet_editor_context(
@@ -52,4 +53,47 @@ def resolve_physical_sheet_editor_context(
         if custom_spec is not None:
             raise ValueError("非自訂板件不接受 CustomFold PartSpec")
         surface, width, height, guide = physical_sheet_feature_context(part_key, render)
-    return PhysicalSheetEditorContext(render, surface, width, height, guide)
+    return PhysicalSheetEditorContext(render, surface, width, height, guide, part_key)
+
+
+def propose_operator_physical_sheet_hole_features(
+    part_key: str, context: PhysicalSheetEditorContext, features,
+):
+    """Validate the entire current physical sheet draft before GUI writes it.
+
+    Reuse the same typed feature conversion and material-surface resolver as
+    the canonical CustomFold/physical-sheet render paths. The result retains
+    the input representation for legacy project Save/Reload compatibility and
+    never changes the source list or grants manufacturing/DXF release.
+    """
+    from collections.abc import Mapping
+    from copy import deepcopy
+    from .sheetmetal_feature_core import CircleFeature, RectFeature, ProfileFeature
+    from .sheetmetal_features import legacy_hole_to_feature
+    from .sheetmetal_feature_surface import resolve_surface_features
+
+    if (not isinstance(part_key, str) or not part_key
+            or not isinstance(context, PhysicalSheetEditorContext)
+            or context.part_key != part_key):
+        raise ValueError("實體孔位提交的板件身分不符")
+    if features is None or isinstance(features, (str, bytes, Mapping)):
+        raise ValueError("實體孔位提交需要完整孔型清單")
+    try:
+        detached = tuple(deepcopy(tuple(features)))
+    except (TypeError, ValueError) as exc:
+        raise ValueError("實體孔位清單不可遍歷") from exc
+    normalized = []
+    for feature in detached:
+        if isinstance(feature, Mapping):
+            normalized.append(legacy_hole_to_feature(dict(feature)))
+        elif isinstance(feature, (CircleFeature, RectFeature, ProfileFeature)):
+            normalized.append(feature)
+        else:
+            raise ValueError("實體孔位不是有效的 Feature")
+    resolve_surface_features(
+        context.feature_surface, tuple(normalized),
+        context.width, context.height,
+    )
+    return detached
+
+

@@ -9,6 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from collections.abc import Mapping
 from copy import deepcopy
+from math import isfinite
 
 from .sheetmetal_geometry import (
     Vec2,
@@ -290,6 +291,70 @@ def propose_operator_known_model_corner_draft(
     return next_state, next_pairs
 
 
+
+def propose_operator_saved_manual_corner_snapshot(
+    current_corner_state, current_corner_pair_same,
+    saved_corner_state=None, saved_corner_pair_same=None,
+    *, baseline_model="", cabinet_family="金庫型",
+):
+    """Stage legacy manual Corner restore and known-Family policy atomically.
+
+    Saved records can contain typed Corner selections, old string IDs, or old
+    raw dicts.  Preserve the old loader's per-corner invalid-row skip policy,
+    but do not alter any live state before *all* valid rows and certified
+    Family corners have been projected.
+    """
+    if not isinstance(current_corner_state, Mapping) or not isinstance(current_corner_pair_same, Mapping):
+        raise ValueError("SAVED_CORNER_SNAPSHOT_SOURCE_INVALID")
+    if saved_corner_state is not None and not isinstance(saved_corner_state, Mapping):
+        raise ValueError("SAVED_CORNER_SNAPSHOT_SOURCE_INVALID")
+    if saved_corner_pair_same is not None and not isinstance(saved_corner_pair_same, Mapping):
+        raise ValueError("SAVED_CORNER_SNAPSHOT_SOURCE_INVALID")
+    next_state = deepcopy(dict(current_corner_state))
+    next_pairs = deepcopy(dict(current_corner_pair_same))
+    for part_key, corners in (saved_corner_state or {}).items():
+        if part_key not in next_state:
+            continue
+        if not isinstance(next_state[part_key], dict):
+            raise ValueError("SAVED_CORNER_SNAPSHOT_SOURCE_INVALID")
+        for corner_key, raw in (corners or {}).items():
+            if corner_key not in next_state[part_key]:
+                continue
+            if isinstance(raw, dict):
+                type_id = raw.get("type_id", CornerTypeId.CROSS.value)
+                rotation = int(raw.get("rotation_quadrants", 0) or 0)
+                kwargs = {
+                    "cross_mode": raw.get("cross_mode"),
+                    "direction": raw.get("direction"),
+                    "amount_t": raw.get("amount_t"),
+                    "secondary_retain_t": raw.get("secondary_retain_t"),
+                    "secondary_depth_t": raw.get("secondary_depth_t"),
+                }
+            else:
+                type_id = raw
+                rotation = 0
+                kwargs = {}
+            try:
+                selection = CornerTypeSelection(CornerTypeId(type_id), rotation, **kwargs)
+                next_state[part_key][corner_key] = normalize_corner_selection(selection)
+            except (TypeError, ValueError):
+                # Old persisted records ignored invalid individual corners.
+                continue
+    for part_key, pairs in (saved_corner_pair_same or {}).items():
+        if part_key not in next_pairs:
+            continue
+        if not isinstance(next_pairs[part_key], dict):
+            raise ValueError("SAVED_CORNER_SNAPSHOT_SOURCE_INVALID")
+        for pair_key, enabled in (pairs or {}).items():
+            if pair_key in next_pairs[part_key]:
+                next_pairs[part_key][pair_key] = bool(enabled)
+    # Exactly the original post-load certified fixed Corner application.
+    return propose_operator_known_model_corner_draft(
+        next_state, next_pairs, baseline_model=baseline_model,
+        cabinet_family=cabinet_family, reset_all=False,
+    )
+
+
 def new_manual_corner_state(part_keys) -> dict[str, dict[str, CornerTypeSelection]]:
     return {
         str(part): {key: CornerTypeSelection(CornerTypeId.CROSS) for key in CORNER_KEYS}
@@ -312,14 +377,18 @@ def set_manual_corner_pair_same(
     """Toggle pair grouping; rejoining copies the left selection to the right."""
     if pair_key not in CORNER_PAIR_CORNERS:
         raise ValueError(f"未知的截角成對位置：{pair_key}")
-    enabled = bool(enabled)
+    # A live Tk/StringVar or serialized project flag must obey the same
+    # Engine source contract as commit_corner_pair: "false" cannot rejoin
+    # two distinct physical corners, and malformed values cannot mutate them.
+    from .operator_settings_transactions import normalize_operator_settings_boolean
+    accepted = normalize_operator_settings_boolean(enabled)
     # Validate the source corner before committing either of the two live maps.
     # A missing left corner must not leave the grouping flag half-committed.
-    if enabled:
+    if accepted:
         left_key, right_key = CORNER_PAIR_CORNERS[pair_key]
         source_selection = state[left_key]
-    pair_same[pair_key] = enabled
-    if enabled:
+    pair_same[pair_key] = accepted
+    if accepted:
         state[right_key] = source_selection
 
 
@@ -466,6 +535,20 @@ def corner_policy_from_payload(
     """
     corners = dict((corner_state or {}).get(part_key, {}) or {})
     required = ("top_left", "top_right", "bottom_left", "bottom_right")
+
+    def physical_fw():
+        # Never normalize an invalid physical FW through float(True) or NaN.
+        # Preserve the original nonnegative 0-FW draft policy compatibility.
+        if isinstance(fw, bool):
+            raise ValueError("CORNER_POLICY_PHYSICAL_FW_INVALID")
+        try:
+            number = float(fw)
+        except (ValueError, TypeError, OverflowError) as exc:
+            raise ValueError("CORNER_POLICY_PHYSICAL_FW_INVALID") from exc
+        if not isfinite(number) or number < 0:
+            raise ValueError("CORNER_POLICY_PHYSICAL_FW_INVALID")
+        return number
+
     if not all(key in corners for key in required):
         if known_family is None:
             return None
@@ -473,7 +556,7 @@ def corner_policy_from_payload(
             (part_key,), cabinet_family=known_family,
         ).get(part_key)
         return (
-            policy_from_corner_state(family_state, fw=float(fw))
+            policy_from_corner_state(family_state, fw=physical_fw())
             if family_state is not None else None
         )
     selections = {}
@@ -482,17 +565,30 @@ def corner_policy_from_payload(
         if isinstance(raw, CornerTypeSelection):
             selections[key] = normalize_corner_selection(raw)
             continue
-        raw = dict(raw or {})
-        selections[key] = CornerTypeSelection(
-            CornerTypeId(str(raw.get("type_id", "CROSS")).upper()),
-            rotation_quadrants=int(raw.get("rotation_quadrants", 0) or 0),
-            cross_mode=raw.get("cross_mode"),
-            direction=raw.get("direction"),
-            amount_t=raw.get("amount_t"),
-            secondary_retain_t=raw.get("secondary_retain_t"),
-            secondary_depth_t=raw.get("secondary_depth_t"),
+        if not isinstance(raw, Mapping):
+            raise ValueError("CORNER_POLICY_SAVED_SELECTION_INVALID")
+        # Pass the original physical values to the existing typed owner.
+        # int(True) and int(1.8) previously fabricated a legal rotation;
+        # omitting the CROSS slot geometry silently changed CUTTING on Reload.
+        source = dict(raw)
+        raw_type = source.get("type_id", "CROSS")
+        type_id = (
+            raw_type if isinstance(raw_type, CornerTypeId)
+            else CornerTypeId(str(raw_type).upper())
         )
-    return policy_from_corner_state(selections, fw=float(fw))
+        selections[key] = CornerTypeSelection(
+            type_id,
+            rotation_quadrants=source.get("rotation_quadrants", 0),
+            cross_mode=source.get("cross_mode"),
+            direction=source.get("direction"),
+            amount_t=source.get("amount_t"),
+            secondary_retain_t=source.get("secondary_retain_t"),
+            secondary_depth_t=source.get("secondary_depth_t"),
+            slot_width=source.get("slot_width"),
+            slot_straight_depth=source.get("slot_straight_depth"),
+            slot_radius=source.get("slot_radius"),
+        )
+    return policy_from_corner_state(selections, fw=physical_fw())
 
 
 

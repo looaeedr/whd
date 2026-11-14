@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from weakref import WeakSet
 from typing import Iterable, Sequence
 
+from ae_engine import manufacturing_api
 from phase6_settings_center import SettingSpec
 
 ADVANCED_SETTING_GROUPS = frozenset({"補償", "門縫", "收縮"})
@@ -300,22 +301,33 @@ class Phase6SettingsPanel(Phase6SettingsPanelOwnedRenderMixin):
         if self._guard or self._rendering:
             return
         try:
-            value = float(var.get())
+            # W/H/D/T are physical manufacturing inputs. Validate the raw
+            # authored text before the draft service can stage any value.
+            value = manufacturing_api.normalize_operator_source_dimension(
+                var.get(), field=key,
+            )
         except (TypeError, ValueError, tk.TclError):
             return
         current = self._values_snapshot().get(key)
-        try:
-            if current is not None and abs(float(current) - value) <= 1e-9:
-                return
-        except (TypeError, ValueError):
-            pass
+        if current is not None:
+            try:
+                # Compare exact canonical inputs, not a UI-invented mm epsilon
+                # that could discard a valid fractional physical edit.
+                if manufacturing_api.normalize_operator_source_dimension(
+                    current, field=key,
+                ) == value:
+                    return
+            except (TypeError, ValueError):
+                pass
         self._stage_setting_update(key, value)
 
     def refresh_panel_name(self, *, force=False):
         frame, entry, var = self.panel_name_frame, self.panel_name_entry, self.panel_name_var
         if frame is None or var is None or self.baseline_model_var is None:
             return
-        if self.baseline_model_var.get().strip() != "金庫型" or self._panel_name_changed is None:
+        if (not manufacturing_api.operator_vault_panel_name_editor_allowed(
+                self.baseline_model_var.get()
+            ) or self._panel_name_changed is None):
             frame.grid_remove()
             return
         frame.grid()
@@ -326,7 +338,9 @@ class Phase6SettingsPanel(Phase6SettingsPanelOwnedRenderMixin):
 
     def commit_panel_name(self, _event=None):
         if (self.panel_name_var is None or self._panel_name_changed is None
-                or self.baseline_model_var.get().strip() != "金庫型"):
+                or not manufacturing_api.operator_vault_panel_name_editor_allowed(
+                    self.baseline_model_var.get()
+                )):
             return "break"
         try:
             # Validate/commit via public Engine API; UI never holds a name copy.
@@ -517,7 +531,12 @@ class Phase6SettingsPanel(Phase6SettingsPanelOwnedRenderMixin):
         ttk.Label(cell, text=spec.label).pack(anchor=tk.W)
         value = self._values_snapshot().get(spec.key, spec.default)
         if spec.kind == "bool":
-            var = tk.BooleanVar(master=cell, value=bool(value))
+            # A serialized "false" is not an enabled manufacturing setting.
+            # Reuse the Engine source gate even for a display-only checkbox.
+            var = tk.BooleanVar(
+                master=cell,
+                value=manufacturing_api.normalize_operator_settings_boolean(value),
+            )
             widget = ttk.Checkbutton(cell, text="啟用", variable=var)
         elif spec.kind == "choice" and spec.key == "ui_text_size":
             var = tk.StringVar(master=cell, value=ui_text_size_label(value))
@@ -549,7 +568,10 @@ class Phase6SettingsPanel(Phase6SettingsPanelOwnedRenderMixin):
         )
         value = self._values_snapshot().get(spec.key, spec.default)
         if spec.kind == "bool":
-            var = tk.BooleanVar(master=row_frame, value=bool(value))
+            var = tk.BooleanVar(
+                master=row_frame,
+                value=manufacturing_api.normalize_operator_settings_boolean(value),
+            )
             widget = ttk.Checkbutton(row_frame, text="啟用", variable=var)
             unit_text = ""
         elif spec.kind == "choice" and spec.key == "ui_text_size":
@@ -583,14 +605,34 @@ class Phase6SettingsPanel(Phase6SettingsPanelOwnedRenderMixin):
     def _on_setting_var_changed(self, key: str, var, spec: SettingSpec):
         if self._guard or self._rendering:
             return
-        raw = var.get()
+        try:
+            raw = var.get()
+        except (TypeError, ValueError, tk.TclError):
+            return
         if spec.kind == "bool":
-            value = bool(raw)
+            try:
+                value = manufacturing_api.normalize_operator_settings_boolean(raw)
+            except (TypeError, ValueError):
+                return
         elif spec.kind == "choice":
             value = normalize_ui_text_size(raw) if spec.key == "ui_text_size" else str(raw)
         else:
             try:
-                value = float(raw)
+                if key in {"w", "h", "d", "t", "fw"}:
+                    value = manufacturing_api.normalize_operator_source_dimension(
+                        raw, field=key,
+                    )
+                else:
+                    saved = dict(self._values_snapshot())
+                    # A newly exposed inspector spec may be absent from an
+                    # older project; keep its existing declared default.
+                    saved.setdefault(key, spec.default)
+                    accepted = manufacturing_api.normalize_operator_settings_updates(
+                        saved, {key: raw},
+                    )
+                    if key not in accepted:
+                        return
+                    value = accepted[key]
             except (TypeError, ValueError, tk.TclError):
                 return
         self._stage_setting_update(key, value)
@@ -749,6 +791,23 @@ class Phase6SettingsPanel(Phase6SettingsPanelOwnedRenderMixin):
 
     def sync_values(self, values: Mapping[str, object] | None = None):
         snapshot = dict(values if values is not None else self._values_snapshot())
+        # Validate every visible physical boolean before writing ANY widget.
+        # Without a preflight, a bad STOCK source could leave earlier fields
+        # updated while the manufacturing toggle is falsely shown as enabled.
+        boolean_keys = {
+            key
+            for page in self.page_cache.values()
+            for key, var in page.get("setting_vars", {}).items()
+            if isinstance(var, tk.BooleanVar)
+        }
+        boolean_keys.update(
+            key for key, var in self.left_global_vars.items()
+            if isinstance(var, tk.BooleanVar)
+        )
+        boolean_values = {
+            key: manufacturing_api.normalize_operator_settings_boolean(snapshot[key])
+            for key in boolean_keys if key in snapshot
+        }
         self._guard = True
         try:
             for page in self.page_cache.values():
@@ -761,8 +820,9 @@ class Phase6SettingsPanel(Phase6SettingsPanelOwnedRenderMixin):
                         if var.get() != text:
                             var.set(text)
                     elif isinstance(var, tk.BooleanVar):
-                        if bool(var.get()) != bool(value):
-                            var.set(bool(value))
+                        validated = boolean_values[key]
+                        if var.get() != validated:
+                            var.set(validated)
                     else:
                         text = setting_number_text(value)
                         if var.get() != text:
@@ -776,8 +836,9 @@ class Phase6SettingsPanel(Phase6SettingsPanelOwnedRenderMixin):
                     if var.get() != text:
                         var.set(text)
                 elif isinstance(var, tk.BooleanVar):
-                    if bool(var.get()) != bool(value):
-                        var.set(bool(value))
+                    validated = boolean_values[key]
+                    if var.get() != validated:
+                        var.set(validated)
                 else:
                     text = setting_number_text(value)
                     if var.get() != text:

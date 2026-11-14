@@ -27,7 +27,10 @@ def open_workspace_sheet_editor(host, key):
     def commit():
         if key not in workspace.available_parts:
             raise ValueError(f'板件已不存在：{key}')
-        workspace.stash_features(key, features)
+        accepted = manufacturing_api.propose_operator_physical_sheet_hole_features(
+            key, context, features,
+        )
+        workspace.stash_features(key, accepted)
         if workspace.active_part == key:
             app._load_part_holes(key)
         app.submit_update_intent('geometry', commit=True)

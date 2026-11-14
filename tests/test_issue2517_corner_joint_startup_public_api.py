@@ -107,3 +107,55 @@ def test_public_joint_startup_migration_matches_owner_without_changing_original(
     original = deepcopy(source)
     assert api.migrate_operator_assembly_joint_snapshot(source) == migrate_legacy_snapshot_joints(source)
     assert source == original
+
+
+def test_lifecycle_joint_reload_routes_both_paths_through_public_engine():
+    """Both project-open and live Fold Designer restore must share Engine migration."""
+    root = Path(__file__).resolve().parents[1]
+    source = root.joinpath("gui_modules", "application", "lifecycle.py").read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    assert not any(
+        isinstance(node, ast.ImportFrom) and node.module == "ae_engine.assembly_joint"
+        for node in ast.walk(tree)
+    )
+    public_calls = [
+        node for node in ast.walk(tree)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and isinstance(node.func.value, ast.Name)
+        and node.func.value.id == "manufacturing_api"
+        and node.func.attr == "migrate_operator_assembly_joint_snapshot"
+    ]
+    assert len(public_calls) == 2
+    assert not any(
+        isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+        and node.func.id == "migrate_legacy_snapshot_joints"
+        for node in ast.walk(tree)
+    )
+
+
+@pytest.mark.parametrize("assembly_type", ("INSERT", "OVERLAY", "INSERT_OVERLAY", "WRAP_OVERLAY"))
+def test_public_gui_joint_reload_preserves_owner_migration_and_reopen(assembly_type):
+    saved = {
+        "assembly_type": assembly_type,
+        "existing_parts": ["box_body", "head", "tail"],
+    }
+    unchanged = deepcopy(saved)
+    restored = ae_engine.migrate_operator_assembly_joint_snapshot(saved)
+    assert restored == migrate_legacy_snapshot_joints(saved)
+    assert api.migrate_operator_assembly_joint_snapshot(restored) == restored
+    assert saved == unchanged
+    assert json.loads(json.dumps(restored)) == restored
+
+
+def test_public_gui_joint_reload_rejects_future_schema_without_partial_write():
+    saved = {
+        "assembly_type": "INSERT",
+        "existing_parts": ["box_body", "head", "tail"],
+        "assembly_joint_schema_version": 999,
+        "assembly_joints": [],
+    }
+    unchanged = deepcopy(saved)
+    with pytest.raises(ValueError, match="unsupported assembly joint schema version"):
+        api.migrate_operator_assembly_joint_snapshot(saved)
+    assert saved == unchanged

@@ -1,5 +1,6 @@
 """#2517 BoxBody split operator settings must come from public Engine API."""
 from copy import deepcopy
+import json
 from pathlib import Path
 
 import pytest
@@ -121,3 +122,143 @@ def test_reconcile_width_delegates_canonical_w_driver_with_no_gui_copy():
     expected = api.reconcile_box_body_structure_for_total_w_change(state, 900.)
     assert reconcile_width_structure(state, 900.) == expected
     assert api.resolve_two_piece_widths(expected, 900.) == (300., 600.)
+
+
+@pytest.mark.parametrize("bad_t", [True, False, None, 0, -1, "nan", "inf", "oops"])
+def test_receiving_side_back_projection_requires_raw_positive_finite_thickness(bad_t):
+    state = api.default_box_body_structure_state()
+    state["active_type"] = api.BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value
+    saved = deepcopy(state)
+    with pytest.raises(ValueError, match="T 包外尺寸"):
+        api.project_operator_box_body_structure_settings(
+            state, 800., snapshot={"model": "受電箱", "t": bad_t},
+        )
+    assert state == saved
+
+
+def test_receiving_side_back_projection_requires_thickness_when_missing():
+    state = api.default_box_body_structure_state()
+    state["active_type"] = api.BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value
+    with pytest.raises(ValueError, match="T 包外尺寸"):
+        api.project_operator_box_body_structure_settings(
+            state, 800., snapshot={"model": "受電箱"},
+        )
+
+
+def test_side_back_projection_preserves_decimal_thickness_and_legacy_material_space():
+    state = api.default_box_body_structure_state()
+    state["active_type"] = api.BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value
+    snapshot = {"model": "受電箱", "t": "2.25"}
+    saved_state = deepcopy(state)
+    saved_snapshot = deepcopy(snapshot)
+    outside = api.project_operator_box_body_structure_settings(state, 800., snapshot=snapshot)
+    assert outside["piece_values"]["box_body:left_side"][2] == 17.25
+    assert outside["piece_values"]["box_body:right_side"][2] == 17.25
+    assert api.project_operator_box_body_structure_settings(
+        json.loads(json.dumps(state)), 800.,
+        snapshot=json.loads(json.dumps(snapshot)),
+    ) == outside
+    legacy = api.project_operator_box_body_structure_settings(
+        state, 800., snapshot={"model": "金庫型"},
+    )
+    assert legacy["piece_values"]["box_body:left_side"][2] == 15.
+    assert state == saved_state and snapshot == saved_snapshot
+
+
+@pytest.mark.parametrize("field,bad", [
+    ("side_rear_bend", True), ("side_rear_bend", "nan"),
+    ("side_rear_bend", 0), ("back_width_comp_t", True),
+    ("back_width_comp_t", "inf"), ("back_width_comp_t", -0.5),
+])
+def test_side_back_saved_material_and_compensation_cannot_be_faked(field, bad):
+    state = api.default_box_body_structure_state()
+    kind = api.BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value
+    state["active_type"] = kind
+    state["configs"][kind][field] = bad
+    witness = deepcopy(state)
+    with pytest.raises(ValueError):
+        api.project_operator_box_body_structure_settings(
+            state, 800., snapshot={"model": "金庫型"},
+        )
+    assert state == witness
+
+@pytest.mark.parametrize("space", ["MATERIAL", "OUTSIDE"])
+@pytest.mark.parametrize("resolver", [
+    "side_rear_bend_material_length", "side_rear_bend_outside_length",
+])
+@pytest.mark.parametrize("bad_t", [
+    True, False, None, 0, -1, "-0.125", "nan", "inf", float("-inf"),
+])
+def test_public_rear_flange_both_directions_reject_invalid_raw_thickness(
+    space, resolver, bad_t,
+):
+    state = api.set_side_back_geometry(
+        api.default_box_body_structure_state(),
+        side_rear_bend=15., side_rear_bend_dimension_space=space,
+    )
+    witness = deepcopy(state)
+    with pytest.raises(ValueError):
+        getattr(api, resolver)(state, bad_t)
+    assert state == witness
+
+
+@pytest.mark.parametrize("space", ["MATERIAL", "OUTSIDE"])
+@pytest.mark.parametrize("resolver", [
+    "side_rear_bend_material_length", "side_rear_bend_outside_length",
+])
+@pytest.mark.parametrize("bad_saved", [True, False, None, 0, -1, "nan", "inf"])
+def test_public_rear_flange_both_directions_reject_corrupt_saved_source(
+    space, resolver, bad_saved,
+):
+    state = api.default_box_body_structure_state()
+    cfg = state["configs"][api.BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value]
+    cfg["side_rear_bend_dimension_space"] = space
+    cfg["side_rear_bend"] = bad_saved
+    witness = deepcopy(state)
+    with pytest.raises(ValueError):
+        getattr(api, resolver)(state, "2.25")
+    assert state == witness
+
+
+@pytest.mark.parametrize("outside_length", [0.5, 2.0, "2.25"])
+@pytest.mark.parametrize("resolver", [
+    "side_rear_bend_material_length", "side_rear_bend_outside_length",
+])
+def test_outside_rear_flange_must_leave_positive_material_in_both_directions(
+    outside_length, resolver,
+):
+    state = api.set_side_back_geometry(
+        api.default_box_body_structure_state(),
+        side_rear_bend=outside_length,
+        side_rear_bend_dimension_space="OUTSIDE",
+    )
+    before = deepcopy(state)
+    with pytest.raises(ValueError, match="料尺寸"):
+        getattr(api, resolver)(state, 2.25)
+    assert state == before
+
+
+def test_public_rear_flange_material_outside_fractional_roundtrip_and_projection():
+    original = api.default_box_body_structure_state()
+    material = api.set_side_back_geometry(
+        original, side_rear_bend="15.125",
+        side_rear_bend_dimension_space="MATERIAL",
+    )
+    outside = api.set_side_back_geometry(
+        original, side_rear_bend="17.375",
+        side_rear_bend_dimension_space="OUTSIDE",
+    )
+    witnesses = deepcopy((original, material, outside))
+    for state in (material, outside):
+        assert api.side_rear_bend_material_length(state, "2.25") == pytest.approx(15.125)
+        assert api.side_rear_bend_outside_length(state, "2.25") == pytest.approx(17.375)
+        reloaded = json.loads(json.dumps(state, allow_nan=False))
+        assert api.side_rear_bend_material_length(reloaded, 2.25) == pytest.approx(15.125)
+        assert api.side_rear_bend_outside_length(reloaded, 2.25) == pytest.approx(17.375)
+        projection = api.project_operator_box_body_structure_settings(
+            {**state, "active_type": api.BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value},
+            800., snapshot={"model": "受電箱", "t": "2.25"},
+        )
+        assert projection["piece_values"]["box_body:left_side"][2] == pytest.approx(17.375)
+        assert projection["piece_values"]["box_body:right_side"][2] == pytest.approx(17.375)
+    assert (original, material, outside) == witnesses

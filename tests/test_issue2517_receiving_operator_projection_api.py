@@ -115,10 +115,15 @@ def test_receiving_operator_bay_door_seam_never_invents_unsupported_cells():
         door([[800, [400, 600, 600]]]),
     ) is None
 
+    # The original Engine boolean contract accepts serialized "yes"; it
+    # selects the same verified two-face sketch as native True.
+    assert api.project_receiving_operator_bay_door_split_ratio(
+        door([[800, [600, 1000]]], enabled="yes"),
+    ) == 0.375
     for source in (
         door([[800, [True, 1599]]]),
         door([[800, [600, 1100]]]),
-        door([[800, [600, 1000]]], enabled="yes"),
+        door([[800, [600, 1000]]], enabled="maybe"),
         {"width": 800, "height": float("nan")},
         {"width": True, "height": 1600},
         {**base, "door_state": {"multi_door_enabled": True}},

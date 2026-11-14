@@ -137,7 +137,11 @@ def test_unconfigured_bay_selected_missing_base_never_exports_partial_dxfs(tmp_p
         )
         # Bay 1 has real CSV Base; Bay 2's unconfigured live scene does NOT
         # contain a Base. A full operator selection must refuse every DXF.
-        return _geometry(projected) if bi == 0 else _full_receiving_geometry(projected)
+        from tests.test_issue1502_current_csv_multi_bay_once import (
+            _source_geometry_with_bound_body,
+        )
+        raw = _geometry(projected) if bi == 0 else _full_receiving_geometry(projected)
+        return _source_geometry_with_bound_body(reloaded, si, bi, raw)
 
     blocked = tmp_path / "no-partial-cabinet"
     with pytest.raises(

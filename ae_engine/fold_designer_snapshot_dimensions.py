@@ -37,6 +37,10 @@ def normalize_fold_designer_indicator_groups(
     physical lamp groups. This remains the same Engine validation path for
     snapshot save, preview and the independent Door indicator source.
     """
+    # A scalar string or mapping is not a list of physical layers. Iterating
+    # "2" would silently manufacture a one-layer indicator from the wrong schema.
+    if not isinstance(values, (list, tuple)):
+        raise ValueError("指示燈層數／組數必須是陣列")
     result = []
     for raw in values:
         if isinstance(raw, bool):
@@ -85,6 +89,85 @@ def normalize_fold_designer_indicator_offsets(
         finite_offset(offset_y, "offset_y"),
     )
 
+
+def project_operator_door_indicator_display_state(
+    state, *, legacy_inactive_single_door=False,
+):
+    """Read-only legacy UI display projection; NEVER a manufacturing/save source.\n\n    Strict physical CUTTING/Save still requires the separate\n    project_operator_door_cell_indicator_manufacturing_source gate.\n\n    The old single Door Hole Editor clipped *disabled* layer controls to 1..6\n    even when malformed. Preserve that UI-only rule in Engine, without\n    affecting general saved-state display or enabled manufacturing inputs.\n    """
+    # Only a truly absent saved state owns the legacy empty/default layout.
+    # False/0/string roots are corrupt: silently resetting them may alter
+    # indicator holes or disguise a failed project reload.
+    if state is not None and not isinstance(state, Mapping):
+        raise ValueError("Door indicator state must be a mapping")
+    raw = dict(state or {})
+
+    def saved_flag(value):
+        # Tk-originated persisted booleans can be textual. bool("false") is
+        # True in Python and must never silently enable physical hole features.
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, str):
+            return value.strip().lower() in {"1", "true", "yes", "on"}
+        if type(value) is int:
+            return value == 1
+        return False
+
+    mode = raw.get("mode")
+    if not isinstance(mode, str) or mode not in {"none", "indicator", "indicator_box"}:
+        if saved_flag(raw.get("box_enabled")):
+            mode = "indicator_box"
+        elif saved_flag(raw.get("enabled")):
+            mode = "indicator"
+        else:
+            mode = "none"
+
+    def whole(value, default, *, low=1, high=None):
+        if isinstance(value, bool):
+            return default
+        try:
+            number = float(value)
+        except (TypeError, ValueError, OverflowError):
+            return default
+        if not math.isfinite(number) or not number.is_integer():
+            return default
+        number = int(number)
+        if number < low or high is not None and number > high:
+            return default
+        return number
+
+    def finite_offset(value):
+        if isinstance(value, bool):
+            return 0.0
+        try:
+            number = float(value)
+        except (TypeError, ValueError, OverflowError):
+            return 0.0
+        return number if math.isfinite(number) else 0.0
+
+    if legacy_inactive_single_door and mode == "none":
+        # Historical disabled Hole Editor display was max(1, min(6, int(v))).
+        # Invalid inactive input may be displayed, never manufactured.
+        try:
+            original_layer = int(raw.get("layers", 1))
+        except (TypeError, ValueError, OverflowError):
+            original_layer = 1
+        layers = max(1, min(6, original_layer))
+    else:
+        layers = whole(raw.get("layers", 1), 1, low=1, high=6)
+    source_groups = raw.get("groups", [2] * 6)
+    groups = source_groups if isinstance(source_groups, (list, tuple)) else ()
+    normalized_groups = [whole(value, 2) for value in groups[:6]]
+    normalized_groups.extend([2] * (6 - len(normalized_groups)))
+    return {
+        "mode": mode,
+        "enabled": mode == "indicator",
+        "box_enabled": mode == "indicator_box",
+        "layers": layers,
+        "groups": normalized_groups,
+        "offset_x": finite_offset(raw.get("offset_x", 0.0)),
+        "offset_y": finite_offset(raw.get("offset_y", 0.0)),
+        "is_box_dist": saved_flag(raw.get("is_box_dist", False)),
+    }
 
 def normalize_operator_hole_editor_indicator_state(raw: Mapping[str, object]) -> dict[str, object]:
     """Validate CURRENT live Indicator controls before any physical hole commit.
@@ -189,9 +272,18 @@ def project_operator_door_layout_indicator_snapshot_states(states):
     """
     if not isinstance(states, Mapping):
         raise ValueError("門格指示燈來源必須是有效對照表")
+    # Project saved physical cells must share the original Door-grid ID owner.
+    # A raw legacy (column,row) otherwise becomes "(column, row)" and can
+    # silently disappear after Save→Reload when the GUI requests "column:row".
+    from .door_layout_physical_remap import _canonical_remap_cell_key
     projected = {}
     for cell_key, raw in states.items():
-        key = str(cell_key)
+        try:
+            key = _canonical_remap_cell_key(cell_key)
+        except ValueError as exc:
+            raise ValueError(f"門格指示燈來源身分無效：{cell_key!r}") from exc
+        if key in projected:
+            raise ValueError(f"門格指示燈來源身分衝突：{key}")
         try:
             validated = project_operator_door_cell_indicator_manufacturing_source(raw)
         except ValueError as exc:
@@ -232,23 +324,43 @@ def project_fold_designer_snapshot_dimensions(
         _require_positive_source_length(source[key], key.upper())
         for key in ("w", "h", "d", "t", "fw")
     )
+    # Fold Designer's root 2D overview must qualify the exact same authored
+    # physical gap, signed shrink and Indicator Fold source as its original
+    # Door/BasePlate/SmallDoor PartSpecs before GUI persists part dimensions.
+    # Keep the original AE/Family/Policy geometry and layout calculations.
+    from .door_operator_part_spec import _finite_operator_number
+    from .operator_auxiliary_part_specs import _finite_auxiliary_setting
+    gap_w = _finite_operator_number(source["door_gap_w"], "door_gap_w")
+    gap_h = _finite_operator_number(source["door_gap_h"], "door_gap_h")
+    shrinks = {
+        key: _finite_auxiliary_setting(source, key)
+        for key in (
+            "base_plate_shrink_left", "base_plate_shrink_right",
+            "base_plate_shrink_top", "base_plate_shrink_bottom",
+        )
+    }
+    box_fold = _finite_operator_number(
+        source["indicator_box_fold"], "indicator_box_fold",
+    )
+    small_door_fold = _finite_operator_number(
+        source["indicator_door_fold"], "indicator_door_fold",
+    )
     door_material_fw = cabinet_family_policy.door_material_frame_width(
-        source.get("model"), frame_width=float(fw), thickness=float(t),
+        source, frame_width=float(fw), thickness=float(t),
     )
     door_w, door_h = ae.calculate_door_finished_size(
-        w, h, door_material_fw,
-        source["door_gap_w"], source["door_gap_h"], t,
+        w, h, door_material_fw, gap_w, gap_h, t,
         frame_edges=DoorFrameEdges(),
     )
     door_w = _require_positive_source_length(door_w, "門板成品寬")
     door_h = _require_positive_source_length(door_h, "門板成品高")
     base_w = (
-        w - source["base_plate_shrink_left"] - source["base_plate_shrink_right"]
+        w - shrinks["base_plate_shrink_left"] - shrinks["base_plate_shrink_right"]
     )
     base_h = (
-        h - source["base_plate_shrink_top"] - source["base_plate_shrink_bottom"]
+        h - shrinks["base_plate_shrink_top"] - shrinks["base_plate_shrink_bottom"]
     )
-    if source.get("model") in {"受電箱", "RECEIVING"}:
+    if cabinet_family_policy.canonical_family_name(source) == "受電箱":
         from .receiving_base_plate_config import receiving_base_plate_blank_dimensions
         physical = receiving_base_plate_blank_dimensions(source)
         if physical is not None:
@@ -261,10 +373,10 @@ def project_fold_designer_snapshot_dimensions(
     policy = replace(
         resolve_policy(),
         frame_width=fw,
-        door_gap_w=float(source["door_gap_w"]),
-        door_gap_h=float(source["door_gap_h"]),
-        indicator_box_fold=float(source["indicator_box_fold"]),
-        indicator_small_door_fold=float(source["indicator_door_fold"]),
+        door_gap_w=gap_w,
+        door_gap_h=gap_h,
+        indicator_box_fold=box_fold,
+        indicator_small_door_fold=small_door_fold,
     )
     context = ManufacturingContext(policy=policy)
     ib_w, ib_h = indicator_box_unfolded_size(

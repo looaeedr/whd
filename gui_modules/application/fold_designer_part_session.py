@@ -129,7 +129,10 @@ class Phase6PartSessionOwner:
                 app.designer_workspace.stash_profiles(key, physical)
                 return
         profiles = {'X': bridge.clone_profile(app.state.profiles.get('X', [])), 'Y': bridge.clone_profile(app.state.profiles.get('Y', []))}
-        app.designer_workspace.stash_profiles(key, profiles)
+        # Head/Tail profile state is staged only after Engine accepts its
+        # physical FW source; no invalid Fold can persist as a saved sheet.
+        if key not in bridge.ENDCAP_FW_PARTS:
+            app.designer_workspace.stash_profiles(key, profiles)
         if key in bridge.ENDCAP_FW_PARTS:
             x = {str(seg.get('phase6_key')): seg for seg in profiles.get('X', ()) if seg.get('phase6_key')}
             y = {str(seg.get('phase6_key')): seg for seg in profiles.get('Y', ()) if seg.get('phase6_key')}
@@ -137,13 +140,6 @@ class Phase6PartSessionOwner:
             flat_x = len(profiles.get('X', ())) == 1 and profiles['X'][0].get('phase6_key') == 'endcap_w_flat'
             if not required_x.issubset(x) and (not flat_x):
                 raise ValueError('封頭/封尾 X 折彎資料不完整')
-            fw_item = app._phase6_endcap_fw_state.setdefault(key, {'follow_box': True, 'value': bridge._num(app._phase6_input_snapshot.get('fw', 25), 25)})
-            if 'fw' in y:
-                edited_fw = bridge.engine_segment_length_to_ui(y['fw']) if bridge.manufacturing_api.operator_endcap_fw_profile_uses_material_dimensions(app._phase6_input_snapshot) else bridge._ui_len(y['fw'].get('len'))
-                effective_before = bridge.resolve_endcap_fw(app._phase6_input_snapshot, key, state=app._phase6_endcap_fw_state)
-                if abs(float(edited_fw) - float(effective_before)) > 1e-09:
-                    bridge.commit_endcap_fw(app._phase6_endcap_fw_state, key, edited_fw, box_fw=bridge._num(app._phase6_input_snapshot.get('fw', 25), 25))
-            app._phase6_input_snapshot['endcap_fw'] = bridge.deepcopy(app._phase6_endcap_fw_state)
             canonical_y_keys = {'ytop1', 'fw', 'endcap_d_core', 'ybottom1'}
             if canonical_y_keys.issubset(y):
                 values = bridge.read_endcap_xy_profiles(profiles, app._phase6_input_snapshot)
@@ -165,6 +161,17 @@ class Phase6PartSessionOwner:
                 )
                 for axis in ('w', 'd') if axis in values
             }
+            # Source and original Head/Tail four-state transition stay inside
+            # the public Engine; malformed len/ui_len_add/box FW cannot cause
+            # a partial FW-state or saved profile update.
+            bridge.manufacturing_api.commit_operator_endcap_fw_profile_save(
+                app._phase6_input_snapshot, app._phase6_endcap_fw_state,
+                key, y.get('fw'),
+            )
+            app.designer_workspace.stash_profiles(key, profiles)
+            app._phase6_input_snapshot['endcap_fw'] = bridge.deepcopy(
+                app._phase6_endcap_fw_state
+            )
             bridge._phase6_store_editor_values(app, values, notify=notify)
             app._phase6_box_whd.update(endcap_dimensions)
             w_text = str(app._phase6_box_whd['w'])

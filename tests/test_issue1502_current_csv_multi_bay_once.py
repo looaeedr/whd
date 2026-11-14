@@ -54,6 +54,36 @@ def _multi():
     return source
 
 
+def _canonical_bay_body(source, si, bi):
+    """Rebuild actual side-lock CUTTING from Engine-owned Set/Bay adjacency."""
+    from ae_engine import manufacturing_api as api
+    from ae_engine.contracts import ManufacturingContext
+    bay = project_receiving_bay_legacy_aliases(
+        source, set_index=si, bay_index=bi,
+    )
+    factory = dict(api.build_receiving_factory_confirmed_parts(
+        {key: bay[key] for key in ("w", "h", "d", "t")},
+        confirmation="fresh_family_confirmed",
+    ))["box_body"]
+    bound = api.bind_receiving_factory_box_body_to_bay(
+        factory, source["receiving_layout"], set_index=si, bay_index=bi,
+    )
+    return api.build_box_body_structure_render_data(
+        bound, ManufacturingContext(
+            resource_root=Path(__file__).resolve().parents[1],
+        ),
+    )
+
+
+def _source_geometry_with_bound_body(source, si, bi, geometry):
+    physical = _canonical_bay_body(source, si, bi)
+    return replace(geometry, parts=tuple(
+        replace(part, render_data=physical)
+        if part.part_key == "box_body" else part
+        for part in geometry.parts
+    ))
+
+
 def _provider(source):
     calls=[]
     def provide(si,bi):
@@ -61,7 +91,7 @@ def _provider(source):
         snap=project_receiving_bay_legacy_aliases(
             source,set_index=si,bay_index=bi,
         )
-        return _geometry(snap)
+        return _source_geometry_with_bound_body(source,si,bi,_geometry(snap))
     return provide,calls
 
 
@@ -106,10 +136,11 @@ def test_both_distinct_bays_one_atomic_export_with_exact_source_ear_side(tmp_pat
 
 def test_second_bay_may_not_borrow_first_bay_csv_finalscene(tmp_path):
     source=_multi()
-    first=_geometry(project_receiving_bay_legacy_aliases(source))
+    valid, _calls = _provider(source)
+    first = valid(0, 0)
     def stale(_si,_bi):
         return first
-    with pytest.raises(ValueError,match="ACTUAL_FINALSCENE_SOURCE_DRIFT"):
+    with pytest.raises(ValueError,match="ACTUAL_FINALSCENE_SOURCE_DRIFT|SIDE_LOCK_TOPOLOGY_MISMATCH"):
         _run(source,tmp_path/"out",provider=stale)
     assert not (tmp_path/"out").exists()
 

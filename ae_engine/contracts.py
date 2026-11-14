@@ -128,6 +128,9 @@ class BoxBodyPartSpec:
     head_ybottom1: float = 15.0
     tail_ybottom1: float = 15.0
     physical_piece_features: Mapping[str, Sequence[FeatureLike]] = field(default_factory=dict)
+    # Derived ONLY from the current Receiving Set/Bay topology. (left, right)
+    # None is the legacy standalone PartSpec without a verified Bay context.
+    receiving_side_lock_participation: tuple[bool, bool] | None = None
 
 
 @dataclass(frozen=True)

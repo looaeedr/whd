@@ -8,7 +8,6 @@ Fold Designer keeps its own transaction-local draft until the main GUI commits.
 from __future__ import annotations
 
 from collections.abc import Iterator, Mapping
-from dataclasses import dataclass
 import configparser
 from pathlib import Path
 from types import MappingProxyType
@@ -17,7 +16,7 @@ from typing import Iterable
 from ae_engine import manufacturing_api
 
 
-GLOBAL_CONTEXT = "global"
+GLOBAL_CONTEXT = manufacturing_api.OPERATOR_GLOBAL_SETTINGS_CONTEXT
 
 UI_TEXT_SIZE_LABELS = {
     "small": "小",
@@ -45,98 +44,12 @@ def ui_text_size_factor(value) -> float:
     return UI_TEXT_SIZE_FACTORS[normalize_ui_text_size(value)]
 
 
-@dataclass(frozen=True)
-class SettingSpec:
-    key: str
-    label: str
-    contexts: tuple[str, ...]
-    section: str
-    option: str
-    default: object
-    kind: str = "float"  # float | bool | choice
-    group: str = "一般"
-    runtime_attr: str | None = None
-    relief_attr: str | None = None
-    legacy_option: str | None = None
-
-    @property
-    def global_setting(self) -> bool:
-        return GLOBAL_CONTEXT in self.contexts
-
-
-# Contexts intentionally describe where the value is edited, not every part
-# that eventually consumes the value.  E.g. T/FW are global and therefore are
-# not duplicated on every part page.
-SETTING_SPECS: tuple[SettingSpec, ...] = (
-    # Global dimensions / output.
-    SettingSpec("w", "寬度 W", (GLOBAL_CONTEXT,), "DEFAULT_SIZES", "W", 400.0, group="箱體尺寸", runtime_attr="W"),
-    SettingSpec("h", "高度 H", (GLOBAL_CONTEXT,), "DEFAULT_SIZES", "H", 600.0, group="箱體尺寸", runtime_attr="H"),
-    SettingSpec("d", "深度 D", (GLOBAL_CONTEXT,), "DEFAULT_SIZES", "D", 250.0, group="箱體尺寸", runtime_attr="D"),
-    SettingSpec("t", "板厚 T", (GLOBAL_CONTEXT,), "DEFAULT_SIZES", "T", 2.0, group="箱體尺寸", runtime_attr="T"),
-    SettingSpec("fw", "框寬 FW", (GLOBAL_CONTEXT,), "DEFAULT_SIZES", "FW", 25.0, group="箱體尺寸", runtime_attr="FW"),
-    SettingSpec("draw_stock", "輸出 STOCK", (GLOBAL_CONTEXT,), "OUTPUT", "draw_stock", False, kind="bool", group="輸出", runtime_attr="DRAW_STOCK"),
-    SettingSpec("ui_text_size", "文字大小", (GLOBAL_CONTEXT,), "UI", "text_size", "small", kind="choice", group="介面"),
-
-    # Current engine relief / legacy notch compatibility knobs.
-    SettingSpec("relief_top_secondary_x_factor", "頂部二級截角 X 係數", (GLOBAL_CONTEXT,), "RELIEF", "top_secondary_x_factor", 0.5, group="Relief", relief_attr="top_secondary_x_factor"),
-    SettingSpec("relief_top_secondary_depth_factor", "頂部二級截角深度係數", (GLOBAL_CONTEXT,), "RELIEF", "top_secondary_depth_factor", 2.0, group="Relief", relief_attr="top_secondary_depth_factor"),
-    SettingSpec("relief_bottom_x_factor", "底部截角 X 係數", (GLOBAL_CONTEXT,), "RELIEF", "bottom_x_factor", 0.5, group="Relief", relief_attr="bottom_x_factor"),
-    SettingSpec("relief_bottom_y_factor", "底部截角 Y 係數", (GLOBAL_CONTEXT,), "RELIEF", "bottom_y_factor", 0.5, group="Relief", relief_attr="bottom_y_factor"),
-    SettingSpec("notch_bottom_gap", "舊 NOTCH：底部間隙", (GLOBAL_CONTEXT,), "NOTCH", "bottom_gap", 0.5, group="NOTCH 相容", runtime_attr="notch_bottom_gap"),
-    SettingSpec("notch_sub_x_half", "舊 NOTCH：二級 X 係數", (GLOBAL_CONTEXT,), "NOTCH", "sub_x_half_t", 0.5, group="NOTCH 相容", runtime_attr="notch_sub_x_half"),
-    SettingSpec("notch_sub_y_factor", "舊 NOTCH：二級 Y 係數", (GLOBAL_CONTEXT,), "NOTCH", "sub_y_factor", 2.0, group="NOTCH 相容", runtime_attr="notch_sub_y_factor"),
-
-    # Box body.
-    SettingSpec("zl1", "左外折 1", ("box_body",), "BOX_BODY_Z", "zl1", 15.0, group="折彎", runtime_attr="zl1_def"),
-    SettingSpec("zl2", "左外折 2", ("box_body",), "BOX_BODY_Z", "zl2", 20.0, group="折彎", runtime_attr="zl2_def"),
-    SettingSpec("zr1", "右外折 1", ("box_body",), "BOX_BODY_Z", "zr1", 15.0, group="折彎", runtime_attr="zr1_def"),
-    SettingSpec("zr2", "右外折 2", ("box_body",), "BOX_BODY_Z", "zr2", 20.0, group="折彎", runtime_attr="zr2_def"),
-    SettingSpec("z_comp", "箱身補料", ("box_body",), "BOX_BODY_Z", "z_comp", 3.0, group="補償", runtime_attr="z_comp_def"),
-
-    # End cap geometry shared by head/tail in the current manufacturing model.
-    SettingSpec("yl1", "左折", ("head", "tail"), "END_CAP_Y", "yl1", 15.0, group="折彎", runtime_attr="yl1_def"),
-    SettingSpec("yr1", "右折", ("head", "tail"), "END_CAP_Y", "yr1", 15.0, group="折彎", runtime_attr="yr1_def"),
-    SettingSpec("ytop1", "上折", ("head", "tail"), "END_CAP_Y", "ytop1", 16.0, group="折彎", runtime_attr="ytop1_def"),
-    SettingSpec("ybottom1", "下折", ("head", "tail"), "END_CAP_Y", "ybottom1", 15.0, group="折彎", runtime_attr="ybottom1_def"),
-
-    # Fixed EndCap hole policy: shared values appear on both head and tail.
-    SettingSpec("hang_hole_r", "掛孔半徑", ("head", "tail"), "HOLES", "hang_hole_radius", 3.2, group="固定孔", runtime_attr="hang_hole_r"),
-    SettingSpec("hang_hole_x", "舊掛孔 X（相容）", ("head", "tail"), "HOLES", "hang_hole_x_offset", 35.5, group="固定孔", runtime_attr="hang_hole_x"),
-    SettingSpec("hang_hole_y_up", "掛孔距頂折線", ("head", "tail"), "HOLES", "hang_hole_y_from_top_bend", 6.0, group="固定孔", runtime_attr="hang_hole_y_up"),
-    SettingSpec("sq_x_left", "方孔距左", ("head", "tail"), "HOLES", "square_hole_x_from_left", 3.0, group="固定孔", runtime_attr="sq_x_left"),
-    SettingSpec("sq_width", "方孔寬", ("head", "tail"), "HOLES", "square_hole_width", 4.0, group="固定孔", runtime_attr="sq_width"),
-    SettingSpec("sq_y_bottom", "方孔距底", ("head", "tail"), "HOLES", "square_hole_y_from_bottom", 18.0, group="固定孔", runtime_attr="sq_y_bottom"),
-    SettingSpec("sq_height", "方孔高", ("head", "tail"), "HOLES", "square_hole_height", 4.0, group="固定孔", runtime_attr="sq_height"),
-    SettingSpec("bottom_hole_r", "封尾底孔半徑", ("tail",), "HOLES", "bottom_hole_radius", 2.5, group="封尾固定孔", runtime_attr="bottom_hole_r"),
-    SettingSpec("bottom_hole_y", "封尾底孔距底", ("tail",), "HOLES", "bottom_hole_y_from_bottom", 5.0, group="封尾固定孔", runtime_attr="bottom_hole_y"),
-
-    # Door.
-    SettingSpec("door_gap_w", "門縫 W", ("door",), "DOOR", "door_gap_w", 3.5, group="門縫", runtime_attr="door_gap_w_def"),
-    SettingSpec("door_gap_h", "門縫 H", ("door",), "DOOR", "door_gap_h", 3.5, group="門縫", runtime_attr="door_gap_h_def"),
-    SettingSpec("door_fold_l", "左折", ("door",), "DOOR", "door_fold_left", 19.0, group="折彎", runtime_attr="door_fold_left_def"),
-    SettingSpec("door_fold_r", "右折", ("door",), "DOOR", "door_fold_right", 15.0, group="折彎", runtime_attr="door_fold_right_def"),
-    SettingSpec("door_fold_t", "上折", ("door",), "DOOR", "door_fold_top", 15.0, group="折彎", runtime_attr="door_fold_top_def"),
-    SettingSpec("door_fold_b", "下折", ("door",), "DOOR", "door_fold_bottom", 15.0, group="折彎", runtime_attr="door_fold_bottom_def"),
-
-    # Base plate.  New per-edge keys are optional and fall back to legacy shrink.
-    SettingSpec("base_plate_shrink_top", "上縮", ("base_plate",), "BASE_PLATE", "shrink_top", 55.0, group="收縮", legacy_option="shrink"),
-    SettingSpec("base_plate_shrink_bottom", "下縮", ("base_plate",), "BASE_PLATE", "shrink_bottom", 55.0, group="收縮", legacy_option="shrink"),
-    SettingSpec("base_plate_shrink_left", "左縮", ("base_plate",), "BASE_PLATE", "shrink_left", 55.0, group="收縮", legacy_option="shrink"),
-    SettingSpec("base_plate_shrink_right", "右縮", ("base_plate",), "BASE_PLATE", "shrink_right", 55.0, group="收縮", legacy_option="shrink"),
-    SettingSpec("base_plate_bend", "折邊", ("base_plate",), "BASE_PLATE", "bend", 15.0, group="折彎", runtime_attr="base_plate_bend_def"),
-
-    # Indicator parts.
-    SettingSpec("indicator_box_fold", "指示燈盒折邊", ("indicator_box",), "INDICATOR_BOX", "fold", 49.0, group="折彎", runtime_attr="indicator_box_fold_def"),
-    SettingSpec("indicator_door_fold", "指示燈小門折邊", ("indicator_door",), "INDICATOR_SMALL_DOOR", "fold", 19.0, group="折彎", runtime_attr="indicator_small_door_fold_def"),
-)
-
+# Canonical manufacturing Settings keys, defaults and contexts are Engine-owned.
+# The GUI retains only UI text-size presentation and INI/Tk transport.
+SettingSpec = manufacturing_api.OperatorSettingSpec
+SETTING_SPECS = manufacturing_api.OPERATOR_SETTING_SPECS
 _SPEC_BY_KEY = {spec.key: spec for spec in SETTING_SPECS}
-
-
-def settings_for_context(context: str) -> tuple[SettingSpec, ...]:
-    """Return editable manufacturing/default settings for one 3D context."""
-    key = str(context or GLOBAL_CONTEXT)
-    return tuple(spec for spec in SETTING_SPECS if key in spec.contexts)
+settings_for_context = manufacturing_api.operator_settings_for_context
 
 
 def _parser_for_ae(ae_module) -> configparser.ConfigParser:
@@ -192,30 +105,28 @@ def _runtime_default(ae_module, spec: SettingSpec):
     return spec.default
 
 
-def load_factory_defaults_from_ae(ae_module) -> dict[str, object]:
-    """Load immutable factory defaults from ``ae_engine.ae.default_config``.
+def project_fold_designer_factory_snapshot() -> dict[str, object]:
+    """Read manufacturing factory defaults only through the public Engine API.
 
-    This deliberately ignores ``config.ini`` and all already-mutated runtime
-    module attributes.  It is the source used by the FoldDesigner
-    ``還原初始值`` action.  When a newer setting has no historical
-    ``default_config`` entry yet, the schema's own factory default is used.
+    UI text size remains display-only and is normalized by this GUI adapter.
+    This never reads persisted user INI or mutable runtime manufacturing values.
+    """
+    result = manufacturing_api.project_operator_factory_default_settings()
+    result["ui_text_size"] = normalize_ui_text_size(result["ui_text_size"])
+    return result
+
+
+def load_factory_defaults_from_ae(ae_module) -> dict[str, object]:
+    """Legacy settings-service host: project the same Engine factory defaults.
+
+    Synthetic/older hosts may supply a factory config map. An absent one uses
+    the original catalog defaults, not the process-global live Engine state.
     """
     source = getattr(ae_module, "default_config", None) or {}
-    result: dict[str, object] = {}
-    for spec in SETTING_SPECS:
-        section = source.get(spec.section, {}) if isinstance(source, Mapping) else {}
-        raw = None
-        if isinstance(section, Mapping):
-            if spec.option in section:
-                raw = section[spec.option]
-            elif spec.legacy_option and spec.legacy_option in section:
-                raw = section[spec.legacy_option]
-        if raw is None:
-            raw = spec.default
-        try:
-            result[spec.key] = _coerce(spec, raw)
-        except (TypeError, ValueError):
-            result[spec.key] = _coerce(spec, spec.default)
+    result = manufacturing_api.project_operator_factory_default_settings(
+        source_config=source,
+    )
+    result["ui_text_size"] = normalize_ui_text_size(result["ui_text_size"])
     return result
 
 
@@ -324,30 +235,20 @@ def _selected_specs(context: str | None = None, keys: Iterable[str] | None = Non
 
 
 def apply_settings_to_ae(ae_module, values: Mapping[str, object], *, keys: Iterable[str] | None = None) -> None:
-    """Mirror committed runtime settings into the already-imported AE module.
+    """Forward committed operator Settings to the Engine runtime transaction.
 
-    This does not write config.ini. New main-GUI production paths call it through
-    ``SettingsService.update``; the function remains public for legacy callers.
+    The GUI selects known input fields only; Engine validates every physical
+    value and applies the AE scalar, Relief and fixed-hole policy together.
+    This does not write config.ini or infer manufacturing from UI state.
     """
     specs = _selected_specs(keys=keys) if keys is not None else tuple(
         _SPEC_BY_KEY[k] for k in values.keys() if k in _SPEC_BY_KEY
     )
-    # Validate every supplied scalar before touching the shared AE runtime.
-    # One invalid Fold/Hole/Relief value cannot partially commit other fields.
-    normalized = tuple(
-        (spec, _coerce(spec, values[spec.key]))
-        for spec in specs if spec.key in values
+    selected_keys = tuple(spec.key for spec in specs if spec.key in values)
+    manufacturing_api.apply_operator_runtime_settings_to_ae(
+        ae_module, values, keys=selected_keys,
     )
-    relief_changes = {}
-    for spec, value in normalized:
-        if spec.relief_attr:
-            relief_changes[spec.relief_attr] = value
-        elif spec.runtime_attr:
-            setattr(ae_module, spec.runtime_attr, value)
 
-    manufacturing_api.apply_operator_legacy_runtime_manufacturing_policies(
-        ae_module, values, relief_changes=relief_changes,
-    )
 
 def _format_ini_value(spec: SettingSpec, value: object) -> str:
     if spec.kind == "bool":
@@ -396,7 +297,12 @@ def save_defaults_to_ini(
     # If all four specific shrink values are the same, keep the old key in sync
     # so older engine versions still see the same default.
     if context == "base_plate":
-        legacy_shrink = manufacturing_api.operator_legacy_shared_base_plate_shrink(values)
+        # Only the four explicitly persisted edges may update the legacy
+        # shared value; other rows in a full Settings snapshot are not edits.
+        selected_values = {key: values[key] for key in changed_keys}
+        legacy_shrink = manufacturing_api.operator_legacy_shared_base_plate_shrink(
+            selected_values,
+        )
         if legacy_shrink is not None:
             if not parser.has_section("BASE_PLATE"):
                 parser.add_section("BASE_PLATE")
@@ -424,11 +330,7 @@ def _corner_section(part_key: str) -> str:
 
 
 def load_corner_defaults_from_ini(ae_module):
-    """載入各板件可選的截角預設值，回傳可直接序列化的資料。
-
-    新的截角製造參數會和 type id 一起保存。舊 C01-C04 區段仍可讀取；
-    缺少的新語意欄位稍後由幾何引擎統一轉換並補回相容預設值。
-    """
+    """Read persisted INI only; Engine owns physical CornerType decoding."""
     parser = _parser_for_ae(ae_module)
     states = {}
     pairs = {}
@@ -436,43 +338,9 @@ def load_corner_defaults_from_ini(ae_module):
         section = _corner_section(part_key)
         if not parser.has_section(section):
             continue
-        pair_state = {
-            "top": parser.getboolean(section, "top_same", fallback=True),
-            "bottom": parser.getboolean(section, "bottom_same", fallback=True),
-        }
-        corner_state = {}
-        for corner_key in CORNER_KEYS:
-            if not parser.has_option(section, corner_key):
-                continue
-            type_id = parser.get(section, corner_key, fallback="CROSS").strip().upper()
-            rotation = manufacturing_api.project_operator_corner_ini_rotation(
-                type_id, parser.getint(section, f"{corner_key}_rotation", fallback=0),
-            )
-            raw = {"type_id": type_id, "rotation_quadrants": rotation}
-            text_fields = {
-                "cross_mode": f"{corner_key}_cross_mode",
-                "direction": f"{corner_key}_direction",
-            }
-            for field, option in text_fields.items():
-                if parser.has_option(section, option):
-                    value = parser.get(section, option).strip().lower()
-                    if value:
-                        raw[field] = value
-            float_fields = {
-                "amount_t": f"{corner_key}_amount_t",
-                "secondary_retain_t": f"{corner_key}_secondary_retain_t",
-                "secondary_depth_t": f"{corner_key}_secondary_depth_t",
-            }
-            for field, option in float_fields.items():
-                if parser.has_option(section, option):
-                    # The Engine owns finite, non-bool Corner source values;
-                    # malformed saved options cannot become geometry input.
-                    normalized = manufacturing_api.normalize_operator_settings_updates(
-                        {field: 0.0}, {field: parser.get(section, option)},
-                    )
-                    if field in normalized:
-                        raw[field] = normalized[field]
-            corner_state[corner_key] = raw
+        corner_state, pair_state = manufacturing_api.project_operator_corner_ini_load_section(
+            dict(parser.items(section)),
+        )
         if corner_state:
             states[part_key] = corner_state
         pairs[part_key] = pair_state
@@ -499,48 +367,14 @@ def save_corner_defaults_to_ini(ae_module, corner_state, corner_pair_same, *, co
     if not parser.has_section(section):
         parser.add_section(section)
     pairs = dict((corner_pair_same or {}).get(part_key) or {})
-    top_same = manufacturing_api.normalize_operator_settings_boolean(
-        pairs.get("top", True),
-    )
-    bottom_same = manufacturing_api.normalize_operator_settings_boolean(
-        pairs.get("bottom", True),
-    )
-    parser.set(section, "top_same", "true" if top_same else "false")
-    parser.set(section, "bottom_same", "true" if bottom_same else "false")
     corners = dict((corner_state or {}).get(part_key) or {})
-    for corner_key in CORNER_KEYS:
-        raw = corners.get(corner_key)
-        if not isinstance(raw, Mapping):
-            continue
-        type_id = str(raw.get("type_id", "CROSS")).strip().upper()
-        rotation = manufacturing_api.project_operator_corner_ini_rotation(
-            type_id, raw.get("rotation_quadrants", 0),
-        )
-        parser.set(section, corner_key, type_id)
-        parser.set(section, f"{corner_key}_rotation", str(rotation))
-
-        semantic_options = {
-            "cross_mode": f"{corner_key}_cross_mode",
-            "direction": f"{corner_key}_direction",
-            "amount_t": f"{corner_key}_amount_t",
-            "secondary_retain_t": f"{corner_key}_secondary_retain_t",
-            "secondary_depth_t": f"{corner_key}_secondary_depth_t",
-        }
-        for field, option in semantic_options.items():
-            value = raw.get(field)
-            if value is None or value == "":
-                parser.remove_option(section, option)
-                continue
-            if field.endswith("_t"):
-                normalized = manufacturing_api.normalize_operator_settings_updates(
-                    {field: 0.0}, {field: value},
-                )
-                if field not in normalized:
-                    raise ValueError(f"截角 {field} 必須是有限數值")
-                text = f"{normalized[field]:g}"
-            else:
-                text = str(getattr(value, "value", value)).strip().lower()
-            parser.set(section, option, text)
+    for option, value in manufacturing_api.project_operator_corner_ini_save_options(
+        corners, pairs,
+    ).items():
+        if value is None:
+            parser.remove_option(section, option)
+        else:
+            parser.set(section, option, value)
 
     ini_path.parent.mkdir(parents=True, exist_ok=True)
     with ini_path.open("w", encoding="utf-8") as fh:

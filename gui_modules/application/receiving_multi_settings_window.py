@@ -79,7 +79,24 @@ def paint_connected_bays(canvas, count, selected=None, door_marks=None, version_
     Selection is a pure presentation overlay. No FinalScene, manufacturing or
     DXF code may run during sketch creation.
     """
-    count = max(1, int(count))
+    count = manufacturing_api.normalize_receiving_operator_connection_counts(
+        (count,)
+    )[0]
+    # Qualify all existing physical Bay sources through the public Engine
+    # before touching the Canvas; a malformed second Bay must not leave a
+    # partially redrawn, valid-looking manufacturing identity sketch.
+    source = tuple(bay_dimensions or ())
+    physical = []
+    seam_ratios = []
+    for index in range(count):
+        item = source[index] if index < len(source) else None
+        w, h, seam_ratio = (
+            manufacturing_api.project_receiving_operator_bay_sketch_dimensions(item)
+        )
+        # The 1-pixel minimum is only a screen visibility rule; real source
+        # dimensions and Door topology were already verified by Engine.
+        physical.append((max(1.0, w), max(1.0, h)))
+        seam_ratios.append(seam_ratio)
     canvas.delete("all")
     canvas._receiving_bay_hitboxes = ()
     canvas._receiving_panel_name_hitboxes = ()
@@ -96,23 +113,6 @@ def paint_connected_bays(canvas, count, selected=None, door_marks=None, version_
     height = max(int(canvas.winfo_height()), int(canvas.cget("height")))
     usable_w = max(40, width - 24)
     usable_h = max(50, height - 24)
-    # Draw from the canonical physical Bay W/H proportions, rather than an
-    # equal-width placeholder that stays unchanged after size confirmation.
-    # D is a depth axis: show it in the size summary, not as a false 2D width.
-    source = tuple(bay_dimensions or ())
-    physical = []
-    seam_ratios = []
-    for index in range(count):
-        item = (source[index] if index < len(source)
-                else manufacturing_api.receiving_default_preview_dimensions({}))
-        if isinstance(item, dict):
-            w, h = float(item["width"]), float(item["height"])
-            seam_ratio = manufacturing_api.project_receiving_operator_bay_door_split_ratio(item)
-        else:
-            w, h = float(item[0]), float(item[1])
-            seam_ratio = manufacturing_api.project_receiving_operator_bay_door_split_ratio(None)
-        physical.append((max(1.0, w), max(1.0, h)))
-        seam_ratios.append(seam_ratio)
     scale = min(usable_w / sum(w for w, _ in physical),
                 usable_h / max(h for _, h in physical))
     left = (width - sum(w for w, _ in physical) * scale) / 2
@@ -983,7 +983,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                 chosen_bay = applied["selected_bays"][0]
                 try:
                     base_ports = get_nfb_transaction_ports()
-                    base_ready = bool(
+                    base_ready = manufacturing_api.normalize_operator_settings_boolean(
                         base_ports["state"](set_index, chosen_bay).get("base_partial_ready")
                     )
                 except (ValueError, TypeError, KeyError, IndexError, OSError):
@@ -996,9 +996,11 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                                     or tuple(applied["selected_bays"]) != (chosen_bay,)):
                                 raise ValueError("NFB 底板輸出連位已切換，請重新選擇")
                             live_ports = get_nfb_transaction_ports()
-                            if not live_ports["state"](
-                                set_index, chosen_bay
-                            ).get("base_partial_ready"):
+                            if not manufacturing_api.normalize_operator_settings_boolean(
+                                live_ports["state"](
+                                    set_index, chosen_bay
+                                ).get("base_partial_ready")
+                            ):
                                 raise ValueError("NFB 底板實體選型／提交驗證已失效")
                             from tkinter import filedialog
                             folder = filedialog.askdirectory(
@@ -1588,7 +1590,9 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             setting_list.insert(tk.END, "封頭尾", "內門")
         if not setting_list.winfo_manager():
             setting_list.pack(anchor="w", pady=(6, 0))
-        counts = tuple(max(1, int(n)) for n in get_switch().connection_counts())
+        counts = manufacturing_api.normalize_receiving_operator_connection_counts(
+            get_switch().connection_counts()
+        )
         # Only create or remove rows when the number of Sets changes.
         while len(bay_rows) > len(counts):
             bay_rows.pop()["frame"].destroy()
@@ -1695,12 +1699,16 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             return warn(exc)
 
     def apply(index):
-        cancel_panel_name_edit(redraw=False)
         try:
             if not ensure_set_mode():
                 return False
-            counts = tuple(get_switch().connection_counts())
-            count = max(1, int(counts[index]))
+            counts = manufacturing_api.normalize_receiving_operator_connection_counts(
+                get_switch().connection_counts()
+            )
+            count = counts[index]
+            # Invalid saved topology must not cancel a pending label draft or
+            # fabricate a selection of physical Bay0.
+            cancel_panel_name_edit(redraw=False)
             applied.update(mode="set_bay", set_index=index,
                            count=count, selected=0, selected_bays=(0,))
             selected_setting.update(set_index=None, bay_index=None, kind=None)
