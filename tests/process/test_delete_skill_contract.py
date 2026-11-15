@@ -46,6 +46,7 @@ def test_negated_delete_words_do_not_trigger_destructive_discovery():
     # Advisory skill routing must not interpret "do not" as an action request.
     denied = (
         "不要刪除", "不准刪掉", "不用清空", "別清 staging",
+        "不要 /刪除", "不用 `/清空`",
         "不要移除 0", "don't delete", "do not remove",
     )
     for task in denied:
