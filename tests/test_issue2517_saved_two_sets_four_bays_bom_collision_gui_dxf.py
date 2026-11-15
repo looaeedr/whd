@@ -161,7 +161,9 @@ def _engine_four_bay_witness(authored, loaded):
 
     # Four distinct physical owners, same locally reusable part roles.
     assert len(full_bom) == len(released) == len(collisions) == 4
-    assert all(len({key for key in part_keys if key.startswith("box_body:")}) == 3
+    # BoxBody has three side/back physical sheets, but a certified Divider
+    # may be an ADDITIONAL real physical owner. It must not be erased from BOM.
+    assert all(len({key for key in part_keys if key.startswith("box_body:")}) >= 3
                for part_keys in full_bom.values())
     assert world_offsets[(0, 0)] == world_offsets[(1, 0)] == (0.0, 0.0, 0.0)
     assert world_offsets[(0, 1)][0] > 0 and world_offsets[(1, 1)][0] > 0
