@@ -161,6 +161,68 @@ class InteractiveNoStopGate(unittest.TestCase):
             ordered_command_skills("/推推 /派工 #42"), ("派工", "issue-closure-gate"),
         )
 
+
+    def test_questions_and_quoted_commands_are_not_execution_routes(self):
+        examples = (
+            "請說明 \x60/推推\x60 規則",
+            "比較 \x60/派工\x60 與 \x60/接手\x60 的差異",
+            "「/派工」和「/接手」差在哪？",
+            "請解釋 /派工 是什麼",
+            "文件提到 \x60/接手\x60 的權限",
+            "怎麼用 /接手？",
+            "引用 \x60/推推\x60 的發版條件",
+            "/推推 有什麼條件？",
+            "「/推推」",
+        )
+        forbidden = {"派工", "issue-closure-gate", "root-local-first",
+                     "執行開發任務", "推推"}
+        for task in examples:
+            with self.subTest(task=task):
+                self.assertEqual(ordered_command_skills(task), ())
+                self.assertFalse(forbidden & set(required_skills_for(task=task)))
+
+    def test_discussion_followed_by_explicit_command_keeps_only_action(self):
+        cases = (
+            ("比較 /派工 與 /接手，現在 /派工 #42",
+             ("派工", "issue-closure-gate"),
+             ("root-local-first", "執行開發任務", "推推")),
+            ("說明 /推推 規則；接著 /接手 #42",
+             ("root-local-first", "執行開發任務"),
+             ("派工", "推推")),
+            ("解釋 /派工 的功能，再 /派工 #42",
+             ("派工", "issue-closure-gate"),
+             ("root-local-first", "推推")),
+            ("請 /派工 #42 並說明驗收結果",
+             ("派工", "issue-closure-gate"),
+             ("root-local-first", "推推")),
+            ("不要 /接手，改用 /派工 #42",
+             ("派工", "issue-closure-gate"),
+             ("root-local-first", "執行開發任務")),
+        )
+        for task, wanted, forbidden in cases:
+            with self.subTest(task=task):
+                selected = set(required_skills_for(task=task))
+                ordered = set(ordered_command_skills(task))
+                for skill in wanted:
+                    self.assertIn(skill, selected)
+                    self.assertIn(skill, ordered)
+                for skill in forbidden:
+                    self.assertNotIn(skill, selected)
+                    self.assertNotIn(skill, ordered)
+
+    def test_standalone_user_commands_remain_routable(self):
+        for task, expected in (
+            ("/派工 #42", ("派工", "issue-closure-gate")),
+            ("/接手 #42", ("root-local-first", "執行開發任務")),
+            ("/功能 /DEBUG /派工 #42", ("新增功能", "diagnosing-bugs",
+                                        "tdd", "派工", "issue-closure-gate")),
+        ):
+            with self.subTest(task=task):
+                self.assertEqual(ordered_command_skills(task), expected)
+        # Publishing is never added to the ordered execution-command chain.
+        self.assertEqual(ordered_command_skills("/推推"), ())
+        self.assertIn("推推", required_skills_for(task="/推推"))
+
     def test_real_executor_invokes_other_authorized_work_after_refusal(self):
         calls = []
         def denied():
