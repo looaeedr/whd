@@ -88,3 +88,37 @@ def test_code_review_route_accepts_pr_review_intent_without_generic_overtrigger(
         "review README 文案",
     ):
         assert "code-review" not in set(required_skills_for(task=task)), task
+
+
+def test_triage_route_accepts_explicit_issue_classification_but_not_general_issues() -> None:
+    for task in (
+        "/triage #42",
+        "請做工單分類",
+        "將這張工單分級",
+        "Issue triage #42",
+    ):
+        assert "triage" in set(required_skills_for(task=task)), task
+    for task in (
+        "triageable style guide",
+        "列出 GitHub issues",
+        "整理工單施工進度",
+        "審查 PR #42 的程式碼",
+    ):
+        assert "triage" not in set(required_skills_for(task=task)), task
+
+
+def test_merge_conflict_route_requires_real_merge_conflict_intent() -> None:
+    for task in (
+        "請解決合併衝突",
+        "處理合併衝突 #42",
+        "merge conflict on pull request",
+        "解決 rebase 衝突",
+    ):
+        assert "resolving-merge-conflicts" in set(required_skills_for(task=task)), task
+    for task in (
+        "合併已通過測試的 PR",
+        "解決規格衝突",
+        "研究不同分支的差異",
+        "review code style",
+    ):
+        assert "resolving-merge-conflicts" not in set(required_skills_for(task=task)), task
