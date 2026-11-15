@@ -123,6 +123,7 @@ class InteractiveNoStopGate(unittest.TestCase):
         rejected = (
             "不要派工", "不想再派工", "不要接手工單",
             "不要刪除", "不准刪掉", "別清除", "不用清空",
+            "不要 /刪除", "不用 `/清空`", "don't /刪除",
             "不想清掉", "不要移除 staging", "不要移除 0",
             "別清 staging", "不想清 active 0",
             "don't delete", "do not remove",
