@@ -74,7 +74,23 @@ def _source_after_real_save_reload(tmp_path):
     assert original == retained
     assert reopened["model"] == "受電箱"
     assert reopened["nfb_config_submitted"] is True
-    assert reopened["nfb_config"] == original["nfb_config"]
+    # The authoritative project codec fills neutral per-hole operator fields
+    # omitted by the old in-memory helper. Compare actual physical NFB hole
+    # identities and confirm neutral defaults, not raw dict shape.
+    def physical_nfb(config):
+        return (
+            config["layer_count"],
+            tuple((
+                row["physical_hole_id"],
+                row["model_filename"],
+                row["slot_index"],
+            ) for row in config["holes"]),
+        )
+    assert physical_nfb(reopened["nfb_config"]) == physical_nfb(original["nfb_config"])
+    assert all(
+        row["manual_x_state"] == "NONE" and row["rotation_deg"] == 0
+        for row in reopened["nfb_config"]["holes"]
+    )
     assert reopened["w"] == original["w"] == DIMS[0]
     assert reopened["h"] == original["h"] == DIMS[1]
     assert reopened["d"] == original["d"] == DIMS[2]
