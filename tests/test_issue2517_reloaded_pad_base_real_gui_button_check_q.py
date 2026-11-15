@@ -93,6 +93,8 @@ def _call_real_gui(monkeypatch, loaded, parts, root, *, mutate_at=None):
     # snapshot until its next sync. The shipped button must witness both.
     live = {key: loaded[key] for key in ("w", "h", "d", "t")}
     host.get_float_values = lambda: deepcopy(live)
+    model = {"raw": loaded["model"]}
+    host.baseline_var = SimpleNamespace(get=lambda: model["raw"])
     received = []
     # This is only the GUI FinalScene reader seam: the returned parts are
     # pre-resolved by the genuine committed-CSV Engine above.
@@ -112,6 +114,8 @@ def _call_real_gui(monkeypatch, loaded, parts, root, *, mutate_at=None):
             live["w"] += 1.
         if mutate_at == "live_process" and "製程" in title:
             live["d"] += 1.
+        if mutate_at == "model_material" and "材質" in title:
+            model["raw"] = "金庫型"
         return "SPCC" if "材質" in title else "LASER"
 
     monkeypatch.setattr(simpledialog, "askstring", askstring)
@@ -121,6 +125,8 @@ def _call_real_gui(monkeypatch, loaded, parts, root, *, mutate_at=None):
             loaded["t"] = 3.0
         if mutate_at == "live_quantity":
             live["t"] = 3.0
+        if mutate_at == "model_quantity":
+            model["raw"] = "金庫型"
         return 2
 
     def directory(**_kw):
@@ -128,6 +134,8 @@ def _call_real_gui(monkeypatch, loaded, parts, root, *, mutate_at=None):
             loaded["t"] = 3.0
         if mutate_at == "live_directory":
             live["h"] += 1.
+        if mutate_at == "model_directory":
+            model["raw"] = "金庫型"
         return str(root)
 
     monkeypatch.setattr(simpledialog, "askinteger", quantity)
@@ -268,3 +276,30 @@ def test_pad_base_gui_live_numeric_reader_attached_during_modal_must_fail_closed
     assert "DXF 即時操作來源已變更" in messages[0][1]
     assert not any(item.is_dir() for item in tmp_path.iterdir())
     assert path.read_bytes() == saved
+
+
+@pytest.mark.parametrize("changed_during", (
+    "model_material", "model_quantity", "model_directory",
+))
+def test_saved_pad_base_q2_cannot_use_old_receiving_family_after_unsynced_gui_switch(
+    tmp_path, monkeypatch, changed_during,
+):
+    path, loaded, _selected, parts, final_scenes = (
+        _physical_gui_saved_source(tmp_path)
+    )
+    saved_project = path.read_bytes()
+    pristine = deepcopy(loaded)
+    assert len(final_scenes) == 2
+    # Actual shipped GUI button; the Fold Designer and persisted Engine
+    # source still identify Receiving while the main Tk Family selector
+    # becomes Vault in a modal. No new physical PAD/Base CHECK/Q is released.
+    receipt, events = _call_real_gui(
+        monkeypatch, loaded, parts, tmp_path, mutate_at=changed_during,
+    )
+    assert receipt is None
+    assert [row[0] for row in events] == ["error"]
+    assert "DXF 即時操作來源已變更" in events[0][2]
+    assert path.read_bytes() == saved_project
+    assert loaded == pristine
+    assert not list(tmp_path.glob("*.dxf"))
+    assert not any(path.is_dir() for path in tmp_path.iterdir())
