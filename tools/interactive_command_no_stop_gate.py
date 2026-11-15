@@ -124,7 +124,7 @@ _ACTION_ONLY_COMMAND_PATTERN = re.compile(
 )
 _CLAUSE_BOUNDARY = re.compile(r"[，,；;。！？!?\n]")
 _REFERENCE_INTENT = re.compile(
-    r"(?:說明|解釋|比較|介紹|查詢|詢問|引用|提到|文件|文檔|規則|條件|"
+    r"(?:說明|解釋|比較|介紹|查詢|詢問|引用|提到|文件中|文檔中|"
     r"差別|差異|不同|什麼意思|為什麼|怎麼用|如何使用|用途|用法|講解|教學|"
     r"explain|compare|meaning|documentation|quoted|about)",
     re.IGNORECASE,
@@ -168,7 +168,9 @@ def without_non_action_command_mentions(task: str) -> str:
         reference = (
             bool(_REFERENCE_INTENT.search(prefix))
             or bool(_REFERENCE_SUFFIX.match(suffix))
-            or bool(_REFERENCE_COMPARISON.search(clause))
+            or (bool(_REFERENCE_COMPARISON.search(clause))
+                and len(_ACTION_ONLY_COMMAND_PATTERN.findall(clause)) > 1
+                and not re.search(r"#\d+", clause))
             or bool(
                 re.fullmatch(
                     r"[\x60\"'「『]\s*/(?:推推|派工|接手)\s*[\x60\"'」』]",
