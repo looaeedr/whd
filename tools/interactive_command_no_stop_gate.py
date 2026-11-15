@@ -155,7 +155,7 @@ _MARKDOWN_QUOTE_LINE = re.compile(r"^[ \t]{0,3}>")
 _INDENTED_CODE_LINE = re.compile(r"^(?: {4,}|\t)\S")
 _REFERENCE_EXAMPLES_INTRO = re.compile(
     r"(?:以下|下列|下面|下方|這些|例如|範例|示例|"
-    r"examples?|samples?|following|for example|do not run|不要執行|禁止執行)"
+    r"examples?|samples?|following|compare|for example|do not run|不要執行|禁止執行)"
     r"[^\r\n]{0,100}[：:。.]\s*$",
     re.IGNORECASE,
 )
