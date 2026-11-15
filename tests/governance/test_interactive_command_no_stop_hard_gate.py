@@ -116,6 +116,16 @@ class InteractiveNoStopGate(unittest.TestCase):
             ("新增功能", "diagnosing-bugs", "tdd", "派工", "issue-closure-gate"),
         )
 
+    def test_negative_publish_mentions_are_not_explicit_commands(self):
+        # /推推 is a Registry entry, not a local/RC command.
+        for task in ("不要 /推推，只合 localX", "這次不推推", "不想 /推推"):
+            with self.subTest(task=task):
+                self.assertEqual(ordered_command_skills(task), ())
+        self.assertEqual(ordered_command_skills("/推推"), ())
+        self.assertEqual(
+            ordered_command_skills("/推推 /派工 #42"), ("派工", "issue-closure-gate"),
+        )
+
     def test_real_executor_invokes_other_authorized_work_after_refusal(self):
         calls = []
         def denied():

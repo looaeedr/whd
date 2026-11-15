@@ -221,3 +221,41 @@ def test_adverbial_negations_do_not_restore_forbidden_execution_skills():
         else:
             assert "diagnosing-bugs" not in skills, task
             assert "新增功能" in skills, task
+
+
+def test_negated_publish_command_or_bare_alias_not_routed_as_release():
+    negative = (
+        "不要 /推推，只合 localX",
+        "不要再 /推推，先做治理修正",
+        "不用 /推推，先做 Skills 健檢",
+        "這次不推推，只合 GitHub localX",
+        "不推推，暫時不發布正式 X",
+        "未推推，先查問題",
+        "不想 /推推，還需先驗收",
+        "do not run /推推; just merge localX",
+        "don't use /推推; only localX",
+    )
+    for task in negative:
+        assert "推推" not in required_skills_for(task=task), task
+        assert (
+            ".agents/skills/engineering/推推/SKILL.md"
+            not in required_references_for(task=task)
+        ), task
+
+    for task in (
+        "/推推",
+        "推推",
+        "/推推 主體",
+        "/推推 /派工 #42",
+        "不要 /推推；後來改決定，現在 /推推",
+    ):
+        assert "推推" in required_skills_for(task=task), task
+
+    # A negated phrase never removes a file-based Skill-edit route.
+    edited = ".agents/skills/engineering/推推/SKILL.md"
+    selected = set(required_skills_for(task="這次不推推，只修技能", changed_files=[edited]))
+    assert "推推" in selected
+    assert "寫技能" in selected
+    assert edited in required_references_for(
+        task="這次不推推，只修技能", changed_files=[edited]
+    )

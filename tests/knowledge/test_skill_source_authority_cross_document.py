@@ -167,3 +167,12 @@ def test_current_local_executor_does_not_assume_negated_takeover_permission():
     assert "不用 `/派工`，改用 `/debug`" in dispatch
     assert "without_negated_command_mentions" in parser
     assert "without_negated_command_mentions" in router
+
+
+def test_publish_negative_alias_is_filtered_without_changing_publish_authority():
+    publish = read(".agents/skills/engineering/推推/SKILL.md")
+    parser = read("tools/interactive_command_no_stop_gate.py")
+    assert "排除明確否定的 `/推推` 與不帶斜線的「推推」" in publish
+    assert "即使 Registry 因其他上下文選中本 Skill" in publish
+    assert "_NEGATABLE_COMMAND_PATTERN" in parser
+    assert "never a substitute for explicit user authorization" in parser

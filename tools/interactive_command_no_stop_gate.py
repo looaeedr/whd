@@ -76,11 +76,17 @@ _COMMAND_SKILLS = {
     "/接手": ("root-local-first", "執行開發任務"),
 }
 _COMMAND_PATTERN = re.compile(r"(?<![A-Za-z0-9_])/(?:功能|debug|派工|接手)(?![A-Za-z0-9_])", re.IGNORECASE)
+# Publishing is routed by Registry, not the ordered execution-command route.
+# Cover both /推推 and its historical bare alias in negative instructions.
+_NEGATABLE_COMMAND_PATTERN = re.compile(
+    r"(?<![A-Za-z0-9_])(?:/(?:功能|debug|派工|接手|推推)|推推)(?![A-Za-z0-9_])",
+    re.IGNORECASE,
+)
 # A negative instruction names a command to forbid it, not to activate it.
 # This only filters an explicit nearby negation; it does not infer authority
 # from affirmative commands or attempt to classify all natural-language intent.
 _NEGATED_COMMAND_PREFIX = re.compile(
-    r"(?:不要|不用|不必|無需|禁止|不准|不可以|不可|不能|不應|別|不是|do\s+not|don't|not)"
+    r"(?:不要|不用|不必|無需|禁止|不准|不可以|不可|不能|不應|不想|不打算|不|未|別|不是|do\s+not|don't|not)"
     # Common Chinese adverbs and English action verbs can intervene.
     # Keep this bounded to adjacent words rather than scanning a whole sentence.
     r"(?:\s*(?:再|直接|去|透過|用|執行|啟動|使用|呼叫|跑|run|execute|use)){0,3}"
@@ -90,13 +96,13 @@ _NEGATED_COMMAND_PREFIX = re.compile(
 
 
 def without_negated_command_mentions(task: str) -> str:
-    """Mask negated slash commands for both ordered and Registry routing.
+    """Mask negated slash commands and the bare 推推 alias in Skill discovery.
 
     Keep all other text and command positions unchanged. This is a Skill
     discovery safeguard, never a substitute for explicit user authorization.
     """
     result = list(task)
-    for match in _COMMAND_PATTERN.finditer(task):
+    for match in _NEGATABLE_COMMAND_PATTERN.finditer(task):
         prefix = task[max(0, match.start() - 40):match.start()]
         if _NEGATED_COMMAND_PREFIX.search(prefix):
             result[match.start():match.end()] = " " * len(match.group(0))
