@@ -215,7 +215,7 @@ def test_invalid_final_publish_guard_cannot_change_existing_dxf(tmp_path):
 
 @pytest.mark.parametrize("changed_source", [
     "dimensions", "stock", "selected_part", "indicator",
-    "door_layout", "surface_features",
+    "door_layout", "surface_features", "model_selection",
 ])
 def test_modal_operator_input_change_rolls_back_real_staged_dxf(
     tmp_path, monkeypatch, changed_source,
@@ -228,6 +228,9 @@ def test_modal_operator_input_change_rolls_back_real_staged_dxf(
     stock.get = lambda: stock.value
     host.get_float_values = lambda: dict(raw_dimensions)
     host.draw_stock_var = stock
+    model = SimpleNamespace(value="金庫型")
+    model.get = lambda: model.value
+    host.baseline_var = model
     live_door_rows = [[400.0, [600.0, 600.0]]]
     host.door_layout_columns = live_door_rows
     host.get_door_layout_columns = lambda: deepcopy(live_door_rows)
@@ -257,6 +260,10 @@ def test_modal_operator_input_change_rolls_back_real_staged_dxf(
             host.surface_features["door"].append(
                 {"source": "new actual hole before DXF publish"}
             )
+        elif changed_source == "model_selection":
+            # Tk model selector changes before the Fold Designer model field
+            # or 2D/3D snapshot is synchronized. Old Vault DXF must not ship.
+            model.value = "受電箱"
         else:
             indicator.value = "indicator_box"
 
@@ -284,6 +291,7 @@ def test_unchanged_raw_dimensions_and_selections_still_publish_real_dxf(
     host, _ = _host(source)
     raw = {"t": 2.0}
     host.get_float_values = lambda: dict(raw)
+    host.baseline_var = SimpleNamespace(get=lambda: "金庫型")
     events = _run_real_gui_export(monkeypatch, host, tmp_path)
     assert any(isinstance(e, tuple) and e[0] == "success" for e in events)
     saved = ezdxf.readfile(tmp_path / "P1.dxf")
@@ -326,3 +334,33 @@ def test_reloaded_door_grid_and_surface_features_cannot_reuse_old_engine_dxf(
     assert host.fold_designer_app._phase6_input_snapshot == saved_project
     assert workspace.snapshot() == saved_workspace
     assert not any(isinstance(event, tuple) and event[0] == "success" for event in events)
+
+
+def test_new_model_widget_attached_in_dxf_overwrite_modal_cannot_publish(
+    tmp_path, monkeypatch,
+):
+    saved = _project_source(tmp_path)
+    host, workspace = _host(saved)
+    assert not hasattr(host, "baseline_var")
+    destination = tmp_path / "P1.dxf"
+    api.save_composed_panel_dxf(
+        _physical_panels(110.0), destination,
+        pre_commit_guard=lambda: None,
+    )
+    earlier = destination.read_bytes()
+
+    def attach_model():
+        # A Family selector was not part of the original live UI witness.
+        host.baseline_var = SimpleNamespace(get=lambda: "金庫型")
+
+    events = _run_real_gui_export(
+        monkeypatch, host, tmp_path, on_confirmation=attach_model,
+    )
+    assert "overwrite_prompt" in events
+    assert any(isinstance(event, tuple) and event[0] == "error"
+               and "DXF 即時操作來源已變更" in event[1] for event in events)
+    assert not any(isinstance(event, tuple) and event[0] == "success"
+                   for event in events)
+    assert destination.read_bytes() == earlier
+    assert not ezdxf.readfile(destination).audit().errors
+    assert workspace.snapshot()["part_features"] == saved["part_features"]
