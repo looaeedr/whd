@@ -21,7 +21,7 @@ whd_schema: WHD_DOC_META_V1
 
 **CADSplit 使用 WHD GUI 已用的同一套正式 Engine API 取得結果，僅操作來源不同。** GUI 讀操作／Project；CADSplit 讀 DXF→CSV／尺寸／孔位／Set/Bay 關聯與已確認狀態；構造等價的 `Request／PartSpec／Context`，**之後對同 Part／Operation 調用相同的 `manufacturing_api`**，同 Family／Policy／Registry、同 physical-part／FinalScene、同 DXF Save→Reload/reopen。單板／組合／批次／NFB 依相應既有 API，不因 caller 分流。**禁止**重做 CADSplit 製造公式或新 Bridge exporter、套 Vault 預設、強迫合法內嵌 Engine 出圖改走停用的 source-only CLI、取消未認證拒絕。合法板件逐件成功、缺資料逐件失敗、整套 Set/Bay 另驗物理板件／裝配。施工與驗收必須證明同版本等價 Request 的輸出與錯誤 caller-independent，**不能只說「接好 Bridge」就結案**。規則權威為 AI 庫 04 CURRENT；不得新增另一套治理或 CI。
 
-明確否定的斜線指令不算該入口，例如「不用 `/派工`，改用 `/debug`」或「不用再 `/派工`，改用 `/debug`」只應選用肯定的 BUG 診斷入口；即使路由選到本 Skill，也不能自行推導新的施工、關單或裝置操作授權。
+明確否定的斜線指令不算該入口，例如「不用 `/派工`，改用 `/debug`」或「不用再 `/派工`，改用 `/debug`」只應選用肯定的 BUG 診斷入口。**詢問、比較、引用也不是執行命令**：例如「比較 `/派工` 與 `/接手`」或「說明 `/派工` 規則」都只可唯讀回答；同一段話若另有清楚肯定的 `/派工 #Issue`，僅對該命令承接已授權範圍。即使路由選到本 Skill，也不能自行推導新的施工、關單或裝置操作授權。
 
 ## 全域 DC 預設禁止（施工與整合皆不預設呼叫）
 
