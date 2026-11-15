@@ -94,7 +94,14 @@ def _engine_four_bay_witness(authored, loaded):
             scene, include_unreleased_source_flats=True,
         ))
         assert set(old_full) == set(new_full)
-        assert PHYSICAL_SIDES <= set(new_full)
+        actual_body = scene.part("box_body").render_data
+        assert {piece.role for piece in actual_body.pieces} == {
+            "left_side", "back", "right_side"
+        }
+        expected_body_keys = {
+            f"box_body:{piece.key}" for piece in actual_body.pieces
+        }
+        assert expected_body_keys <= set(new_full)
         for key in new_full:
             assert old_full[key].material.equals(new_full[key].material), key
             assert old_full[key].scene == new_full[key].scene, key
@@ -154,7 +161,8 @@ def _engine_four_bay_witness(authored, loaded):
 
     # Four distinct physical owners, same locally reusable part roles.
     assert len(full_bom) == len(released) == len(collisions) == 4
-    assert all(PHYSICAL_SIDES <= part_keys for part_keys in full_bom.values())
+    assert all(len({key for key in part_keys if key.startswith("box_body:")}) == 3
+               for part_keys in full_bom.values())
     assert world_offsets[(0, 0)] == world_offsets[(1, 0)] == (0.0, 0.0, 0.0)
     assert world_offsets[(0, 1)][0] > 0 and world_offsets[(1, 1)][0] > 0
     assert old_calls == new_calls == list(BAY_INDICES)
