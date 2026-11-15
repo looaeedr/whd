@@ -130,3 +130,48 @@ def test_gui_performance_route_needs_gui_trace_or_scheduler_context():
         "3D designer freeze",
     ):
         assert "phase6-gui-performance-integrity" in required_skills_for(task=task), task
+
+
+def test_issue_closure_routes_explicit_closure_not_status_or_design_report():
+    positive = (
+        "把 #2517 結案",
+        "關單 #2517",
+        "關閉工單 #2517",
+        "close issue #42",
+        "合併後關單",
+    )
+    for task in positive:
+        assert "issue-closure-gate" in required_skills_for(task=task), task
+
+    negative = (
+        "查主工單 Master issue #2517 的進度",
+        "請整理 production integration 設計",
+        "這張 PR 已合併完成，說明改了什麼",
+        "程式已正式完成但還要驗收",
+        "查看 Final Combined 報表",
+    )
+    for task in negative:
+        assert "issue-closure-gate" not in required_skills_for(task=task), task
+
+
+def test_bug_route_matches_real_bug_request_not_longer_brand_words():
+    for task in (
+        "Bugatti catalogue UI design",
+        "debugging Bugatti product selection options",
+    ):
+        # Explicit debugging still selects the skill; incidental brand mention alone does not.
+        if "debugging" in task:
+            assert "diagnosing-bugs" in required_skills_for(task=task), task
+        else:
+            assert "diagnosing-bugs" not in required_skills_for(task=task), task
+            assert "tdd" not in required_skills_for(task=task), task
+
+    for task in (
+        "bug report #42",
+        "bugs in project controller",
+        "bugfix save-reload",
+        "bug fix project state",
+        "fix DXF export crash",
+    ):
+        selected = set(required_skills_for(task=task))
+        assert {"diagnosing-bugs", "tdd"} <= selected, task

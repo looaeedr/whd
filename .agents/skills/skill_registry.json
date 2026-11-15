@@ -326,13 +326,14 @@
       "keywords": [
         "關單",
         "關議題",
+        "結案",
+        "正式結案",
+        "關閉工單",
+        "關閉議題",
+        "關閉 Issue",
         "Issue closure",
         "close issue",
-        "Master issue",
-        "Final Combined",
-        "production integration",
-        "合併完成",
-        "正式完成"
+        "合併後關單"
       ],
       "file_globs": [
         ".agents/skills/engineering/issue-closure-gate/**"
@@ -522,6 +523,9 @@
       "id": "bugfix-tdd",
       "keywords": [
         "bug",
+        "bugs",
+        "bugfix",
+        "bug fix",
         "debug",
         "fix",
         "regression",
@@ -531,6 +535,7 @@
         "除錯"
       ],
       "boundary_keywords": [
+        "bug",
         "fix"
       ],
       "file_globs": [],
