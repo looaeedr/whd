@@ -18,7 +18,7 @@ whd_schema: WHD_DOC_META_V1
 
 Use the tightest loop the current runtime can actually execute. Specialized browser/debugger/subagent helpers are optional; when absent, build the repro and diagnosis as an **inline fallback** with available commands/tests. If a human must perform a step, generate a self-contained checklist or small temporary script from current evidence; do not depend on a missing supporting template.
 
-A discipline for hard bugs. Skip phases only when explicitly justified.
+A discipline for hard bugs. Skip phases only when explicitly justified. In Registry, an English `bug` must match as a full word; `bugfix` / `bug fix` and `bugs` remain explicit aliases, not an invitation to interpret incidental product/brand text such as `Bugatti` as a bug-repair request. Route selection never grants code-mutation or device access.
 
 When exploring the codebase, read `CONTEXT.md` (if it exists) to get a clear mental model of the relevant modules, and check ADRs in the area you're touching.
 

@@ -141,3 +141,18 @@ def test_deletion_transport_and_gui_performance_triggers_are_scope_bound():
     assert "不得因通用關鍵字就進入傳輸備援" in git
     assert "`traceability`" in gui
     assert "`scheduler prompt`" in gui
+
+
+def test_issue_closure_and_publish_skills_do_not_promote_mentions_into_authority():
+    closure = read(".agents/skills/engineering/issue-closure-gate/SKILL.md")
+    publish = read(".agents/skills/engineering/推推/SKILL.md")
+    debug = read(".agents/skills/engineering/diagnosing-bugs/SKILL.md")
+
+    assert "單純查 `Master issue` 進度" in closure
+    assert "Registry 路由只是查找 Skill，不授予關閉權限" in closure
+    assert "路由選中 ≠ 正式發布授權" in publish
+    assert "不是當次肯定的發布指令" in publish
+    assert "不得留言發布授權、建立正式 X PR" in publish
+    assert "當次**肯定、明確地下達**" in publish
+    assert "`bugfix` / `bug fix`" in debug
+    assert "`Bugatti`" in debug

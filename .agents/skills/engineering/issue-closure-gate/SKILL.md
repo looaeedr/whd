@@ -10,6 +10,8 @@ whd_schema: WHD_DOC_META_V1
 
 當交付成果已確認、使用者要求結案或原工單明確達成時，直接更新／關閉 Issue，並重新讀取狀態以確認。禁止以完成測試冒充已關閉 Issue。不得依賴額外 execution record 或 transaction。
 
+**觸發與權限邊界**：`結案`、`關單`、`close issue` 等是此 Skill 的合理工作入口；單純查 `Master issue` 進度、`production integration` 設計或報告 PR `合併完成`，並不等於要求關閉工單。Registry 路由只是查找 Skill，不授予關閉權限；必須核對當次使用者要求或既有已授權原工單範圍、真實驗收與 GitHub 目標身分，才可執行 close/readback。
+
 ## 依原驗收範圍與實際證據結案，不以籠統人工 UAT 卡單
 
 - **先核對需求，不憑空加前置**：以原 Issue 的必要驗收條件、使用者當次明確驗收決定及現行 CURRENT product/CI/release gate 為邊界，區分 `PASS / FAIL / NOT_RUN / NOT_APPLICABLE` 和測試所覆蓋的確切功能。原範圍已由可信證據充分證明、使用者接受交付且沒有未通過的必要硬閘門時，直接結案；不得事後用沒有指出具體操作、預期結果和缺少證據的「等人工 UAT」「全部重驗」籠統延後。
