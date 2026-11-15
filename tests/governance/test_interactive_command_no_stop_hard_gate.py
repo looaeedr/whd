@@ -86,6 +86,36 @@ class InteractiveNoStopGate(unittest.TestCase):
             ordered_command_skills("/接手 #42"), ("root-local-first", "執行開發任務")
         )
 
+    def test_negative_command_prefixes_with_adverbs_and_english_verbs(self):
+        cases = (
+            ("不要再 /接手，改用 /派工 #42", "root-local-first", "派工"),
+            ("不可以 /接手，改用 /派工 #42", "root-local-first", "派工"),
+            ("不可以再執行 /接手，改用 /派工", "root-local-first", "派工"),
+            ("禁止直接使用「/接手」，改用 /派工", "root-local-first", "派工"),
+            ("不要直接 /接手，改用 /派工", "root-local-first", "派工"),
+            ("do not run /接手; use /派工 #42", "root-local-first", "派工"),
+            ("don't use /接手; use /派工 #42", "root-local-first", "派工"),
+            ("不用再 /派工，改用 /debug #42", "派工", "diagnosing-bugs"),
+            ("不要再用 /debug，改用 /功能 #42", "diagnosing-bugs", "新增功能"),
+        )
+        for task, blocked, selected_skill in cases:
+            with self.subTest(task=task):
+                ordered = set(ordered_command_skills(task))
+                selected = set(required_skills_for(task=task))
+                self.assertNotIn(blocked, ordered)
+                self.assertNotIn(blocked, selected)
+                self.assertIn(selected_skill, ordered)
+                self.assertIn(selected_skill, selected)
+
+        # An affirmative, separately repeated command still routes normally.
+        task = "不要再 /接手；後來改決定，現在 /接手 #42"
+        self.assertIn("root-local-first", ordered_command_skills(task))
+        self.assertIn("root-local-first", required_skills_for(task=task))
+        self.assertEqual(
+            ordered_command_skills("/功能 /DEBUG /派工 #42"),
+            ("新增功能", "diagnosing-bugs", "tdd", "派工", "issue-closure-gate"),
+        )
+
     def test_real_executor_invokes_other_authorized_work_after_refusal(self):
         calls = []
         def denied():
