@@ -146,6 +146,72 @@ _REFERENCE_COMPARISON = re.compile(
 )
 
 
+# Markdown command examples and blockquotes are documentation, not executable
+# user commands. Keep original string length and newline positions so adjacent
+# affirmative instructions still route independently.
+_FENCE_START = re.compile(r"^[ \t]{0,3}(\x60{3,}|~{3,})")
+_FENCE_END = re.compile(r"^[ \t]{0,3}(\x60{3,}|~{3,})[ \t]*$")
+_MARKDOWN_QUOTE_LINE = re.compile(r"^[ \t]{0,3}>")
+_INDENTED_CODE_LINE = re.compile(r"^(?: {4,}|\t)\S")
+_REFERENCE_EXAMPLES_INTRO = re.compile(
+    r"(?:以下|下列|下面|下方|這些|例如|範例|示例|"
+    r"examples?|samples?|following|compare|for example|do not run|不要執行|禁止執行)"
+    r"[^\r\n]{0,100}[：:。.]\s*$",
+    re.IGNORECASE,
+)
+_REFERENCE_EXAMPLE_COMMAND = re.compile(
+    r"^[ \t]*(?:[-*+]\s+|\d+[.)]\s+)?[\x60\"'「『(]*\s*"
+    r"/?(?:推推|派工|接手|功能|debug)(?![A-Za-z0-9_])",
+    re.IGNORECASE,
+)
+
+
+def without_markdown_command_examples(task: str) -> str:
+    """Mask fenced/indented code, quoted lines, and clearly introduced examples.
+
+    This is limited to advisory Skill/Reference routing; it never authorizes
+    execution or makes quoted user text executable.
+    """
+    result = list(task)
+    in_fence: str | None = None
+    reference_examples = False
+    offset = 0
+
+    def mask_line(start: int, content: str) -> None:
+        for idx, char in enumerate(content):
+            if char not in "\r\n":
+                result[start + idx] = " "
+
+    for line in task.splitlines(keepends=True):
+        content = line.rstrip("\r\n")
+        stripped = content.strip()
+        close = _FENCE_END.fullmatch(content)
+        if in_fence is not None:
+            mask_line(offset, content)
+            if close is not None and close.group(1)[0] == in_fence[0] and len(close.group(1)) >= len(in_fence):
+                in_fence = None
+            offset += len(line)
+            continue
+        opening = _FENCE_START.match(content)
+        if opening is not None:
+            in_fence = opening.group(1)
+            reference_examples = False
+            mask_line(offset, content)
+        elif not stripped:
+            reference_examples = False
+        elif _MARKDOWN_QUOTE_LINE.match(content) or _INDENTED_CODE_LINE.match(content):
+            mask_line(offset, content)
+        elif _REFERENCE_EXAMPLES_INTRO.search(content):
+            reference_examples = True
+            mask_line(offset, content)
+        elif reference_examples and _REFERENCE_EXAMPLE_COMMAND.match(content):
+            mask_line(offset, content)
+        else:
+            reference_examples = False
+        offset += len(line)
+    return "".join(result)
+
+
 def without_non_action_command_mentions(task: str) -> str:
     """Exclude explicit discussion/quotation of commands from *action* routing.
 
@@ -153,7 +219,7 @@ def without_non_action_command_mentions(task: str) -> str:
     authorization service. An actual mutation still needs independent user
     authorization, target identity and the applicable GitHub gates.
     """
-    routable = without_negated_command_mentions(task)
+    routable = without_negated_command_mentions(without_markdown_command_examples(task))
     result = list(routable)
     for match in _ACTION_ONLY_COMMAND_PATTERN.finditer(routable):
         start, end = match.span()

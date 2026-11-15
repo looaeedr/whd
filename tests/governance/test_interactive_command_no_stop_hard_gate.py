@@ -223,6 +223,51 @@ class InteractiveNoStopGate(unittest.TestCase):
         self.assertEqual(ordered_command_skills("/推推"), ())
         self.assertIn("推推", required_skills_for(task="/推推"))
 
+
+    def test_long_markdown_examples_and_blockquotes_are_not_commands(self):
+        samples = (
+            "下列是指令範例：\n\x60\x60\x60bash\n/派工 #42\n/接手 #42\n/推推\n\x60\x60\x60",
+            "Examples of WHD commands:\n~~~text\n/推推\n/接手 #42\n/派工 #42\n~~~",
+            "Quoted note:\n> /推推\n> /派工 #42\n> /接手 #42",
+            "請比較以下命令：\n1. /派工 #42\n2. /接手 #42\n3. /推推",
+            "Here are examples of commands:\n- \x60/推推\x60\n- \x60/接手\x60\n- /派工 #42",
+            "Do not run:\n/派工 #42\n/接手 #42\n/推推",
+            "Code sample:\n    /派工 #42\n    /接手 #42\n    /推推",
+        )
+        forbidden = {"派工", "issue-closure-gate", "root-local-first",
+                     "執行開發任務", "推推"}
+        for task in samples:
+            with self.subTest(task=task):
+                self.assertEqual(ordered_command_skills(task), ())
+                self.assertFalse(forbidden & set(required_skills_for(task=task)))
+
+    def test_long_reference_then_independent_real_command(self):
+        cases = (
+            ("以下為命令示例：\n\x60\x60\x60shell\n/接手 #42\n/推推\n\x60\x60\x60\n\n現在 /派工 #42",
+             ("派工", "issue-closure-gate"), ("root-local-first", "執行開發任務", "推推")),
+            ("Examples of commands:\n/派工 #41\n/推推\n\nPlease execute /接手 #42",
+             ("root-local-first", "執行開發任務"), ("派工", "推推")),
+            ("比較以下命令：\n- /派工\n- /接手\n\n請 /派工 #42",
+             ("派工", "issue-closure-gate"), ("root-local-first", "執行開發任務")),
+            ("~~~sh\n/派工 #41\n~~~\n/接手 #42",
+             ("root-local-first", "執行開發任務"), ("派工",)),
+            ("請使用 \x60/派工\x60 #42",
+             ("派工", "issue-closure-gate"), ("root-local-first", "執行開發任務")),
+            ("引用：\n> /接手\n/功能 /DEBUG /派工 #42",
+             ("新增功能", "diagnosing-bugs", "tdd", "派工", "issue-closure-gate"),
+             ("root-local-first", "執行開發任務")),
+        )
+        for task, wanted, forbidden in cases:
+            with self.subTest(task=task):
+                selected = set(required_skills_for(task=task))
+                ordered = set(ordered_command_skills(task))
+                for skill in wanted:
+                    self.assertIn(skill, selected)
+                    self.assertIn(skill, ordered)
+                for skill in forbidden:
+                    self.assertNotIn(skill, selected)
+                    self.assertNotIn(skill, ordered)
+
     def test_real_executor_invokes_other_authorized_work_after_refusal(self):
         calls = []
         def denied():

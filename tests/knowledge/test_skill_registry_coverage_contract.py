@@ -205,3 +205,26 @@ def test_inquiry_mentions_are_not_automatic_dispatch_or_release_routes() -> None
     ))
     assert "推推" in selected
 
+
+
+def test_markdown_and_multilingual_long_prompt_discovery_is_bounded() -> None:
+    prompts = (
+        "請逐一解釋下列 WHD commands：\n\x60\x60\x60text\n/派工\n/接手\n/推推\n\x60\x60\x60",
+        "Compare these commands:\n1. /派工 #42\n2. /接手 #42\n3. /推推",
+        "The following are literal examples:\n> /接手 #42\n> /推推",
+    )
+    high_impact = {"派工", "issue-closure-gate", "root-local-first",
+                   "執行開發任務", "推推"}
+    for task in prompts:
+        assert not high_impact & set(required_skills_for(task=task)), task
+
+    real = "Examples of commands:\n/推推\n\n現在 /派工 #42"
+    assert "派工" in required_skills_for(task=real)
+    assert "推推" not in required_skills_for(task=real)
+    # File routes remain available when reviewing the actual Skill itself.
+    selected = set(required_skills_for(
+        task="下列為範例：\n/接手 #42",
+        changed_files=[".agents/skills/engineering/推推/SKILL.md"],
+    ))
+    assert "推推" in selected
+
