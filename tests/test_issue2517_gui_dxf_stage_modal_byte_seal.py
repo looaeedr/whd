@@ -108,12 +108,12 @@ def test_true_saved_selected_gui_modal_cannot_publish_modified_verified_stage(
         elif mutation == "extra_directory":
             (stage / "unreported-folder").mkdir()
         elif mutation == "symlink":
+            # Exactly the original name and *valid* DXF bytes, but not the
+            # original Engine-verified staging file.
             previous_stage = stage / "P1.dxf"
-            alternative = stage / "alternate.dxf"
-            _real_dxf(alternative, 135.0)
             previous_stage.unlink()
             try:
-                os.symlink(alternative, previous_stage)
+                os.symlink(current, previous_stage)
             except (OSError, NotImplementedError):
                 pytest.skip("file symlink creation not authorized here")
         else:
@@ -129,7 +129,7 @@ def test_true_saved_selected_gui_modal_cannot_publish_modified_verified_stage(
     assert not any(e[0] == "success" for e in events)
     assert current.read_bytes() == previous
     assert not ezdxf.readfile(current).audit().errors
-    assert not tuple(tmp_path.glob("*.dxf"))[1:]
+    assert {item.name for item in tmp_path.glob("*.dxf")} == {"P1.dxf"}
     assert not tuple(tmp_path.glob(".whd-export-backup-*"))
     assert workspace.snapshot()["part_features"] == original_snapshot["part_features"]
 
