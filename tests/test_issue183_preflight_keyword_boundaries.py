@@ -175,3 +175,27 @@ def test_bug_route_matches_real_bug_request_not_longer_brand_words():
     ):
         selected = set(required_skills_for(task=task))
         assert {"diagnosing-bugs", "tdd"} <= selected, task
+
+
+def test_negated_commands_are_masked_in_skill_and_reference_routes():
+    task = "不要 `/接手`，改用 /派工 #2517"
+    skills = set(required_skills_for(task=task))
+    assert "root-local-first" not in skills
+    assert "執行開發任務" not in skills
+    assert "派工" in skills
+
+    task = "不要 /派工，改用 /debug #2517"
+    skills = set(required_skills_for(task=task))
+    assert "派工" not in skills
+    assert "issue-closure-gate" not in skills
+    assert {"diagnosing-bugs", "tdd"} <= skills
+    assert (
+        "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md"
+        not in required_references_for(task=task)
+    )
+
+    task = "不用 /debug，改用 /功能"
+    skills = set(required_skills_for(task=task))
+    assert "diagnosing-bugs" not in skills
+    assert "tdd" not in skills
+    assert "新增功能" in skills
