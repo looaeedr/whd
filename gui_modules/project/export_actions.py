@@ -595,6 +595,21 @@ def _commit_staged_project_export(stage_folder, output_folder, *, pre_commit_gua
     finally:
         shutil.rmtree(backup_root, ignore_errors=True)
 
+def _independent_export_live_operator_source(self):
+    """Capture live main-panel numeric intent for standalone GUI DXF buttons.
+
+    The primary selected-DXF route already witnesses get_float_values().
+    EAR SIDE and PAD+Base use separate buttons and dialogs; an uncommitted
+    Tk edit must not publish manufacturing from an older designer snapshot.
+    Keep this a pure input reader: no part selection or manufacturing math.
+    """
+    getter = getattr(self, "get_float_values", None)
+    return {
+        "reader_present": callable(getter),
+        "values": deepcopy(getter()) if callable(getter) else None,
+    }
+
+
 def export_receiving_ear_side_manufacturing_dxf(self):
     """#1503: signed geometry-only production MARKING for TWO side sheets.
 
@@ -617,7 +632,11 @@ def export_receiving_ear_side_manufacturing_dxf(self):
         )
         # Witness the original Workspace before geometry resolution: that
         # callback itself may race with a confirmed Hole Editor source edit.
-        source_guard = _current_authoritative_export_guard(designer, snapshot)
+        source_guard = _current_authoritative_export_guard(
+            designer, snapshot,
+            operator_source=_independent_export_live_operator_source(self),
+            operator_source_reader=lambda: _independent_export_live_operator_source(self),
+        )
         geometry = resolver()
     except (ValueError, KeyError, TypeError, OSError) as exc:
         messagebox.showerror("固定片側板 MARKING 不可輸出", str(exc))
@@ -663,7 +682,11 @@ def export_receiving_ear_side_check_dxf(self):
         dimensions, thickness = manufacturing_api.receiving_ear_side_check_operator_inputs(
             snapshot,
         )
-        source_guard = _current_authoritative_export_guard(designer, snapshot)
+        source_guard = _current_authoritative_export_guard(
+            designer, snapshot,
+            operator_source=_independent_export_live_operator_source(self),
+            operator_source_reader=lambda: _independent_export_live_operator_source(self),
+        )
         geometry = resolver()
     except (ValueError, KeyError, TypeError, OSError) as exc:
         messagebox.showerror("固定片 CHECK 不可用", str(exc))
@@ -969,7 +992,11 @@ def export_receiving_pad_base_part_only_dxf(self):
         # Modal dialogs can change the saved Bay, Hole Editor or active
         # workspace without affecting the already resolved 3D sheets.
         # Witness only authored source; Engine still owns manufacture.
-        source_guard = _current_authoritative_export_guard(designer, snapshot)
+        source_guard = _current_authoritative_export_guard(
+            designer, snapshot,
+            operator_source=_independent_export_live_operator_source(self),
+            operator_source_reader=lambda: _independent_export_live_operator_source(self),
+        )
         from fold_designer_bridge import _phase6_final_scene_adapter
         scene = _phase6_final_scene_adapter(designer).query_assembly_render_data()
         parts=tuple(scene.assembly_parts)
