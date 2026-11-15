@@ -106,6 +106,31 @@ def receiving_cross_bay_collision_display_status(layout, preview_requests, *, se
     return audit, status + "；非實體體積穿透或製造放行證明"
 
 
+def receiving_live_cross_bay_collision_display_status(
+    layout_reader, preview_provider, *, set_index,
+):
+    """Guard the real GUI source before AND after expensive Engine 3D audit.
+
+    A shallow layout reference is unsafe: an original modal can edit the same
+    nested Bay dict during preview resolution. Snapshot its exact source bytes
+    (deep-copy the existing operator state; no physical calculation in GUI).
+    """
+    from copy import deepcopy
+
+    if not callable(layout_reader) or not callable(preview_provider):
+        raise ValueError("RECEIVING_CROSS_BAY_SOURCE_READER_REQUIRED")
+    original = deepcopy(layout_reader())
+    requests = tuple(preview_provider())
+    if layout_reader() != original:
+        raise ValueError("RECEIVING_CROSS_BAY_SOURCE_DRIFT")
+    audit, text = receiving_cross_bay_collision_display_status(
+        original, requests, set_index=set_index,
+    )
+    if layout_reader() != original:
+        raise ValueError("RECEIVING_CROSS_BAY_SOURCE_DRIFT")
+    return audit, text
+
+
 def open_receiving_layer_preview(
     parent,
     *,
@@ -209,21 +234,10 @@ def open_receiving_layer_preview(
         def audit_cross_bay_on_demand():
             win._phase6_receiving_cross_bay_collision_audit = None
             try:
-                read_layout = settings_ports.get("layout")
-                if not callable(read_layout) or not callable(bay_request_provider):
-                    raise ValueError("RECEIVING_CROSS_BAY_SOURCE_READER_REQUIRED")
-                # The modal may change live Bay settings while a preview is
-                # resolving. A draft or stale preview must never be labelled
-                # as a collision pass for the committed physical layout.
-                source_before = read_layout()
-                current_requests = tuple(bay_request_provider())
-                if read_layout() != source_before:
-                    raise ValueError("RECEIVING_CROSS_BAY_SOURCE_DRIFT")
-                audit, status = receiving_cross_bay_collision_display_status(
-                    source_before, current_requests, set_index=index,
+                audit, status = receiving_live_cross_bay_collision_display_status(
+                    settings_ports.get("layout"), bay_request_provider,
+                    set_index=index,
                 )
-                if read_layout() != source_before:
-                    raise ValueError("RECEIVING_CROSS_BAY_SOURCE_DRIFT")
                 win._phase6_receiving_cross_bay_collision_audit = audit
                 view.status.set(status)
             except Exception as exc:
