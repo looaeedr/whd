@@ -118,10 +118,9 @@ def test_actual_two_sets_cross_bay_world_includes_every_nfb_inner_door(tmp_path)
         assert before == after
         assert all(any(key.endswith("::inner_door:upper:panel") for key in group)
                    for group in after.physical_keys_by_bay)
-        assert not any(
-            key.endswith("::inner_door:upper:panel")
-            for key in after.missing_world_keys
-        )
+        assert not after.missing_world_keys, after.missing_world_keys
+        assert after.complete
+        assert after.require_complete() is True
         assert after.evaluated_pair_count == (
             len(after.physical_keys_by_bay[0]) * len(after.physical_keys_by_bay[1])
         )
@@ -142,6 +141,13 @@ def test_original_gui_true_nfb_group_dxf_unchanged_after_3d_profile_fix(
     # project, current NFB source and all Engine-authorized flat geometries
     # still independently pass full DXF reopen and owner/BOM checks.
     out = tmp_path / "nfb-door-profile-unchanged-dxf"
+    # This module imports the genuine GUI fixture helper, not the other
+    # module's autouse pytest fixture. Freeze the Engine-owned output minute
+    # in THIS test rather than assuming an unrelated fixture ran.
+    monkeypatch.setattr(
+        "ae_engine.receiving_dxf_groups._taipei_output_stamp",
+        lambda: PREFIX.split("_", 1)[0],
+    )
     calls, errors, infos = _run_gui_group(
         monkeypatch, source, out, mode="ALL", with_nfb=True,
     )
