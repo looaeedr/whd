@@ -77,9 +77,9 @@ _COMMAND_SKILLS = {
 }
 _COMMAND_PATTERN = re.compile(r"(?<![A-Za-z0-9_])/(?:功能|debug|派工|接手)(?![A-Za-z0-9_])", re.IGNORECASE)
 # Publishing is routed by Registry, not the ordered execution-command route.
-# Cover both /推推 and its historical bare alias in negative instructions.
+# Cover /推推 and prompt-healthcheck aliases (also bare forms) in negative instructions.
 _NEGATABLE_COMMAND_PATTERN = re.compile(
-    r"(?<![A-Za-z0-9_])(?:/(?:功能|debug|派工|接手|推推)|推推)(?![A-Za-z0-9_])",
+    r"(?<![A-Za-z0-9_])(?:/(?:功能|debug|派工|接手|推推|提示詞健檢|提視詞健檢)|推推|提示詞健檢|提視詞健檢|prompt audit|prompt healthcheck)(?![A-Za-z0-9_])",
     re.IGNORECASE,
 )
 # A negative instruction names a command to forbid it, not to activate it.
@@ -96,7 +96,7 @@ _NEGATED_COMMAND_PREFIX = re.compile(
 
 
 def without_negated_command_mentions(task: str) -> str:
-    """Mask negated slash commands and the bare 推推 alias in Skill discovery.
+    """Mask negated commands and prompt-healthcheck aliases in Skill discovery.
 
     Keep all other text and command positions unchanged. This is a Skill
     discovery safeguard, never a substitute for explicit user authorization.

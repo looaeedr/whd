@@ -32,6 +32,7 @@ whd_doc_id: WHD-SOP-CANONICAL-AUTHORITY-MAP
 <!-- WHD_AUTHORITY contract=grounded-spec-authoring role=MIRROR path=docs/governance/WHD_規格書Skill前置與Grounding規則.md canonical=.agents/skills/engineering/寫成規格書/SKILL.md -->
 <!-- WHD_AUTHORITY contract=agent-startup-process role=CURRENT path=AGENTS.md -->
 <!-- WHD_AUTHORITY contract=agent-startup-process role=MIRROR path=handoff/00_AI_HANDOFF_README.md canonical=AGENTS.md -->
+<!-- WHD_AUTHORITY contract=agent-startup-process role=HISTORICAL path=handoff/AGENTS_V5_ARCHITECTURE_HISTORY.md -->
 <!-- WHD_AUTHORITY contract=direct-governance-publish role=CURRENT path=docs/governance/WHD_DIRECT_GOVERNANCE_PUBLISH_POLICY.md -->
 > **退役入口註記（HISTORICAL）**：舊 `knowledge-preflight`／Phase6 receipt 交易不得列為 CURRENT contract。實際來源／技能 grounding 須讀 GitHub `ref=localX` exact HEAD 的 `AGENTS.md` 與 CURRENT domain／Skill；正式 X 只供當次 `/推推` 發布及受信任 gate，不得用 X 舊文件覆蓋 localX。
 

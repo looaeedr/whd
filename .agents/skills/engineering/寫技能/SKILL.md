@@ -29,6 +29,14 @@ whd_schema: WHD_DOC_META_V1
 
 若包含產品或未知／混合路徑，必須回產品通道、依 `localX` 整合規則交付；發布正式 X 的產品改動仍需當次 `/推推`。任何變更均需核對修改路徑、內容、引用、適用測試與 GitHub readback，不得用舊版 Preflight／授權門檻取代實際驗證。
 
+### 提示詞健檢入口（共用現行 CURRENT Skill）
+
+`/提示詞健檢`、誤字別名 `/提視詞健檢` 與 `prompt audit` 由 Registry 的 `skill-prompt-healthcheck` 路由到本 `寫技能`，另參考 `writing-for-agents` 的 context pointer／漸進揭露方法；**不建立另一份 CURRENT Skill**。
+
+- **只要求健檢**：唯讀查同一 GitHub `localX` exact SHA 的 `AGENTS.md`、相關 CURRENT Skills、Registry、AI 庫 Authority Map、路由函式與現有契約測試，逐項核對衝突、重複、能力、觸發誤判和驗收缺口。不寫入、不發版。
+- **明確要求修正**：只在當次授權範圍，以 GitHub `localX` baseline、最小變更、正負向測試、治理 PR／CI、安全合併交付；沒有當次 `/推推` 不動 X。單純引用指令或路由命中不是寫入、RC／DC 或發布授權。
+- **單一權威**：`writing-for-agents` 是寫作方法的獨立 CURRENT contract，不是 WHD 技能 authoring owner；WHD Skill 修改依本 `寫技能`，AI 庫 08 為 REFERENCE。
+
 ## 2. 能力偵測：先看環境能做什麼
 
 在設計流程前先做**能力偵測**，只依賴本回合實際存在的可用工具。先確認 connector／執行器是否存在，**但工具存在不等於取得讀寫或本機權限**。使用者已授權本專案 `localX` 的任務、或同一已核准 Issue／PR 範圍內，可直接用已連線 GitHub read API 查 exact HEAD 與 source；不得因已退役的 `USER_EXPLICIT_REMOTE`、`WORKSPACE_DELIVERY` 交易要求第二次授權。Mutation 仍按實際 scope／GitHub 平台權限執行；未明確授權不可探測 DC／RC／Windows 或本機 shell。
