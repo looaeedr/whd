@@ -864,6 +864,34 @@ def export_selected_dxf(self):
         if not exported:
             messagebox.showerror("輸出失敗", "沒有產生任何 DXF 檔案。")
             return
+        # Transport-only consistency: the GUI must publish exactly the files
+        # the authoritative Engine exporter reported, not every stray file
+        # that happens to be present in the stage directory. Conversely a
+        # reported but missing physical DXF may not become a false success.
+        # This does not classify parts or derive any manufacturing geometry.
+        staged_files = tuple(
+            name for name in os.listdir(stage_folder)
+            if os.path.isfile(os.path.join(stage_folder, name))
+        )
+        if (
+            any(
+                not isinstance(name, str) or not name.strip()
+                or name in (".", "..")
+                or "/" in name or "\\" in name
+                for name in exported
+            )
+            or len(set(exported)) != len(exported)
+            or sorted(exported) != sorted(staged_files)
+            or any(
+                os.path.islink(os.path.join(stage_folder, name))
+                for name in staged_files
+            )
+        ):
+            messagebox.showerror(
+                "輸出失敗",
+                "DXF 暫存檔案與引擎回報不一致，已取消整批發布。",
+            )
+            return
         partial_report = getattr(self, "_phase6_nfb_partial_export_report", None)
         if partial_report is not None:
             details = "\n".join(
