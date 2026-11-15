@@ -10,6 +10,7 @@ This module owns only operator-facing export orchestration and indicator editor
 state projection. Project persistence remains Phase6ProjectController authority;
 manufacturing geometry/DXF generation remains manufacturing_api authority.
 """
+import hashlib
 import os
 import shutil
 import tempfile
@@ -544,7 +545,64 @@ def _export_selected_parts(self, folder, val, flags, draw_stock):
 
 
 
-def _commit_staged_project_export(stage_folder, output_folder, *, pre_commit_guard=None):
+
+_STAGED_DXF_MANIFEST_MISMATCH = (
+    "DXF 暫存檔案與引擎回報不一致，已取消整批發布。"
+)
+
+
+def _seal_staged_export_manifest(stage_folder, exported):
+    """Capture exact Engine-reported file names and bytes for GUI publication.
+
+    Only transport integrity belongs here: the Engine has already
+    manufactured and reopened DXFs and may report companion JSON manifests.
+    """
+    if isinstance(exported, (str, bytes)):
+        raise ValueError(_STAGED_DXF_MANIFEST_MISMATCH)
+    try:
+        reported = tuple(exported)
+    except TypeError as exc:
+        raise ValueError(_STAGED_DXF_MANIFEST_MISMATCH) from exc
+    if any(
+        not isinstance(name, str) or not name.strip()
+        or name in (".", "..") or "/" in name or "\\" in name
+        for name in reported
+    ):
+        raise ValueError(_STAGED_DXF_MANIFEST_MISMATCH)
+    entries = tuple(os.listdir(stage_folder))
+    if (
+        len(set(reported)) != len(reported)
+        or sorted(reported) != sorted(entries)
+        or any(
+            os.path.islink(os.path.join(stage_folder, name))
+            or not os.path.isfile(os.path.join(stage_folder, name))
+            for name in entries
+        )
+    ):
+        raise ValueError(_STAGED_DXF_MANIFEST_MISMATCH)
+    return tuple(
+        (name, _staged_export_file_digest(os.path.join(stage_folder, name)))
+        for name in sorted(reported)
+    )
+
+
+def _staged_export_file_digest(path):
+    """Hash transport bytes without inspecting or deriving physical geometry."""
+    digest = hashlib.sha256()
+    with open(path, "rb") as source:
+        for chunk in iter(lambda: source.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _assert_staged_export_seal(stage_folder, sealed):
+    reported = tuple(name for name, _digest in sealed)
+    if _seal_staged_export_manifest(stage_folder, reported) != sealed:
+        raise ValueError(_STAGED_DXF_MANIFEST_MISMATCH)
+
+def _commit_staged_project_export(
+    stage_folder, output_folder, *, pre_commit_guard=None, expected_manifest=None,
+):
     """Publish staged files only while their original physical source is current.
 
     Engine export has already manufactured/reopened each DXF. This GUI
@@ -563,9 +621,12 @@ def _commit_staged_project_export(stage_folder, output_folder, *, pre_commit_gua
     backup_root = tempfile.mkdtemp(prefix=".whd-export-backup-", dir=output_root)
     committed = []
     backups = {}
+    sealed_digests = dict(expected_manifest) if expected_manifest is not None else None
     try:
         if pre_commit_guard is not None:
             pre_commit_guard()
+        if expected_manifest is not None:
+            _assert_staged_export_seal(stage_root, expected_manifest)
         for name in entries:
             destination = os.path.join(output_root, name)
             if os.path.exists(destination):
@@ -574,9 +635,15 @@ def _commit_staged_project_export(stage_folder, output_folder, *, pre_commit_gua
                 backups[destination] = backup
         if pre_commit_guard is not None:
             pre_commit_guard()
+        if expected_manifest is not None:
+            _assert_staged_export_seal(stage_root, expected_manifest)
         for name in entries:
             source = os.path.join(stage_root, name)
             destination = os.path.join(output_root, name)
+            if sealed_digests is not None:
+                if (os.path.islink(source) or not os.path.isfile(source)
+                        or _staged_export_file_digest(source) != sealed_digests[name]):
+                    raise ValueError(_STAGED_DXF_MANIFEST_MISMATCH)
             os.replace(source, destination)
             committed.append(destination)
         if pre_commit_guard is not None:
@@ -903,28 +970,10 @@ def export_selected_dxf(self):
         # that happens to be present in the stage directory. Conversely a
         # reported but missing physical DXF may not become a false success.
         # This does not classify parts or derive any manufacturing geometry.
-        staged_files = tuple(
-            name for name in os.listdir(stage_folder)
-            if os.path.isfile(os.path.join(stage_folder, name))
-        )
-        if (
-            any(
-                not isinstance(name, str) or not name.strip()
-                or name in (".", "..")
-                or "/" in name or "\\" in name
-                for name in exported
-            )
-            or len(set(exported)) != len(exported)
-            or sorted(exported) != sorted(staged_files)
-            or any(
-                os.path.islink(os.path.join(stage_folder, name))
-                for name in staged_files
-            )
-        ):
-            messagebox.showerror(
-                "輸出失敗",
-                "DXF 暫存檔案與引擎回報不一致，已取消整批發布。",
-            )
+        try:
+            staged_manifest = _seal_staged_export_manifest(stage_folder, exported)
+        except (ValueError, TypeError, OSError) as exc:
+            messagebox.showerror("輸出失敗", str(exc))
             return
         partial_report = getattr(self, "_phase6_nfb_partial_export_report", None)
         if partial_report is not None:
@@ -961,10 +1010,13 @@ def export_selected_dxf(self):
                 return
         try:
             if final_publish_guard is None:
-                committed = _commit_staged_project_export(stage_folder, folder)
+                committed = _commit_staged_project_export(
+                    stage_folder, folder, expected_manifest=staged_manifest,
+                )
             else:
                 committed = _commit_staged_project_export(
                     stage_folder, folder, pre_commit_guard=final_publish_guard,
+                    expected_manifest=staged_manifest,
                 )
         except Exception as ex:
             messagebox.showerror("輸出失敗", f"批次提交失敗：{ex}")
