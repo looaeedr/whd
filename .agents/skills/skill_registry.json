@@ -103,6 +103,18 @@
       ]
     },
     {
+      "id": "skill-prompt-healthcheck",
+      "keywords": ["/提示詞健檢", "/提視詞健檢", "提示詞健檢", "提視詞健檢", "prompt audit", "prompt healthcheck"],
+      "boundary_keywords": ["prompt audit", "prompt healthcheck"],
+      "file_globs": [],
+      "required_skills": ["寫技能", "writing-for-agents"],
+      "required_references": [
+        "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
+        "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md"
+      ],
+      "description": "Read-only prompt healthcheck by default; explicit fixes follow GitHub localX-first governance."
+    },
+    {
       "id": "skill-discovery",
       "keywords": [
         "找技能",
