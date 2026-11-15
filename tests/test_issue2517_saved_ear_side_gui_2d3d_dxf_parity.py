@@ -56,6 +56,13 @@ def _source_after_real_save_reload(tmp_path):
         nfb_config=deepcopy(original["nfb_config"]),
     )
     original["receiving_layout"] = layout
+    # Source normalization adds canonical neutral per-hole fields to the
+    # committed Bay. The root/active operator projection must consume that
+    # EXACT saved NFB row; otherwise Engine correctly rejects identity drift
+    # before any physical EAR contact (not a codec or manufacturing bug).
+    original["nfb_config"] = deepcopy(
+        layout["sets"][0]["bays"][0]["nfb_config"]
+    )
     original["_receiving_runtime_selection"] = {
         "set_index": 0,
         "bay_index": 0,
