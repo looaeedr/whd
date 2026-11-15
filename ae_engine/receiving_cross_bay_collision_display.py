@@ -123,7 +123,7 @@ def project_receiving_set_cross_bay_collision_display_audit(
             if key in all_keys:
                 raise ValueError("RECEIVING_CROSS_BAY_DUPLICATE_PHYSICAL_KEY")
             if not triangles:
-                raise ValueError("RECEIVING_CROSS_BAY_MISSING_PHYSICAL_WORLD_MESH")
+                raise ValueError(f"RECEIVING_CROSS_BAY_MISSING_PHYSICAL_WORLD_MESH: {key}")
             shifted = []
             for tri in triangles:
                 if len(tri) != 3:

@@ -100,12 +100,12 @@ def test_actual_joint_offset_detects_cross_bay_mesh_penetration(monkeypatch):
         calls.append((tuple(p.part_key for p in parts), dimensions, thickness))
         if len(calls) == 1:
             return {"world_triangles_by_part": {
-                "box_body": a, "box_body:left_side": remote,
-                "box_body:back": remote, "box_body:right_side": (a,),
+                "box_body": (a,), "box_body:left_side": (remote,),
+                "box_body:back": (remote,), "box_body:right_side": (a,),
             }}
         return {"world_triangles_by_part": {
-            "box_body": b, "box_body:left_side": (b,),
-            "box_body:back": remote, "box_body:right_side": remote,
+            "box_body": (b,), "box_body:left_side": (b,),
+            "box_body:back": (remote,), "box_body:right_side": (remote,),
         }}
 
     monkeypatch.setattr(impl, "build_joint_world_geometry", real_owner_stub)
@@ -146,7 +146,16 @@ def test_cross_bay_rejects_invalid_sheet_thickness(bad):
         )
 
 
-def test_missing_second_bay_scene_cannot_pass_as_zero_collision():
+def test_missing_second_bay_scene_cannot_pass_as_zero_collision(monkeypatch):
+    from ae_engine import receiving_cross_bay_collision_display as impl
+    triangle = ((0.0, 0.0, 0.0), (1.0, 0.0, 0.0), (0.0, 1.0, 0.0))
+    monkeypatch.setattr(impl, "build_joint_world_geometry",
+                        lambda *_: {"world_triangles_by_part": {
+                            "box_body": (triangle,),
+                            "box_body:left_side": (triangle,),
+                            "box_body:back": (triangle,),
+                            "box_body:right_side": (triangle,),
+                        }})
     seen = []
 
     def missing_on_second(si, bi):
