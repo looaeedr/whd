@@ -58,7 +58,9 @@ def _source_after_real_save_reload(tmp_path):
     assert project_path.read_bytes() == saved_bytes
 
     restored_geometry = _full_receiving_geometry(reopened)
-    assert set(original_geometry.part_keys) == set(restored_geometry.part_keys)
+    assert {row.part_key for row in original_geometry.parts} == {
+        row.part_key for row in restored_geometry.parts
+    }
     for owner in SIDES:
         old = owner_render_data(original_geometry, owner)
         new = owner_render_data(restored_geometry, owner)
