@@ -89,6 +89,10 @@ def _call_real_gui(monkeypatch, loaded, parts, root, *, mutate_at=None):
         fold_designer_app=designer,
         _flush_phase6_authoritative_state=lambda: None,
     )
+    # Main GUI numeric widgets are independent from the designer's committed
+    # snapshot until its next sync. The shipped button must witness both.
+    live = {key: loaded[key] for key in ("w", "h", "d", "t")}
+    host.get_float_values = lambda: deepcopy(live)
     received = []
     # This is only the GUI FinalScene reader seam: the returned parts are
     # pre-resolved by the genuine committed-CSV Engine above.
@@ -103,21 +107,27 @@ def _call_real_gui(monkeypatch, loaded, parts, root, *, mutate_at=None):
             if given is designer else pytest.fail("different GUI owner")
         ),
     )
-    monkeypatch.setattr(
-        simpledialog, "askstring",
-        lambda title, *_args, **_kw: (
-            "SPCC" if "材質" in title else "LASER"
-        ),
-    )
+    def askstring(title, *_args, **_kw):
+        if mutate_at == "live_material" and "材質" in title:
+            live["w"] += 1.
+        if mutate_at == "live_process" and "製程" in title:
+            live["d"] += 1.
+        return "SPCC" if "材質" in title else "LASER"
+
+    monkeypatch.setattr(simpledialog, "askstring", askstring)
 
     def quantity(*_args, **_kwargs):
         if mutate_at == "quantity":
             loaded["t"] = 3.0
+        if mutate_at == "live_quantity":
+            live["t"] = 3.0
         return 2
 
     def directory(**_kw):
         if mutate_at == "directory":
             loaded["t"] = 3.0
+        if mutate_at == "live_directory":
+            live["h"] += 1.
         return str(root)
 
     monkeypatch.setattr(simpledialog, "askinteger", quantity)
@@ -183,3 +193,78 @@ def test_real_gui_pad_base_saved_source_drift_never_publishes_check_q(
     assert not any(item.is_dir() for item in tmp_path.iterdir())
     assert not list(tmp_path.glob("*.dxf"))
     assert project_path.read_bytes() == original_disk
+
+
+@pytest.mark.parametrize("mutate_at", (
+    "live_material", "live_process", "live_quantity", "live_directory",
+))
+def test_saved_pad_base_gui_button_unsynced_main_numeric_edit_cannot_release_q(
+    tmp_path, monkeypatch, mutate_at,
+):
+    # A real .p6fold project, actual Engine 2D PAD and BASE FinalScene
+    # verified against signed 3D installation. Only main GUI numeric widgets
+    # mutate mid-dialog; the authoritative saved source remains unchanged.
+    path, loaded, _selected, actual_parts, actual_2d = (
+        _physical_gui_saved_source(tmp_path)
+    )
+    disk = path.read_bytes()
+    snapshot = deepcopy(loaded)
+    assert len(actual_2d) == 2
+    result, events = _call_real_gui(
+        monkeypatch, loaded, actual_parts, tmp_path, mutate_at=mutate_at,
+    )
+    assert result is None
+    assert [event[0] for event in events] == ["error"]
+    assert "DXF 即時操作來源已變更" in events[0][2]
+    assert path.read_bytes() == disk
+    assert loaded == snapshot
+    assert not list(tmp_path.glob("*.dxf"))
+    assert not any(item.is_dir() for item in tmp_path.iterdir())
+
+
+def test_pad_base_gui_live_numeric_reader_attached_during_modal_must_fail_closed(
+    tmp_path, monkeypatch,
+):
+    # The reader itself is part of the source witness. Passing a headless
+    # legacy host must not authorize a newly attached, unsynchronized widget.
+    path, loaded, _selected, actual_parts, _ = _physical_gui_saved_source(tmp_path)
+    saved = path.read_bytes()
+    import fold_designer_bridge as bridge
+    designer = SimpleNamespace(
+        _phase6_input_snapshot=loaded, designer_workspace=None,
+    )
+    host = SimpleNamespace(
+        fold_designer_app=designer,
+        _flush_phase6_authoritative_state=lambda: None,
+    )
+    monkeypatch.setattr(
+        bridge, "_phase6_final_scene_adapter",
+        lambda given: SimpleNamespace(
+            query_assembly_render_data=lambda: SimpleNamespace(
+                assembly_parts=actual_parts,
+            )
+        ) if given is designer else pytest.fail("wrong scene owner"),
+    )
+    monkeypatch.setattr(
+        simpledialog, "askstring",
+        lambda title, *_a, **_k: "SPCC" if "材質" in title else "LASER",
+    )
+    monkeypatch.setattr(simpledialog, "askinteger", lambda *_a, **_k: 2)
+
+    def directory(**_kw):
+        host.get_float_values = lambda: {
+            key: loaded[key] for key in ("w", "h", "d", "t")
+        }
+        return str(tmp_path)
+
+    monkeypatch.setattr(gui.filedialog, "askdirectory", directory)
+    messages = []
+    monkeypatch.setattr(gui.messagebox, "showerror",
+                        lambda title, detail: messages.append(("error", detail)))
+    monkeypatch.setattr(gui.messagebox, "showinfo",
+                        lambda title, detail: messages.append(("success", detail)))
+    assert gui.export_receiving_pad_base_part_only_dxf(host) is None
+    assert messages and messages[0][0] == "error"
+    assert "DXF 即時操作來源已變更" in messages[0][1]
+    assert not any(item.is_dir() for item in tmp_path.iterdir())
+    assert path.read_bytes() == saved
