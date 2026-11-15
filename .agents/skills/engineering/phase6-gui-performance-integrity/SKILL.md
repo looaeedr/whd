@@ -11,6 +11,8 @@ whd_schema: WHD_DOC_META_V1
 
 ## 核心原則
 
+此 Skill 僅用於 WHD GUI／Tk trace callback／3D 的實際效能與更新排程。一般需求追溯 `traceability`、專案排程 `scheduler prompt`、一般 GitHub workflow 排程都不是 GUI 計算效能問題；Registry 使用具體的 `Tk trace`／`Scheduler flush` 等語句選路，不拿通用 `trace`／`Scheduler` 子字串誤觸。
+
 GUI 效能修正不能靠「少算、延遲不更新、降低幾何精度」製造假快。每次互動必須維持 canonical state → geometry → 2D/3D → save/export 一致，同時消除重複計算與重複 I/O。
 
 ## 更新管線唯一權責

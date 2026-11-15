@@ -9,7 +9,7 @@ whd_schema: WHD_DOC_META_V1
 
 # 刪除
 
-把「刪除」當成一個有可驗證 postcondition 的 lifecycle 操作，而不是把狀態字串改成 `EMPTY` 就算完成。
+把「刪除」當成一個有可驗證 postcondition 的 lifecycle 操作，而不是把狀態字串改成 `EMPTY` 就算完成。英文 `delete`／`remove` 路由須符合完整單字邊界；`undelete`、`removed`、檔案還原／查詢已刪紀錄不能推導成**執行刪除**的授權。即使 Skill 被選中，實際 destructive mutation 仍需使用者明確指示與 exact target 身分。
 
 ## 0. Authority 與遠端邊界
 

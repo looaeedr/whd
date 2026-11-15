@@ -129,3 +129,15 @@ def test_release_packaging_skill_does_not_claim_generic_full_update_authority():
     assert "只有在明確**出包／release／packaging** 語意" in release
     assert "單獨 `FULL`、`UPDATE`" in release
     assert "tools/phase6_skill_preflight.py" in release
+
+
+def test_deletion_transport_and_gui_performance_triggers_are_scope_bound():
+    delete = read(".agents/skills/engineering/刪除/SKILL.md")
+    git = read(".agents/skills/misc/git-remote-sync-fallback/SKILL.md")
+    gui = read(".agents/skills/engineering/phase6-gui-performance-integrity/SKILL.md")
+    assert "英文 `delete`／`remove` 路由須符合完整單字邊界" in delete
+    assert "`undelete`、`removed`" in delete
+    assert "單純閱讀 `GitHub Connector` 文件" in git
+    assert "不得因通用關鍵字就進入傳輸備援" in git
+    assert "`traceability`" in gui
+    assert "`scheduler prompt`" in gui

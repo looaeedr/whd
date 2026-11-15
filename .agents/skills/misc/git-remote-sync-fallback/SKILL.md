@@ -17,7 +17,7 @@ whd_schema: WHD_DOC_META_V1
 
 ## 現行遠端操作與公開上傳邊界
 
-本 Skill 只處理已授權工作分支的 Git 運輸／失敗備援，**不自行授權施工或 DC 存取**，不恢復舊 remote token／receipt／unlock。`/派工` 的產品 BUILD／TEST／COMMIT 必須在 GitHub／排程／雲端執行器；`/接手` 只有使用者當次明確指示才可在 RC `whd-dev:/workspace/whd` 施工。純治理／產品 PR 都先合 GitHub `localX`；正式 X 一律需要使用者當次 `/推推`、受信任 CI／gate。
+本 Skill 只處理已授權工作分支的 Git 運輸／失敗備援，**不自行授權施工或 DC 存取**，不恢復舊 remote token／receipt／unlock。單純閱讀 `GitHub Connector` 文件、調整 DNS 或排查一般 JSON「無法解析」**不是 Git remote sync 失敗**，不得因通用關鍵字就進入傳輸備援；路由須具備 Git push/fetch/pull、明確 GitHub 遠端同步或 GitHub host 解析失敗語意。`/派工` 的產品 BUILD／TEST／COMMIT 必須在 GitHub／排程／雲端執行器；`/接手` 只有使用者當次明確指示才可在 RC `whd-dev:/workspace/whd` 施工。純治理／產品 PR 都先合 GitHub `localX`；正式 X 一律需要使用者當次 `/推推`、受信任 CI／gate。
 
 實際平台安全審查仍然有效：若 Git/Connector/Remote Desktop 因公開上傳要求更精確批准或拒絕，不可換工具規避、偽稱已獲批准、重建不同 commit 冒充原提交；保留本機 SHA、回報原始拒絕操作與使用者可行動的步驟。
 
