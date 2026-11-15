@@ -19,7 +19,10 @@ import sys
 from pathlib import Path
 from typing import Iterable, Mapping, Sequence
 
-from tools.interactive_command_no_stop_gate import ordered_command_skills
+from tools.interactive_command_no_stop_gate import (
+    ordered_command_skills,
+    without_negated_command_mentions,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -122,7 +125,9 @@ def required_skills_for(
     registry: Mapping[str, object] | None = None,
 ) -> tuple[str, ...]:
     data = registry or load_skill_registry()
-    task_text = str(task or "").lower()
+    # Slash commands explicitly prohibited in this instruction are mentions,
+    # not action requests; apply the same masking to every Registry route.
+    task_text = without_negated_command_mentions(str(task or "")).lower()
     files = tuple(_norm(path) for path in changed_files)
     required: list[str] = []
 
@@ -159,7 +164,7 @@ def required_references_for(
     registry: Mapping[str, object] | None = None,
 ) -> tuple[str, ...]:
     data = registry or load_skill_registry()
-    task_text = str(task or "").lower()
+    task_text = without_negated_command_mentions(str(task or "")).lower()
     files = tuple(_norm(path) for path in changed_files)
     required: list[str] = list(GLOBAL_REQUIRED_REFERENCES)
 

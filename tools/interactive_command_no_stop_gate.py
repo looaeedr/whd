@@ -76,10 +76,34 @@ _COMMAND_SKILLS = {
     "/接手": ("root-local-first", "執行開發任務"),
 }
 _COMMAND_PATTERN = re.compile(r"(?<![A-Za-z0-9_])/(?:功能|debug|派工|接手)(?![A-Za-z0-9_])", re.IGNORECASE)
+# A negative instruction names a command to forbid it, not to activate it.
+# This only filters an explicit nearby negation; it does not infer authority
+# from affirmative commands or attempt to classify all natural-language intent.
+_NEGATED_COMMAND_PREFIX = re.compile(
+    r"(?:不要|不用|不必|無需|禁止|不准|不可|不能|別|不是|do\s+not|don't|not)"
+    r"\s*(?:執行|啟動|使用|呼叫|跑)?\s*[`\"'「『(\[]?\s*$",
+    re.IGNORECASE,
+)
+
+
+def without_negated_command_mentions(task: str) -> str:
+    """Mask negated slash commands for both ordered and Registry routing.
+
+    Keep all other text and command positions unchanged. This is a Skill
+    discovery safeguard, never a substitute for explicit user authorization.
+    """
+    result = list(task)
+    for match in _COMMAND_PATTERN.finditer(task):
+        prefix = task[max(0, match.start() - 40):match.start()]
+        if _NEGATED_COMMAND_PREFIX.search(prefix):
+            result[match.start():match.end()] = " " * len(match.group(0))
+    return "".join(result)
+
 
 def ordered_command_skills(task: str) -> tuple[str, ...]:
-    """Explicit commands share one sequence; only /接手 selects RC skills."""
-    present = {match.group(0).casefold() for match in _COMMAND_PATTERN.finditer(task)}
+    """Explicit commands share one sequence; only affirmative /接手 selects RC skills."""
+    routable = without_negated_command_mentions(task)
+    present = {match.group(0).casefold() for match in _COMMAND_PATTERN.finditer(routable)}
     ordered: list[str] = []
     for command in ("/功能", "/debug", "/派工", "/接手"):
         if command in present:

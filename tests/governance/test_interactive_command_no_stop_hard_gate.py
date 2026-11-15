@@ -47,6 +47,45 @@ class InteractiveNoStopGate(unittest.TestCase):
         self.assertIn("執行開發任務", takeover)
         self.assertNotIn("root-local-first", required_skills_for(task="/派工 #1933"))
 
+    def test_negated_slash_commands_do_not_select_local_or_dispatch_execution(self):
+        cases = (
+            ("不要 /接手，改用 /派工 #42",
+             ("派工",), ("root-local-first", "執行開發任務")),
+            ("不要執行 `/接手`，改用 `/派工`",
+             ("派工",), ("root-local-first", "執行開發任務")),
+            ("don't /接手; use /派工 #42",
+             ("派工",), ("root-local-first", "執行開發任務")),
+            ("不用 /派工，改用 /debug #42",
+             ("diagnosing-bugs", "tdd"), ("派工", "issue-closure-gate")),
+            ("禁止 /debug，改用 /功能 #42",
+             ("新增功能",), ("diagnosing-bugs", "tdd")),
+            ("not /功能; run /debug #42",
+             ("diagnosing-bugs", "tdd"), ("新增功能",)),
+        )
+        for task, present, absent in cases:
+            with self.subTest(task=task):
+                ordered = set(ordered_command_skills(task))
+                selected = set(required_skills_for(task=task))
+                for skill in present:
+                    self.assertIn(skill, ordered)
+                    self.assertIn(skill, selected)
+                for skill in absent:
+                    self.assertNotIn(skill, ordered)
+                    self.assertNotIn(skill, selected)
+
+        for task in ("不要 /接手", "不准 /派工", "不用 /debug", "不要 /功能"):
+            with self.subTest(task=task):
+                self.assertEqual(ordered_command_skills(task), ())
+                self.assertEqual(required_skills_for(task=task), ())
+
+        self.assertEqual(
+            ordered_command_skills("/功能 /DEBUG /派工 #1933"),
+            ("新增功能", "diagnosing-bugs", "tdd", "派工", "issue-closure-gate"),
+        )
+        self.assertEqual(
+            ordered_command_skills("/接手 #42"), ("root-local-first", "執行開發任務")
+        )
+
     def test_real_executor_invokes_other_authorized_work_after_refusal(self):
         calls = []
         def denied():

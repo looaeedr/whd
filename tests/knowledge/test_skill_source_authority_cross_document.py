@@ -156,3 +156,14 @@ def test_issue_closure_and_publish_skills_do_not_promote_mentions_into_authority
     assert "當次**肯定、明確地下達**" in publish
     assert "`bugfix` / `bug fix`" in debug
     assert "`Bugatti`" in debug
+
+
+def test_current_local_executor_does_not_assume_negated_takeover_permission():
+    local = read(".agents/skills/engineering/root-local-first/SKILL.md")
+    dispatch = read(".agents/skills/engineering/派工/SKILL.md")
+    parser = read("tools/interactive_command_no_stop_gate.py")
+    router = read("tools/phase6_skill_preflight.py")
+    assert "不要 `/接手`，改用 `/派工`" in local
+    assert "不用 `/派工`，改用 `/debug`" in dispatch
+    assert "without_negated_command_mentions" in parser
+    assert "without_negated_command_mentions" in router
