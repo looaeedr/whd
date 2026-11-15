@@ -185,3 +185,23 @@ def test_governance_ci_uses_exact_pr_head_and_runs_skill_router_contracts() -> N
     for path in expected:
         assert f"      - {path}\n" in watched_paths, path
         assert path in pytest_node_list, path
+
+
+def test_inquiry_mentions_are_not_automatic_dispatch_or_release_routes() -> None:
+    for prompt in (
+        "說明 /推推 的使用條件",
+        "比較 /派工 跟 /接手 哪個適合",
+        "解釋 \x60/接手\x60 的 RC 權限",
+    ):
+        assert not {"推推", "派工", "root-local-first", "執行開發任務"} & set(
+            required_skills_for(task=prompt)
+        ), prompt
+
+    # Editing the respective Skill retains file-path grounding regardless
+    # of question wording; a file route is never mutation authorization.
+    selected = set(required_skills_for(
+        task="說明 /推推 的條件",
+        changed_files=[".agents/skills/engineering/推推/SKILL.md"],
+    ))
+    assert "推推" in selected
+
