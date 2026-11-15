@@ -324,6 +324,10 @@ from .manufacturing_request_parts import (
     OperatorManufacturingPartSourcePlan, plan_operator_manufacturing_part_source,
 )
 from .assembly_collision_display_api import project_assembly_collision_display_audit
+from .receiving_cross_bay_collision_display import (
+    ReceivingSetCrossBayCollisionAudit,
+    project_receiving_set_cross_bay_collision_display_audit,
+)
 from .assembly_all_parts_collision import collision_part_display_name
 from .receiving_base_display_source import (
     ReceivingBasePlateDisplaySource, inspect_receiving_base_plate_display_source,
