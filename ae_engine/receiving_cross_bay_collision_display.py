@@ -34,6 +34,10 @@ class ReceivingSetCrossBayCollisionAudit:
     physical_keys_by_bay: tuple[tuple[str, ...], ...]
     missing_world_keys_by_bay: tuple[tuple[str, ...], ...]
     pairs: tuple[AssemblyPhysicalPair, ...]
+    # Exact already validated world triangles FROM the same Engine pass that
+    # produced pairs. This is a read-only presentation receipt, never an
+    # alternate manufacturing mesh or a positive-volume certification.
+    world_triangles_by_bay: tuple[tuple[tuple[str, tuple], ...], ...] = ()
 
     @property
     def evaluated_pair_count(self) -> int:
@@ -202,6 +206,9 @@ def project_receiving_set_cross_bay_collision_display_audit(
         physical_keys_by_bay=tuple(tuple(sorted(x)) for x in by_bay),
         missing_world_keys_by_bay=tuple(missing_by_bay),
         pairs=tuple(crossing_pairs),
+        world_triangles_by_bay=tuple(
+            tuple(sorted(group.items())) for group in by_bay
+        ),
     )
 
 def project_receiving_set_cross_bay_collision_from_preview_requests(

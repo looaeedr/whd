@@ -231,17 +231,40 @@ def open_receiving_layer_preview(
     ttk.Button(actions, text="縮小", command=lambda: view.zoom(1.25)).pack(side=tk.LEFT)
     ttk.Button(actions, text="重設視角", command=view.reset_view).pack(side=tk.LEFT)
     if not common_box and count > 1 and settings_ports is not None:
-        def audit_cross_bay_on_demand():
+        win._phase6_receiving_cross_bay_3d_popup = None
+
+        def clear_cross_bay_diagnostic():
+            # The original settings editor can change a Bay while this
+            # modeless 3D view remains open. Never keep stale physical geometry
+            # on screen after a committed operator update.
             win._phase6_receiving_cross_bay_collision_audit = None
+            popup = win._phase6_receiving_cross_bay_3d_popup
+            win._phase6_receiving_cross_bay_3d_popup = None
+            if popup is not None and popup.winfo_exists():
+                popup.destroy()
+
+        def audit_cross_bay_on_demand():
+            clear_cross_bay_diagnostic()
             try:
                 audit, status = receiving_live_cross_bay_collision_display_status(
                     settings_ports.get("layout"), bay_request_provider,
                     set_index=index,
                 )
+                from .receiving_cross_bay_diagnostic_3d import (
+                    open_receiving_cross_bay_3d_popup,
+                )
+                popup = open_receiving_cross_bay_3d_popup(
+                    win, tk=tk, ttk=ttk, audit=audit, status=status,
+                )
+                win._phase6_receiving_cross_bay_3d_popup = popup
                 win._phase6_receiving_cross_bay_collision_audit = audit
                 view.status.set(status)
             except Exception as exc:
+                clear_cross_bay_diagnostic()
                 view.status.set("跨連 3D 碰撞尚未完成：" + str(exc))
+        subscribe = settings_ports.get("subscribe")
+        if callable(subscribe):
+            subscribe(clear_cross_bay_diagnostic)
         ttk.Button(actions, text="跨連 3D 碰撞診斷",
                    command=audit_cross_bay_on_demand).pack(side=tk.LEFT)
         win._phase6_receiving_audit_cross_bay = audit_cross_bay_on_demand
