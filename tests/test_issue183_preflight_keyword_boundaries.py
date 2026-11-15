@@ -45,3 +45,41 @@ def test_python_mock_keyword_routes_actual_test_double_work():
     task = "用 mock 隔離 pytest 外部依賴"
     assert "Python測試實務" in required_skills_for(task=task)
     assert "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md" in required_references_for(task=task)
+
+
+def test_fix_keyword_does_not_misroute_pytest_fixture_or_prefix_edits():
+    for task in (
+        "pytest fixture 隔離測試",
+        "prefix table naming",
+        "suffix label formatting",
+        "fixture monkeypatch 範例",
+    ):
+        skills = set(required_skills_for(task=task))
+        assert "diagnosing-bugs" not in skills, task
+        assert "tdd" not in skills, task
+
+    for task in ("fix invalid project save", "修正錯誤", "debug crash"):
+        skills = set(required_skills_for(task=task))
+        assert "diagnosing-bugs" in skills, task
+        assert "tdd" in skills, task
+
+
+def test_release_packaging_requires_packaging_intent_or_actual_release_artifacts():
+    non_release = (
+        ("UPDATE AGENTS.md wording", ()),
+        ("FULL suite feedback", ()),
+        ("update README documentation", ()),
+        ("修改技能路由診斷工具", ("tools/phase6_skill_preflight.py",)),
+    )
+    for task, files in non_release:
+        selected = set(required_skills_for(task=task, changed_files=files))
+        refs = set(required_references_for(task=task, changed_files=files))
+        assert "phase6-release-packaging" not in selected, task
+        assert "release_required_artifacts.json" not in refs, task
+
+    for task in ("FULL 出包", "UPDATE 出包", "UPDATE package", "正式出包"):
+        assert "phase6-release-packaging" in required_skills_for(task=task), task
+        assert "release_required_artifacts.json" in required_references_for(task=task), task
+
+    for path in ("tools/phase6_release.py", "release_required_artifacts.json"):
+        assert "phase6-release-packaging" in required_skills_for(changed_files=(path,)), path
