@@ -843,6 +843,11 @@ def receiving_bay_preview_request(self, namespace, set_index, bay_index, *, prev
         finished_dimensions=dimensions(), thickness=manufacturing_api.normalize_operator_source_dimension(
             snapshot.get("t", 2), field="t",
         ),
+        receiving_collision_geometry=resolved,
+        receiving_collision_identity=(
+            str(snapshot["receiving_layout"]["sets"][set_index]["stable_id"]),
+            str(snapshot["receiving_layout"]["sets"][set_index]["bays"][bay_index]["stable_id"]),
+        ),
     )
     if preview_layout is None:
         _retain_committed_receiving_bay_preview(
@@ -977,6 +982,9 @@ def receiving_settings_ports(self, namespace, set_index):
 
     return {
         "row": lambda: adapter.layout["sets"][set_index],
+        # Read-only actual layout source for the Engine cross-Bay diagnostic;
+        # no GUI derivative Joint offset or physical-pair classification.
+        "layout": lambda: adapter.layout,
         "select": selected, "change": change, "share": share, "unlink": unlink,
         "dimensions": dimensions, "alignment": alignment, "brand": brand, "holes": holes,
         "subscribe": listeners.append,

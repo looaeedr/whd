@@ -67,6 +67,11 @@ class FinalSceneViewRequest:
     thickness: float = 2.0
     corner_dimension_text: str | None = None
     unfolded_blank_text: str | None = None
+    # Original Receiving Set/Bay preview owns this *already resolved* Engine
+    # source. It is a display-only receipt for an on-demand cross-Bay audit,
+    # not an alternate GUI manufacturer or a saved project field.
+    receiving_collision_geometry: object | None = None
+    receiving_collision_identity: tuple[str, str] | None = None
 
 
 @dataclass(frozen=True)

@@ -327,6 +327,7 @@ from .assembly_collision_display_api import project_assembly_collision_display_a
 from .receiving_cross_bay_collision_display import (
     ReceivingSetCrossBayCollisionAudit,
     project_receiving_set_cross_bay_collision_display_audit,
+    project_receiving_set_cross_bay_collision_from_preview_requests,
 )
 from .assembly_all_parts_collision import collision_part_display_name
 from .receiving_base_display_source import (
