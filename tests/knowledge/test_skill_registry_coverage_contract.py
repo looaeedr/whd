@@ -168,3 +168,20 @@ def test_prompt_healthcheck_is_read_only_without_second_current_owner() -> None:
     assert "**明確要求修正**" in owner
     assert "不建立另一份 CURRENT Skill" in owner
     assert "not** a second WHD Skill authoring" in method
+
+
+def test_governance_ci_uses_exact_pr_head_and_runs_skill_router_contracts() -> None:
+    """A governance GREEN must include the relevant Skill discovery tests on the PR head."""
+    workflow = (ROOT / ".github/workflows/whd-localx-governance-tests.yml").read_text(encoding="utf-8")
+    expected = (
+        "tests/knowledge/test_skill_registry_coverage_contract.py",
+        "tests/knowledge/test_skill_registry_domain_reference_contract.py",
+    )
+    watched_paths = workflow.split("on:", 1)[1].split("permissions:", 1)[0]
+    governance_job = workflow.split("  governance-contracts:", 1)[1].split("  process-contracts:", 1)[0]
+    checkout = governance_job.split("      - name: Checkout PR source", 1)[1].split("      - name: Python", 1)[0]
+    assert "ref: ${{ github.event.pull_request.head.sha }}" in checkout
+    pytest_node_list = governance_job.split("python -m pytest -q ", 1)[1].split("\n", 1)[0].split()
+    for path in expected:
+        assert f"      - {path}\n" in watched_paths, path
+        assert path in pytest_node_list, path
