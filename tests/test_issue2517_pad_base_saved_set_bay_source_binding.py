@@ -12,7 +12,7 @@ from copy import deepcopy
 import pytest
 
 from ae_engine import manufacturing_api as api
-from ae_engine.receiving_layout import resize_receiving_bays
+from ae_engine.receiving_layout import resize_receiving_bays, update_receiving_bay
 from gui_modules.project import export_actions as gui
 import phase6_project_file as project
 from tests.test_issue1502_current_csv_multi_bay_once import _multi
@@ -99,8 +99,14 @@ def test_real_saved_two_bay_layout_cannot_select_unsubmitted_cloned_bay(
         _physical_gui_saved_source(tmp_path)
     )
     saved = deepcopy(loaded)
-    saved["receiving_layout"] = resize_receiving_bays(
-        saved["receiving_layout"], set_index=0, bay_count=2,
+    # Tail clone copies the NFB submitted fact but invalidates its world-X
+    # confirmation. Explicitly withdraw its submission through the original
+    # Engine transaction; never treat an unconfirmed clone as manufactured.
+    saved["receiving_layout"] = update_receiving_bay(
+        resize_receiving_bays(
+            saved["receiving_layout"], set_index=0, bay_count=2,
+        ),
+        set_index=0, bay_index=1, nfb_config_submitted=False,
     )
     target = project.write_project(
         tmp_path / "two-physical-bays.p6fold",
