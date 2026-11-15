@@ -77,9 +77,15 @@ _COMMAND_SKILLS = {
 }
 _COMMAND_PATTERN = re.compile(r"(?<![A-Za-z0-9_])/(?:功能|debug|派工|接手)(?![A-Za-z0-9_])", re.IGNORECASE)
 # Publishing is routed by Registry, not the ordered execution-command route.
-# Cover /推推 and prompt-healthcheck aliases (also bare forms) in negative instructions.
+# Mask nearby explicit negations of slash commands and high-impact bare aliases
+# (dispatch, deletion, publishing, and prompt healthcheck) for discovery only.
 _NEGATABLE_COMMAND_PATTERN = re.compile(
-    r"(?<![A-Za-z0-9_])(?:/(?:功能|debug|派工|接手|推推|提示詞健檢|提視詞健檢)|推推|提示詞健檢|提視詞健檢|prompt audit|prompt healthcheck)(?![A-Za-z0-9_])",
+    r"(?<![A-Za-z0-9_])"
+    r"(?:/(?:功能|debug|派工|接手|推推|提示詞健檢|提視詞健檢|刪除|刪掉|清除|清掉|清空)"
+    r"|推推|派工|接手|提示詞健檢|提視詞健檢"
+    r"|刪除|刪掉|清除|清掉|清空|移除|清\s*(?:staging|active\s*0)"
+    r"|delete|remove|prompt audit|prompt healthcheck)"
+    r"(?![A-Za-z0-9_])",
     re.IGNORECASE,
 )
 # A negative instruction names a command to forbid it, not to activate it.
