@@ -462,8 +462,14 @@
       "id": "phase6-release-packaging",
       "keywords": [
         "release",
-        "FULL",
-        "UPDATE",
+        "FULL 出包",
+        "UPDATE 出包",
+        "FULL 封包",
+        "UPDATE 封包",
+        "FULL release",
+        "UPDATE release",
+        "FULL package",
+        "UPDATE package",
         "package",
         "packaging",
         "打包",
@@ -473,7 +479,6 @@
       "file_globs": [
         "release_required_artifacts.json",
         "tools/phase6_release.py",
-        "tools/phase6_skill_preflight.py",
         ".agents/skills/engineering/phase6-release-packaging/SKILL.md"
       ],
       "required_skills": [
@@ -518,6 +523,9 @@
         "錯誤",
         "修正",
         "除錯"
+      ],
+      "boundary_keywords": [
+        "fix"
       ],
       "file_globs": [],
       "required_skills": [

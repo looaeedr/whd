@@ -35,7 +35,8 @@ def test_skill_registry_routes_phase6_keywords_to_required_skills():
     assert "phase6-overlay-relief-basis" in skills_for("OVERLAY")
     assert "phase6-overlay-relief-basis" in skills_for("flat-X")
     assert "phase6-release-packaging" in skills_for("release")
-    assert "phase6-release-packaging" in skills_for("UPDATE")
+    assert "phase6-release-packaging" in skills_for("FULL 出包")
+    assert "phase6-release-packaging" in skills_for("UPDATE 出包")
     assert "diagnosing-bugs" in skills_for("bug")
     assert "tdd" in skills_for("bug")
 

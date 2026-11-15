@@ -122,3 +122,10 @@ def test_merge_conflict_skill_reconciles_verified_localx_without_forced_resoluti
     assert "trusted gate" in skill
     assert 'Always resolve; never `--abort`' not in skill
     assert "No unconditional" in skill
+
+
+def test_release_packaging_skill_does_not_claim_generic_full_update_authority():
+    release = read(".agents/skills/engineering/phase6-release-packaging/SKILL.md")
+    assert "只有在明確**出包／release／packaging** 語意" in release
+    assert "單獨 `FULL`、`UPDATE`" in release
+    assert "tools/phase6_skill_preflight.py" in release
