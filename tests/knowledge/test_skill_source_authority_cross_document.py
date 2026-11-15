@@ -76,3 +76,20 @@ def test_skill_routes_still_trigger_on_explicit_intent():
     for task, owner in cases:
         assert owner in required_skills_for(task=task), task
     assert "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md" in required_references_for(task="pytest fixture isolation")
+
+
+def test_code_review_uses_exact_localx_without_retired_remote_tokens():
+    review = read(".agents/skills/engineering/code-review/SKILL.md")
+    writing = read(".agents/skills/engineering/寫技能/SKILL.md")
+    assert "WHD_GITHUB_LOCALX_REVIEW_SOURCE_V1" in review
+    assert "GitHub `localX` 最新 exact HEAD" in review
+    assert "已連線且可用" in review and "read-only" in review
+    assert "不得因欠缺另外一個 fixed-point 口令停工" in review
+    assert "NO_REVIEW_DIFF" in review and "SOURCE_READ_PRECONDITION_FAILED" in review
+    assert "SPEC_SOURCE_MISSING" in review
+    assert "同一已核准 Issue／PR" in writing
+    assert "可直接用已連線 GitHub read API" in writing
+    assert "同一已核准 Issue／PR" in writing
+    assert "同一 `WORKSPACE_DELIVERY` task" not in review
+    assert "If they didn't specify one, ask for it." not in review
+    assert "沒有 explicit remote authority 就保持離線" not in writing

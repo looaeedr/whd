@@ -7,7 +7,7 @@ whd_canonical: null
 whd_schema: WHD_DOC_META_V1
 ---
 
-Two-axis review of the diff between `HEAD` and a fixed point the user supplies:
+Two-axis review of the **verified GitHub `localX`-based PR/branch diff**, or the explicit fixed point the user supplies:
 
 - **Standards**: does the code conform to this repo's documented coding standards?
 - **Spec**: does the code faithfully implement the originating issue / spec?
@@ -16,11 +16,11 @@ The two axes stay logically separate so one cannot mask the other. They may run 
 
 ## RUNTIME_CAPABILITY_FALLBACK
 
-### REMOTE_AUTHORITY_GATE_V1
+### WHD_GITHUB_LOCALX_REVIEW_SOURCE_V1
 
-
-在 WHD，review 需要 GitHub Issue/PR、commit reference `#123`、PR diff或 metadata 時仍須 exact remote authority；但若使用者本輪**明確要求 review 該 exact GitHub PR/Issue/ref**，machine 可由該 instruction 一次 mint `USER_EXPLICIT_REMOTE` 所需 read actions，不得回頭要求第二次授權。同一 `WORKSPACE_DELIVERY` task 的 PR/CI/owning-Issue review則直接沿既有 delivery authority。只有 scope 不明、跨 repository/Issue或額外 remote mutation時才標 `REMOTE_SOURCE_NOT_AUTHORIZED`。
-
+- WHD 日常 source of truth 是 GitHub `localX` 最新 exact HEAD 的 `AGENTS.md` 與適用 CURRENT／AI Library；X=`cleanup/2d-3d-sync` 僅供使用者當次 `/推推` 發布與其受信任查核，`main` 是歷史分支。Review 不得拿 X／`main` 的舊規範替代 `localX`。
+- 在本回合使用者已明確要求審查 WHD PR／分支，或同一已授權任務需核對自己的 PR／CI 時，直接使用**已連線且可用**的 GitHub read API，讀取 exact repository／PR／base SHA／head SHA／diff；不再要求退役的 `WORKSPACE_DELIVERY`、`USER_EXPLICIT_REMOTE` token 或第二次 remote read 授權。無權限或來源不明時依平台拒絕／`SOURCE_READ_PRECONDITION_FAILED` 處理，不轉探 DC、RC、Windows。
+- Review 本身是 read-only，**不能**把讀取權限升格成 GitHub write、PR merge、X 發布或本機 shell 授權。若 runtime 只有 GitHub Connector，直接用 API compare／PR diff 及已核對的 commit identity，不強制需要本機 git checkout；沒有可用差異／程式證據不得宣稱 review 完成。
 
 Use the issue/spec sources actually available in this repo/session: owning GitHub Issue/PR, user-provided spec path, project docs, commit messages, or connected tracker tools. There is no required tracker supporting file. If no separate reviewer runtime exists, perform both axes as an **inline fallback** and report them separately.
 
@@ -28,11 +28,10 @@ Use the issue/spec sources actually available in this repo/session: owning GitHu
 
 ### 1. Pin the fixed point
 
-Whatever the user said is the fixed point (a commit SHA, branch name, tag, `main`, `HEAD~5`, etc.). If they didn't specify one, ask for it.
-
-Capture the diff command once: `git diff <fixed-point>...HEAD` (three-dot, so the comparison is against the merge-base). Also note the list of commits via `git log <fixed-point>..HEAD --oneline`.
-
-Before going further, confirm the fixed point resolves (`git rev-parse <fixed-point>`) and the diff is non-empty. A bad ref or empty diff should fail here, not inside two parallel sub-agents.
+1. 使用者提供 fixed point／PR／branch 時優先採用，核對 exact ref 與 commit SHA；**不可默認 `main` 或正式 X**。
+2. 使用者未另指定 fixed point，但已給 PR／同一工單工作分支時，直接取 PR 的實際 base/head；一般 WHD 工作 PR 預設 base=`localX`，用 remote merge-base／exact GitHub compare 確認範圍，不因欠缺另外一個 fixed-point 口令停工。
+3. 有合法 git workspace 才使用 `git diff <fixed-point>...HEAD` 與 `git log <fixed-point>..HEAD --oneline`；GitHub-only 使用 PR diff／compare 取得等價證據。沒有提供 PR、head 或可判定目標時才詢問比較對象，不得捏造 target。
+4. diff 為空就回報 `NO_REVIEW_DIFF`；ref 無法解析、head/base 漂移或缺來源則 `SOURCE_READ_PRECONDITION_FAILED`。不是代入其他分支或不相關變更湊結果。
 
 ### 2. Identify the spec source
 
@@ -41,11 +40,11 @@ Look for the originating spec, in this order:
 1. Issue references in commit messages (`#123`, `Closes #45`, GitLab `!67`, etc.), fetched through the tracker/GitHub capability actually available in the current runtime.
 2. A path the user passed as an argument.
 3. A spec file under `docs/`, `specs/`, or `.scratch/` matching the branch name or feature.
-4. If nothing is found, ask the user where the spec is. If they say there isn't one, the **Spec** sub-agent will skip and report "no spec available".
+4. If nothing is found, mark `SPEC_SOURCE_MISSING` and complete the **Standards** axis with the verified diff; do not stop review merely to ask for a spec. Report the **Spec** axis as not verifiable rather than claiming pass. Ask only if spec evidence is essential to a requested acceptance decision.
 
 ### 3. Identify the standards sources
 
-Anything in the repo that documents how code should be written, such as `CODING_STANDARDS.md` or `CONTRIBUTING.md`.
+First read the same exact `localX` SHA's `AGENTS.md`, applicable CURRENT Skills and domain owner via the AI Library Authority Map, then any relevant `CODING_STANDARDS.md`, `CONTRIBUTING.md` or local conventions actually present. REFERENCE/HISTORICAL evidence and Fowler smells never override CURRENT authority.
 
 On top of whatever the repo documents, the Standards axis always carries the **smell baseline** below: a fixed set of Fowler code smells (_Refactoring_, ch.3) that applies even when a repo documents nothing. Two rules bind it:
 

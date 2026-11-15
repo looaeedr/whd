@@ -31,7 +31,7 @@ whd_schema: WHD_DOC_META_V1
 
 ## 2. 能力偵測：先看環境能做什麼
 
-在設計流程前先做**能力偵測**，只依賴本回合實際存在的可用工具。**能力偵測只看 tool availability/config，不得以實際連線 GitHub 或遠端本機來探測能力；沒有 explicit remote authority 就保持離線。**
+在設計流程前先做**能力偵測**，只依賴本回合實際存在的可用工具。先確認 connector／執行器是否存在，**但工具存在不等於取得讀寫或本機權限**。使用者已授權本專案 `localX` 的任務、或同一已核准 Issue／PR 範圍內，可直接用已連線 GitHub read API 查 exact HEAD 與 source；不得因已退役的 `USER_EXPLICIT_REMOTE`、`WORKSPACE_DELIVERY` 交易要求第二次授權。Mutation 仍按實際 scope／GitHub 平台權限執行；未明確授權不可探測 DC／RC／Windows 或本機 shell。
 
 - 能否讀/寫 repository 或檔案；
 - 能否建立 branch、commit、PR；
