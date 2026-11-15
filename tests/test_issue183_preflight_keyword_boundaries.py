@@ -199,3 +199,25 @@ def test_negated_commands_are_masked_in_skill_and_reference_routes():
     assert "diagnosing-bugs" not in skills
     assert "tdd" not in skills
     assert "新增功能" in skills
+
+
+def test_adverbial_negations_do_not_restore_forbidden_execution_skills():
+    for task in (
+        "不要再 /接手，改用 /派工 #42",
+        "不可以 /接手，改用 /派工 #42",
+        "do not run /接手; use /派工 #42",
+        "don't use /接手; use /派工 #42",
+    ):
+        skills = set(required_skills_for(task=task))
+        assert "root-local-first" not in skills, task
+        assert "執行開發任務" not in skills, task
+        assert "派工" in skills, task
+
+    for task in ("不用再 /派工，改用 /debug #42", "不要再用 /debug，改用 /功能"):
+        skills = set(required_skills_for(task=task))
+        if "/派工" in task:
+            assert "派工" not in skills, task
+            assert {"diagnosing-bugs", "tdd"} <= skills, task
+        else:
+            assert "diagnosing-bugs" not in skills, task
+            assert "新增功能" in skills, task

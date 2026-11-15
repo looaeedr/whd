@@ -80,8 +80,11 @@ _COMMAND_PATTERN = re.compile(r"(?<![A-Za-z0-9_])/(?:功能|debug|派工|接手)
 # This only filters an explicit nearby negation; it does not infer authority
 # from affirmative commands or attempt to classify all natural-language intent.
 _NEGATED_COMMAND_PREFIX = re.compile(
-    r"(?:不要|不用|不必|無需|禁止|不准|不可|不能|別|不是|do\s+not|don't|not)"
-    r"\s*(?:執行|啟動|使用|呼叫|跑)?\s*[`\"'「『(\[]?\s*$",
+    r"(?:不要|不用|不必|無需|禁止|不准|不可以|不可|不能|不應|別|不是|do\s+not|don't|not)"
+    # Common Chinese adverbs and English action verbs can intervene.
+    # Keep this bounded to adjacent words rather than scanning a whole sentence.
+    r"(?:\s*(?:再|直接|去|透過|用|執行|啟動|使用|呼叫|跑|run|execute|use)){0,3}"
+    r"\s*[`\"'「『(\[]?\s*$",
     re.IGNORECASE,
 )
 
