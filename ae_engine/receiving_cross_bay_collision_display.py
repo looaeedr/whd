@@ -203,3 +203,59 @@ def project_receiving_set_cross_bay_collision_display_audit(
         missing_world_keys_by_bay=tuple(missing_by_bay),
         pairs=tuple(crossing_pairs),
     )
+
+def project_receiving_set_cross_bay_collision_from_preview_requests(
+    layout, requests, *, set_index,
+) -> ReceivingSetCrossBayCollisionAudit:
+    """Audit exactly the canonical sources already used by the original GUI.
+
+    Reject stale/reordered Set/Bay IDs, partial preview sets and drifted
+    W/H/D/T before invoking the one Engine collision diagnostic. No physical
+    geometry is inferred from displayed vertices and a successful audit never
+    certifies positive-volume clearance or welding/manufacturing release.
+    """
+    normalized = normalize_receiving_layout(layout)
+    sets = normalized["sets"]
+    if type(set_index) is not int or not 0 <= set_index < len(sets):
+        raise IndexError("RECEIVING_CROSS_BAY_SET_INDEX_INVALID")
+    selected = sets[set_index]
+    bays = selected["bays"]
+    if len(bays) < 2:
+        raise ValueError("RECEIVING_CROSS_BAY_AT_LEAST_TWO_BAYS_REQUIRED")
+    provided = tuple(requests or ())
+    if len(provided) != len(bays):
+        raise ValueError("RECEIVING_CROSS_BAY_PREVIEW_COUNT_DRIFT")
+    physical = []
+    source_t = None
+    for bi, (bay, request) in enumerate(zip(bays, provided)):
+        ids = (str(selected["stable_id"]), str(bay["stable_id"]))
+        if getattr(request, "receiving_collision_identity", None) != ids:
+            raise ValueError("RECEIVING_CROSS_BAY_PREVIEW_IDENTITY_DRIFT")
+        geometry = getattr(request, "receiving_collision_geometry", None)
+        if not isinstance(geometry, ResolvedManufacturingGeometry) or not geometry.parts:
+            raise ValueError("RECEIVING_CROSS_BAY_PREVIEW_FINALSCENE_REQUIRED")
+        if getattr(request, "part_key", None) != "assembly":
+            raise ValueError("RECEIVING_CROSS_BAY_PREVIEW_ASSEMBLY_REQUIRED")
+        raw_dims = getattr(request, "finished_dimensions", None)
+        try:
+            actual = tuple(float(v) for v in raw_dims)
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise ValueError("RECEIVING_CROSS_BAY_PREVIEW_DIMENSION_DRIFT") from exc
+        expected = (float(bay["width"]), float(bay["height"]), float(bay["depth"]))
+        if actual != expected:
+            raise ValueError("RECEIVING_CROSS_BAY_PREVIEW_DIMENSION_DRIFT")
+        raw_t = getattr(request, "thickness", None)
+        if isinstance(raw_t, bool):
+            raise ValueError("RECEIVING_CROSS_BAY_PREVIEW_THICKNESS_DRIFT")
+        try:
+            t = float(raw_t)
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise ValueError("RECEIVING_CROSS_BAY_PREVIEW_THICKNESS_DRIFT") from exc
+        if not isfinite(t) or t <= 0 or (source_t is not None and t != source_t):
+            raise ValueError("RECEIVING_CROSS_BAY_PREVIEW_THICKNESS_DRIFT")
+        source_t = t
+        physical.append(geometry)
+    return project_receiving_set_cross_bay_collision_display_audit(
+        normalized, lambda si, bi: physical[bi],
+        set_index=set_index, thickness_mm=source_t,
+    )
