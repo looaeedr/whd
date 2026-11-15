@@ -39,3 +39,27 @@ def test_delete_skill_registry_route_is_narrow_and_canonical():
     assert '刪除' in route['keywords']
     assert '清空' in route['keywords']
     assert route['required_references'] == ['.agents/skills/engineering/刪除/SKILL.md']
+
+
+def test_negated_delete_words_do_not_trigger_destructive_discovery():
+    from tools.phase6_skill_preflight import required_skills_for
+    # Advisory skill routing must not interpret "do not" as an action request.
+    denied = (
+        "不要刪除", "不准刪掉", "不用清空", "別清 staging",
+        "不要移除 0", "don't delete", "do not remove",
+    )
+    for task in denied:
+        assert "刪除" not in required_skills_for(task=task), task
+
+
+def test_explicit_delete_route_and_file_review_are_preserved():
+    from tools.phase6_skill_preflight import required_skills_for
+    for task in ("請刪除舊檔", "清空 staging", "刪掉暫存", "delete old files",
+                 "remove staging", "清 active 0"):
+        assert "刪除" in required_skills_for(task=task), task
+    # Editing the deletion Skill still needs its contract review, even when
+    # the user explicitly forbids deleting actual files.
+    assert "刪除" in required_skills_for(
+        task="不要刪除任何資料，只修改 Skill 的規範",
+        changed_files=[".agents/skills/engineering/刪除/SKILL.md"],
+    )
