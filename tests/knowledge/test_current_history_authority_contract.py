@@ -537,16 +537,25 @@ def test_issue2382_installed_worker_exe_authority_is_retired() -> None:
 
 def test_legacy_v5_architecture_cannot_override_current_engine_api_or_test_gates() -> None:
     agents = read("AGENTS.md")
-    start = agents.index("## 歷史 V5 架構筆記（非 CURRENT 施工指令）")
-    end = agents.index("## 截角資料庫來源", start)
-    legacy = agents[start:end]
-    assert "不是今天的任務順序" in legacy
+    archive_path = "handoff/AGENTS_V5_ARCHITECTURE_HISTORY.md"
+    legacy = read(archive_path)
+    assert archive_path in agents
+    assert "不是今天的任務順序" in agents
+    assert "WHD 公開 Engine `manufacturing_api`" in agents
+    assert "2D／3D 顯示投影與正式 DXF（同源）" in agents
+    assert "下一張工單" in agents
+    assert "只有當次 `/推推` 才能發布" in agents
+    assert "6. 跑完整 test suite" not in agents
+    assert "改為直接使用 `sheetmetal_geometry.py`" not in agents
+    assert "whd_doc_role: HISTORICAL" in legacy[:200]
+    assert "不參與 current routing" in legacy[:400]
+    assert "# 1. 專案核心精神" in legacy
+    assert "# 9. 歷史接手順序" in legacy
+    assert "# 10. 一句話核心" in legacy
     assert "WHD 公開 Engine `manufacturing_api`" in legacy
-    assert "2D／3D 顯示投影與正式 DXF（同源）" in legacy
-    assert "不得" in legacy and "下一張工單" in legacy
-    assert "6. 跑完整 test suite" not in legacy
-    assert "改為直接使用 `sheetmetal_geometry.py`" not in legacy
-    assert "只有當次 `/推推` 才能發布" in legacy
+    authority = read(AUTHORITY_MAP_REL)
+    assert "WHD_AUTHORITY contract=agent-startup-process role=HISTORICAL path=" + archive_path in authority
+    assert len(agents.splitlines()) < 400
 
 
 def test_reference_skill_and_pitfall_guidance_cannot_reinstate_direct_x() -> None:
