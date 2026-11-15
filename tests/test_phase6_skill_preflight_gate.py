@@ -262,7 +262,7 @@ def test_git_remote_sync_fallback_skill_is_registry_routed_and_fail_closed(tmp_p
     route = routes["git-remote-sync-fallback"]
 
     assert "git-remote-sync-fallback" in route["required_skills"]
-    for keyword in ("git push", "GitHub Connector", "DNS", "remote sync"):
+    for keyword in ("git push", "GitHub Connector 同步", "git DNS", "remote sync"):
         assert keyword in route["keywords"]
 
     skill = (ROOT / ".agents/skills/misc/git-remote-sync-fallback/SKILL.md").read_text(encoding="utf-8")
