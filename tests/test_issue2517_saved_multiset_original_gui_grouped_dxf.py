@@ -12,7 +12,9 @@ import ezdxf
 import pytest
 
 from ae_engine import manufacturing_api as api
+from ae_engine.receiving_layout import RECEIVING_DOOR_STATE_KEYS, update_receiving_bay
 from gui_modules.project import export_actions as gui
+import phase6_project_file as project
 from tests.test_issue1502_multibay_original_gui_export_integration import (
     _native_callback_host,
 )
@@ -40,6 +42,16 @@ def _run_gui_group(monkeypatch, source, output, *, mode, with_nfb=False,
     output.mkdir()
     callbacks = []
     host = _native_callback_host(monkeypatch, source, callbacks)
+    # The original callback now passes an Engine-planned preview_layout for
+    # independent selected Head-only operations. This fixture's genuine
+    # physical provider already resolves the SAME confirmed per-Bay source;
+    # accept the current GUI callback signature without inventing geometry.
+    import fold_designer_bridge as bridge
+    composition = bridge._phase6_composition(host.fold_designer_app)
+    actual_preview = composition.receiving_bay_preview_request
+    def preview(namespace, si, bi, *, preview_layout=None):
+        return actual_preview(namespace, si, bi)
+    composition.receiving_bay_preview_request = preview
     host.baseline_var = SimpleNamespace(get=lambda: "受電箱")
     current_mode = [mode]
     host.receiving_dxf_group_mode_var = SimpleNamespace(
@@ -88,6 +100,46 @@ def _check_texts(doc):
     )
 
 
+def _saved_with_real_inner_door_state(tmp_path):
+    """Author every physical Bay Door source with the actual Engine writer.
+
+    A confirmed CSV alone may NOT authorize NFB Door/Base composition. Build
+    real submitted InnerDoor topology and Save→Reload that added operator state
+    before requesting any paired manufacturing output.
+    """
+    _previous_path, _previous_bytes, _authored, source = _saved_two_sets(tmp_path)
+    updated = deepcopy(source)
+    fresh = api.fresh_receiving_mode(
+        "set_bay", {"w": updated["w"], "h": updated["h"], "d": updated["d"]},
+        thickness=updated["t"],
+    )
+    door = {
+        key: deepcopy(fresh[key])
+        for key in RECEIVING_DOOR_STATE_KEYS if key in fresh
+    }
+    assert door.get("inner_doors") and door.get("multi_door_enabled") is True
+    assert door.get("door_layout_columns")
+    layout = updated["receiving_layout"]
+    for si, bi in BAYS:
+        layout = update_receiving_bay(
+            layout, set_index=si, bay_index=bi,
+            door_state=door,
+        )
+    updated["receiving_layout"] = layout
+    saved = project.write_project(
+        tmp_path / "four-real-bays-with-confirmed-inner-door.p6fold",
+        {"schema": project.PROJECT_SCHEMA, "snapshot": updated},
+    )
+    original_bytes = saved.read_bytes()
+    loaded = project.read_project(saved)["snapshot"]
+    assert loaded["receiving_layout"] == layout
+    assert all(
+        bay["door_state"].get("inner_doors")
+        for group in loaded["receiving_layout"]["sets"] for bay in group["bays"]
+    )
+    return saved, original_bytes, loaded
+
+
 @pytest.mark.parametrize("mode, group_names, member_counts", (
     ("ALL", ("全部",), (4,)),
     ("PER_SET", ("第1套", "第2套"), (2, 2)),
@@ -133,7 +185,7 @@ def test_saved_four_bay_original_gui_grouping_and_compact_total(
 def test_saved_four_bay_original_gui_all_group_retains_real_nfb_pairs(
     tmp_path, monkeypatch,
 ):
-    project_file, original_bytes, _authored, source = _saved_two_sets(tmp_path)
+    project_file, original_bytes, source = _saved_with_real_inner_door_state(tmp_path)
     output = tmp_path / "gui-nfb-composed"
     calls, errors, infos = _run_gui_group(
         monkeypatch, source, output, mode="ALL", with_nfb=True,
@@ -173,7 +225,7 @@ def test_group_selector_changes_during_original_gui_folder_dialog_are_rejected(
 def test_saved_second_set_csv_failure_refuses_entire_group_and_total(
     tmp_path, monkeypatch,
 ):
-    saved, original_bytes, _authored, source = _saved_two_sets(tmp_path)
+    saved, original_bytes, source = _saved_with_real_inner_door_state(tmp_path)
     damaged = deepcopy(source)
     bay = damaged["receiving_layout"]["sets"][1]["bays"][1]
     assert bay["nfb_config_submitted"] is True
