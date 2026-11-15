@@ -70,3 +70,21 @@ def test_release_packaging_route_is_not_triggered_by_unrelated_governance_edits(
     assert "phase6-release-packaging" in by_name
     assert "phase6-release-packaging" in by_file
 
+
+
+def test_code_review_route_accepts_pr_review_intent_without_generic_overtrigger() -> None:
+    for task in (
+        "請審查 PR #3286 的程式碼",
+        "協助做 code review",
+        "Review PR #3286",
+        "幫忙檢查程式碼差異",
+    ):
+        assert "code-review" in set(required_skills_for(task=task)), task
+
+    for task in (
+        "review project timeline",
+        "整理產品 PR 說明",
+        "審查設計報告",
+        "review README 文案",
+    ):
+        assert "code-review" not in set(required_skills_for(task=task)), task

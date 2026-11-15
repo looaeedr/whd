@@ -773,7 +773,14 @@
     {
       "id": "explicit-skill-code-review",
       "keywords": [
-        "code-review"
+        "code-review",
+        "code review",
+        "PR code review",
+        "review PR #",
+        "審查 PR",
+        "審核 PR",
+        "審查程式碼",
+        "檢查程式碼差異"
       ],
       "file_globs": [
         ".agents/skills/engineering/code-review/**"
