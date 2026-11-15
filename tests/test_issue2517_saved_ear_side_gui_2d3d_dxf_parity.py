@@ -17,6 +17,7 @@ import pytest
 
 from ae_engine.assembly_geometry import build_joint_world_geometry
 from ae_engine.manufacturing_scene_access import owner_render_data
+from ae_engine.receiving_layout import new_receiving_layout, update_receiving_bay
 from ae_engine.receiving_fixed_plate_weld_skin_mating import (
     resolve_receiving_ear_side_skin_mating_witnesses,
 )
@@ -38,7 +39,30 @@ DIMS = (800.0, 1600.0, 350.0)
 
 
 def _source_after_real_save_reload(tmp_path):
-    original, original_geometry = _actual(_assembled)
+    original, _prototype_geometry = _actual(_assembled)
+    # The old signed-contact fixture carried an intentionally schema-less
+    # in-memory NFB layout; a real saved project must instead commit its
+    # physical Set1/Bay1 through the public Engine layout transaction.
+    # Keep the exact same submitted NFB, switch brand, dimensions, Door and
+    # side-contact source. Never weaken real .p6fold schema validation.
+    saved_layout = original["receiving_layout"]
+    layout = new_receiving_layout(
+        width=original["w"], height=original["h"], depth=original["d"],
+    )
+    layout["sets"][0]["switch_brand"] = saved_layout["sets"][0]["switch_brand"]
+    layout = update_receiving_bay(
+        layout, set_index=0, bay_index=0,
+        nfb_config_submitted=True,
+        nfb_config=deepcopy(original["nfb_config"]),
+    )
+    original["receiving_layout"] = layout
+    original["_receiving_runtime_selection"] = {
+        "set_index": 0,
+        "bay_index": 0,
+        "set_id": layout["sets"][0]["stable_id"],
+        "bay_id": layout["sets"][0]["bays"][0]["stable_id"],
+    }
+    original_geometry = _full_receiving_geometry(original)
     retained = deepcopy(original)
     project_path = project.write_project(
         tmp_path / "receiving-ear-signed-side.p6fold",
