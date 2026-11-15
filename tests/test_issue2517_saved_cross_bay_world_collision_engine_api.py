@@ -41,6 +41,15 @@ def test_real_saved_two_sets_both_cross_bay_world_matrices_are_stable(tmp_path):
         assert after.set_id == sets[si]["stable_id"]
         assert after.bay_ids == tuple(b["stable_id"] for b in sets[si]["bays"])
         assert len(after.physical_keys_by_bay) == 2
+        # Actual source has valid inner-door 2D/DXF, but its legacy canonical
+        # Bay scene still lacks the source-owned 3D panel profile. A display
+        # audit must expose this unmeshed real sheet and refuse full clearance.
+        assert len(after.missing_world_keys_by_bay) == 2
+        assert all(any(key.endswith("::inner_door:upper:panel") for key in group)
+                   for group in after.missing_world_keys_by_bay)
+        assert not after.complete
+        with pytest.raises(ValueError, match="RECEIVING_CROSS_BAY_INCOMPLETE_WORLD_MESH"):
+            after.require_no_unresolved()
         assert after.bay_offsets[0] == (0.0, 0.0, 0.0)
         assert after.bay_offsets[1][0] == pytest.approx(sets[si]["bays"][0]["width"])
         assert all(keys for keys in after.physical_keys_by_bay)

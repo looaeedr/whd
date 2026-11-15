@@ -32,6 +32,7 @@ class ReceivingSetCrossBayCollisionAudit:
     bay_ids: tuple[str, ...]
     bay_offsets: tuple[tuple[float, float, float], ...]
     physical_keys_by_bay: tuple[tuple[str, ...], ...]
+    missing_world_keys_by_bay: tuple[tuple[str, ...], ...]
     pairs: tuple[AssemblyPhysicalPair, ...]
 
     @property
@@ -42,8 +43,26 @@ class ReceivingSetCrossBayCollisionAudit:
     def unresolved(self) -> tuple[AssemblyPhysicalPair, ...]:
         return tuple(p for p in self.pairs if p.status == "UNRESOLVED_CROSSING")
 
+    @property
+    def missing_world_keys(self) -> tuple[str, ...]:
+        return tuple(key for group in self.missing_world_keys_by_bay for key in group)
+
+    @property
+    def complete(self) -> bool:
+        return not self.missing_world_keys
+
+    def require_complete(self) -> bool:
+        """Reject every actual assembled sheet without a sourced 3D mesh."""
+        if self.missing_world_keys:
+            raise ValueError(
+                "RECEIVING_CROSS_BAY_INCOMPLETE_WORLD_MESH: "
+                + ", ".join(self.missing_world_keys)
+            )
+        return True
+
     def require_no_unresolved(self) -> bool:
-        """Refuse unresolved crossings; a clean display still is NOT MFG approval."""
+        """Refuse incomplete mesh inventory AND unresolved crossing diagnostics."""
+        self.require_complete()
         if self.unresolved:
             names = "; ".join(f"{p.left} ↔ {p.right}" for p in self.unresolved)
             raise ValueError("RECEIVING_CROSS_BAY_CROSSING_UNVERIFIED: " + names)
@@ -87,6 +106,7 @@ def project_receiving_set_cross_bay_collision_display_audit(
         raise ValueError("RECEIVING_CROSS_BAY_THICKNESS_INVALID")
 
     by_bay = []
+    missing_by_bay = []
     offsets = []
     all_keys = set()
     for bi, bay in enumerate(bays):
@@ -115,6 +135,7 @@ def project_receiving_set_cross_bay_collision_display_audit(
             set_id=selected["stable_id"], bay_id=bay["stable_id"],
         )
         translated = {}
+        missing = []
         anchor = projection.bay_offset
         for part_key, triangles in world.items():
             if part_key == "box_body":
@@ -123,7 +144,19 @@ def project_receiving_set_cross_bay_collision_display_audit(
             if key in all_keys:
                 raise ValueError("RECEIVING_CROSS_BAY_DUPLICATE_PHYSICAL_KEY")
             if not triangles:
-                raise ValueError(f"RECEIVING_CROSS_BAY_MISSING_PHYSICAL_WORLD_MESH: {key}")
+                # Actual Receiving sources can contain a valid 2D/BOM sheet
+                # without a certified 3D profile (currently inner door panel).
+                # Do not hide the physical owner or invent an assembled mesh.
+                # Keep checking existing cross-Bay sheets, but block COMPLETE.
+                if part_key in {
+                    "box_body:left_side", "box_body:back", "box_body:right_side"
+                }:
+                    raise ValueError(
+                        f"RECEIVING_CROSS_BAY_MISSING_PHYSICAL_WORLD_MESH: {key}"
+                    )
+                missing.append(key)
+                all_keys.add(key)
+                continue
             shifted = []
             for tri in triangles:
                 if len(tri) != 3:
@@ -146,6 +179,7 @@ def project_receiving_set_cross_bay_collision_display_audit(
         if not translated:
             raise ValueError("RECEIVING_CROSS_BAY_MISSING_PHYSICAL_WORLD_MESH")
         by_bay.append(translated)
+        missing_by_bay.append(tuple(sorted(missing)))
         offsets.append(anchor)
 
     crossing_pairs = []
@@ -166,5 +200,6 @@ def project_receiving_set_cross_bay_collision_display_audit(
         bay_ids=tuple(str(b["stable_id"]) for b in bays),
         bay_offsets=tuple(offsets),
         physical_keys_by_bay=tuple(tuple(sorted(x)) for x in by_bay),
+        missing_world_keys_by_bay=tuple(missing_by_bay),
         pairs=tuple(crossing_pairs),
     )
