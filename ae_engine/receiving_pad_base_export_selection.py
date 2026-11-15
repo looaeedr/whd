@@ -43,15 +43,19 @@ def resolve_receiving_pad_base_export_source(snapshot) -> ReceivingPadBaseExport
             raise ValueError("PAD＋底板數量版本的 NFB 來源已失效")
         return ReceivingPadBaseExportSource(project_common_box(source), version_id)
 
-    from .receiving_layout import normalize_receiving_layout
-
     if source.get("active_mode", "set_bay") != "set_bay":
         raise ValueError("PAD＋底板沒有目前 Set／Bay 的實體選取")
-    try:
-        layout = normalize_receiving_layout(source.get("receiving_layout"))
-    except (ValueError, TypeError, KeyError) as exc:
-        raise ValueError("PAD＋底板 Set／Bay 實體選取已失效") from exc
-    sets = layout["sets"]
+    # Persisted project load already validates full topology and confirmed
+    # NFB rows. This read-only selection also supports historical headless
+    # raw source snapshots; validate IDs against their actual saved rows
+    # without inventing another layout normalization/certification pass.
+    layout = source.get("receiving_layout")
+    sets = layout.get("sets") if isinstance(layout, Mapping) else None
+    if (not isinstance(sets, (list, tuple)) or not sets
+            or any(not isinstance(row, Mapping)
+                   or not isinstance(row.get("bays"), (list, tuple))
+                   or not row["bays"] for row in sets)):
+        raise ValueError("PAD＋底板 Set／Bay 實體選取已失效")
     runtime = source.get("_receiving_runtime_selection")
     if not isinstance(runtime, Mapping):
         # Only a genuinely unique saved physical Bay can supply an implicit
