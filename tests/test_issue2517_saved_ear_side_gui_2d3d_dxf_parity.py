@@ -32,14 +32,15 @@ from tests.test_issue1503_ear_side_check_gui_e2e_save_reload import (
 from tests.test_issue1503_ear_side_check_only_dxf import _actual
 from tests.test_issue1503_side_only_mfg_gui import _host
 from tests.test_receiving_base_physical_3d_z_assembly import _assembled
+from tests.test_receiving_two_tier_physical_base_parts import _two_tier
 
 
 SIDES = ("box_body:left_side", "box_body:right_side")
 DIMS = (800.0, 1600.0, 350.0)
 
 
-def _source_after_real_save_reload(tmp_path):
-    original, _prototype_geometry = _actual(_assembled)
+def _source_after_real_save_reload(tmp_path, *, factory=_assembled, ear_count=2):
+    original, _prototype_geometry = _actual(factory)
     # The old signed-contact fixture carried an intentionally schema-less
     # in-memory NFB layout; a real saved project must instead commit its
     # physical Set1/Bay1 through the public Engine layout transaction.
@@ -131,7 +132,12 @@ def _source_after_real_save_reload(tmp_path):
         snap, world_geometry=world,
     ) for snap, world in zip((original, reopened), worlds))
     assert witnesses[0] == witnesses[1]
-    assert len(witnesses[1]) == 2
+    assert len(witnesses[1]) == ear_count
+    assert len({row.ear_part_id for row in witnesses[1]}) == ear_count
+    assert [row.side_piece_id for row in witnesses[1]] == list(SIDES) * (ear_count // 2)
+    assert [row.nfb_layer_index for row in witnesses[1]] == (
+        [0, 0, 1, 1] if ear_count == 4 else [0, 0]
+    )
     for row in witnesses[1]:
         assert row.full_contact_material_coverage_verified
         assert row.flange_skin_normal_opposed
@@ -172,12 +178,18 @@ def _reopened_layers(paths):
     return layouts
 
 
+@pytest.mark.parametrize("factory,ear_count", (
+    pytest.param(_assembled, 2, id="one-tier"),
+    pytest.param(_two_tier, 4, id="two-tier"),
+))
 @pytest.mark.parametrize("mode", ("check", "marking"))
 def test_saved_real_ear_side_rebuilt_gui_2d_3d_dxf_equivalent(
-    tmp_path, monkeypatch, mode,
+    tmp_path, monkeypatch, mode, factory, ear_count,
 ):
     (saved_path, saved_bytes, before, before_geo, after, after_geo) = (
-        _source_after_real_save_reload(tmp_path)
+        _source_after_real_save_reload(
+            tmp_path, factory=factory, ear_count=ear_count,
+        )
     )
     original_saved = deepcopy(before)
     restored_saved = deepcopy(after)
@@ -196,26 +208,38 @@ def test_saved_real_ear_side_rebuilt_gui_2d_3d_dxf_equivalent(
     assert len(b.output_paths) == len(a.output_paths) == 2
     assert _reopened_layers(b.output_paths) == _reopened_layers(a.output_paths)
     assert _marking_signature(b.output_paths) == _marking_signature(a.output_paths)
+    assert all(
+        len(lines) == 3 * (ear_count // 2)
+        for lines in _marking_signature(a.output_paths).values()
+    )
     assert b.marking_lines_verified == a.marking_lines_verified
     if mode == "check":
+        assert len(b.part_ids) == len(a.part_ids) == ear_count
         assert b.saved_dxf_roundtrip_verified
         assert a.saved_dxf_roundtrip_verified
         assert b.manufacturing_ready is a.manufacturing_ready is False
     else:
         assert b.side_only_manufacturing_marking_verified
         assert a.side_only_manufacturing_marking_verified
+        assert len(b.physical_ear_ids) == len(a.physical_ear_ids) == ear_count
         assert b.whole_cabinet_manufacturing_ready is False
         assert a.whole_cabinet_manufacturing_ready is False
     assert before == original_saved and after == restored_saved
     assert saved_path.read_bytes() == saved_bytes
 
 
+@pytest.mark.parametrize("factory,ear_count", (
+    pytest.param(_assembled, 2, id="one-tier"),
+    pytest.param(_two_tier, 4, id="two-tier"),
+))
 @pytest.mark.parametrize("mode", ("check", "marking"))
 def test_saved_ear_side_unsubmitted_snapshot_cannot_export_old_geometry(
-    tmp_path, monkeypatch, mode,
+    tmp_path, monkeypatch, mode, factory, ear_count,
 ):
     (saved_path, original_bytes, _before, _before_geo,
-     after, after_geo) = _source_after_real_save_reload(tmp_path)
+     after, after_geo) = _source_after_real_save_reload(
+        tmp_path, factory=factory, ear_count=ear_count,
+    )
     tampered = deepcopy(after)
     tampered["nfb_config_submitted"] = False
     folder = tmp_path / f"{mode}-rejected"
