@@ -158,3 +158,17 @@ def test_preview_aware_legacy_wrapper_only_submits_intent():
     assert "submit_update_intent" in source
     assert "_PHASE6_RENDERING_DO_UPDATE" not in source
     assert ".renderer.render" not in source
+
+
+def test_bridge_current_ownership_uses_localx_agents_as_development_source():
+    """CURRENT Bridge contract must not route daily work through release X."""
+    current = (
+        Path("個人AI檔案庫/第二層_專案與SOP/12_WHD_FoldDesignerBridgeOwnership規則.md")
+        .read_text(encoding="utf-8")
+    )
+    integration = current.split("## Integration / future change contract", 1)[1].split(
+        "## Accepted lineage provenance", 1
+    )[0]
+    assert "GitHub `localX` 最新 exact HEAD 的 `AGENTS.md`" in integration
+    assert "tools/change_lane_gate.py" in integration
+    assert "施工分流依正式 X `AGENTS.md`" not in integration

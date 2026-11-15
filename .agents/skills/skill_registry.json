@@ -162,6 +162,9 @@
         "xfail",
         "coverage"
       ],
+      "boundary_keywords": [
+        "mock"
+      ],
       "file_globs": [
         ".agents/skills/engineering/Python測試實務/**",
         "tests/**/*.py",

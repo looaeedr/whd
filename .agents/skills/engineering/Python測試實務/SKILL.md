@@ -11,7 +11,7 @@ whd_schema: WHD_DOC_META_V1
 
 把這個 Skill 當成 **pytest 工程實務層**。它處理「測試怎麼寫得隔離、可讀、可重跑」，**不取代** `tdd` 決定要測哪個 seam、RED → GREEN 如何前進，也不取代 `diagnosing-bugs` 建立 repro、最小化與根因診斷的流程。
 
-來源輸入為 `wshobson/agents` 的 `python-testing-patterns`，但 WHD 版以正式 X 現行 `AGENTS.md`、Source of Truth、適用測試與產品／治理驗收規則為最高 authority；已退役的 Phase6 Preflight receipt 不是測試或提交前置。
+來源輸入為 `wshobson/agents` 的 `python-testing-patterns`，但 WHD 版以 GitHub `localX` 最新 exact HEAD 的 `AGENTS.md`、CURRENT domain／Skill Source of Truth、適用測試與產品／治理驗收規則為最高 authority。正式 X `cleanup/2d-3d-sync` 只供當次 `/推推` 發布與受信任 gate 查核，不能拿來當日常測試規格或 baseline；已退役的 Phase6 Preflight receipt 不是測試或提交前置。
 
 ## 1. 責任邊界
 
@@ -176,6 +176,8 @@ Coverage 是「哪些 code path 被執行」的觀測，不是 correctness 證�
 - 若專案已有 coverage gate，遵守現有 gate；沒有時先用 report 找洞，再由專案規格決定是否建立 threshold。
 - CI 要固定 Python / dependency provenance，並把 headless / GUI / platform-specific scope 分清楚。
 - suite 分層：focused/unit → integration/roundtrip → project/final acceptance；低層 GREEN 不能冒充高層 GREEN。
+- 定向測試選路先讀同一 `localX` SHA 的 `tools/quick_test.py`（只執行 pytest、無 Git mutation）與 `tools/change_test_profile.py::build_fast_feedback`（selector 的現行安全來源）；只在當次合法可用的執行環境運行 `python tools/quick_test.py --test tests/test_file.py::test_case` 或 `--auto`。GitHub-only 不能取得本機 worktree 時標 `TARGETED_NOT_RUN`，不得要求 DC／Windows checkout 或把 `--dry-run` 當實測。
+- 完整產品回歸以 `.github/workflows/whd-product-regression.yml` 的 `WHD Product Regression` exact PR HEAD 為準；治理／安全獨立 checks 仍須完成，不得用 focused GREEN、測試數量或此上游 Skill 範例替代。
 - remote QA 一旦啟動，依 `monitoring-remote-qa` 鎖定 `run_id + head_sha` 到 terminal。
 
 ## 10. 寫測試前的快速檢查
