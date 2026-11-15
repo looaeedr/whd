@@ -196,7 +196,7 @@ WHD canonical path：`.agents/skills/engineering/UI設計與去AI味/SKILL.md`�
 
 ### 舊 Flow v2 工單交易規則（HISTORICAL／不可執行）
 
-以下為原始 legacy 規則存證，不得取代 X 現行分流、DC 授權及 CI／PR 程序：
+以下為原始 legacy 規則存證，**不得當今日執行入口**；現行分流、DC 授權及 CI／PR 程序以 GitHub `localX` exact HEAD 的 `AGENTS.md` 和 CURRENT Skill／gate 為準，正式 X 只供當次 `/推推`：
 
 > - **ONE ISSUE / ONE MUTATION WRITER**：substantive repository work 必須持有 exact Issue 的 live lease 與 ACTIVE `mutation_scope`。新 READY work 用 atomic `ACQUIRE.effect.admission_reservation` 一次取得；不得主動拆成 `ACQUIRE → RESERVE_PATHS`。
 > - **STALE PLAN MUST DIE**：每次 interactive Git mutation 綁 `issue + generation + record_fingerprint + lease_token + invocation_identity + next_action + work/target HEAD`。任一 identity 已前進，舊 plan 永久失效並從最新 structured `next_action` replan。
@@ -223,7 +223,7 @@ WHD 的文件、AI Library、Skill、handoff 或相容入口只要描述同一�
 
 ### 永久驗證
 
-**2026-10-11 實體路徑回讀**：T1 當時所稱 `tests/knowledge/test_knowledge_authority_contract.py` 已不在目前正式 X 的 Git 樹中，不能當成今天可執行的測試入口。現行 CURRENT／MIRROR 的角色核對使用 `tests/knowledge/test_current_history_authority_contract.py`，authority 分類則使用 `tests/knowledge/test_knowledge_authority_classification.py`；真正的 metadata／CURRENT owner 驗證仍依 `tools/knowledge_governance.py` 與相關 CI。這些測試只判定 authority contract 是否符合，不成為製造／幾何／產品規則的 Source of Truth。
+**2026-10-11 歷史實體路徑回讀（非當前庫存證據）**：T1 當時所稱 `tests/knowledge/test_knowledge_authority_contract.py` 未在當時 tree 找到；今天是否存在必須重新查 GitHub `localX` exact HEAD，不得用正式 X 或本段歷史清單代替。CURRENT／MIRROR 的角色核對使用 `tests/knowledge/test_current_history_authority_contract.py`，authority 分類則使用 `tests/knowledge/test_knowledge_authority_classification.py`；真正的 metadata／CURRENT owner 驗證仍依 `tools/knowledge_governance.py` 與相關 CI。這些測試只判定 authority contract 是否符合，不成為製造／幾何／產品規則的 Source of Truth。
 
 
 ## Domain route 與 domain authority（REFERENCE）

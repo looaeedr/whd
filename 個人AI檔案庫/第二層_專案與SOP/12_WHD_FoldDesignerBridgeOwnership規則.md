@@ -208,7 +208,7 @@ DoD 是 ownership / lifecycle 語意，而不是 LOC threshold。
 
 1. 先讀 Canonical Authority Map 與本文件；
 2. 若是新 extraction / new owner / new composition boundary，必須先有 accepted spec；
-3. **施工分流依正式 X `AGENTS.md`**：`/派工` 在 GitHub／雲端執行器完成產品修改、測試與 PR（base=`localX`）；僅當次明確 `/接手` 才允許 RC 產品施工。純治理限白名單 GitHub／雲端 PR，產品合併至 `localX` 後，正式 X 發布仍須當次 `/推推`；保留 non-force integration、exact CI 與 drift readback。舊 Git 寫入解鎖憑證、single execution claim、泛用 root-local-first 均已退役，不得作為入口；
+3. **施工分流依 GitHub `localX` 最新 exact HEAD 的 `AGENTS.md`**：先核對同一 SHA 的 CURRENT 來源，再從該 HEAD 開工作分支；`/派工` 在 GitHub／合法雲端執行器完成產品修改、測試與 PR（base=`localX`），僅當次明確 `/接手` 才允許 RC 產品施工。純治理、產品與混合變更都先按 `tools/change_lane_gate.py` 的實際 diff 分流並整合 GitHub `localX`；正式 X `cleanup/2d-3d-sync` 僅供發布／受信任 gate，仍須使用者當次 `/推推`。保留 non-force integration、exact CI 與 drift readback；舊 Git 寫入解鎖憑證、single execution claim、泛用 root-local-first 均已退役，不得作為入口；
 4. owner 搬移必須同一變更完成新 owner、舊 owner降級/刪除、reverse-import guard 與直接回歸；
 5. 不得用「bridge 太長」本身作 extraction authority；
 6. focused GREEN 不等於 final acceptance；若改動影響實體板件、2D/3D、DXF、persistence，仍須走對應 final acceptance。

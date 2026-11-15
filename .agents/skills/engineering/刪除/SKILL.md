@@ -67,8 +67,8 @@ TARGET_PATH_RESOLVED
 
 若刪的是正式 repository path，而不是 staging/archive：
 
-1. 在 executor-local repo workspace 以 fresh `cleanup/2d-3d-sync` baseline 確認 exact tracked path / identity。
-2. 在 workspace 建立 exact delete diff，執行適用 tests / validators，並 fresh-read target/touched-path drift。
+1. 從 GitHub `localX` 最新 exact HEAD（完整 commit SHA）讀取 tracked target 的原始 path、kind、blob SHA 與必要內容，據此確認刪除身分與基準；已有合法 executor-local repo 才額外核對 worktree HEAD／未提交變更。**不得用正式 X `cleanup/2d-3d-sync`、預設 `main` 或不存在的本機 checkout 當日常刪除 baseline。**
+2. 在從該 `localX` HEAD 建立的合法 GitHub／雲端工作分支形成 exact delete diff；有已授權可用執行器時跑定向 tests / validators，沒有就標 `TARGETED_NOT_RUN` 並交由 exact-head GitHub CI 驗證，不得冒稱本地 GREEN。修改前後 fresh-read target／touched-path drift；不得因此取得 DC／Windows shell 權限。
 3. 依 `tools/change_lane_gate.py` 對 exact diff 分流：純治理刪除從 GitHub `localX` HEAD 建工作分支、適用治理測試與 CI 後 PR 合併 **`localX`**；產品／未知／混合刪除同樣先合 `localX` 但保留產品回歸。任何變更正式 X（包含純治理刪除）都必須使用者當次 `/推推` 及受信任 X gate，不啟用舊 `FINALIZE` 交易。
 4. 同一已授權任務範圍內不得只因 SHA 變動而重問相同交付授權，但新 SHA 仍需 exact diff、適用驗證與回讀；任何外部平台拒絕不得繞過。
 5. 未經使用者本次明確授權，不得為治理刪除操作 DC、CoreELEC、whd-dev 或使用者本機 shell；雲端能力不足時如實回報阻塞。
