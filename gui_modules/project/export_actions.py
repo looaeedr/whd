@@ -595,18 +595,28 @@ def _commit_staged_project_export(stage_folder, output_folder, *, pre_commit_gua
     finally:
         shutil.rmtree(backup_root, ignore_errors=True)
 
-def _independent_export_live_operator_source(self):
-    """Capture live main-panel numeric intent for standalone GUI DXF buttons.
+def _live_cabinet_model_selection(self):
+    """Read the operator's raw Family/baseline selector, not Engine geometry.
 
-    The primary selected-DXF route already witnesses get_float_values().
-    EAR SIDE and PAD+Base use separate buttons and dialogs; an uncommitted
-    Tk edit must not publish manufacturing from an older designer snapshot.
-    Keep this a pure input reader: no part selection or manufacturing math.
+    The Tk selector can change while the designer still holds an older saved
+    model. Witness both its presence and raw value across every DXF dialog.
+    Family interpretation and manufacturing eligibility remain Engine-owned.
     """
+    control = getattr(self, "baseline_var", None)
+    reader = getattr(control, "get", None)
+    return {
+        "reader_present": callable(reader),
+        "value": deepcopy(reader()) if callable(reader) else None,
+    }
+
+
+def _independent_export_live_operator_source(self):
+    """Witness independent DXF button's numeric and raw model intent."""
     getter = getattr(self, "get_float_values", None)
     return {
         "reader_present": callable(getter),
         "values": deepcopy(getter()) if callable(getter) else None,
+        "model_selection": _live_cabinet_model_selection(self),
     }
 
 
@@ -754,6 +764,7 @@ def _selected_dxf_live_operator_sources(self):
     )
     return {
         "dimensions": self.get_float_values(),
+        "model_selection": _live_cabinet_model_selection(self),
         "door_layout_columns": live_door_rows,
         "surface_features": deepcopy(getattr(self, "surface_features", None)),
         "flags": _selected_export_flags(
