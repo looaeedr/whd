@@ -664,3 +664,18 @@ def test_ai04_current_manufacturing_rules_have_unique_headings() -> None:
         assert source in canonical
         assert evidence in canonical
 
+
+
+def test_pitfall_execution_history_uses_localx_source_not_retired_x_or_direct_governance() -> None:
+    """Historical incident notes must not reintroduce a current X instruction."""
+    history = read("個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md")
+    for legacy in (
+        "現已由正式 X `AGENTS.md`",
+        "現在依正式 X `AGENTS.md`",
+        "現行僅依正式 X `AGENTS.md`",
+        "治理白名單直送",
+    ):
+        assert legacy not in history, legacy
+    assert "現行僅依 GitHub `localX` exact HEAD 的 `AGENTS.md`" in history
+    assert "治理先整合 `localX`" in history
+    assert "正式 X 只有當次 `/推推`" in history
