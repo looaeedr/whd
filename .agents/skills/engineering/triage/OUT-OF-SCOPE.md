@@ -6,7 +6,9 @@ whd_schema: WHD_DOC_META_V1
 ---
 # Out-of-Scope Knowledge Base
 
-The `.out-of-scope/` directory in a repo stores persistent records of rejected feature requests. It serves two purposes:
+**WHD applicability: REFERENCE only.** This document describes an optional upstream convention, **not** an active WHD directory, required triage step, or authorization to add a management system. The current GitHub `localX` source tree does not contain `.out-of-scope/`. A rejection is documented in its existing authorized Issue/PR; do not create this directory or new files as a triage precondition. If an already-existing record is later found, it may be read as historical evidence but cannot override the CURRENT owner.
+
+In projects that explicitly adopt it, the `.out-of-scope/` directory can store rejected feature requests. It serves two purposes:
 
 1. **Institutional memory**: why a feature was rejected, so the reasoning isn't lost when the issue is closed
 2. **Deduplication**: when a new issue comes in that matches a prior rejection, the skill can surface the previous decision instead of re-litigating it
@@ -75,7 +77,7 @@ The reason should be durable. Avoid referencing temporary circumstances ("we're 
 
 ## When to check `.out-of-scope/`
 
-During triage (Step 1: Gather context), read all files in `.out-of-scope/`. When evaluating a new issue:
+Only **if the directory actually exists and the project has opted into this convention**, consult existing `.out-of-scope/` records as non-authoritative history. When evaluating a new issue:
 
 - Check if the request matches an existing out-of-scope concept
 - Matching is by concept similarity, not keyword: "night theme" matches `dark-mode.md`
@@ -89,7 +91,7 @@ The maintainer may:
 
 ## When to write to `.out-of-scope/`
 
-Only when an **enhancement** (not a bug) is *rejected* as `wontfix`. This applies to enhancement PRs exactly as it does to issues: a rejected PR is recorded here so the same request doesn't return as fresh code.
+These instructions are upstream **examples only**, not WHD write instructions. For WHD, only an explicitly authorized enhancement rejection may be recorded on its existing Issue/PR; this REFERENCE cannot require a new directory, label or tracker state. Where a project has independently adopted this convention, optional record updates apply only to rejected enhancements, never already-implemented features.
 
 Do **not** write here when something is closed as `wontfix` because it's **already implemented**. That's a built feature, not a rejected one; recording it would poison the dedup checks with false rejections. Instead, the closing comment points to where the feature already lives.
 

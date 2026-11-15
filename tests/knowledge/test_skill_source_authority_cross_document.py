@@ -93,3 +93,32 @@ def test_code_review_uses_exact_localx_without_retired_remote_tokens():
     assert "同一 `WORKSPACE_DELIVERY` task" not in review
     assert "If they didn't specify one, ask for it." not in review
     assert "沒有 explicit remote authority 就保持離線" not in writing
+
+
+def test_triage_source_and_retired_remote_tokens_are_not_current_gates():
+    skill = read(".agents/skills/engineering/triage/SKILL.md")
+    brief = read(".agents/skills/engineering/triage/AGENT-BRIEF.md")
+    historical = read(".agents/skills/engineering/triage/OUT-OF-SCOPE.md")
+    assert "WHD_LOCALX_TRIAGE_SOURCE_AND_SCOPE_V1" in skill
+    assert "GitHub `localX` **最新 exact HEAD**" in skill
+    assert "查核預設唯讀" in skill
+    assert "同一已授權工單" in skill
+    assert "TARGETED_NOT_RUN" in skill
+    assert "建立 `USER_EXPLICIT_REMOTE` authority" not in skill
+    assert "Wait for direction." not in skill
+    assert "not a second CURRENT requirement" in brief
+    assert "The original body and discussion are context: the agent brief is the contract." not in brief
+    assert "WHD applicability: REFERENCE only." in historical
+    assert "do not create this directory" in historical
+    assert "only if this directory already exists" in skill
+
+
+def test_merge_conflict_skill_reconciles_verified_localx_without_forced_resolution():
+    skill = read(".agents/skills/engineering/resolving-merge-conflicts/SKILL.md")
+    assert "GitHub `localX` **latest exact HEAD**" in skill
+    assert "MERGE_CONFLICT_AUTHORITY_UNRESOLVED" in skill
+    assert "expected_head_sha" in skill
+    assert "TARGETED_NOT_RUN" in skill
+    assert "trusted gate" in skill
+    assert 'Always resolve; never `--abort`' not in skill
+    assert "No unconditional" in skill

@@ -847,7 +847,13 @@
     {
       "id": "explicit-skill-resolving-merge-conflicts",
       "keywords": [
-        "resolving-merge-conflicts"
+        "resolving-merge-conflicts",
+        "merge conflict",
+        "rebase conflict",
+        "解決合併衝突",
+        "處理合併衝突",
+        "Git 合併衝突",
+        "解決 rebase 衝突"
       ],
       "file_globs": [
         ".agents/skills/engineering/resolving-merge-conflicts/**"
@@ -886,6 +892,14 @@
     {
       "id": "explicit-skill-triage",
       "keywords": [
+        "triage",
+        "/triage",
+        "工單分類",
+        "工單分級",
+        "Issue triage",
+        "問題單分級"
+      ],
+      "boundary_keywords": [
         "triage"
       ],
       "file_globs": [
