@@ -1208,6 +1208,58 @@
       "required_references": [
         ".agents/skills/engineering/刪除/SKILL.md"
       ]
+    },
+    {
+      "id": "canonical-route-nfb-pad-standalone",
+      "keywords": [
+        "nfb-pad-standalone"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/nfb-pad-standalone/SKILL.md"
+      ],
+      "required_skills": [
+        "nfb-pad-standalone"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "canonical-route-receiving-base-no-manual-shrink",
+      "keywords": [
+        "receiving-base-no-manual-shrink"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/receiving-base-no-manual-shrink/SKILL.md"
+      ],
+      "required_skills": [
+        "receiving-base-no-manual-shrink"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "canonical-route-receiving-inner-door-live-nfb-opening",
+      "keywords": [
+        "receiving-inner-door-live-nfb-opening"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/receiving-inner-door-live-nfb-opening/SKILL.md"
+      ],
+      "required_skills": [
+        "receiving-inner-door-live-nfb-opening"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "canonical-route-新增功能",
+      "keywords": [
+        "新增功能"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/新增功能/SKILL.md"
+      ],
+      "required_skills": [
+        "新增功能"
+      ],
+      "required_references": []
     }
   ]
 }
