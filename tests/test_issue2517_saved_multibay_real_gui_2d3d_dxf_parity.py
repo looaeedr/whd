@@ -80,7 +80,7 @@ def _verify_two_physical_bay_scenes(authored, loaded):
             assert original.part_key == restored.part_key
             previous = original.render_data
             current = restored.render_data
-            if not previous.pieces and not current.pieces:
+            if original.part_key != "box_body":
                 assert previous.material.equals(current.material)
                 assert previous.scene == current.scene
                 assert previous.fold_guides == current.fold_guides
