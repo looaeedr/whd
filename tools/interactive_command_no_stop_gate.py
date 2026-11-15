@@ -83,7 +83,7 @@ _NEGATABLE_COMMAND_PATTERN = re.compile(
     r"(?<![A-Za-z0-9_])"
     r"(?:/(?:功能|debug|派工|接手|推推|提示詞健檢|提視詞健檢)"
     r"|推推|派工|接手|提示詞健檢|提視詞健檢"
-    r"|刪除|刪掉|清除|清掉|清空|移除|清\\s*(?:staging|active\\s*0)"
+    r"|刪除|刪掉|清除|清掉|清空|移除|清\s*(?:staging|active\s*0)"
     r"|delete|remove|prompt audit|prompt healthcheck)"
     r"(?![A-Za-z0-9_])",
     re.IGNORECASE,
