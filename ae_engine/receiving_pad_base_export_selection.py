@@ -43,18 +43,20 @@ def resolve_receiving_pad_base_export_source(snapshot) -> ReceivingPadBaseExport
             raise ValueError("PAD＋底板數量版本的 NFB 來源已失效")
         return ReceivingPadBaseExportSource(project_common_box(source), version_id)
 
+    from .receiving_layout import normalize_receiving_layout
+
+    if source.get("active_mode", "set_bay") != "set_bay":
+        raise ValueError("PAD＋底板沒有目前 Set／Bay 的實體選取")
+    try:
+        layout = normalize_receiving_layout(source.get("receiving_layout"))
+    except (ValueError, TypeError, KeyError) as exc:
+        raise ValueError("PAD＋底板 Set／Bay 實體選取已失效") from exc
+    sets = layout["sets"]
     runtime = source.get("_receiving_runtime_selection")
     if not isinstance(runtime, Mapping):
-        layout = source.get("receiving_layout")
-        sets = layout.get("sets") if isinstance(layout, Mapping) else None
-        if (source.get("active_mode", "set_bay") != "set_bay"
-                or not isinstance(sets, (list, tuple)) or len(sets) != 1
-                or not isinstance(sets[0], Mapping)
-                or not isinstance(sets[0].get("bays"), (list, tuple))
-                or len(sets[0]["bays"]) != 1
-                or not isinstance(sets[0]["bays"][0], Mapping)
-                or sets[0]["bays"][0].get("nfb_config_submitted") is not True
-                or sets[0]["bays"][0].get("nfb_config") != source.get("nfb_config")):
+        # Only a genuinely unique saved physical Bay can supply an implicit
+        # selection. Multi-Bay exports must carry the actual selected IDs.
+        if len(sets) != 1 or len(sets[0]["bays"]) != 1:
             raise ValueError("PAD＋底板沒有目前 Set／Bay 的實體選取")
         runtime = {
             "set_id": sets[0]["stable_id"],
@@ -62,8 +64,24 @@ def resolve_receiving_pad_base_export_source(snapshot) -> ReceivingPadBaseExport
             "set_index": 0, "bay_index": 0,
         }
         source["_receiving_runtime_selection"] = runtime
+
     set_id = str(runtime.get("set_id") or "").strip()
     bay_id = str(runtime.get("bay_id") or "").strip()
     if not set_id or not bay_id:
         raise ValueError("PAD＋底板缺少 Set／Bay 實際識別碼")
+    si = runtime.get("set_index")
+    bi = runtime.get("bay_index")
+    # A displayed/current runtime ID is not independent manufacturing
+    # authority. Verify it against the original persisted physical topology,
+    # rather than accepting any nonblank string as a new Bay/version.
+    if (type(si) is not int or type(bi) is not int
+            or not 0 <= si < len(sets)
+            or not 0 <= bi < len(sets[si]["bays"])
+            or set_id != sets[si]["stable_id"]
+            or bay_id != sets[si]["bays"][bi]["stable_id"]):
+        raise ValueError("PAD＋底板 Set／Bay 實體選取已失效")
+    selected_bay = sets[si]["bays"][bi]
+    if (selected_bay.get("nfb_config_submitted") is not True
+            or selected_bay.get("nfb_config") != source.get("nfb_config")):
+        raise ValueError("PAD＋底板 Set／Bay 實體選取的 NFB 來源已失效")
     return ReceivingPadBaseExportSource(source, f"{set_id}__{bay_id}")
