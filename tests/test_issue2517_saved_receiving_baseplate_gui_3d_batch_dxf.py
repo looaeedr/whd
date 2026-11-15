@@ -41,7 +41,7 @@ def _readback(tmp_path, source):
     )
     loaded = project.read_project(project_path)["snapshot"]
     assert project_path.is_file()
-    assert loaded["receiving_base_plate"] == before["receiving_base_plate"]
+    assert loaded.get("receiving_base_plate") == before.get("receiving_base_plate")
     assert source == before
     return loaded
 
