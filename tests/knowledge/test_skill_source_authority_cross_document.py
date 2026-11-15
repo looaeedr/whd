@@ -84,7 +84,7 @@ def test_code_review_uses_exact_localx_without_retired_remote_tokens():
     assert "WHD_GITHUB_LOCALX_REVIEW_SOURCE_V1" in review
     assert "GitHub `localX` 最新 exact HEAD" in review
     assert "已連線且可用" in review and "read-only" in review
-    assert "不得因欠缺另外一個 fixed-point 口令停工" in review
+    assert "不因欠缺另外一個 fixed-point 口令停工" in review
     assert "NO_REVIEW_DIFF" in review and "SOURCE_READ_PRECONDITION_FAILED" in review
     assert "SPEC_SOURCE_MISSING" in review
     assert "同一已核准 Issue／PR" in writing

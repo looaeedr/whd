@@ -330,7 +330,12 @@ def test_part_dxf_acceptance_auto_routes_part_impacting_changed_files():
     ):
         required = set(required_skills_for(task="板件修正", changed_files=[changed_file]))
         assert "驗證板件與DXF" in required, changed_file
-        assert "monitoring-remote-qa" in required, changed_file
+        # Product-file impact routes to the acceptance Skill. Remote monitoring
+        # applies once an actual remote run/QA task exists, not solely by path.
+        assert "monitoring-remote-qa" not in required, changed_file
+
+    monitored = set(required_skills_for(task="遠端 QA", changed_files=["gui.py"]))
+    assert "monitoring-remote-qa" in monitored
 
 
 def test_final_acceptance_hard_gate_is_visible_in_agents_and_skills():
@@ -343,11 +348,12 @@ def test_final_acceptance_hard_gate_is_visible_in_agents_and_skills():
     ).read_text(encoding="utf-8")
 
     for required in (
-        "Focused GREEN 不能直接合併",
-        "focused GREEN / final acceptance pending",
-        "part-dxf-acceptance",
+        "BATCHED_FAST_FEEDBACK_THEN_CANONICAL_CI_V1",
+        "WHD Product Regression",
+        "SOURCE_READ_BEFORE_MUTATION_V1",
     ):
         assert required in agents
+    assert "part-dxf-acceptance" in acceptance
     for required in (
         "Focused QA 不得取代成品板件驗收",
         "focused GREEN / final acceptance pending",
