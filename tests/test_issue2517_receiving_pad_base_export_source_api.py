@@ -44,19 +44,32 @@ def test_real_singleton_set_bay_source_id_is_selected_by_public_engine(family):
     assert source == before
 
 
-def test_explicit_set_bay_selection_survives_without_synthetic_identity():
+def test_explicit_set_bay_selection_binds_actual_persisted_identity():
     source = _one_bay()
+    saved = source["receiving_layout"]["sets"][0]
     source["_receiving_runtime_selection"] = {
-        "set_id": "actual-set", "bay_id": "actual-bay",
+        "set_id": saved["stable_id"],
+        "bay_id": saved["bays"][0]["stable_id"],
         "set_index": 0, "bay_index": 0,
     }
     before = deepcopy(source)
     result = api.resolve_receiving_pad_base_export_source(source)
-    assert result.version_id == "actual-set__actual-bay"
+    assert result.version_id == (
+        saved["stable_id"] + "__" + saved["bays"][0]["stable_id"]
+    )
     assert source == before
     with pytest.raises(ValueError, match="實際識別碼"):
         api.resolve_receiving_pad_base_export_source({
             **source, "_receiving_runtime_selection": {"set_id": "", "bay_id": "b"}
+        })
+    # A nonblank GUI alias never authorizes an unpersisted physical version.
+    with pytest.raises(ValueError, match="實體選取已失效"):
+        api.resolve_receiving_pad_base_export_source({
+            **source,
+            "_receiving_runtime_selection": {
+                **source["_receiving_runtime_selection"],
+                "bay_id": "not-a-physical-bay",
+            },
         })
 
 
