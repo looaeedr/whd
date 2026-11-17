@@ -1985,6 +1985,12 @@ from .joint_diagnostic_display import (
     JointDiagnosticOverlaySource, project_joint_diagnostic_display_sources,
 )
 
+# V-miter trial: canonical BEND -> physical MARKING; never a CUTTING authorization.
+from .v_miter_bend_marking import (
+    project_v_miter_bend_markings,
+    with_v_miter_bend_markings,
+)
+
 # #2517: Standalone FinalScene physical BEND, MARKING and BLIND_HOLE paths.
 from .final_scene_independent_annotations import (
     project_independent_scene_bend_segments,
