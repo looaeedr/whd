@@ -146,3 +146,95 @@ def test_forged_bend_is_rejected_even_if_coordinates_match():
     forged = LinePrimitive(first.p1, first.p2, "BEND")
     with pytest.raises(GeometryError, match="original scene"):
         _run(scene, forged, second, args, "RELIEF_HOLE", 1.5)
+
+
+
+def _folded_first_for_90_source(point):
+    # Canonical test fold: first BEND axis points -X, flange starts toward -Y.
+    return (point.x, 0.0, -point.y)
+
+
+def _folded_second_for_90_source(point, angle):
+    # Second BEND points +Y, flange starts toward +X, rises into +Z.
+    theta = math.radians(angle)
+    return (point.x * math.cos(theta), point.y, point.x * math.sin(theta))
+
+
+@pytest.mark.parametrize("angle", (60, 90, 120))
+@pytest.mark.parametrize("mode", ("ROUND_R", "RELIEF_HOLE"))
+def test_both_relief_modes_shift_3d_shared_contact_start_consistent_with_2d(angle, mode):
+    scene, first, second, args = _source(angle)
+    before = list(scene.primitives)
+    contact = manufacturing_api.project_v_miter_relief_mating_trial(
+        scene, first, second, **args,
+        relief_mode=mode, relief_t_factor=1.5,
+    )
+    ideal = contact.relief.source_trial.ideal
+    offset = (
+        (args["thickness_mm"] * 1.5) /
+        math.tan(math.radians(angle) / 2)
+        if mode == "ROUND_R" else args["thickness_mm"] * 1.5 / 2
+    )
+    assert contact.manufacturing_status == "V_MITER_RELIEF_FORMED_CONTACT_UNCERTIFIED"
+    assert contact.relief.flat_leg_tip_cutback_mm == pytest.approx(offset)
+    assert contact.formed_open_relief_length_mm == pytest.approx(offset)
+    assert contact.formed_contact_length_mm == pytest.approx(
+        ideal.formed_contact_length_mm - offset
+    )
+    assert contact.formed_contact_length_mm > 0
+    assert contact.formed_contact_end == ideal.formed_seam_end
+    assert math.dist(contact.formed_contact_start, ideal.formed_seam_start) == pytest.approx(offset)
+    assert _folded_first_for_90_source(
+        contact.first_flat_contact_start
+    ) == pytest.approx(contact.formed_contact_start, abs=1e-7)
+    assert _folded_second_for_90_source(
+        contact.second_flat_contact_start, angle
+    ) == pytest.approx(contact.formed_contact_start, abs=1e-7)
+    assert scene.primitives == before
+
+
+def test_round_R_has_larger_open_tip_than_same_T_multiple_hole_for_90_degree_bend():
+    scene, first, second, args = _source(90)
+    rounded = manufacturing_api.project_v_miter_relief_mating_trial(
+        scene, first, second, **args,
+        relief_mode="ROUND_R", relief_t_factor=2,
+    )
+    hole = manufacturing_api.project_v_miter_relief_mating_trial(
+        scene, first, second, **args,
+        relief_mode="RELIEF_HOLE", relief_t_factor=2,
+    )
+    assert rounded.formed_open_relief_length_mm == pytest.approx(4)
+    assert hole.formed_open_relief_length_mm == pytest.approx(2)
+    assert rounded.formed_contact_length_mm == pytest.approx(16)
+    assert hole.formed_contact_length_mm == pytest.approx(18)
+
+
+def test_3d_mating_trial_preserves_trial_check_dxf_2d_source(tmp_path):
+    scene, first, second, args = _source(120)
+    mating = manufacturing_api.project_v_miter_relief_mating_trial(
+        scene, first, second, **args, relief_mode="ROUND_R",
+        relief_t_factor=1,
+    )
+    preview = manufacturing_api.build_v_miter_relief_trial_check_scene(
+        scene, first, second, **args, relief_mode="ROUND_R",
+        relief_t_factor=1,
+    )
+    assert preview.primitives[1].points == mating.relief.trial_remaining_outline
+    out = tmp_path / "reconciled_2d3d_check.dxf"
+    save_scene_dxf(out, preview)
+    dxf = ezdxf.readfile(out)
+    check = [entity for entity in dxf.modelspace() if entity.dxf.layer == "CHECK"]
+    assert len(check) == 1
+    assert len(check[0].get_points("xy")) == len(mating.relief.trial_remaining_outline)
+    assert not any(entity.dxf.layer in {"CUTTING", "BEND", "MARKING"}
+                   for entity in dxf.modelspace())
+
+
+def test_missing_trial_multiplier_blocks_3d_mating_without_source_mutation():
+    scene, first, second, args = _source(90)
+    original = list(scene.primitives)
+    with pytest.raises(GeometryError, match="explicit trial factor"):
+        manufacturing_api.project_v_miter_relief_mating_trial(
+            scene, first, second, **args, relief_mode="ROUND_R",
+        )
+    assert scene.primitives == original
