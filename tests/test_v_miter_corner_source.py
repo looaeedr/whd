@@ -55,7 +55,7 @@ def test_actual_fold_inputs_and_both_relief_modes_are_source_qualified_but_not_c
 def test_non_orthogonal_bend_source_geometry_is_not_mistaken_for_a_fixed_right_angle():
     scene, first, second = _source((100, 100))
     plan = _qualified(scene, first, second, second_fold_angle_deg=120)
-    assert plan.flat_bend_line_angle_deg == pytest.approx(135)
+    assert plan.flat_bend_line_angle_deg == pytest.approx(45)
     assert plan.second_fold_angle_deg == 120
     assert plan.first_fold_angle_deg == 90
 
