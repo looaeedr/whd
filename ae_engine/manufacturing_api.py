@@ -1985,6 +1985,12 @@ from .joint_diagnostic_display import (
     JointDiagnosticOverlaySource, project_joint_diagnostic_display_sources,
 )
 
+# #3317: same-source CUTTING outline subtraction, trial only (CHECK preview).
+from .v_miter_material_trial import (
+    VMiterMaterialOutlineTrial,
+    project_v_miter_source_material_trial,
+)
+
 # #3317: bounded BEND/material reach and finite-t sharp-fold witness only.
 from .v_miter_bounded_contact import (
     VMiterBendReachWitness,
