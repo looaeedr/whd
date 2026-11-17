@@ -167,3 +167,36 @@ def test_preview_snapshot_does_not_approve_new_corner_selection():
     assert len(EDITABLE_CORNER_TYPE_IDS) == 4
     with pytest.raises(ValueError):
         CornerTypeId("V_MITER")
+
+
+
+def test_receiving_p6fold_v2_keeps_v_miter_preview_uncertified(tmp_path):
+    """Independent Receiving Family project must not drop preview source."""
+    from ae_engine.receiving_layout import new_receiving_layout
+    from phase6_project_file import PROJECT_SCHEMA_V2
+
+    scene, first, second, args = _scene(120)
+    captured = manufacturing_api.capture_v_miter_relief_trial_snapshot(
+        scene, first, second, **args,
+    )
+    filename = write_project(tmp_path / "receiving_v_miter.p6fold", {
+        "schema": PROJECT_SCHEMA_V1,
+        "snapshot": {
+            "model": "受電箱", "w": 800, "h": 1600, "d": 350, "t": 2,
+            "active_mode": "set_bay",
+            "receiving_layout": new_receiving_layout(
+                width=800, height=1600, depth=350,
+            ),
+            "v_miter_trial_preview": captured,
+        },
+    })
+    payload = read_project(filename)
+    assert payload["schema"] == PROJECT_SCHEMA_V2
+    snapshot = payload["snapshot"]["v_miter_trial_preview"]
+    assert snapshot == captured
+    clone = _new_scene_with_same_saved_physical_geometry(scene)
+    trial = manufacturing_api.replay_v_miter_relief_trial_snapshot(
+        clone, snapshot,
+    )
+    assert trial.manufacturing_status == "V_MITER_RELIEF_FORMED_CONTACT_UNCERTIFIED"
+    assert trial.relief.relief_mode.value == "RELIEF_HOLE"
