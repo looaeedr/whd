@@ -1985,6 +1985,13 @@ from .joint_diagnostic_display import (
     JointDiagnosticOverlaySource, project_joint_diagnostic_display_sources,
 )
 
+# #3317: physical R-circle / hole-shaped V-tip trial, never a production CUTTING.
+from .v_miter_relief_trial import (
+    VMiterReliefTrial,
+    project_v_miter_relief_trial,
+    build_v_miter_relief_trial_check_scene,
+)
+
 # #3317: same-source CUTTING outline subtraction, trial only (CHECK preview).
 from .v_miter_material_trial import (
     VMiterMaterialOutlineTrial,
