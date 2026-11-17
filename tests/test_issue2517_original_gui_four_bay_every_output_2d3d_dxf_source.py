@@ -96,7 +96,22 @@ def _verify_every_emitted_2d_against_original_engine(
     assert sum("base_plate" in name and "fixing_plate" not in name
                for name in names) == 4
     assert sum("nfb_pad" in name for name in names) == 4
-    assert sum("nfb_ear" in name for name in names) >= 4
+    # The original Engine's certified formed EAR/Fixing-Plate physical IDs
+    # are "base_plate:fixing_plate:...", NOT an invented "nfb_ear" file.
+    # This source proves only bounded formed source-flat CUTTING/BEND, not
+    # whole-cabinet welding certification.
+    formed_ears = tuple(
+        (name, render) for name, render in recorded.items()
+        if "fixing_plate" in name
+    )
+    assert len(formed_ears) == 8
+    for name, render in formed_ears:
+        meta = dict(render.metadata or {})
+        assert meta.get("fixed_plate_manufacturing_scope") == (
+            "SOURCE_FORMED_CUTTING_BEND_PART_ONLY"
+        ), name
+        assert meta.get("welding_workmanship_certified") is False
+        assert meta.get("whole_cabinet_manufacturing_ready") is False
     return namespaces
 
 
