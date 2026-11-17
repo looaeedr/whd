@@ -182,3 +182,51 @@ def test_preview_fail_closed_on_forged_source_and_missing_real_material():
         manufacturing_api.build_v_miter_trial_check_scene(
             DrawingScene([first, second]), first, second, **_params(90)
         )
+
+
+
+@pytest.mark.parametrize("reverse", (False, True))
+@pytest.mark.parametrize("mode", ("ROUND_R", "RELIEF_HOLE"))
+def test_concave_source_arc_cannot_overhang_outside_wedge_despite_valid_midpoint(
+    reverse, mode,
+):
+    """Old midpoint-only check mistakenly accepts this *valid* stock polygon.
+
+    For 90° BEND, the wedge is x >= 0 and y <= 0. The exterior arc runs
+    through (-5,-25), outside the wedge, but the arc midpoint is
+    (approximately 16.46,-25), inside it. The cut and remaining material
+    are individually valid polygons and their areas balance, so those
+    checks cannot replace whole-arc wedge validation.
+    """
+    first, second = _folds()
+    points = (
+        Vec2(-100, -20), Vec2(0, -20), Vec2(-5, -25),
+        Vec2(20, -25), Vec2(20, 100), Vec2(-100, 100),
+    )
+    if reverse:
+        points = tuple(reversed(points))
+    outline = PolylinePrimitive(points, "CUTTING", closed=True)
+    assert Polygon([(p.x, p.y) for p in points]).is_valid
+    scene = DrawingScene([outline, first, second])
+    before = list(scene.primitives)
+    with pytest.raises(GeometryError, match="exterior arc leaves.*outside wedge"):
+        manufacturing_api.project_v_miter_source_material_trial(
+            scene, first, second, **_params(90, mode),
+        )
+    assert scene.primitives == before
+
+
+@pytest.mark.parametrize("mode", ("ROUND_R", "RELIEF_HOLE"))
+def test_overhanging_source_cannot_enter_rounded_or_holed_relief_trial(mode):
+    first, second = _folds()
+    outline = PolylinePrimitive((
+        Vec2(-100, -20), Vec2(0, -20), Vec2(-5, -25),
+        Vec2(20, -25), Vec2(20, 100), Vec2(-100, 100),
+    ), "CUTTING", closed=True)
+    scene = DrawingScene([outline, first, second])
+    with pytest.raises(GeometryError, match="exterior arc leaves.*outside wedge"):
+        manufacturing_api.project_v_miter_relief_trial(
+            scene, first, second,
+            **_params(90, mode), relief_t_factor=1.5,
+        )
+    assert scene.primitives == [outline, first, second]
