@@ -1985,6 +1985,14 @@ from .joint_diagnostic_display import (
     JointDiagnosticOverlaySource, project_joint_diagnostic_display_sources,
 )
 
+# #3317: bounded BEND/material reach and finite-t sharp-fold witness only.
+from .v_miter_bounded_contact import (
+    VMiterBendReachWitness,
+    VMiterSharpThicknessWitness,
+    diagnose_v_miter_bounded_bend_reach,
+    project_v_miter_sharp_thickness_witness,
+)
+
 # #3317: ideal formed-3D V-miter plane intersection, shadow-only (not CUTTING).
 from .v_miter_ideal_mating import (
     VMiterIdealMatingCandidate,
