@@ -1985,6 +1985,13 @@ from .joint_diagnostic_display import (
     JointDiagnosticOverlaySource, project_joint_diagnostic_display_sources,
 )
 
+# #3317: source-bound V tip relief preview save/reload, never saved CUTTING.
+from .v_miter_trial_snapshot import (
+    capture_v_miter_relief_trial_snapshot,
+    replay_v_miter_relief_trial_snapshot,
+    build_saved_v_miter_relief_trial_check_scene,
+)
+
 # #3317: physical R-circle / hole-shaped V-tip trial, never a production CUTTING.
 from .v_miter_relief_trial import (
     VMiterReliefTrial,
