@@ -38,6 +38,7 @@ class VMiterReliefTrial:
     relief_t_factor: float
     relief_dimension_mm: float  # R for ROUND_R; diameter for RELIEF_HOLE
     relief_radius_mm: float
+    flat_leg_tip_cutback_mm: float  # tangent distance for R, circle radius for hole
     removed_material_area_mm2: float
     remaining_material_area_mm2: float
     trial_remaining_outline: tuple[Vec2, ...]
@@ -56,7 +57,7 @@ def _unit_vector_from(apex: Vec2, tip: Vec2) -> tuple[float, float, float]:
 def _round_v_tip(
     source: VMiterMaterialOutlineTrial,
     radius: float,
-) -> Polygon:
+) -> tuple[Polygon, float]:
     """Replace the sharp V cut tip with a tangent circular arc, not a hole.
 
     The arc is inside the removed V wedge, leaving a smoothly rounded
@@ -110,7 +111,7 @@ def _round_v_tip(
     sharp = Polygon((p.x, p.y) for p in source.removed_corner_outline)
     if rounded.difference(sharp).area > _AREA_TOL:
         raise GeometryError("V-miter rounded tip extends beyond original V wedge")
-    return rounded
+    return rounded, tangent_length
 
 
 def project_v_miter_relief_trial(
@@ -152,13 +153,14 @@ def project_v_miter_relief_trial(
     material = _single_source_material(scene)
     sharp = Polygon((p.x, p.y) for p in source.removed_corner_outline)
     if mode is VMiterReliefMode.ROUND_R:
-        removed = _round_v_tip(source, radius)
+        removed, cutback = _round_v_tip(source, radius)
     elif mode is VMiterReliefMode.RELIEF_HOLE:
         apex = qualified.bend_intersection
         circle = Point(apex.x, apex.y).buffer(radius, resolution=48)
         if circle.difference(material).area > _AREA_TOL:
             raise GeometryError("V-miter relief hole exceeds source material boundary")
         removed = sharp.union(circle)
+        cutback = radius
     else:
         raise GeometryError("V-miter unknown relief selection")
 
@@ -182,6 +184,7 @@ def project_v_miter_relief_trial(
         relief_t_factor=factor,
         relief_dimension_mm=dimension,
         relief_radius_mm=radius,
+        flat_leg_tip_cutback_mm=cutback,
         removed_material_area_mm2=removed.area,
         remaining_material_area_mm2=remaining.area,
         trial_remaining_outline=tuple(
@@ -228,3 +231,96 @@ def build_v_miter_relief_trial_check_scene(
         semantic_id="v_miter_explicit_relief_trial_uncertified",
     )
     return result
+
+
+
+@dataclass(frozen=True)
+class VMiterReliefMatingTrial:
+    """2D rounded/hole tip and its *ideal* formed shared-contact subsegment.
+
+    Since an ideal sharp fold is an isometry, the V-leg cutback measured on
+    each flat ray maps to exactly that distance along the shared 3D seam.
+    The first cutback length is OPEN RELIEF, not a bonded contact or a
+    tolerance-corrected real sheet-metal solid.
+    """
+
+    relief: VMiterReliefTrial
+    first_flat_contact_start: Vec2
+    second_flat_contact_start: Vec2
+    formed_contact_start: tuple[float, float, float]
+    formed_contact_end: tuple[float, float, float]
+    formed_open_relief_length_mm: float
+    formed_contact_length_mm: float
+    geometry_model: str = "IDEAL_SHARP_FOLD_RELIEF_AWARE_2D_3D_PARITY"
+    manufacturing_status: str = "V_MITER_RELIEF_FORMED_CONTACT_UNCERTIFIED"
+
+
+def project_v_miter_relief_mating_trial(
+    scene: DrawingScene,
+    v_edge_bend: LinePrimitive,
+    second_bend: LinePrimitive,
+    *,
+    thickness_mm: float,
+    first_flange_height_mm: float,
+    second_flange_height_mm: float,
+    second_fold_angle_deg: float,
+    relief_mode: VMiterReliefMode | str,
+    relief_t_factor: float | None = None,
+) -> VMiterReliefMatingTrial:
+    """Reconcile actual source-backed 2D tip relief with one 3D ideal seam.
+
+    No duplicate corner R, hole, angle or flange compensation formula: all
+    tip dimensions come from project_v_miter_relief_trial, and all formed
+    geometry comes from the existing ideal shared-plane intersection.
+    """
+    relief = project_v_miter_relief_trial(
+        scene, v_edge_bend, second_bend,
+        thickness_mm=thickness_mm,
+        first_flange_height_mm=first_flange_height_mm,
+        second_flange_height_mm=second_flange_height_mm,
+        second_fold_angle_deg=second_fold_angle_deg,
+        relief_mode=relief_mode,
+        relief_t_factor=relief_t_factor,
+    )
+    ideal = relief.source_trial.ideal
+    origin = ideal.source.bend_intersection
+    full_length = ideal.formed_contact_length_mm
+    cutback = relief.flat_leg_tip_cutback_mm
+    if not (math.isfinite(full_length) and math.isfinite(cutback)
+            and 0 < cutback < full_length - _AREA_TOL):
+        raise GeometryError("V-miter relief leaves no usable formed shared edge")
+
+    first_tip = ideal.first_flat_miter_ray[1]
+    second_tip = ideal.second_flat_miter_ray[1]
+    # The old ideal 3D and flat 2D sources MUST be isometric. Fail closed if
+    # they ever drift or were assembled from unrelated sources.
+    for tip in (first_tip, second_tip):
+        flat_length = math.hypot(tip.x - origin.x, tip.y - origin.y)
+        if abs(flat_length - full_length) > max(
+            _AREA_TOL, full_length * 1e-8
+        ):
+            raise GeometryError("V-miter unfolded rays disagree with formed seam length")
+
+    fraction = cutback / full_length
+
+    def flat_start(tip: Vec2) -> Vec2:
+        return Vec2(
+            origin.x + (tip.x - origin.x) * fraction,
+            origin.y + (tip.y - origin.y) * fraction,
+        )
+
+    start_3d = tuple(
+        ideal.formed_seam_start[i] + (
+            ideal.formed_seam_end[i] - ideal.formed_seam_start[i]
+        ) * fraction
+        for i in range(3)
+    )
+    return VMiterReliefMatingTrial(
+        relief=relief,
+        first_flat_contact_start=flat_start(first_tip),
+        second_flat_contact_start=flat_start(second_tip),
+        formed_contact_start=start_3d,
+        formed_contact_end=ideal.formed_seam_end,
+        formed_open_relief_length_mm=cutback,
+        formed_contact_length_mm=full_length - cutback,
+    )
