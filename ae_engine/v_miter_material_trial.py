@@ -175,3 +175,53 @@ def project_v_miter_source_material_trial(
             Vec2(x, y) for x, y in remaining.exterior.coords
         ),
     )
+
+
+
+def build_v_miter_trial_check_scene(
+    scene: DrawingScene,
+    v_edge_bend: LinePrimitive,
+    second_bend: LinePrimitive,
+    *,
+    thickness_mm: float,
+    first_flange_height_mm: float,
+    second_flange_height_mm: float,
+    second_fold_angle_deg: float,
+    relief_mode: VMiterReliefMode | str,
+    relief_t_factor: float | None = None,
+) -> DrawingScene:
+    """Read-only 2D/DXF *CHECK* preview, never a manufacture-able CUTTING.
+
+    The real source CUTTING perimeter is shown as a DATUM reference; the
+    ideal trial remaining perimeter is CHECK.  Source BENDs are displayed
+    as DATUM too, so saving this *preview* cannot create CNC BEND actions,
+    CUTTING paths, or MARKING toolpaths from uncertified V-miter geometry.
+    No GUI-owned copy of the V-cut algorithm is permitted.
+    """
+    trial = project_v_miter_source_material_trial(
+        scene, v_edge_bend, second_bend,
+        thickness_mm=thickness_mm,
+        first_flange_height_mm=first_flange_height_mm,
+        second_flange_height_mm=second_flange_height_mm,
+        second_fold_angle_deg=second_fold_angle_deg,
+        relief_mode=relief_mode,
+        relief_t_factor=relief_t_factor,
+    )
+    material = _single_source_material(scene)
+    result = DrawingScene()
+    result.add(PolylinePrimitive(
+        points=tuple(Vec2(x, y) for x, y in material.exterior.coords),
+        layer="DATUM", closed=True, color=6,
+        semantic_id="v_miter_source_reference_only",
+    ))
+    result.add(PolylinePrimitive(
+        points=trial.trial_remaining_outline,
+        layer="CHECK", closed=True, color=2,
+        semantic_id="v_miter_uncertified_trial_only",
+    ))
+    for source_bend in (v_edge_bend, second_bend):
+        result.add(LinePrimitive(
+            p1=source_bend.p1, p2=source_bend.p2,
+            layer="DATUM", color=6,
+        ))
+    return result
