@@ -1985,6 +1985,12 @@ from .joint_diagnostic_display import (
     JointDiagnosticOverlaySource, project_joint_diagnostic_display_sources,
 )
 
+# #3317: ideal formed-3D V-miter plane intersection, shadow-only (not CUTTING).
+from .v_miter_ideal_mating import (
+    VMiterIdealMatingCandidate,
+    project_ideal_v_miter_mating_candidate,
+)
+
 # #3317: typed V-miter two-bend source facts; never a CUTTING certification.
 from .v_miter_corner_source import (
     VMiterReliefMode,
