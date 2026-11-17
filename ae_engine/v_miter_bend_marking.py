@@ -100,11 +100,32 @@ def with_v_miter_bend_markings(
     """
     if not isinstance(scene, DrawingScene):
         raise TypeError("scene must be a canonical DrawingScene")
-    if bend not in scene.primitives:
+    # Dataclass equality is not lineage. A detached BEND with identical
+    # coordinates is not evidence of the scene's actual Fold source.
+    if not any(row is bend for row in scene.primitives):
         raise GeometryError("V-miter marking BEND is not present in source scene")
     strokes = project_v_miter_bend_markings(
         bend, stroke_mm=stroke_mm, clear_gap_mm=clear_gap_mm,
     )
+
+    def same_physical_marking(left, right):
+        if not isinstance(left, LinePrimitive) or left.layer != "MARKING":
+            return False
+        return (
+            (left.p1 == right.p1 and left.p2 == right.p2)
+            or (left.p1 == right.p2 and left.p2 == right.p1)
+        )
+
+    already_present = tuple(
+        any(same_physical_marking(existing, stroke)
+            for existing in scene.primitives)
+        for stroke in strokes
+    )
+    # Repeated projections cannot write the same engraving twice. If only
+    # some strokes pre-existed, refuse instead of partially mixing material.
+    if any(already_present) and not all(already_present):
+        raise GeometryError("V-miter MARKING partially overlaps existing strokes")
     result = DrawingScene(list(scene.primitives))
-    result.extend(strokes)
+    if not all(already_present):
+        result.extend(strokes)
     return result
