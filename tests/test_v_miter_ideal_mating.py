@@ -31,7 +31,7 @@ def _project(*, angle=90, heights=(20, 30), second_to=(0, 100), mirror=False):
 
 def _formed_first(point):
     # For test axes first -X and outward -Y, 90-degree fold maps -Y to +Z.
-    return (-point.x, 0.0, -point.y)
+    return (point.x, 0.0, -point.y)
 
 
 def _formed_second(point, angle):
@@ -64,9 +64,9 @@ def test_variable_second_angle_changes_first_unfolded_cut_ray():
     first_60 = _project(angle=60)[1].first_flat_miter_ray[1]
     first_90 = _project(angle=90)[1].first_flat_miter_ray[1]
     first_120 = _project(angle=120)[1].first_flat_miter_ray[1]
-    assert first_60.x == pytest.approx(-20 / math.sqrt(3))
+    assert first_60.x == pytest.approx(20 / math.sqrt(3))
     assert first_90.x == pytest.approx(0, abs=1e-8)
-    assert first_120.x == pytest.approx(20 / math.sqrt(3))
+    assert first_120.x == pytest.approx(-20 / math.sqrt(3))
     assert first_60.y == pytest.approx(-20)
     assert first_90.y == pytest.approx(-20)
     assert first_120.y == pytest.approx(-20)
