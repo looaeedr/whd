@@ -57,7 +57,10 @@ def test_slanted_bend_markings_are_real_symmetric_segments_from_source_bend():
 def test_marking_short_lines_and_symmetric_remainders(length, expected):
     scene, _, bend = _scene((0.0, 0.0), (length, 0.0))
     marked = manufacturing_api.with_v_miter_bend_markings(scene, bend)
-    assert [(s.p1.x, s.p2.x) for s in marked.primitives[2:]] == pytest.approx(expected)
+    actual = [(s.p1.x, s.p2.x) for s in marked.primitives[2:]]
+    assert len(actual) == len(expected)
+    for pair, target in zip(actual, expected):
+        assert pair == pytest.approx(target)
 
 
 @pytest.mark.parametrize(
