@@ -1989,6 +1989,7 @@ from .joint_diagnostic_display import (
 from .v_miter_material_trial import (
     VMiterMaterialOutlineTrial,
     project_v_miter_source_material_trial,
+    build_v_miter_trial_check_scene,
 )
 
 # #3317: bounded BEND/material reach and finite-t sharp-fold witness only.
