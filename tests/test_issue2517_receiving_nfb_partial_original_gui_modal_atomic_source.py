@@ -10,7 +10,7 @@ from copy import deepcopy
 from pathlib import Path
 from types import SimpleNamespace
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, filedialog
 
 import pytest
 
@@ -175,8 +175,7 @@ def test_actual_original_multi_settings_nfb_button_refuses_modal_changed_bay(
             ] += 20.0
             return str(tmp_path)
 
-        monkeypatch.setattr(tk.filedialog, "askdirectory", change_in_modal,
-                            raising=False)
+        monkeypatch.setattr(filedialog, "askdirectory", change_in_modal)
         warns = []
         monkeypatch.setattr(ui.messagebox, "showwarning",
                             lambda *args, **kwargs: warns.append(args))
