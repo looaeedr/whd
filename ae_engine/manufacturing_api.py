@@ -1990,6 +1990,8 @@ from .v_miter_relief_trial import (
     VMiterReliefTrial,
     project_v_miter_relief_trial,
     build_v_miter_relief_trial_check_scene,
+    VMiterReliefMatingTrial,
+    project_v_miter_relief_mating_trial,
 )
 
 # #3317: same-source CUTTING outline subtraction, trial only (CHECK preview).
