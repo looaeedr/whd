@@ -144,6 +144,18 @@ def project_v_miter_source_material_trial(
     e2 = _outward_bend_axis(second_bend, apex)
     n1 = _outside_normal(e1, e2)
     n2 = _outside_normal(e2, e1)
+    # The outside wedge is the INTERSECTION of two half-planes. Checking
+    # only the boundary arc's midpoint misses concave source perimeters:
+    # the middle can be in the correct wedge while a different vertex
+    # overhangs into an adjacent flange. Every arc segment is straight,
+    # so proving each endpoint belongs to both half-planes proves the
+    # *entire* physical perimeter arc belongs to the wedge.
+    for x, y in outer_arc:
+        relative = (x - apex.x, y - apex.y, 0.0)
+        if min(_dot(relative, n1), _dot(relative, n2)) < -_TOL:
+            raise GeometryError(
+                "V-miter trial exterior arc leaves the physical outside wedge"
+            )
     middle_arc_point = LineString(outer_arc).interpolate(LineString(outer_arc).length / 2)
     arc_relative = (
         middle_arc_point.x - apex.x, middle_arc_point.y - apex.y, 0.0,
