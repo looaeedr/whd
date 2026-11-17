@@ -1985,6 +1985,13 @@ from .joint_diagnostic_display import (
     JointDiagnosticOverlaySource, project_joint_diagnostic_display_sources,
 )
 
+# #3317: typed V-miter two-bend source facts; never a CUTTING certification.
+from .v_miter_corner_source import (
+    VMiterReliefMode,
+    VMiterSourceQualification,
+    qualify_v_miter_corner_source,
+)
+
 # V-miter trial: canonical BEND -> physical MARKING; never a CUTTING authorization.
 from .v_miter_bend_marking import (
     project_v_miter_bend_markings,
