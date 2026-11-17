@@ -114,3 +114,48 @@ def test_only_engine_public_api_exposes_v_miter_marking_without_changing_catalog
     from ae_engine.sheetmetal_geometry_core import EDITABLE_CORNER_TYPE_IDS
     assert callable(manufacturing_api.with_v_miter_bend_markings)
     assert len(EDITABLE_CORNER_TYPE_IDS) == 4  # Not a fake fifth CUTTING type.
+
+
+def test_equal_looking_detached_bend_is_not_a_manufacturing_source():
+    scene, cutting, bend = _scene()
+    copied = LinePrimitive(bend.p1, bend.p2, layer="BEND")
+    assert copied == bend and copied is not bend
+    with pytest.raises(GeometryError, match="source scene"):
+        manufacturing_api.with_v_miter_bend_markings(scene, copied)
+    assert scene.primitives == [cutting, bend]
+
+
+def test_repeated_marking_projection_does_not_duplicate_real_dxf_lines(tmp_path):
+    scene, cutting, bend = _scene()
+    once = manufacturing_api.with_v_miter_bend_markings(scene, bend)
+    twice = manufacturing_api.with_v_miter_bend_markings(once, bend)
+    assert twice is not once
+    assert once.primitives == twice.primitives
+    assert len([p for p in twice.primitives if p.layer == "MARKING"]) == 3
+    assert [p for p in twice.primitives if p.layer == "CUTTING"] == [cutting]
+    output = tmp_path / "repeated-v-miter.dxf"
+    save_scene_dxf(output, twice)
+    reopened = ezdxf.readfile(output)
+    assert len([e for e in reopened.modelspace()
+                if e.dxftype() == "LINE" and e.dxf.layer == "MARKING"]) == 3
+
+
+def test_existing_partial_marking_does_not_create_mixed_physical_output():
+    scene, cutting, bend = _scene()
+    complete = manufacturing_api.with_v_miter_bend_markings(scene, bend)
+    partial = DrawingScene([cutting, bend, complete.primitives[2]])
+    before = list(partial.primitives)
+    with pytest.raises(GeometryError, match="partially overlaps"):
+        manufacturing_api.with_v_miter_bend_markings(partial, bend)
+    assert partial.primitives == before
+
+
+def test_reverse_existing_stroke_is_not_double_engraved():
+    scene, _, bend = _scene()
+    complete = manufacturing_api.with_v_miter_bend_markings(scene, bend)
+    reversed_mark = LinePrimitive(
+        complete.primitives[2].p2, complete.primitives[2].p1, "MARKING",
+    )
+    partial = DrawingScene(list(scene.primitives) + [reversed_mark])
+    with pytest.raises(GeometryError, match="partially overlaps"):
+        manufacturing_api.with_v_miter_bend_markings(partial, bend)
