@@ -132,3 +132,53 @@ def test_v_trial_outline_can_be_reopened_as_check_preview_but_not_cutting(tmp_pa
     geometry = [p for p in doc.modelspace() if p.dxftype() == "LWPOLYLINE"]
     assert len(geometry) == 1 and geometry[0].dxf.layer == "CHECK"
     assert not any(p.dxf.layer == "CUTTING" for p in doc.modelspace())
+
+
+
+@pytest.mark.parametrize("angle", (60, 90, 120))
+def test_v_miter_check_preview_is_same_source_2d_and_dxf_never_real_cutting(angle, tmp_path):
+    scene, outline, first, second = _scene_with_real_material(angle)
+    before = list(scene.primitives)
+    preview = manufacturing_api.build_v_miter_trial_check_scene(
+        scene, first, second, **_params(angle)
+    )
+    assert preview is not scene
+    assert scene.primitives == before
+    assert [p.layer for p in preview.primitives] == [
+        "DATUM", "CHECK", "DATUM", "DATUM",
+    ]
+    assert preview.primitives[0].semantic_id == "v_miter_source_reference_only"
+    assert preview.primitives[1].semantic_id == "v_miter_uncertified_trial_only"
+    candidate = manufacturing_api.project_v_miter_source_material_trial(
+        scene, first, second, **_params(angle)
+    )
+    assert preview.primitives[1].points == candidate.trial_remaining_outline
+    path = tmp_path / f"trial_check_{angle}.dxf"
+    save_scene_dxf(path, preview)
+    reopened = ezdxf.readfile(path)
+    entities = list(reopened.modelspace())
+    assert len(entities) == 4
+    assert [e.dxf.layer for e in entities] == [
+        "DATUM", "CHECK", "DATUM", "DATUM",
+    ]
+    assert all(e.dxf.layer not in {"CUTTING", "BEND", "MARKING"} for e in entities)
+    target = entities[1]
+    assert target.dxftype() == "LWPOLYLINE"
+    actual = tuple((x, y) for x, y in target.get_points("xy"))
+    expected = tuple((p.x, p.y) for p in candidate.trial_remaining_outline)
+    assert len(actual) == len(expected)
+    for row, wanted in zip(actual, expected):
+        assert row == pytest.approx(wanted)
+
+
+def test_preview_fail_closed_on_forged_source_and_missing_real_material():
+    scene, outline, first, second = _scene_with_real_material(90)
+    detached = LinePrimitive(first.p1, first.p2, "BEND")
+    with pytest.raises(GeometryError, match="original scene"):
+        manufacturing_api.build_v_miter_trial_check_scene(
+            scene, detached, second, **_params(90)
+        )
+    with pytest.raises(GeometryError, match="CUTTING"):
+        manufacturing_api.build_v_miter_trial_check_scene(
+            DrawingScene([first, second]), first, second, **_params(90)
+        )
