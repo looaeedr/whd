@@ -209,7 +209,7 @@ def test_concave_source_arc_cannot_overhang_outside_wedge_despite_valid_midpoint
     assert Polygon([(p.x, p.y) for p in points]).is_valid
     scene = DrawingScene([outline, first, second])
     before = list(scene.primitives)
-    with pytest.raises(GeometryError, match="exterior arc leaves.*outside wedge"):
+    with pytest.raises(GeometryError, match="exterior arc leaves.*V cut sector"):
         manufacturing_api.project_v_miter_source_material_trial(
             scene, first, second, **_params(90, mode),
         )
@@ -224,9 +224,25 @@ def test_overhanging_source_cannot_enter_rounded_or_holed_relief_trial(mode):
         Vec2(20, -25), Vec2(20, 100), Vec2(-100, 100),
     ), "CUTTING", closed=True)
     scene = DrawingScene([outline, first, second])
-    with pytest.raises(GeometryError, match="exterior arc leaves.*outside wedge"):
+    with pytest.raises(GeometryError, match="exterior arc leaves.*V cut sector"):
         manufacturing_api.project_v_miter_relief_trial(
             scene, first, second,
             **_params(90, mode), relief_t_factor=1.5,
         )
     assert scene.primitives == [outline, first, second]
+
+
+
+def test_120_degree_flange_validly_extends_outside_fixed_bend_wedge():
+    """Do not regress legitimate asymmetric V which crosses old X=0 crease."""
+    scene, _, first, second = _scene_with_real_material(120)
+    candidate = manufacturing_api.project_v_miter_source_material_trial(
+        scene, first, second, **_params(120),
+    )
+    apex = candidate.ideal.source.bend_intersection
+    first_tip = candidate.ideal.first_flat_miter_ray[1]
+    assert first_tip.x < apex.x  # outside fixed +X wedge, yet valid V sector
+    assert candidate.remaining_material_area_mm2 > 0
+    assert candidate.source_material_area_mm2 == pytest.approx(
+        candidate.remaining_material_area_mm2 + candidate.removed_material_area_mm2
+    )
