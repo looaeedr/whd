@@ -22,6 +22,13 @@ def _wall(x, z0, z1):
     return ((a, b, c), (a, c, d))
 
 
+def _sloped_wall(x0, x1, z0, z1):
+    """Real planar T-sidewall moving linearly in XYZ with seam height."""
+    a, b = (x0, 0.0, z0), (x0, 1.0, z0)
+    c, d = (x1, 1.0, z1), (x1, 0.0, z1)
+    return ((a, b, c), (a, c, d))
+
+
 def _args():
     return dict(formed_seam_start=(0, 0, 0), formed_seam_end=(0, 0, 10))
 
@@ -154,3 +161,80 @@ def test_zero_length_or_absent_source_cut_face_rejects_continuity_trial():
         )
     with pytest.raises(GeometryError, match="empty"):
         _analyze((), mesh)
+
+
+def test_static_true_cut_faces_have_tight_constant_whole_interval_gap_bounds():
+    trial = _analyze(_wall(0, 0, 10), _wall(2, 0, 10))
+    assert trial.gap_bound_status == "CONSERVATIVE_SOURCE_MESH_ENVELOPE_CHECK"
+    assert trial.coverage_status == "FACE_COVERAGE_SAMPLED_ONLY"
+    assert trial.max_gap_lower_bound_mm <= 2 <= trial.max_gap_upper_bound_mm
+    assert trial.min_gap_lower_bound_mm <= 2 <= trial.min_gap_upper_bound_mm
+    assert trial.max_gap_upper_bound_mm == pytest.approx(2, abs=1e-3)
+    assert trial.min_gap_lower_bound_mm == pytest.approx(2, abs=1e-3)
+    assert len(trial.intervals) == 1
+    row = trial.intervals[0]
+    assert row.gap_bound_status == "CONSERVATIVE_SOURCE_MESH_ENVELOPE_CHECK"
+    assert row.combined_transverse_speed == pytest.approx(0)
+    assert row.max_gap_lower_bound_mm <= 2 <= row.max_gap_upper_bound_mm
+    assert row.min_gap_lower_bound_mm <= 2 <= row.min_gap_upper_bound_mm
+
+
+def test_conservative_bounds_cover_unsampled_peak_at_actual_triangle_vertex():
+    # Physical true cut face first x=0. Second x(z) = 2 at seam ends,
+    # 3 at the event z=5. The midpoint checks at z=2.5/7.5 measure
+    # only 2.5; the actual geometric supremum is 3 at the shared event.
+    first = _wall(0, 0, 10)
+    second = _sloped_wall(2, 3, 0, 5) + _sloped_wall(3, 2, 5, 10)
+    result = _analyze(first, second)
+    assert len(result.intervals) == 2
+    assert result.max_sampled_cut_face_gap_mm == pytest.approx(2.5)
+    assert result.gap_bound_status == "CONSERVATIVE_SOURCE_MESH_ENVELOPE_CHECK"
+    assert result.max_gap_lower_bound_mm <= 3
+    assert result.max_gap_upper_bound_mm >= 3
+    assert result.max_gap_upper_bound_mm == pytest.approx(3, abs=1e-3)
+    assert result.min_gap_lower_bound_mm <= 2
+    assert result.min_gap_upper_bound_mm >= 2
+    for row in result.intervals:
+        assert row.gap_bound_status == "CONSERVATIVE_SOURCE_MESH_ENVELOPE_CHECK"
+        assert row.combined_transverse_speed == pytest.approx(0.2)
+        assert row.max_gap_lower_bound_mm <= 3 <= row.max_gap_upper_bound_mm
+        assert row.min_gap_lower_bound_mm <= 2 <= row.min_gap_upper_bound_mm
+        assert row.max_gap_upper_bound_mm > row.midpoint_section.measured_gap_mm
+        assert row.max_gap_upper_bound_mm >= row.max_gap_lower_bound_mm
+        assert row.min_gap_upper_bound_mm >= row.min_gap_lower_bound_mm
+    assert result.manufacturing_status.endswith("UNCERTIFIED")
+
+
+def test_partial_real_cut_face_coverage_disables_global_max_gap_envelope():
+    result = _analyze(
+        _wall(0, 0, 10),
+        _wall(2, 0, 5.2) + _wall(2, 5.4, 10),
+    )
+    assert result.coverage_status == "FACE_COVERAGE_INCOMPLETE"
+    assert result.gap_bound_status == "UNRESOLVED_OR_PARTIAL_SOURCE_COVERAGE"
+    assert result.max_gap_lower_bound_mm is None
+    assert result.max_gap_upper_bound_mm is None
+    assert result.min_gap_lower_bound_mm is None
+    assert result.min_gap_upper_bound_mm is None
+    missing = [row for row in result.intervals if not row.has_both_cut_faces]
+    assert len(missing) == 1
+    assert missing[0].gap_bound_status == "MISSING_PHYSICAL_CUT_FACE"
+    assert missing[0].max_gap_upper_bound_mm is None
+    assert all(row.max_gap_upper_bound_mm is not None
+               for row in result.intervals if row.has_both_cut_faces)
+
+
+def test_tiny_unresolved_vertex_clusters_never_claim_gap_upper_certificate():
+    from ae_engine.contracts import PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES
+    tol = PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES.boundary_separation_tolerance
+    first = _wall(0, 0, 10)
+    # A triangle vertex projected nearer than the shared GEOMETRY
+    # numerical tolerance is merged into its adjacent source event.
+    # That interval no longer has proven exact topology for all stations.
+    second = _wall(2, 0, 5) + _wall(2, 5 + tol * 0.25, 10)
+    result = _analyze(first, second)
+    assert result.numerically_unresolved_vertex_event_count > 0
+    assert result.coverage_status == "FACE_COVERAGE_INCOMPLETE"
+    assert result.gap_bound_status == "UNRESOLVED_OR_PARTIAL_SOURCE_COVERAGE"
+    assert result.max_gap_upper_bound_mm is None
+    assert all(row.max_gap_upper_bound_mm is None for row in result.intervals)
