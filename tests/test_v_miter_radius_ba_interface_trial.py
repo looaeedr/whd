@@ -143,3 +143,30 @@ def test_real_round_R_thick_joint_rejects_interference_in_original_tip_stock():
         for segment in failure.attempted_intersection_segments
     )
     assert tuple(scene.primitives) == original
+
+
+def test_enclosed_3d_volume_blocks_radius_ba_trial_even_when_surface_detector_is_clear(monkeypatch):
+    from ae_engine import v_miter_radius_ba_interface_trial as owner
+    from ae_engine.assembly_geometry import MeshEnclosedVolumeDiagnostic
+
+    scene, first, second, inputs = _source(mode="RELIEF_HOLE")
+    original = tuple(scene.primitives)
+
+    # The shared 3D detector has separately proven a real fully enclosed
+    # cuboid can have zero surface-crossing pairs. Inject that positive
+    # physical-volume witness after real source/R/BA/2D/3D preparation here.
+    monkeypatch.setattr(
+        owner, "detect_world_mesh_enclosed_volume_witness",
+        lambda *_: MeshEnclosedVolumeDiagnostic(
+            True, 1, ((1.0, 2.0, 3.0),),
+        ),
+    )
+    with pytest.raises(owner.VMiterRadiusBAContactError, match="strictly enclosed") as caught:
+        manufacturing_api.solve_v_miter_radius_ba_interface_trial(
+            scene, first, second, **inputs, **_calibrated(),
+        )
+    failure = caught.value
+    assert failure.attempted_containment_points == ((1.0, 2.0, 3.0),)
+    assert failure.attempted_noncoplanar_pairs == 0
+    assert failure.manufacturing_status.endswith("UNCERTIFIED")
+    assert tuple(scene.primitives) == original

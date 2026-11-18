@@ -252,6 +252,148 @@ def detect_world_mesh_surface_interference(source_triangles, target_triangles, *
     )
 
 
+@dataclass(frozen=True)
+class MeshEnclosedVolumeDiagnostic:
+    """Conservative true-3D containment witness, never a clearance certificate.
+
+    Surface-crossing detectors cannot see a closed solid wholly embedded in
+    another. A positive sample is a material overlap witness; a negative
+    sample is NOT a proof of zero volume intersection or legal contact.
+    """
+
+    meshes_closed: bool
+    sample_count: int
+    strictly_inside_points: tuple[tuple[float, float, float], ...]
+    geometry_model: str = "CLOSED_MESH_STRICT_CONTAINMENT_SAMPLE_UNCERTIFIED"
+
+    @property
+    def has_enclosed_overlap(self) -> bool:
+        return bool(self.strictly_inside_points)
+
+
+def detect_world_mesh_enclosed_volume_witness(
+    source_triangles, target_triangles, *, tolerance=None,
+):
+    """Find strictly interior points when two already-meshed closed solids nest.
+
+    Requires both meshes to have finite, nondegenerate, edge-manifold triangle
+    surfaces. Test in BOTH directions with independent non-axial ray parities.
+    Ambiguous edge/surface hits never become positive evidence. The bounded
+    deterministic sampling is intentionally conservative and cannot certify
+    the absence of penetration, kerf allowance or factory fit.
+    """
+    from collections import Counter
+    import numpy as np
+
+    if tolerance is None:
+        from .contracts import PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES
+        tolerance = PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES.boundary_separation_tolerance
+    tol = float(tolerance)
+    if not np.isfinite(tol) or tol <= 0:
+        raise ValueError("mesh containment numerical tolerance must be finite and positive")
+
+    def prepared(rows):
+        try:
+            mesh = np.asarray(tuple(rows if rows is not None else ()), dtype=float)
+        except (TypeError, ValueError, OverflowError):
+            return None
+        if mesh.ndim != 3 or mesh.shape[1:] != (3, 3) or not np.isfinite(mesh).all():
+            return None
+        # The parity calculation is defined only for a closed, nonsingular
+        # surface. A missing wall is UNKNOWN, not a zero-collision certificate.
+        edges = Counter()
+        for tri in mesh:
+            u, v = tri[1] - tri[0], tri[2] - tri[0]
+            if np.linalg.norm(np.cross(u, v)) <= tol * tol:
+                return None
+            keys = [tuple(int(round(float(c) / tol)) for c in p) for p in tri]
+            if len(set(keys)) != 3:
+                return None
+            for i in range(3):
+                edge = tuple(sorted((keys[i], keys[(i + 1) % 3])))
+                edges[edge] += 1
+        if not edges or any(n != 2 for n in edges.values()):
+            return None
+        return mesh
+
+    src = prepared(source_triangles)
+    dst = prepared(target_triangles)
+    if src is None or dst is None:
+        return MeshEnclosedVolumeDiagnostic(False, 0, ())
+
+    directions = np.asarray((
+        (1.0, .373, .619),
+        (.227, 1.0, .461),
+        (.583, .291, 1.0),
+    ))
+    unit = directions / np.linalg.norm(directions, axis=1)[:, None]
+
+    def is_strictly_inside(point, mesh):
+        # Consistent odd parity along at least two independent rays. A point
+        # on a face or an edge-aligned hit is numerically indeterminate.
+        v0 = mesh[:, 0, :]
+        e1 = mesh[:, 1, :] - v0
+        e2 = mesh[:, 2, :] - v0
+        votes = []
+        for ray in unit:
+            pvec = np.cross(ray, e2)
+            det = np.einsum("ij,ij->i", e1, pvec)
+            valid = np.abs(det) > 1e-12
+            inv = np.zeros_like(det)
+            inv[valid] = 1.0 / det[valid]
+            tv = point - v0
+            u = np.einsum("ij,ij->i", tv, pvec) * inv
+            qvec = np.cross(tv, e1)
+            v = qvec @ ray * inv
+            t = np.einsum("ij,ij->i", e2, qvec) * inv
+            inside_face = valid & (u >= -1e-9) & (v >= -1e-9) & (u + v <= 1 + 1e-9)
+            if np.any(inside_face & (np.abs(t) <= tol)):
+                continue
+            forward = inside_face & (t > tol)
+            if np.any(forward & ((u <= 1e-9) | (v <= 1e-9) | (u + v >= 1 - 1e-9))):
+                continue
+            distances = sorted(float(value) for value in t[forward])
+            unique = []
+            for distance in distances:
+                if not unique or distance - unique[-1] > max(tol, abs(distance) * 1e-9):
+                    unique.append(distance)
+            votes.append(bool(len(unique) % 2))
+        return len(votes) >= 2 and all(votes)
+
+    points_checked = 0
+    def check_samples(candidate, enclosure):
+        nonlocal points_checked
+        lower = enclosure.min(axis=(0, 1)) + tol
+        upper = enclosure.max(axis=(0, 1)) - tol
+        # vertices plus face-centres: a nested small shell may have its
+        # vertices strictly inside even when no surfaces intersect.
+        pts = np.vstack((candidate.reshape(-1, 3), candidate.mean(axis=1)))
+        viable = pts[np.all((pts > lower) & (pts < upper), axis=1)]
+        if len(viable) == 0:
+            return None
+        # Fixed diagnostic work cap, not a factory length/clearance value.
+        ids = np.linspace(0, len(viable) - 1, min(48, len(viable)), dtype=int)
+        seen = set()
+        for i in ids:
+            p = viable[i]
+            key = tuple(float(v) for v in p)
+            if key in seen:
+                continue
+            seen.add(key)
+            points_checked += 1
+            if is_strictly_inside(p, enclosure):
+                return key
+        return None
+
+    # Both shells must be checked; one may be completely enclosed by the
+    # other and the surface-segment detector would report zero crossings.
+    for a, b in ((src, dst), (dst, src)):
+        witness = check_samples(a, b)
+        if witness is not None:
+            return MeshEnclosedVolumeDiagnostic(True, points_checked, (witness,))
+    return MeshEnclosedVolumeDiagnostic(True, points_checked, ())
+
+
 
 @dataclass(frozen=True)
 class FoldedTriangleMap:
