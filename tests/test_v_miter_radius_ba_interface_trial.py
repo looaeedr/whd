@@ -39,9 +39,8 @@ def _calibrated(angle=90, *, radius=0.5, k=0.4):
     )
 
 
-@pytest.mark.parametrize("mode", ("ROUND_R", "RELIEF_HOLE"))
-def test_90deg_real_radius_ba_trial_is_source_bound_and_only_uncertified(mode):
-    scene, first, second, args = _source(mode=mode)
+def test_90deg_hole_real_radius_ba_trial_is_source_bound_and_only_uncertified():
+    scene, first, second, args = _source(mode="RELIEF_HOLE")
     original = tuple(scene.primitives)
     calibrated = _calibrated()
     trial = manufacturing_api.solve_v_miter_radius_ba_interface_trial(
@@ -115,3 +114,17 @@ def test_compensation_does_not_promote_new_corner_type_or_cutting():
     assert len(EDITABLE_CORNER_TYPE_IDS) == 4
     with pytest.raises(ValueError):
         CornerTypeId("V_MITER")
+
+
+
+def test_real_round_R_thick_joint_rejects_interference_in_original_tip_stock():
+    # Independent Engine solver contract, not just the DXF CHECK wrapper.
+    # This measured-T/R/BA geometry remains in interference if the actual
+    # R-tip stock is preserved, so local mesh success must NOT be published.
+    scene, first, second, args = _source(mode="ROUND_R")
+    original = tuple(scene.primitives)
+    with pytest.raises(GeometryError, match="ROUND_R source-preserving trim still has detected"):
+        manufacturing_api.solve_v_miter_radius_ba_interface_trial(
+            scene, first, second, **args, **_calibrated(),
+        )
+    assert tuple(scene.primitives) == original

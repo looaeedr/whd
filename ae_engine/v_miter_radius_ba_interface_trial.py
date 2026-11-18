@@ -229,6 +229,54 @@ def _trim_one_v_edge(
     return clipped
 
 
+def _checked_full_source_from_trim(
+    source: Polygon, first_source: Polygon, first_corrected: Polygon,
+    unchanged_second: Polygon,
+) -> tuple[Polygon, Polygon]:
+    """Enforce one real sheet BEFORE exposing a locally collision-free trial.
+
+    A local 3D flange may show zero noncoplanar crossings only because the
+    clipping removed a separate island or altered the other physical flange.
+    Its *whole source sheet* must remain one closed material polygon. Apply
+    the exact local removed delta to the original V-relieved sheet; never
+    replace an interior island by convex hull/buffer(0)/largest component.
+    Both public local solver and CHECK-only whole-sheet projector consume
+    this one Engine gate, without authorising manufacturing.
+    """
+    for label, polygon in (
+        ("original full sheet", source),
+        ("original first flange", first_source),
+        ("corrected first flange", first_corrected),
+        ("unchanged second flange", unchanged_second),
+    ):
+        if (polygon.geom_type != "Polygon" or polygon.is_empty or
+                not polygon.is_valid or polygon.interiors or
+                polygon.area <= _EPS):
+            raise GeometryError(f"V-miter {label} is not single valid material")
+    tolerance = max(1e-5, source.area * 1e-9)
+    if (first_source.difference(source).area > tolerance or
+            first_corrected.difference(first_source).area > tolerance or
+            unchanged_second.difference(source).area > tolerance):
+        raise GeometryError("V-miter R/BA trial cannot project detached or added material")
+    removed = first_source.difference(first_corrected)
+    if removed.difference(source).area > tolerance:
+        raise GeometryError("V-miter R/BA correction lies outside original physical stock")
+    whole = source.difference(removed)
+    if (whole.geom_type != "Polygon" or whole.is_empty or
+            not whole.is_valid or whole.interiors or whole.area <= _EPS):
+        raise GeometryError("V-miter R/BA correction cannot keep one closed sheet")
+    if (abs(source.area - whole.area - removed.area) > tolerance or
+            whole.difference(source).area > tolerance):
+        raise GeometryError("V-miter R/BA full-sheet removal area does not balance")
+    if whole.intersection(first_source).symmetric_difference(first_corrected).area > tolerance:
+        raise GeometryError("V-miter R/BA corrected first flange disagrees with 3D source")
+    if (removed.intersection(unchanged_second).area > tolerance or
+            abs(whole.intersection(unchanged_second).area -
+                unchanged_second.area) > tolerance):
+        raise GeometryError("V-miter correction would shorten the unmodified second flange")
+    return whole, removed
+
+
 def solve_v_miter_radius_ba_interface_trial(
     scene: DrawingScene,
     v_edge_bend: LinePrimitive,
@@ -357,6 +405,12 @@ def solve_v_miter_radius_ba_interface_trial(
             else:
                 lo = mid
         selected = hi
+    # A locally safe T-thick pair is not a valid V-miter candidate if it
+    # disconnects the actual original sheet when reprojected. The public
+    # solver must enforce the same single-sheet rule as its CHECK projector,
+    # not leave it to an optional downstream consumer.
+    _checked_full_source_from_trim(remaining, patch1, best[0], patch2)
+
     return VMiterRadiusCompensatedInterfaceTrial(
         first_inner_radius_mm=r1, second_inner_radius_mm=r2,
         first_bend_allowance_mm=ba1, second_bend_allowance_mm=ba2,
@@ -433,33 +487,6 @@ def project_v_miter_radius_ba_full_sheet_check(
     source = Polygon([(point.x, point.y) for point in trial.full_source_remaining_outline])
     original_patch = Polygon([(point.x, point.y) for point in trial.first_flat_source_outline])
     trimmed_patch = Polygon([(point.x, point.y) for point in trial.first_trimmed_check_outline])
-    for label, polygon in (
-        ("original full sheet", source),
-        ("original first flange", original_patch),
-        ("corrected first flange", trimmed_patch),
-    ):
-        if (polygon.geom_type != "Polygon" or polygon.is_empty
-                or not polygon.is_valid or polygon.interiors or polygon.area <= _EPS):
-            raise GeometryError(f"V-miter {label} is not single valid material")
-    if (original_patch.difference(source).area > _EPS or
-            trimmed_patch.difference(original_patch).area > _EPS):
-        raise GeometryError("V-miter R/BA trial cannot project detached or added material")
-    removed = original_patch.difference(trimmed_patch)
-    if removed.area > _EPS and removed.difference(source).area > _EPS:
-        raise GeometryError("V-miter correction lies outside original physical stock")
-    whole = source.difference(removed)
-    if (whole.geom_type != "Polygon" or whole.is_empty or
-            not whole.is_valid or whole.interiors or whole.area <= _EPS):
-        raise GeometryError("V-miter R/BA correction cannot keep one closed sheet")
-    area_tol = max(1e-5, source.area * 1e-9)
-    if abs(source.area - whole.area - removed.area) > area_tol:
-        raise GeometryError("V-miter R/BA full-sheet removal area does not balance")
-    if whole.difference(source).area > area_tol:
-        raise GeometryError("V-miter R/BA correction creates source material")
-    actual_first = whole.intersection(original_patch)
-    if actual_first.symmetric_difference(trimmed_patch).area > area_tol:
-        raise GeometryError("V-miter R/BA corrected 2D first flange disagrees with 3D source")
-
     # The second (possibly taller) flange is not a trimming target. It is
     # independently re-extracted from the ORIGINAL two-BEND material
     # source, and its area must survive the whole-sheet correction intact.
@@ -481,10 +508,13 @@ def project_v_miter_radius_ba_full_sheet_check(
         source_span=bounded.second_bend_span_mm,
         source_flange_height=bounded.ideal.source.second_flange_height_mm,
     )
-    if (removed.intersection(second_patch).area > area_tol or
-            abs(whole.intersection(second_patch).area - second_patch.area) > area_tol or
-            abs(second_patch.area - trial.second_flat_source_area_mm2) > area_tol):
-        raise GeometryError("V-miter correction would shorten the unmodified second flange")
+    if abs(second_patch.area - trial.second_flat_source_area_mm2) > max(
+        1e-5, source.area * 1e-9,
+    ):
+        raise GeometryError("V-miter CHECK source second flange differs from the solved source")
+    whole, removed = _checked_full_source_from_trim(
+        source, original_patch, trimmed_patch, second_patch,
+    )
     return VMiterRadiusBAFullSheetCheck(
         trial=trial,
         full_source_area_mm2=source.area,
