@@ -67,6 +67,7 @@ class VMiterRadiusCompensatedInterfaceTrial:
     untrimmed_enclosed_volume_witness_count: int = 0
     trimmed_enclosed_volume_witness_count: int = 0
     formed_volume_containment_meshes_closed: bool = False
+    first_edge_transition_span_mm: float = 0.0
     geometry_model: str = "SOURCE_R_BA_CYLINDRICAL_FOLD_ONE_SIDED_V_TRIM_TRIAL"
     manufacturing_status: str = "V_MITER_RADIUS_BA_INTERFACE_UNCERTIFIED"
 
@@ -188,6 +189,7 @@ def _formed_curved_skin(
 def _trim_one_v_edge(
     patch: Polygon, apex: Vec2, tip: Vec2, amount: float,
     *, relief_open_length_mm: float,
+    transition_run_mm: float | None = None,
 ):
     """Keep the physical R/hole root while progressively offsetting one V edge.
 
@@ -215,6 +217,11 @@ def _trim_one_v_edge(
         raise GeometryError("V-miter relief edge trim must not be negative")
     if offset == 0:
         return patch
+    run = offset if transition_run_mm is None else _finite(
+        transition_run_mm, "transition_run_mm", positive=True,
+    )
+    if run > offset + _EPS:
+        raise GeometryError("V-miter transition run cannot exceed trial edge offset")
     ux, uy = dx / length, dy / length
     interior = patch.representative_point()
     signed = ux * (interior.y - apex.y) - uy * (interior.x - apex.x)
@@ -233,14 +240,16 @@ def _trim_one_v_edge(
                 apex.y + uy * s + ny * n)
 
     # Material-side polygon with zero additional trim throughout original
-    # open R/hole region, followed by a finite 45° *trial-only* transition
-    # to the uniform V-edge correction. No disconnected near-tip island is
-    # thrown away, reattached, snapped, or replaced by a guessed rectangle.
+    # open R/hole region, followed by a source-bound trial transition
+    # to the uniform V-edge correction. The legacy run equals the offset;
+    # the alternate R-tip trial run is capped by the actual rounded-source
+    # cutback. Neither creates a factory bevel rule or acceptance gap.
+    # No disconnected near-tip island is reattached or replaced.
     cut_domain = Polygon((
         point(-reach, -reach),
         point(cutback, -reach),
         point(cutback, 0.0),
-        point(cutback + offset, offset),
+        point(cutback + run, offset),
         point(reach, offset),
         point(reach, reach),
         point(-reach, reach),
@@ -361,6 +370,41 @@ def _search_source_safe_edge_trim(evaluate, limit: float, *, failure_message: st
     return original, best, high
 
 
+def _search_round_r_source_tip_profiles(
+    evaluate, limit: float, relief_cutback: float, *,
+    failure_message: str, failure_factory,
+):
+    """Retry a failed R root with a *source-scaled*, shorter trial taper.
+
+    The legacy run=offset leaves a shallow transition from the original
+    circular relief tangency. If it cannot clear the physical T-thick joint,
+    evaluate run=min(offset, actual source R cutback). This is a second
+    uncertified contour family, not a guessed shop tolerance or new relief
+    diameter. Every candidate must pass the same closed source/unchanged
+    second flange and real R/BA 3D contact gates. If nothing works, preserve
+    the original measured collision evidence and reject manufacturing.
+    """
+    try:
+        original, best, selected = _search_source_safe_edge_trim(
+            lambda trim: evaluate(trim, None),
+            limit, failure_message=failure_message,
+            failure_factory=failure_factory,
+        )
+        return original, best, selected, selected, False
+    except VMiterRadiusBAContactError as original_failure:
+        try:
+            original, best, selected = _search_source_safe_edge_trim(
+                lambda trim: evaluate(
+                    trim, min(trim, relief_cutback) if trim else None,
+                ),
+                limit, failure_message=failure_message,
+                failure_factory=failure_factory,
+            )
+        except GeometryError:
+            raise original_failure
+        return original, best, selected, min(selected, relief_cutback), True
+
+
 def solve_v_miter_radius_ba_interface_trial(
     scene: DrawingScene,
     v_edge_bend: LinePrimitive,
@@ -436,7 +480,7 @@ def solve_v_miter_radius_ba_interface_trial(
     solid2 = tuple(thicken_triangle_surface(skin2, q.thickness_mm))
     if not solid2:
         raise GeometryError("V-miter R/BA second solid is empty")
-    def evaluate(trim: float):
+    def evaluate(trim: float, transition_run_mm: float | None = None):
         # An untrimmed baseline is EXACTLY the source patch. In particular,
         # a rounded V tip may retain material slightly beyond the ideal
         # zero-R ray; applying a zero-offset half-plane here would silently
@@ -444,6 +488,7 @@ def solve_v_miter_radius_ba_interface_trial(
         candidate = patch1 if trim == 0.0 else _trim_one_v_edge(
             patch1, apex, mating.relief.source_trial.ideal.first_flat_miter_ray[1],
             trim, relief_open_length_mm=mating.formed_open_relief_length_mm,
+            transition_run_mm=transition_run_mm,
         )
         full_height = LineString((
             _flat_point(apex, e1, n1, 0, q.first_flange_height_mm),
@@ -482,17 +527,31 @@ def solve_v_miter_radius_ba_interface_trial(
         if q.relief_mode is VMiterReliefMode.ROUND_R
         else "V-miter R/BA trial cannot eliminate detected overlap within permitted trim"
     )
-    original, best, selected = _search_source_safe_edge_trim(
-        evaluate, limit, failure_message=collision_failure,
-        failure_factory=lambda baseline, rejected, attempted_trim: VMiterRadiusBAContactError(
+    def contact_failure(baseline, rejected, attempted_trim):
+        return VMiterRadiusBAContactError(
             collision_failure if rejected[3] else (
                 "V-miter R/BA trial retains strictly enclosed true-T volume overlap"
             ), original_pairs=baseline[3],
             attempted_pairs=rejected[3], attempted_segments=rejected[4],
             attempted_trim_mm=attempted_trim,
             attempted_containment_points=rejected[5],
-        ),
-    )
+        )
+
+    if q.relief_mode is VMiterReliefMode.ROUND_R:
+        original, best, selected, transition, local_root_taper = (
+            _search_round_r_source_tip_profiles(
+                evaluate, limit, mating.formed_open_relief_length_mm,
+                failure_message=collision_failure,
+                failure_factory=contact_failure,
+            )
+        )
+    else:
+        original, best, selected = _search_source_safe_edge_trim(
+            lambda trim: evaluate(trim, None),
+            limit, failure_message=collision_failure,
+            failure_factory=contact_failure,
+        )
+        transition, local_root_taper = selected, False
 
     return VMiterRadiusCompensatedInterfaceTrial(
         first_inner_radius_mm=r1, second_inner_radius_mm=r2,
@@ -514,6 +573,12 @@ def solve_v_miter_radius_ba_interface_trial(
         untrimmed_enclosed_volume_witness_count=len(original[5]),
         trimmed_enclosed_volume_witness_count=len(best[5]),
         formed_volume_containment_meshes_closed=bool(best[6]),
+        first_edge_transition_span_mm=transition,
+        geometry_model=(
+            "SOURCE_R_BA_CYLINDRICAL_FOLD_R_TIP_LOCAL_V_TRIM_TRIAL"
+            if local_root_taper else
+            "SOURCE_R_BA_CYLINDRICAL_FOLD_ONE_SIDED_V_TRIM_TRIAL"
+        ),
     )
 
 
