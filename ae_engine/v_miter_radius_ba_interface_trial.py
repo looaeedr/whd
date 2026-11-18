@@ -52,6 +52,8 @@ class VMiterRadiusCompensatedInterfaceTrial:
     untrimmed_surface_interference_pairs: int
     trimmed_surface_interference_pairs: int
     first_flat_source_area_mm2: float
+    first_flat_source_outline: tuple[Vec2, ...]
+    full_source_remaining_outline: tuple[Vec2, ...]
     first_flat_trimmed_area_mm2: float
     second_flat_source_area_mm2: float
     first_trimmed_check_outline: tuple[Vec2, ...]
@@ -267,7 +269,11 @@ def solve_v_miter_radius_ba_interface_trial(
     if not solid2:
         raise GeometryError("V-miter R/BA second solid is empty")
     def evaluate(trim: float):
-        candidate = _trim_one_v_edge(
+        # An untrimmed baseline is EXACTLY the source patch. In particular,
+        # a rounded V tip may retain material slightly beyond the ideal
+        # zero-R ray; applying a zero-offset half-plane here would silently
+        # remove it before counting any actual correction.
+        candidate = patch1 if trim == 0.0 else _trim_one_v_edge(
             patch1, apex, mating.relief.source_trial.ideal.first_flat_miter_ray[1],
             trim,
         )
@@ -318,6 +324,8 @@ def solve_v_miter_radius_ba_interface_trial(
         untrimmed_surface_interference_pairs=original[3],
         trimmed_surface_interference_pairs=best[3],
         first_flat_source_area_mm2=patch1.area,
+        first_flat_source_outline=tuple(Vec2(float(x), float(y)) for x, y in patch1.exterior.coords),
+        full_source_remaining_outline=mating.relief.trial_remaining_outline,
         first_flat_trimmed_area_mm2=best[0].area,
         second_flat_source_area_mm2=patch2.area,
         first_trimmed_check_outline=tuple(Vec2(float(x), float(y)) for x, y in best[0].exterior.coords),
@@ -326,3 +334,173 @@ def solve_v_miter_radius_ba_interface_trial(
         first_thick_solid_triangles=best[2],
         second_thick_solid_triangles=solid2,
     )
+
+
+@dataclass(frozen=True)
+class VMiterRadiusBAFullSheetCheck:
+    """One checked closed *single-sheet* outline; never production CUTTING."""
+
+    trial: VMiterRadiusCompensatedInterfaceTrial
+    full_source_area_mm2: float
+    full_corrected_area_mm2: float
+    actual_removed_trim_area_mm2: float
+    corrected_check_outline: tuple[Vec2, ...]
+    geometry_model: str = "SOURCE_SINGLE_SHEET_R_BA_CORRECTED_CHECK_ONLY"
+    manufacturing_status: str = "V_MITER_RADIUS_BA_FULL_SHEET_UNCERTIFIED"
+
+
+def project_v_miter_radius_ba_full_sheet_check(
+    scene: DrawingScene,
+    v_edge_bend: LinePrimitive,
+    second_bend: LinePrimitive,
+    *,
+    thickness_mm: float,
+    first_flange_height_mm: float,
+    second_flange_height_mm: float,
+    second_fold_angle_deg: float,
+    relief_mode: VMiterReliefMode | str,
+    relief_t_factor: float | None = None,
+    first_inner_radius_mm: float,
+    second_inner_radius_mm: float,
+    first_bend_allowance_mm: float,
+    second_bend_allowance_mm: float,
+    max_permitted_edge_trim_mm: float,
+) -> VMiterRadiusBAFullSheetCheck:
+    """Backproject the *same solved* local R/BA trim onto original whole sheet.
+
+    The trial's local clipped flange is NOT the whole material outline. The
+    removed delta must be a genuine subset of the same original source
+    material; subtract it only once from the source-backed V-relieved sheet.
+    A hole, split sheet, other-flange change or area mismatch rejects the
+    candidate. The resulting closed polygon is a CHECK witness, NOT a
+    certified machine-cutting route.
+    """
+    trial = solve_v_miter_radius_ba_interface_trial(
+        scene, v_edge_bend, second_bend,
+        thickness_mm=thickness_mm,
+        first_flange_height_mm=first_flange_height_mm,
+        second_flange_height_mm=second_flange_height_mm,
+        second_fold_angle_deg=second_fold_angle_deg,
+        relief_mode=relief_mode,
+        relief_t_factor=relief_t_factor,
+        first_inner_radius_mm=first_inner_radius_mm,
+        second_inner_radius_mm=second_inner_radius_mm,
+        first_bend_allowance_mm=first_bend_allowance_mm,
+        second_bend_allowance_mm=second_bend_allowance_mm,
+        max_permitted_edge_trim_mm=max_permitted_edge_trim_mm,
+    )
+    source = Polygon([(point.x, point.y) for point in trial.full_source_remaining_outline])
+    original_patch = Polygon([(point.x, point.y) for point in trial.first_flat_source_outline])
+    trimmed_patch = Polygon([(point.x, point.y) for point in trial.first_trimmed_check_outline])
+    for label, polygon in (
+        ("original full sheet", source),
+        ("original first flange", original_patch),
+        ("corrected first flange", trimmed_patch),
+    ):
+        if (polygon.geom_type != "Polygon" or polygon.is_empty
+                or not polygon.is_valid or polygon.interiors or polygon.area <= _EPS):
+            raise GeometryError(f"V-miter {label} is not single valid material")
+    if (original_patch.difference(source).area > _EPS or
+            trimmed_patch.difference(original_patch).area > _EPS):
+        raise GeometryError("V-miter R/BA trial cannot project detached or added material")
+    removed = original_patch.difference(trimmed_patch)
+    if removed.area > _EPS and removed.difference(source).area > _EPS:
+        raise GeometryError("V-miter correction lies outside original physical stock")
+    whole = source.difference(removed)
+    if (whole.geom_type != "Polygon" or whole.is_empty or
+            not whole.is_valid or whole.interiors or whole.area <= _EPS):
+        raise GeometryError("V-miter R/BA correction cannot keep one closed sheet")
+    area_tol = max(1e-5, source.area * 1e-9)
+    if abs(source.area - whole.area - removed.area) > area_tol:
+        raise GeometryError("V-miter R/BA full-sheet removal area does not balance")
+    if whole.difference(source).area > area_tol:
+        raise GeometryError("V-miter R/BA correction creates source material")
+    actual_first = whole.intersection(original_patch)
+    if actual_first.symmetric_difference(trimmed_patch).area > area_tol:
+        raise GeometryError("V-miter R/BA corrected 2D first flange disagrees with 3D source")
+
+    # The second (possibly taller) flange is not a trimming target. It is
+    # independently re-extracted from the ORIGINAL two-BEND material
+    # source, and its area must survive the whole-sheet correction intact.
+    bounded = diagnose_v_miter_bounded_bend_reach(
+        scene, v_edge_bend, second_bend,
+        thickness_mm=thickness_mm,
+        first_flange_height_mm=first_flange_height_mm,
+        second_flange_height_mm=second_flange_height_mm,
+        second_fold_angle_deg=second_fold_angle_deg,
+        relief_mode=relief_mode,
+        relief_t_factor=relief_t_factor,
+    )
+    apex = bounded.ideal.source.bend_intersection
+    e1 = _outward_bend_axis(v_edge_bend, apex)
+    e2 = _outward_bend_axis(second_bend, apex)
+    n2 = _outside_normal(e2, e1)
+    second_patch, _ = _flange_footprint(
+        source, apex, e2, n2,
+        source_span=bounded.second_bend_span_mm,
+        source_flange_height=bounded.ideal.source.second_flange_height_mm,
+    )
+    if (removed.intersection(second_patch).area > area_tol or
+            abs(whole.intersection(second_patch).area - second_patch.area) > area_tol or
+            abs(second_patch.area - trial.second_flat_source_area_mm2) > area_tol):
+        raise GeometryError("V-miter correction would shorten the unmodified second flange")
+    return VMiterRadiusBAFullSheetCheck(
+        trial=trial,
+        full_source_area_mm2=source.area,
+        full_corrected_area_mm2=whole.area,
+        actual_removed_trim_area_mm2=removed.area,
+        corrected_check_outline=tuple(
+            Vec2(float(x), float(y)) for x, y in whole.exterior.coords
+        ),
+    )
+
+
+def build_v_miter_radius_ba_full_sheet_check_scene(
+    scene: DrawingScene,
+    v_edge_bend: LinePrimitive,
+    second_bend: LinePrimitive,
+    *,
+    thickness_mm: float,
+    first_flange_height_mm: float,
+    second_flange_height_mm: float,
+    second_fold_angle_deg: float,
+    relief_mode: VMiterReliefMode | str,
+    relief_t_factor: float | None = None,
+    first_inner_radius_mm: float,
+    second_inner_radius_mm: float,
+    first_bend_allowance_mm: float,
+    second_bend_allowance_mm: float,
+    max_permitted_edge_trim_mm: float,
+) -> DrawingScene:
+    """Write only DATUM source and CHECK candidate, never CNC CUTTING/BEND."""
+    from .v_miter_material_trial import _single_source_material
+    from .sheetmetal_drawing import PolylinePrimitive
+
+    trial = project_v_miter_radius_ba_full_sheet_check(
+        scene, v_edge_bend, second_bend,
+        thickness_mm=thickness_mm,
+        first_flange_height_mm=first_flange_height_mm,
+        second_flange_height_mm=second_flange_height_mm,
+        second_fold_angle_deg=second_fold_angle_deg,
+        relief_mode=relief_mode, relief_t_factor=relief_t_factor,
+        first_inner_radius_mm=first_inner_radius_mm,
+        second_inner_radius_mm=second_inner_radius_mm,
+        first_bend_allowance_mm=first_bend_allowance_mm,
+        second_bend_allowance_mm=second_bend_allowance_mm,
+        max_permitted_edge_trim_mm=max_permitted_edge_trim_mm,
+    )
+    original = _single_source_material(scene)
+    result = DrawingScene([
+        PolylinePrimitive(
+            tuple(Vec2(float(x), float(y)) for x, y in original.exterior.coords),
+            "DATUM", closed=True, semantic_id="v_miter_radius_ba_original_source",
+        ),
+        PolylinePrimitive(
+            trial.corrected_check_outline,
+            "CHECK", closed=True,
+            semantic_id="v_miter_radius_ba_corrected_uncertified",
+        ),
+        LinePrimitive(v_edge_bend.p1, v_edge_bend.p2, "DATUM"),
+        LinePrimitive(second_bend.p1, second_bend.p2, "DATUM"),
+    ])
+    return result
