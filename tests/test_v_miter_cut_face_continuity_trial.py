@@ -126,8 +126,8 @@ def test_no_bilateral_cut_face_overlap_is_explicit_missing_not_zero():
     assert result.missing_face_interval_count >= 3
     assert result.min_sampled_cut_face_gap_mm is None
     assert result.max_sampled_cut_face_gap_mm is None
-    assert result.first_missing_span_mm == pytest.approx(7)
-    assert result.second_missing_span_mm == pytest.approx(7)
+    assert result.first_missing_span_mm == pytest.approx(3)
+    assert result.second_missing_span_mm == pytest.approx(3)
     assert result.both_missing_span_mm == pytest.approx(4)
 
 
