@@ -79,6 +79,24 @@ def test_90deg_hole_real_radius_ba_trial_is_source_bound_and_only_uncertified():
     assert trial.source_cut_face_section_gap_trial.measured_section_count + (
         trial.source_cut_face_section_gap_trial.missing_section_count
     ) == 7
+    continuity = trial.source_cut_face_continuity_trial
+    assert continuity is not None
+    assert continuity.manufacturing_status.endswith("UNCERTIFIED")
+    assert continuity.intervals
+    assert continuity.both_face_interval_count + continuity.missing_face_interval_count == len(
+        continuity.intervals
+    )
+    assert sum(span.length_mm for span in continuity.intervals) == pytest.approx(
+        continuity.seam_length_mm
+    )
+    assert sum((
+        continuity.both_face_span_mm, continuity.first_missing_span_mm,
+        continuity.second_missing_span_mm, continuity.both_missing_span_mm,
+    )) == pytest.approx(continuity.seam_length_mm)
+    assert all(0 <= span.start_mm < span.end_mm <= continuity.seam_length_mm + 1e-6
+               for span in continuity.intervals)
+    assert all(span.start_fraction < span.midpoint_section.fraction < span.end_fraction
+               for span in continuity.intervals)
     for section in gap.sections:
         assert 0 < section.fraction < 1
         assert section.station_mm > 0
@@ -209,6 +227,12 @@ def test_real_round_R_thick_joint_keeps_R_BA_source_but_only_returns_check_candi
     assert trial.second_source_cut_face.has_source_tagged_cut_faces
     assert trial.source_cut_face_section_gap_trial is not None
     assert trial.source_cut_face_section_gap_trial.manufacturing_status.endswith("UNCERTIFIED")
+    assert trial.source_cut_face_continuity_trial is not None
+    assert trial.source_cut_face_continuity_trial.manufacturing_status.endswith("UNCERTIFIED")
+    assert trial.source_cut_face_continuity_trial.intervals
+    assert sum(span.length_mm for span in trial.source_cut_face_continuity_trial.intervals) == pytest.approx(
+        trial.source_cut_face_continuity_trial.seam_length_mm
+    )
     assert trial.seam_section_gap_trial.geometry_model.endswith("SAMPLED_CHECK")
     assert trial.seam_section_gap_trial.off_datum_shortcut_station_count == sum(
         row.off_datum_shortcut for row in trial.seam_section_gap_trial.sections

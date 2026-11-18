@@ -189,6 +189,7 @@ def project_v_miter_true_t_seam_section_gap_trial(
     *,
     formed_seam_start,
     formed_seam_end,
+    station_fractions: tuple[float, ...] | None = None,
 ) -> VMiterSeamSectionGapTrial:
     """Sample actual solid-to-solid gap normal to the *ideal* finite 3D seam.
 
@@ -219,8 +220,26 @@ def project_v_miter_true_t_seam_section_gap_trial(
     if not math.isfinite(tol) or tol <= 0:
         raise GeometryError("V-miter seam-section numerical tolerance invalid")
 
+    # Legacy public CHECK keeps its original seven physical sample stations.
+    # The source-cut-face topology assessor may instead provide its exact
+    # mesh-derived open-interval midpoints; no invented factory gap spacing.
+    fractions = _STATIONS if station_fractions is None else station_fractions
+    if not isinstance(fractions, (tuple, list)) or not fractions or len(fractions) > 4096:
+        raise GeometryError("V-miter seam-section stations must be a finite bounded sequence")
+    previous = -1.0
+    for value in fractions:
+        if (
+            isinstance(value, bool)
+            or not isinstance(value, (int, float))
+            or not math.isfinite(value)
+            or not (0.0 < float(value) < 1.0)
+            or float(value) <= previous
+        ):
+            raise GeometryError("V-miter seam-section stations must be strictly increasing inside seam")
+        previous = float(value)
+
     sections = []
-    for fraction in _STATIONS:
+    for fraction in fractions:
         origin = _add(start, _mul(direction, fraction))
         a = _section_segments(first, origin, n, u, v, tol)
         b = _section_segments(second, origin, n, u, v, tol)

@@ -45,6 +45,10 @@ from .v_miter_source_cut_face_trial import (
     VMiterSourceCutFaceTrial,
     trace_v_miter_source_true_t_cut_faces,
 )
+from .v_miter_cut_face_continuity_trial import (
+    VMiterCutFaceContinuityTrial,
+    project_v_miter_true_cut_face_continuity_trial,
+)
 
 _EPS = 1e-7
 _ARC_SEGMENTS = 16
@@ -84,6 +88,7 @@ class VMiterRadiusCompensatedInterfaceTrial:
     first_source_cut_face: VMiterSourceCutFaceTrial | None = None
     second_source_cut_face: VMiterSourceCutFaceTrial | None = None
     source_cut_face_section_gap_trial: VMiterSeamSectionGapTrial | None = None
+    source_cut_face_continuity_trial: VMiterCutFaceContinuityTrial | None = None
     geometry_model: str = "SOURCE_R_BA_CYLINDRICAL_FOLD_ONE_SIDED_V_TRIM_TRIAL"
     manufacturing_status: str = "V_MITER_RADIUS_BA_INTERFACE_UNCERTIFIED"
 
@@ -809,6 +814,24 @@ def solve_v_miter_radius_ba_interface_trial(
         else None
     )
 
+    # Fixed seven-section CHECK witnesses remain stable for back-compat;
+    # this source-mesh topology CHECK subdivides every interval between
+    # real physical cut-face vertex events, so a short material absence
+    # cannot be omitted merely because it fell between those seven stations.
+    # A complete face-presence verdict is NOT continuous contact nor a
+    # qualified maximum factory seam gap.
+    cut_face_continuity = (
+        project_v_miter_true_cut_face_continuity_trial(
+            first_cut_face.true_cut_face_triangles,
+            second_cut_face.true_cut_face_triangles,
+            formed_seam_start=bounded.ideal.formed_seam_start,
+            formed_seam_end=bounded.ideal.formed_seam_end,
+        )
+        if first_cut_face.has_source_tagged_cut_faces
+        and second_cut_face.has_source_tagged_cut_faces
+        else None
+    )
+
     return VMiterRadiusCompensatedInterfaceTrial(
         first_inner_radius_mm=r1, second_inner_radius_mm=r2,
         first_bend_allowance_mm=ba1, second_bend_allowance_mm=ba2,
@@ -834,6 +857,7 @@ def solve_v_miter_radius_ba_interface_trial(
         first_source_cut_face=first_cut_face,
         second_source_cut_face=second_cut_face,
         source_cut_face_section_gap_trial=cut_face_gap,
+        source_cut_face_continuity_trial=cut_face_continuity,
         full_corrected_check_outline=tuple(
             Vec2(float(x), float(y)) for x, y in best[7].exterior.coords
         ),

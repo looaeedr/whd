@@ -119,6 +119,9 @@ def test_true_saved_source_recomputes_same_r_ba_2d_3d_after_project_reload(tmp_p
     assert old.trial.first_source_cut_face == new.trial.first_source_cut_face
     assert old.trial.second_source_cut_face == new.trial.second_source_cut_face
     assert old.trial.source_cut_face_section_gap_trial == new.trial.source_cut_face_section_gap_trial
+    assert old.trial.source_cut_face_continuity_trial == new.trial.source_cut_face_continuity_trial
+    assert old.trial.source_cut_face_continuity_trial is not None
+    assert old.trial.source_cut_face_continuity_trial.manufacturing_status.endswith("UNCERTIFIED")
     assert old.trial.seam_section_gap_trial.manufacturing_status.endswith("UNCERTIFIED")
     assert old.trial.first_source_cut_face.manufacturing_status.endswith("UNCERTIFIED")
     assert old.trial.second_source_cut_face.manufacturing_status.endswith("UNCERTIFIED")
