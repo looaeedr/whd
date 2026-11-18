@@ -200,3 +200,110 @@ def test_receiving_p6fold_v2_keeps_v_miter_preview_uncertified(tmp_path):
     )
     assert trial.manufacturing_status == "V_MITER_RELIEF_FORMED_CONTACT_UNCERTIFIED"
     assert trial.relief.relief_mode.value == "RELIEF_HOLE"
+
+
+
+@pytest.mark.parametrize("angle", (90, 120))
+@pytest.mark.parametrize("relief_mode", ("ROUND_R", "RELIEF_HOLE"))
+@pytest.mark.parametrize("family", ("金庫型", "受電箱"))
+def test_p6fold_true_t_solid_replayed_from_same_source_without_saved_mesh(
+    tmp_path, angle, relief_mode, family,
+):
+    """Real project file -> new Scene identities -> identical true-T 3D shadow.
+
+    No second 2D source is allowed: the DXF CHECK polygon and recomputed
+    thick 3D flanges must be based on the one validated saved trial source.
+    """
+    from ae_engine.receiving_layout import new_receiving_layout
+
+    scene, first, second, args = _scene(angle)
+    args["relief_mode"] = relief_mode
+    before = list(scene.primitives)
+    captured = manufacturing_api.capture_v_miter_relief_trial_snapshot(
+        scene, first, second, **args,
+    )
+    assert "solid" not in json.dumps(captured).lower()
+    assert "triangles" not in json.dumps(captured).lower()
+    original = manufacturing_api.replay_v_miter_true_thickness_collision_snapshot(
+        scene, captured,
+    )
+    payload = {
+        "model": family, "w": 800, "h": 1600, "d": 350, "t": 2,
+        "v_miter_trial_preview": captured,
+    }
+    if family == "受電箱":
+        payload["active_mode"] = "set_bay"
+        payload["receiving_layout"] = new_receiving_layout(
+            width=800, height=1600, depth=350,
+        )
+    path = write_project(tmp_path / "v_miter_true_t.p6fold", {
+        "schema": PROJECT_SCHEMA_V1,
+        "snapshot": payload,
+    })
+    reread = read_project(path)
+    recovered = reread["snapshot"]["v_miter_trial_preview"]
+    assert recovered == captured
+    reloaded_scene = _new_scene_with_same_saved_physical_geometry(scene)
+    assert reloaded_scene.primitives[1] is not first
+    shadow = manufacturing_api.replay_v_miter_true_thickness_collision_snapshot(
+        reloaded_scene, recovered,
+    )
+    assert shadow.manufacturing_status == "V_MITER_TRUE_T_COLLISION_UNCERTIFIED"
+    assert shadow.first_formed_skin_triangles == original.first_formed_skin_triangles
+    assert shadow.second_formed_skin_triangles == original.second_formed_skin_triangles
+    assert shadow.first_thick_solid_triangles == original.first_thick_solid_triangles
+    assert shadow.second_thick_solid_triangles == original.second_thick_solid_triangles
+    assert shadow.surface_interference_pair_count == original.surface_interference_pair_count
+    assert shadow.surface_intersection_segments == original.surface_intersection_segments
+    assert shadow.mating.relief.trial_remaining_outline == original.mating.relief.trial_remaining_outline
+
+    scene_2d = manufacturing_api.build_saved_v_miter_relief_trial_check_scene(
+        reloaded_scene, recovered,
+    )
+    assert scene_2d.primitives[1].points == shadow.mating.relief.trial_remaining_outline
+    output = tmp_path / "from_saved_source_CHECK_only.dxf"
+    save_scene_dxf(output, scene_2d)
+    layers = [e.dxf.layer for e in ezdxf.readfile(output).modelspace()]
+    assert layers == ["DATUM", "CHECK", "DATUM", "DATUM"]
+    assert not ({"CUTTING", "BEND", "MARKING"} & set(layers))
+    assert scene.primitives == before
+
+
+def test_saved_60_degree_trial_rejects_unproven_true_t_material_extension():
+    scene, first, second, args = _scene(60)
+    captured = manufacturing_api.capture_v_miter_relief_trial_snapshot(
+        scene, first, second, **args,
+    )
+    reloaded = _new_scene_with_same_saved_physical_geometry(scene)
+    # Older 2D CHECK preview may remain inspectable; new *physical*
+    # collision proof cannot silently treat an unowned BEND extension as stock.
+    assert manufacturing_api.replay_v_miter_relief_trial_snapshot(
+        reloaded, captured,
+    ).manufacturing_status.endswith("UNCERTIFIED")
+    with pytest.raises(GeometryError, match="independent source material extension"):
+        manufacturing_api.replay_v_miter_true_thickness_collision_snapshot(
+            reloaded, captured,
+        )
+
+
+def test_saved_true_t_collision_disallows_forged_certification_or_stale_material():
+    scene, first, second, args = _scene(90)
+    saved = manufacturing_api.capture_v_miter_relief_trial_snapshot(
+        scene, first, second, **args,
+    )
+    forged = deepcopy(saved)
+    forged["manufacturing_status"] = "CERTIFIED"
+    with pytest.raises(GeometryError, match="cannot claim certified"):
+        manufacturing_api.replay_v_miter_true_thickness_collision_snapshot(
+            scene, forged,
+        )
+    stale = _new_scene_with_same_saved_physical_geometry(scene)
+    original = stale.primitives[0]
+    stale.primitives[0] = PolylinePrimitive(
+        tuple(Vec2(p.x + 1, p.y) for p in original.points),
+        layer="CUTTING", closed=True,
+    )
+    with pytest.raises(GeometryError, match="source geometry has changed"):
+        manufacturing_api.replay_v_miter_true_thickness_collision_snapshot(
+            stale, saved,
+        )
