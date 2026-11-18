@@ -158,16 +158,36 @@ def _formed_curved_skin(
     return tuple(result)
 
 
-def _trim_one_v_edge(patch: Polygon, apex: Vec2, tip: Vec2, amount: float):
-    """Keep one actual flange on its material side of an offset V cut ray.
+def _trim_one_v_edge(
+    patch: Polygon, apex: Vec2, tip: Vec2, amount: float,
+    *, relief_open_length_mm: float,
+):
+    """Keep the physical R/hole root while progressively offsetting one V edge.
 
-    This is a CHECK-only local flange patch; do NOT substitute it for the
-    canonical single-sheet CUTTING perimeter.
+    A single parallel *infinite* offset clipped the tip even within its
+    source-qualified open relief. That disconnected the ROUND_R source sheet
+    when the local flange delta was backprojected into the one-piece CUTTING
+    source. Start the offset at the original relief's actual *flat* cutback,
+    then transition from zero to the requested offset over the same distance
+    as the offset (one-to-one in unfolded material space). The latter is
+    an explicitly uncertified trial transition, not a factory bevel policy.
+
+    Coordinates s are along the ORIGINAL ideal V ray from its true apex,
+    n are towards actual flange material, rather than GUI XY quadrants.
+    Preserve every source point with s <= source relief contact start.
     """
     dx, dy = tip.x - apex.x, tip.y - apex.y
     length = math.hypot(dx, dy)
     if not math.isfinite(length) or length <= _EPS:
         raise GeometryError("V-miter V trim ray is degenerate")
+    cutback = _finite(relief_open_length_mm, "relief_open_length_mm", positive=True)
+    if cutback >= length - _EPS:
+        raise GeometryError("V-miter relief cutback exhausts the source V ray")
+    offset = _finite(amount, "first_edge_trim_mm")
+    if offset < 0:
+        raise GeometryError("V-miter relief edge trim must not be negative")
+    if offset == 0:
+        return patch
     ux, uy = dx / length, dy / length
     interior = patch.representative_point()
     signed = ux * (interior.y - apex.y) - uy * (interior.x - apex.x)
@@ -175,15 +195,31 @@ def _trim_one_v_edge(patch: Polygon, apex: Vec2, tip: Vec2, amount: float):
         raise GeometryError("V-miter V edge has no demonstrable source material side")
     side = 1 if signed > 0 else -1
     nx, ny = -uy * side, ux * side
-    bounds = patch.bounds
-    reach = max((abs(c) for c in (*bounds, apex.x, apex.y)), default=0) * 4 + amount * 4 + 10
-    start = (apex.x + amount * nx, apex.y + amount * ny)
+    # Reach covers every physical source vertex along both local axes, plus
+    # contact-start and offset. The domain does not add material: intersection
+    # with patch is always a strict subset of its original source.
+    reach = max(10.0, length, cutback, offset,
+                *(math.hypot(x - apex.x, y - apex.y)
+                  for x, y in patch.exterior.coords)) * 4 + 10
+    def point(s: float, n: float) -> tuple[float, float]:
+        return (apex.x + ux * s + nx * n,
+                apex.y + uy * s + ny * n)
+
+    # Material-side polygon with zero additional trim throughout original
+    # open R/hole region, followed by a finite 45° *trial-only* transition
+    # to the uniform V-edge correction. No disconnected near-tip island is
+    # thrown away, reattached, snapped, or replaced by a guessed rectangle.
     cut_domain = Polygon((
-        (start[0] - ux * reach, start[1] - uy * reach),
-        (start[0] + ux * reach, start[1] + uy * reach),
-        (start[0] + ux * reach + nx * reach, start[1] + uy * reach + ny * reach),
-        (start[0] - ux * reach + nx * reach, start[1] - uy * reach + ny * reach),
+        point(-reach, -reach),
+        point(cutback, -reach),
+        point(cutback, 0.0),
+        point(cutback + offset, offset),
+        point(reach, offset),
+        point(reach, reach),
+        point(-reach, reach),
     ))
+    if not cut_domain.is_valid:
+        raise GeometryError("V-miter physical tip-preserving trim domain is invalid")
     clipped = patch.intersection(cut_domain)
     if (clipped.geom_type != "Polygon" or clipped.is_empty or
             not clipped.is_valid or clipped.interiors or clipped.area <= _EPS):
@@ -275,7 +311,7 @@ def solve_v_miter_radius_ba_interface_trial(
         # remove it before counting any actual correction.
         candidate = patch1 if trim == 0.0 else _trim_one_v_edge(
             patch1, apex, mating.relief.source_trial.ideal.first_flat_miter_ray[1],
-            trim,
+            trim, relief_open_length_mm=mating.formed_open_relief_length_mm,
         )
         full_height = LineString((
             _flat_point(apex, e1, n1, 0, q.first_flange_height_mm),
@@ -301,6 +337,11 @@ def solve_v_miter_radius_ba_interface_trial(
     else:
         best = evaluate(limit)
         if best[3] != 0:
+            if q.relief_mode is VMiterReliefMode.ROUND_R:
+                raise GeometryError(
+                    "V-miter ROUND_R source-preserving trim still has detected "
+                    "true-T interference within permitted trim"
+                )
             raise GeometryError("V-miter R/BA trial cannot eliminate detected overlap within permitted trim")
         lo, hi = 0.0, limit
         for _ in range(_BINARY_STEPS):
