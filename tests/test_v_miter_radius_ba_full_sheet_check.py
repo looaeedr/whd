@@ -113,16 +113,43 @@ def test_true_saved_source_recomputes_same_r_ba_2d_3d_after_project_reload(tmp_p
     assert old.trial.first_thick_solid_triangles == new.trial.first_thick_solid_triangles
 
 
-def test_r_tip_disconnected_full_sheet_must_fail_closed_instead_of_faking_cutting():
-    # A valid local R/BA mesh preview need not result in one manufacturable
-    # whole-sheet contour. Its detached topology is an actual manufacturing
-    # blocker, not a reason to silently discard the extra material island.
+def test_r_tip_connected_source_and_full_sheet_check_after_tangent_preserving_trim(tmp_path):
+    # Before the change the infinite offset removed source material at the
+    # R tangent itself and produced an unattached island in the whole sheet.
+    # The actual relief tangency, NOT a guessed T multiple, is the transition
+    # start in this CHECK-only correction. No material island may be dropped.
+    from shapely.geometry import Point
     scene, first, second, args, calib = _scene("ROUND_R")
-    before = tuple(scene.primitives)
-    with pytest.raises(GeometryError, match="cannot keep one closed sheet"):
+    original = tuple(scene.primitives)
+    result = manufacturing_api.project_v_miter_radius_ba_full_sheet_check(
+        scene, first, second, **args, **calib)
+    trial = result.trial
+    assert result.manufacturing_status.endswith("UNCERTIFIED")
+    assert trial.manufacturing_status.endswith("UNCERTIFIED")
+    assert trial.trimmed_surface_interference_pairs == 0
+    assert trial.first_edge_trim_mm >= 0
+    assert result.full_source_area_mm2 == pytest.approx(
+        result.full_corrected_area_mm2 + result.actual_removed_trim_area_mm2)
+    assert result.actual_removed_trim_area_mm2 == pytest.approx(
+        trial.first_flat_source_area_mm2 - trial.first_flat_trimmed_area_mm2)
+    first_source = Polygon([(p.x, p.y) for p in trial.first_flat_source_outline])
+    first_final = Polygon([(p.x, p.y) for p in trial.first_trimmed_check_outline])
+    removed = first_source.difference(first_final)
+    mating = manufacturing_api.project_v_miter_relief_mating_trial(
+        scene, first, second, **args)
+    apex = mating.relief.source_trial.ideal.source.bend_intersection
+    assert removed.intersection(Point(apex.x, apex.y).buffer(
+        mating.formed_open_relief_length_mm - .0001)).area < 1e-7
+    material = Polygon([(p.x, p.y) for p in result.corrected_check_outline])
+    assert material.is_valid and not material.interiors
+    assert material.area == pytest.approx(result.full_corrected_area_mm2)
+    output = tmp_path / "round_R_tangent_preserved_CHECK.dxf"
+    save_scene_dxf(output,
         manufacturing_api.build_v_miter_radius_ba_full_sheet_check_scene(
-            scene, first, second, **args, **calib)
-    assert tuple(scene.primitives) == before
+            scene, first, second, **args, **calib))
+    assert [e.dxf.layer for e in ezdxf.readfile(output).modelspace()] == [
+        "DATUM", "CHECK", "DATUM", "DATUM"]
+    assert tuple(scene.primitives) == original
 
 
 def test_invalid_source_or_unset_trim_limit_does_not_emit_check_geometry():
