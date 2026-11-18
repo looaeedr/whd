@@ -70,6 +70,26 @@ class VMiterRadiusCompensatedInterfaceTrial:
         return self.trimmed_surface_interference_pairs == 0
 
 
+class VMiterRadiusBAContactError(GeometryError):
+    """Uncertified, source-backed crossing evidence for a rejected R/BA trial.
+
+    Pair counts and segments are the existing non-coplanar surface diagnostic,
+    NOT a proof of volumetric penetration or a certified contact tolerance.
+    No failed candidate mesh or trimming geometry is promoted to CUTTING.
+    """
+
+    def __init__(
+        self, message: str, *, original_pairs: int, attempted_pairs: int,
+        attempted_segments: tuple, attempted_trim_mm: float,
+    ):
+        super().__init__(message)
+        self.original_noncoplanar_pairs = original_pairs
+        self.attempted_noncoplanar_pairs = attempted_pairs
+        self.attempted_intersection_segments = tuple(attempted_segments)
+        self.attempted_trim_mm = attempted_trim_mm
+        self.manufacturing_status = "V_MITER_RADIUS_BA_INTERFACE_UNCERTIFIED"
+
+
 def _bend_measurement(radius: object, allowance: object, angle: float, t: float, name: str):
     """Check explicit R/BA agree with a possible neutral-axis location.
 
@@ -377,7 +397,7 @@ def solve_v_miter_radius_ba_interface_trial(
         if not solid:
             raise GeometryError("V-miter R/BA first solid is empty")
         collision = detect_world_mesh_surface_interference(solid, solid2)
-        return candidate, skin, solid, collision.pair_count
+        return candidate, skin, solid, collision.pair_count, collision.intersection_segments
 
     original = evaluate(0.0)
     if original[3] == 0:
@@ -386,11 +406,17 @@ def solve_v_miter_radius_ba_interface_trial(
         best = evaluate(limit)
         if best[3] != 0:
             if q.relief_mode is VMiterReliefMode.ROUND_R:
-                raise GeometryError(
+                message = (
                     "V-miter ROUND_R source-preserving trim still has detected "
                     "true-T interference within permitted trim"
                 )
-            raise GeometryError("V-miter R/BA trial cannot eliminate detected overlap within permitted trim")
+            else:
+                message = "V-miter R/BA trial cannot eliminate detected overlap within permitted trim"
+            raise VMiterRadiusBAContactError(
+                message, original_pairs=original[3],
+                attempted_pairs=best[3], attempted_segments=best[4],
+                attempted_trim_mm=limit,
+            )
         lo, hi = 0.0, limit
         for _ in range(_BINARY_STEPS):
             mid = (lo + hi) / 2
