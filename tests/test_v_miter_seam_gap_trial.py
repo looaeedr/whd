@@ -113,3 +113,90 @@ def test_zero_length_or_nonfinite_source_seam_is_rejected():
             first, first, formed_seam_start=(0, 0, 0),
             formed_seam_end=(float("inf"), 0, 1),
         )
+
+
+def test_remote_touching_solids_cannot_hide_source_datum_seam_gap():
+    # Real 3D section geometry has TWO positive-material regions per plate.
+    # At X=100 two unrelated material faces touch, so old global nearest
+    # returns a misleading 0. At the SOURCE seam datum X=0, the first
+    # physical faces are x=-1 and x=+1: the candidate still has 2mm gap.
+    near_first = _box((-2, 0, 0), (-1, 1, 10))
+    near_second = _box((1, 0, 0), (2, 1, 10))
+    far_first = _box((100, 0, 0), (101, 1, 10))
+    far_second = _box((101, 0, 0), (102, 1, 10))
+    first = near_first + far_first
+    second = near_second + far_second
+    result = _probe(first, second)
+    assert result.measured_section_count == 7
+    assert result.min_measured_gap_mm == pytest.approx(0)
+    assert result.max_measured_gap_mm == pytest.approx(0)
+    assert result.min_datum_anchored_gap_mm == pytest.approx(2)
+    assert result.max_datum_anchored_gap_mm == pytest.approx(2)
+    assert result.off_datum_shortcut_station_count == 7
+    assert result.manufacturing_status.endswith("UNCERTIFIED")
+    for section in result.sections:
+        assert section.status == "MEASURED"
+        assert section.measured_gap_mm == pytest.approx(0)
+        assert section.datum_anchored_gap_mm == pytest.approx(2)
+        assert section.datum_first_xyz[0] == pytest.approx(-1)
+        assert section.datum_second_xyz[0] == pytest.approx(1)
+        assert math.dist(
+            section.datum_first_xyz, section.datum_second_xyz,
+        ) == pytest.approx(section.datum_anchored_gap_mm)
+        assert section.datum_first_reach_mm == pytest.approx(1)
+        assert section.datum_second_reach_mm == pytest.approx(1)
+        assert section.global_first_reach_mm >= 100
+        assert section.global_second_reach_mm >= 100
+        assert section.off_datum_shortcut
+
+
+def test_aligned_true_seam_faces_have_equal_global_and_datum_gap():
+    first = _box((-2, 0, 0), (-1, 1, 10))
+    second = _box((1, 0, 0), (2, 1, 10))
+    result = _probe(first, second)
+    assert result.min_measured_gap_mm == pytest.approx(2)
+    assert result.min_datum_anchored_gap_mm == pytest.approx(2)
+    assert result.off_datum_shortcut_station_count == 0
+    for section in result.sections:
+        assert not section.off_datum_shortcut
+        assert section.datum_anchored_gap_mm == pytest.approx(section.measured_gap_mm)
+        assert math.dist(
+            section.datum_first_xyz, section.datum_second_xyz,
+        ) == pytest.approx(2)
+
+
+def test_far_only_touching_reports_zero_but_explicit_large_datum_reach():
+    # It is not possible to deduce a permissible seam reach from a factory
+    # policy here. Retain measured world distances; do NOT call this mating.
+    first = _box((100, 0, 0), (101, 1, 10))
+    second = _box((101, 0, 0), (102, 1, 10))
+    result = _probe(first, second)
+    assert result.min_measured_gap_mm == pytest.approx(0)
+    # The source seam is at x=0. The closest first material is at x=100
+    # and the closest second material is at x=101, hence 1mm even though
+    # the remote solid surfaces also contact each other at x=101.
+    assert result.min_datum_anchored_gap_mm == pytest.approx(1)
+    assert result.max_datum_anchored_gap_mm == pytest.approx(1)
+    for section in result.sections:
+        assert section.datum_anchored_gap_mm == pytest.approx(1)
+        assert section.datum_first_xyz[0] == pytest.approx(100)
+        assert section.datum_second_xyz[0] == pytest.approx(101)
+        assert section.datum_first_reach_mm >= 100
+        assert section.datum_second_reach_mm >= 100
+    assert result.manufacturing_status.endswith("UNCERTIFIED")
+
+
+def test_missing_section_has_no_fake_source_datum_contact_witness():
+    first = _box((-2, 0, 0), (-1, 1, 10))
+    second = _box((1, 0, 0), (2, 1, 3))
+    result = _probe(first, second)
+    assert result.measured_section_count == 2
+    assert result.missing_section_count == 5
+    assert result.off_datum_shortcut_station_count == 0
+    for section in result.sections[2:]:
+        assert section.status == "SECOND_MISSING"
+        assert section.datum_anchored_gap_mm is None
+        assert section.datum_first_xyz is None
+        assert section.datum_second_xyz is None
+        assert section.datum_first_reach_mm is None
+        assert section.global_first_reach_mm is None
