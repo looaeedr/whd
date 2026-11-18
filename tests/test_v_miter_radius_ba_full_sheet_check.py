@@ -70,10 +70,11 @@ def test_hole_tip_full_sheet_reprojection_preserves_second_flange_and_real_sourc
 
 
 @pytest.mark.parametrize("family", ("金庫型", "受電箱"))
-def test_true_saved_source_recomputes_same_r_ba_2d_3d_after_project_reload(tmp_path, family):
+@pytest.mark.parametrize("mode", ("RELIEF_HOLE", "ROUND_R"))
+def test_true_saved_source_recomputes_same_r_ba_2d_3d_after_project_reload(tmp_path, family, mode):
     from ae_engine.receiving_layout import new_receiving_layout
 
-    scene, first, second, params, calibration = _scene()
+    scene, first, second, params, calibration = _scene(mode)
     captured = manufacturing_api.capture_v_miter_relief_trial_snapshot(
         scene, first, second, **params)
     snapshot = {
@@ -111,6 +112,12 @@ def test_true_saved_source_recomputes_same_r_ba_2d_3d_after_project_reload(tmp_p
     assert old.corrected_check_outline == new.corrected_check_outline
     assert old.trial.trimmed_surface_interference_pairs == new.trial.trimmed_surface_interference_pairs
     assert old.trial.first_thick_solid_triangles == new.trial.first_thick_solid_triangles
+    assert old.trial.second_thick_solid_triangles == new.trial.second_thick_solid_triangles
+    assert old.trial.geometry_model == new.trial.geometry_model
+    assert old.trial.full_corrected_check_outline == new.trial.full_corrected_check_outline
+    assert old.trial.manufacturing_status.endswith("UNCERTIFIED")
+    if mode == "ROUND_R":
+        assert old.trial.geometry_model.endswith("ASYMMETRIC_SAME_R_TANGENT_TRIM_TRIAL")
 
 
 def test_real_round_r_retargeted_asymmetric_root_is_same_source_check_only(tmp_path):
