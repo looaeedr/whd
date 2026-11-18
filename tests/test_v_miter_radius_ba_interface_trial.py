@@ -123,8 +123,23 @@ def test_real_round_R_thick_joint_rejects_interference_in_original_tip_stock():
     # R-tip stock is preserved, so local mesh success must NOT be published.
     scene, first, second, args = _source(mode="ROUND_R")
     original = tuple(scene.primitives)
-    with pytest.raises(GeometryError, match="ROUND_R source-preserving trim still has detected"):
+    from ae_engine.v_miter_radius_ba_interface_trial import VMiterRadiusBAContactError
+
+    with pytest.raises(VMiterRadiusBAContactError, match="ROUND_R source-preserving trim still has detected") as caught:
         manufacturing_api.solve_v_miter_radius_ba_interface_trial(
             scene, first, second, **args, **_calibrated(),
         )
+    failure = caught.value
+    # Preserve the actual failed 3D crossing witness rather than telling
+    # manufacturing that an unqualified R-tip trim is safe.
+    assert failure.original_noncoplanar_pairs > 0
+    assert failure.attempted_noncoplanar_pairs > 0
+    assert failure.attempted_trim_mm == pytest.approx(12)
+    assert failure.manufacturing_status.endswith("UNCERTIFIED")
+    assert failure.attempted_intersection_segments
+    assert all(
+        len(segment) == 2
+        and all(len(point) == 3 and all(math.isfinite(value) for value in point) for point in segment)
+        for segment in failure.attempted_intersection_segments
+    )
     assert tuple(scene.primitives) == original
