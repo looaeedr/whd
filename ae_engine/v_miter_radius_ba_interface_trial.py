@@ -197,9 +197,10 @@ def _trim_one_v_edge(
     source-qualified open relief. That disconnected the ROUND_R source sheet
     when the local flange delta was backprojected into the one-piece CUTTING
     source. Start the offset at the original relief's actual *flat* cutback,
-    then transition from zero to the requested offset over the same distance
-    as the offset (one-to-one in unfolded material space). The latter is
-    an explicitly uncertified trial transition, not a factory bevel policy.
+    then transition from zero to the requested offset. The original
+    diagnostic uses a one-to-one offset/run in unfolded material space;
+    a source-R-scaled alternate is separately checked when the original
+    rounded tip fails. Neither is a certified factory bevel policy.
 
     Coordinates s are along the ORIGINAL ideal V ray from its true apex,
     n are towards actual flange material, rather than GUI XY quadrants.
