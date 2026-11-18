@@ -21,9 +21,13 @@ def _part(*, angle=90, t=2):
         DrawingScene([first, second]), first, second, **p,
     )
     a, b = ideal.first_flat_miter_ray[1], ideal.second_flat_miter_ray[1]
+    # Both flanges MUST have physical material at the operator's full
+    # heights. The V meets the perimeter at x=b.x, but the taller
+    # second flange continues from there to its full 30-mm outer edge.
     outline = PolylinePrimitive((
         Vec2(-100, a.y), Vec2(b.x, a.y),
-        Vec2(b.x, 100), Vec2(-100, 100),
+        Vec2(b.x, 0), Vec2(30, 10),
+        Vec2(30, 100), Vec2(-100, 100),
     ), "CUTTING", closed=True)
     return DrawingScene([outline, first, second]), first, second, p
 
@@ -129,3 +133,57 @@ def test_source_replay_2d_outline_and_3d_solid_are_same_trial():
     # The generated true-T mesh is a diagnostic response only. Source
     # DrawingScene has not been polluted with a new production CUTTING.
     assert len(scene.primitives) == 3
+
+
+
+def test_missing_30mm_source_flange_cannot_pass_true_T_shadow():
+    scene, first, second, params = _part(angle=90)
+    b = manufacturing_api.project_ideal_v_miter_mating_candidate(
+        DrawingScene([first, second]), first, second, **params,
+    ).second_flat_miter_ray[1]
+    a = manufacturing_api.project_ideal_v_miter_mating_candidate(
+        DrawingScene([first, second]), first, second, **params,
+    ).first_flat_miter_ray[1]
+    # Same valid V tip on CUTTING perimeter, but all of the second
+    # flange physically reaches only x=20, not the requested 30.
+    understock = PolylinePrimitive((
+        Vec2(-100, a.y), Vec2(b.x, a.y),
+        Vec2(b.x, 100), Vec2(-100, 100),
+    ), "CUTTING", closed=True)
+    incomplete = DrawingScene([understock, first, second])
+    before = list(incomplete.primitives)
+    assert params["second_flange_height_mm"] == 30
+    assert b.x == pytest.approx(20)
+    # 2D trial geometry alone is insufficient evidence of full flange
+    # stock. The actual finite-T 3D check must refuse the short sheet.
+    assert manufacturing_api.project_v_miter_relief_trial(
+        incomplete, first, second, **params,
+    ).manufacturing_status.endswith("UNCERTIFIED")
+    with pytest.raises(GeometryError, match="missing requested full height"):
+        manufacturing_api.diagnose_v_miter_true_thickness_collision(
+            incomplete, first, second, **params,
+        )
+    assert incomplete.primitives == before
+
+
+def test_true_T_shadow_exposes_real_full_height_source_spans():
+    scene, first, second, params = _part(angle=90)
+    result = manufacturing_api.diagnose_v_miter_true_thickness_collision(
+        scene, first, second, **params,
+    )
+    assert result.first_full_height_source_span_mm > 0
+    assert result.second_full_height_source_span_mm > 0
+    assert result.first_full_height_source_span_mm <= 100
+    assert result.second_full_height_source_span_mm <= 100
+    assert result.manufacturing_status.endswith("UNCERTIFIED")
+
+
+def test_unequal_height_source_does_not_silently_trim_taller_flange():
+    scene, first, second, params = _part(angle=120)
+    result = manufacturing_api.diagnose_v_miter_true_thickness_collision(
+        scene, first, second, **params,
+    )
+    assert result.mating.relief.source_trial.ideal.source.first_flange_height_mm == 20
+    assert result.mating.relief.source_trial.ideal.source.second_flange_height_mm == 30
+    assert result.first_full_height_source_span_mm > 0
+    assert result.second_full_height_source_span_mm > 0
