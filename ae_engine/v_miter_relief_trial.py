@@ -54,19 +54,20 @@ def _unit_vector_from(apex: Vec2, tip: Vec2) -> tuple[float, float, float]:
     return dx / length, dy / length, length
 
 
-def _round_v_tip(
-    source: VMiterMaterialOutlineTrial,
+def _rounded_v_notch_polygon(
+    apex: Vec2, first: Vec2, second: Vec2,
+    outer_arc: tuple[tuple[float, float], ...],
     radius: float,
 ) -> tuple[Polygon, float]:
-    """Replace the sharp V cut tip with a tangent circular arc, not a hole.
+    """One R-tangent notch formula shared by ideal and offset trial rays.
 
-    The arc is inside the removed V wedge, leaving a smoothly rounded
-    material-facing notch tip.  It necessarily removes slightly less stock
-    than the ideal sharp notch; it is NOT a substitute for a tear-out hole.
+    The two rays may meet at a *virtual* apex after a one-sided V line
+    offset. Their circular fillet retains exactly the supplied R; no
+    separate approximate radius formula belongs in the R/BA solver.
+    The caller must source-validate its perimeter arc and whole sheet.
     """
-    apex = source.ideal.source.bend_intersection
-    first = source.ideal.first_flat_miter_ray[1]
-    second = source.ideal.second_flat_miter_ray[1]
+    if not math.isfinite(radius) or radius <= 0:
+        raise GeometryError("V-miter rounded trial radius must be finite and positive")
     ux, uy, first_len = _unit_vector_from(apex, first)
     vx, vy, second_len = _unit_vector_from(apex, second)
     dot = max(-1.0, min(1.0, ux * vx + uy * vy))
@@ -88,8 +89,8 @@ def _round_v_tip(
     p_first = (apex.x + ux * tangent_length, apex.y + uy * tangent_length)
     p_second = (apex.x + vx * tangent_length, apex.y + vy * tangent_length)
 
-    # Walk from second tangency back to first along the MINOR arc, with
-    # enough line segments for CHECK visualization (not a CNC arc command).
+    # The CHECK mesh is a polygonal approximation of the requested exact
+    # circular radius; this is NOT a CNC G02/G03 machining instruction.
     start = math.atan2(p_second[1] - cy, p_second[0] - cx)
     stop = math.atan2(p_first[1] - cy, p_first[0] - cx)
     sweep = (stop - start + math.pi) % (2 * math.pi) - math.pi
@@ -101,17 +102,30 @@ def _round_v_tip(
          cy + radius * math.sin(start + sweep * i / steps))
         for i in range(1, steps + 1)
     ]
+    if len(outer_arc) < 2:
+        raise GeometryError("V-miter tip relief needs a source outside arc")
+    return Polygon((p_first, *outer_arc, p_second, *arc)), tangent_length
 
+
+def _round_v_tip(
+    source: VMiterMaterialOutlineTrial,
+    radius: float,
+) -> tuple[Polygon, float]:
+    """Preserve the original source-backed, rounded sharp-notch semantics."""
+    apex = source.ideal.source.bend_intersection
+    first = source.ideal.first_flat_miter_ray[1]
+    second = source.ideal.second_flat_miter_ray[1]
     outer_arc = tuple(
         (p.x, p.y) for p in source.removed_corner_outline[1:-1]
     )
-    if len(outer_arc) < 2:
-        raise GeometryError("V-miter tip relief needs a source outside arc")
-    rounded = Polygon((p_first, *outer_arc, p_second, *arc))
+    rounded, tangent_length = _rounded_v_notch_polygon(
+        apex, first, second, outer_arc, radius,
+    )
     sharp = Polygon((p.x, p.y) for p in source.removed_corner_outline)
     if rounded.difference(sharp).area > _AREA_TOL:
         raise GeometryError("V-miter rounded tip extends beyond original V wedge")
     return rounded, tangent_length
+
 
 
 def project_v_miter_relief_trial(

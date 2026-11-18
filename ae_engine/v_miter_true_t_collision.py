@@ -88,6 +88,21 @@ def _flange_footprint(
     if not domain.is_valid or domain.area <= _EPS:
         raise GeometryError("V-miter true-T source flange domain is degenerate")
     actual = remaining.intersection(domain)
+    if actual.geom_type == "GeometryCollection":
+        # A correctly retargeted ROUND_R notch can meet a BEND domain only
+        # along a ZERO-AREA line beyond its one physical material polygon.
+        # Shapely then returns Polygon + LineString; rejecting the entire
+        # source loses a real, connected flange. Extract only the unique
+        # positive-area polygon, with exact area parity. Never discard
+        # separate positive-area islands or use buffer/convex-hull repair.
+        material_parts = tuple(
+            part for part in actual.geoms
+            if part.geom_type == "Polygon" and part.area > _EPS
+        )
+        if (len(material_parts) == 1 and
+                abs(material_parts[0].area - actual.area) <=
+                max(1e-7, actual.area * 1e-9)):
+            actual = material_parts[0]
     if (actual.geom_type != "Polygon" or actual.is_empty
             or not actual.is_valid or actual.interiors or actual.area <= _EPS):
         raise GeometryError("V-miter true-T source material has no single valid flange region")

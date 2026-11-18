@@ -70,10 +70,11 @@ def test_hole_tip_full_sheet_reprojection_preserves_second_flange_and_real_sourc
 
 
 @pytest.mark.parametrize("family", ("金庫型", "受電箱"))
-def test_true_saved_source_recomputes_same_r_ba_2d_3d_after_project_reload(tmp_path, family):
+@pytest.mark.parametrize("mode", ("RELIEF_HOLE", "ROUND_R"))
+def test_true_saved_source_recomputes_same_r_ba_2d_3d_after_project_reload(tmp_path, family, mode):
     from ae_engine.receiving_layout import new_receiving_layout
 
-    scene, first, second, params, calibration = _scene()
+    scene, first, second, params, calibration = _scene(mode)
     captured = manufacturing_api.capture_v_miter_relief_trial_snapshot(
         scene, first, second, **params)
     snapshot = {
@@ -111,21 +112,107 @@ def test_true_saved_source_recomputes_same_r_ba_2d_3d_after_project_reload(tmp_p
     assert old.corrected_check_outline == new.corrected_check_outline
     assert old.trial.trimmed_surface_interference_pairs == new.trial.trimmed_surface_interference_pairs
     assert old.trial.first_thick_solid_triangles == new.trial.first_thick_solid_triangles
+    assert old.trial.second_thick_solid_triangles == new.trial.second_thick_solid_triangles
+    assert old.trial.geometry_model == new.trial.geometry_model
+    assert old.trial.full_corrected_check_outline == new.trial.full_corrected_check_outline
+    assert old.trial.manufacturing_status.endswith("UNCERTIFIED")
+    if mode == "ROUND_R":
+        assert old.trial.geometry_model.endswith("ASYMMETRIC_SAME_R_TANGENT_TRIM_TRIAL")
 
 
-def test_r_tip_source_preserving_trial_does_not_hide_remaining_true_T_overlap():
-    # This real R/BA/T specimen cannot satisfy the volume diagnostic with
-    # the original actual R-tip stock intact. An infinite offset used to
-    # discard that stock, producing a split full sheet; preserving the root
-    # must NOT promote an apparent zero-collision result.
+def test_real_round_r_retargeted_asymmetric_root_is_same_source_check_only(tmp_path):
+    # This R/BA/T source *formerly* failed the one-to-one tip taper test.
+    # The alternate solves a genuinely different, R-preserving geometry,
+    # so do not keep a stale MUST-RAISE assertion when a valid CHECK shape
+    # is returned. No factory gap/penetration certification is claimed.
+    from ae_engine.v_miter_radius_ba_interface_trial import (
+        _checked_full_source_profile,
+    )
+    from ae_engine.assembly_geometry import (
+        detect_world_mesh_surface_interference,
+        detect_world_mesh_enclosed_volume_witness,
+    )
+    from ae_engine.v_miter_true_t_collision import _flange_footprint
+    from ae_engine.v_miter_ideal_mating import (
+        _outward_bend_axis, _outside_normal,
+    )
+    from ae_engine.v_miter_bounded_contact import diagnose_v_miter_bounded_bend_reach
+
     scene, first, second, args, calib = _scene("ROUND_R")
     before = tuple(scene.primitives)
-    with pytest.raises(GeometryError, match="ROUND_R source-preserving trim still has detected"):
-        manufacturing_api.project_v_miter_radius_ba_full_sheet_check(
-            scene, first, second, **args, **calib)
-    with pytest.raises(GeometryError, match="ROUND_R source-preserving trim still has detected"):
-        manufacturing_api.build_v_miter_radius_ba_full_sheet_check_scene(
-            scene, first, second, **args, **calib)
+    trial = manufacturing_api.solve_v_miter_radius_ba_interface_trial(
+        scene, first, second, **args, **calib,
+    )
+    result = manufacturing_api.project_v_miter_radius_ba_full_sheet_check(
+        scene, first, second, **args, **calib,
+    )
+    assert trial.geometry_model.endswith("ASYMMETRIC_SAME_R_TANGENT_TRIM_TRIAL")
+    assert result.trial == trial
+    assert trial.manufacturing_status.endswith("UNCERTIFIED")
+    assert result.manufacturing_status.endswith("UNCERTIFIED")
+    assert trial.first_edge_trim_mm > 0
+    assert trial.first_edge_trim_mm <= calib["max_permitted_edge_trim_mm"]
+    assert trial.trimmed_surface_interference_pairs == 0
+    assert not trial.trimmed_enclosed_volume_witness_count
+
+    # Re-run the *existing actual formed 3D engine* against the returned
+    # unchanged second flange, not against a fabricated flat 2D rectangle.
+    crossings = detect_world_mesh_surface_interference(
+        trial.first_thick_solid_triangles, trial.second_thick_solid_triangles,
+    )
+    assert crossings.pair_count == 0
+    enclosed = detect_world_mesh_enclosed_volume_witness(
+        trial.first_thick_solid_triangles, trial.second_thick_solid_triangles,
+    )
+    assert not enclosed.has_enclosed_overlap
+    # A negative finite surface/containment sample is diagnostic ONLY,
+    # never a proof of zero volume or permissible mating gap.
+
+    original = Polygon([(p.x, p.y) for p in trial.full_source_remaining_outline])
+    final = Polygon([(p.x, p.y) for p in result.corrected_check_outline])
+    first_source = Polygon([(p.x, p.y) for p in trial.first_flat_source_outline])
+    first_final = Polygon([(p.x, p.y) for p in trial.first_trimmed_check_outline])
+    bounded = diagnose_v_miter_bounded_bend_reach(
+        scene, first, second, **args,
+    )
+    at = bounded.ideal.source.bend_intersection
+    e1 = _outward_bend_axis(first, at)
+    e2 = _outward_bend_axis(second, at)
+    second_patch, _ = _flange_footprint(
+        original, at, e2, _outside_normal(e2, e1),
+        source_span=bounded.second_bend_span_mm,
+        source_flange_height=args["second_flange_height_mm"],
+    )
+    checked, removed = _checked_full_source_profile(
+        original, final, first_source, first_final, second_patch,
+    )
+    assert checked.equals(final)
+    assert result.full_source_area_mm2 == pytest.approx(original.area)
+    assert result.full_corrected_area_mm2 == pytest.approx(final.area)
+    assert result.actual_removed_trim_area_mm2 == pytest.approx(removed.area)
+    assert result.actual_removed_trim_area_mm2 > 0
+    assert final.geom_type == "Polygon" and final.is_valid and not final.interiors
+    assert final.difference(original).area < 1e-7
+    assert second_patch.difference(final).area < 1e-7
+
+    # The full corrected material (not a local flange patch) can only
+    # appear on CHECK. The original CUTTING/BEND primitives are unchanged.
+    preview = manufacturing_api.build_v_miter_radius_ba_full_sheet_check_scene(
+        scene, first, second, **args, **calib,
+    )
+    assert [p.layer for p in preview.primitives] == [
+        "DATUM", "CHECK", "DATUM", "DATUM",
+    ]
+    assert preview.primitives[1].points == result.corrected_check_outline
+    file = tmp_path / "ROUND_R_asymmetric_CHECK_only.dxf"
+    save_scene_dxf(file, preview)
+    opened = list(ezdxf.readfile(file).modelspace())
+    assert [p.dxf.layer for p in opened] == [
+        "DATUM", "CHECK", "DATUM", "DATUM",
+    ]
+    assert not {"CUTTING", "BEND", "MARKING"}.intersection(
+        p.dxf.layer for p in opened
+    )
     assert tuple(scene.primitives) == before
 
 
@@ -296,4 +383,99 @@ def test_round_r_source_scaled_transition_trims_the_colliding_edge_without_touch
         _trim_one_v_edge(
             patch, apex, tip, edge_offset,
             relief_open_length_mm=cutback, transition_run_mm=5,
+        )
+
+
+def test_shifted_round_r_retains_actual_radius_and_second_flange_source():
+    # Independent physical CUTTING perimeter, not a guessed whole rectangle:
+    # original V rays end at two real exterior points; a virtual one-sided
+    # asymmetry keeps the second ray and R=3 while the first cut moves 4 mm.
+    from shapely.geometry import box
+    from ae_engine.v_miter_relief_trial import _rounded_v_notch_polygon
+    from ae_engine.v_miter_radius_ba_interface_trial import (
+        _retarget_round_r_first_v_edge, _checked_full_source_profile,
+    )
+    from ae_engine.v_miter_true_t_collision import _flange_footprint
+
+    material = Polygon((
+        (-100, -20), (20, -20), (20, 0),
+        (30, 10), (30, 100), (-100, 100),
+    ))
+    apex, first_tip, second_tip = Vec2(0, 0), Vec2(0, -20), Vec2(20, 0)
+    original_cut, tangency = _rounded_v_notch_polygon(
+        apex, first_tip, second_tip,
+        ((0, -20), (20, -20), (20, 0)), 3.0,
+    )
+    assert tangency == pytest.approx(3)
+    remaining = material.difference(original_cut)
+    first_source = remaining.intersection(box(-100, -20, 0, 0))
+    second_source = remaining.intersection(box(0, 0, 30, 100))
+
+    corrected = _retarget_round_r_first_v_edge(
+        material, remaining, first_source,
+        apex, first_tip, second_tip, radius=3, offset=4,
+    )
+    first_corrected, source_span = _flange_footprint(
+        corrected, apex, (-1., 0., 0.), (0., -1., 0.),
+        source_span=100, source_flange_height=20,
+    )
+    assert source_span > 0
+    whole, removed = _checked_full_source_profile(
+        remaining, corrected, first_source, first_corrected, second_source,
+    )
+    assert whole.geom_type == "Polygon" and whole.is_valid and not whole.interiors
+    assert removed.area > 0
+    assert whole.difference(remaining).area < 1e-7
+    assert remaining.area - whole.area == pytest.approx(removed.area)
+    assert whole.intersection(second_source).area == pytest.approx(second_source.area)
+    assert first_corrected.area < first_source.area
+
+    # The relocated tangent arc is the SAME circular R=3, centred at
+    # (-offset+R, -R) relative to the unchanged physical BEND intersection.
+    # No wedge was filled in and no second V cut boundary was moved.
+    cut = material.difference(whole)
+    same_r_arc = [
+        (x, y) for x, y in cut.exterior.coords
+        if -4.00001 <= x <= -0.99999 and -3.00001 <= y <= 0.00001
+    ]
+    assert len(same_r_arc) >= 10
+    for x, y in same_r_arc:
+        assert math.hypot(x - (-1.0), y - (-3.0)) == pytest.approx(3.0, abs=1e-6)
+    with pytest.raises(GeometryError, match="outside source"):
+        _retarget_round_r_first_v_edge(
+            material, remaining, first_source,
+            apex, first_tip, second_tip, radius=3, offset=200,
+        )
+    assert material.is_valid  # real source was not mutated
+
+
+def test_true_t_flange_source_clip_only_discards_zero_area_tangent_remnants():
+    from shapely.geometry import box
+    from ae_engine.v_miter_true_t_collision import _flange_footprint
+
+    # The physical material is one polygon; a coincident zero-area boundary
+    # fragment may appear as an extra Shapely LineString after clipping.
+    # Keep all positive source area, not that spurious line-only fragment.
+    sheet = Polygon((
+        (-100, -20), (0, -20), (0, -3),
+        (-4, -3), (-4, 0), (-100, 0),
+    ))
+    domain = box(-100, -20, 0, 0)
+    actual, span = _flange_footprint(
+        sheet, Vec2(0, 0), (-1., 0., 0.), (0., -1., 0.),
+        source_span=100, source_flange_height=20,
+    )
+    assert actual.geom_type == "Polygon"
+    assert actual.area == pytest.approx(sheet.intersection(domain).area)
+    assert span > 0
+
+    from shapely.geometry import MultiPolygon
+    detached = MultiPolygon((
+        box(-100, -20, -50, 0),
+        box(-10, -20, -1, 0),
+    ))
+    with pytest.raises(GeometryError, match="single valid flange"):
+        _flange_footprint(
+            detached, Vec2(0, 0), (-1., 0., 0.), (0., -1., 0.),
+            source_span=100, source_flange_height=20,
         )

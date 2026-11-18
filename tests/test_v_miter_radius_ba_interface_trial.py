@@ -117,32 +117,68 @@ def test_compensation_does_not_promote_new_corner_type_or_cutting():
 
 
 
-def test_real_round_R_thick_joint_rejects_interference_in_original_tip_stock():
-    # Independent Engine solver contract, not just the DXF CHECK wrapper.
-    # This measured-T/R/BA geometry remains in interference if the actual
-    # R-tip stock is preserved, so local mesh success must NOT be published.
+def test_real_round_R_thick_joint_keeps_R_BA_source_but_only_returns_check_candidate():
+    # The original 1:1 taper failed this 90-degree, T=2 specimen with true
+    # noncoplanar crossings. A *new shifted same-R tangency* now produces a
+    # different candidate; verify actual 3D material rather than freezing
+    # an old MUST-RAISE assertion as the geometry specification.
+    from ae_engine.assembly_geometry import (
+        detect_world_mesh_surface_interference,
+        detect_world_mesh_enclosed_volume_witness,
+    )
     scene, first, second, args = _source(mode="ROUND_R")
-    original = tuple(scene.primitives)
-    from ae_engine.v_miter_radius_ba_interface_trial import VMiterRadiusBAContactError
+    before = tuple(scene.primitives)
+    trial = manufacturing_api.solve_v_miter_radius_ba_interface_trial(
+        scene, first, second, **args, **_calibrated(),
+    )
+    assert trial.geometry_model.endswith("ASYMMETRIC_SAME_R_TANGENT_TRIM_TRIAL")
+    assert trial.manufacturing_status.endswith("UNCERTIFIED")
+    assert trial.first_edge_trim_mm > 0
+    assert trial.first_edge_trim_mm <= _calibrated()["max_permitted_edge_trim_mm"]
+    assert trial.untrimmed_surface_interference_pairs > 0
+    assert trial.trimmed_surface_interference_pairs == 0
+    assert trial.full_corrected_check_outline
+    assert len(trial.first_thick_solid_triangles) > len(trial.first_formed_skin_triangles)
+    assert len(trial.second_thick_solid_triangles) > len(trial.second_formed_skin_triangles)
+    assert not detect_world_mesh_surface_interference(
+        trial.first_thick_solid_triangles, trial.second_thick_solid_triangles,
+    ).has_interference
+    assert not detect_world_mesh_enclosed_volume_witness(
+        trial.first_thick_solid_triangles, trial.second_thick_solid_triangles,
+    ).has_enclosed_overlap
+    # No Factory R/K/BA, kerf or mating gap certificate is implied by zero
+    # detected surface crossings / finite containment samples.
+    assert tuple(scene.primitives) == before
 
-    with pytest.raises(VMiterRadiusBAContactError, match="ROUND_R source-preserving trim still has detected") as caught:
+
+def test_round_R_real_source_fails_closed_if_all_three_profiles_physically_cross(monkeypatch):
+    from ae_engine import v_miter_radius_ba_interface_trial as owner
+    from ae_engine.assembly_geometry import MeshInterferenceDiagnostic
+
+    scene, first, second, args = _source(mode="ROUND_R")
+    before = tuple(scene.primitives)
+    # Keep the *real* source cutting, R/BA mesh and physical area gates,
+    # forcing a definite world-space crossing for each candidate as a
+    # separate negative control. A synthetic zero-mesh path must not be
+    # upgraded into production clearance when the actual 3D gate reports a hit.
+    segment = (((0.0, 0.0, 0.0), (0.0, 1.0, 0.0)),)
+    monkeypatch.setattr(
+        owner, "detect_world_mesh_surface_interference",
+        lambda *_: MeshInterferenceDiagnostic(
+            (), segment[0], 7, segment,
+        ),
+    )
+    with pytest.raises(owner.VMiterRadiusBAContactError, match="source-preserving") as caught:
         manufacturing_api.solve_v_miter_radius_ba_interface_trial(
             scene, first, second, **args, **_calibrated(),
         )
     failure = caught.value
-    # Preserve the actual failed 3D crossing witness rather than telling
-    # manufacturing that an unqualified R-tip trim is safe.
-    assert failure.original_noncoplanar_pairs > 0
-    assert failure.attempted_noncoplanar_pairs > 0
-    assert failure.attempted_trim_mm == pytest.approx(12)
+    assert failure.original_noncoplanar_pairs == 7
+    assert failure.attempted_noncoplanar_pairs == 7
+    assert failure.attempted_intersection_segments == segment
     assert failure.manufacturing_status.endswith("UNCERTIFIED")
-    assert failure.attempted_intersection_segments
-    assert all(
-        len(segment) == 2
-        and all(len(point) == 3 and all(math.isfinite(value) for value in point) for point in segment)
-        for segment in failure.attempted_intersection_segments
-    )
-    assert tuple(scene.primitives) == original
+    assert failure.attempted_trim_mm == pytest.approx(12)
+    assert tuple(scene.primitives) == before
 
 
 def test_enclosed_3d_volume_blocks_radius_ba_trial_even_when_surface_detector_is_clear(monkeypatch):
