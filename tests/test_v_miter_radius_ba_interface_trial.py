@@ -170,3 +170,63 @@ def test_enclosed_3d_volume_blocks_radius_ba_trial_even_when_surface_detector_is
     assert failure.attempted_noncoplanar_pairs == 0
     assert failure.manufacturing_status.endswith("UNCERTIFIED")
     assert tuple(scene.primitives) == original
+
+
+def test_round_r_source_tip_profile_search_uses_actual_cutback_if_legacy_cannot_clear():
+    from ae_engine.v_miter_radius_ba_interface_trial import (
+        VMiterRadiusBAContactError, _search_round_r_source_tip_profiles,
+    )
+
+    visited = []
+
+    def evaluate(trim, transition):
+        visited.append((trim, transition))
+        # A too-slow 1:1 ramp retains near-root overlap; a source-R-scaled
+        # ramp clears it after a sufficient finite offset. Synthetic counts
+        # verify routing only, not a manufacturing or volume certificate.
+        pairs = 0 if trim >= 2 and transition is not None and transition <= 1 else 3
+        return ("one_sheet", "real_skin", "solid", pairs, (), (), True)
+
+    def contact_error(original, rejected, attempted):
+        return VMiterRadiusBAContactError(
+            "R source retains collision",
+            original_pairs=original[3], attempted_pairs=rejected[3],
+            attempted_segments=(), attempted_trim_mm=attempted,
+        )
+
+    original, best, selected, run, is_local = _search_round_r_source_tip_profiles(
+        evaluate, 10, 1,
+        failure_message="R source retains collision",
+        failure_factory=contact_error,
+    )
+    assert is_local
+    assert original[3] == 3 and best[3] == 0
+    assert 2 <= selected <= 10
+    assert run == pytest.approx(1)
+    assert (10, None) in visited and (10, 1) in visited
+    assert (0, None) in visited
+    assert all(t is None or t <= offset for offset, t in visited)
+
+
+def test_round_r_alternate_failure_keeps_original_collision_evidence():
+    from ae_engine.v_miter_radius_ba_interface_trial import (
+        VMiterRadiusBAContactError, _search_round_r_source_tip_profiles,
+    )
+
+    def evaluate(trim, run):
+        return ("one_sheet", "skin", "solid", 7 if run is None else 6, (), (), True)
+
+    def contact_error(original, rejected, attempted):
+        return VMiterRadiusBAContactError(
+            "R source retains collision",
+            original_pairs=original[3], attempted_pairs=rejected[3],
+            attempted_segments=(), attempted_trim_mm=attempted,
+        )
+
+    with pytest.raises(VMiterRadiusBAContactError, match="retains collision") as caught:
+        _search_round_r_source_tip_profiles(
+            evaluate, 12, 3, failure_message="R source retains collision",
+            failure_factory=contact_error,
+        )
+    assert caught.value.attempted_noncoplanar_pairs == 7
+    assert caught.value.attempted_trim_mm == pytest.approx(12)
