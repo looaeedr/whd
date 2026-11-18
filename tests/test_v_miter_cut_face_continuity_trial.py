@@ -78,9 +78,11 @@ def test_each_actual_interval_detects_first_second_and_both_material_absence():
     assert [i.midpoint_section.status for i in missing] == [
         "SECOND_MISSING", "BOTH_MISSING", "SECOND_MISSING",
     ]
-    assert [(i.start_mm, i.end_mm) for i in missing] == pytest.approx([
-        (3, 4), (4, 6), (6, 7),
-    ])
+    for interval, (expected_start, expected_end) in zip(
+        missing, ((3, 4), (4, 6), (6, 7)),
+    ):
+        assert interval.start_mm == pytest.approx(expected_start)
+        assert interval.end_mm == pytest.approx(expected_end)
 
 
 def test_material_present_but_short_local_gap_peak_is_not_missed():
