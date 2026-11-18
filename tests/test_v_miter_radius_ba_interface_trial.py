@@ -70,10 +70,30 @@ def test_90deg_hole_real_radius_ba_trial_is_source_bound_and_only_uncertified():
             assert math.dist(
                 section.nearest_first_xyz, section.nearest_second_xyz,
             ) == pytest.approx(section.measured_gap_mm, abs=1e-6)
+            # The independently source-datum-anchored seam points are
+            # measured from the SAME true T-solid world 3D meshes.
+            assert section.datum_anchored_gap_mm is not None
+            assert section.datum_anchored_gap_mm >= section.measured_gap_mm - 1e-6
+            assert section.datum_first_xyz is not None
+            assert section.datum_second_xyz is not None
+            assert math.dist(
+                section.datum_first_xyz, section.datum_second_xyz,
+            ) == pytest.approx(section.datum_anchored_gap_mm, abs=1e-6)
+            assert section.datum_first_reach_mm >= 0
+            assert section.datum_second_reach_mm >= 0
+            assert section.datum_first_reach_mm <= section.global_first_reach_mm + 1e-6
+            assert section.datum_second_reach_mm <= section.global_second_reach_mm + 1e-6
         else:
             assert section.measured_gap_mm is None
             assert section.nearest_first_xyz is None
             assert section.nearest_second_xyz is None
+            assert section.datum_anchored_gap_mm is None
+            assert section.datum_first_xyz is None
+            assert section.datum_second_xyz is None
+            assert not section.off_datum_shortcut
+    assert gap.off_datum_shortcut_station_count == sum(
+        1 for section in gap.sections if section.off_datum_shortcut
+    )
     assert 0 <= trial.first_edge_trim_mm <= 12
     assert trial.first_flat_trimmed_area_mm2 <= trial.first_flat_source_area_mm2
     assert trial.second_flat_source_area_mm2 > 0
@@ -162,6 +182,9 @@ def test_real_round_R_thick_joint_keeps_R_BA_source_but_only_returns_check_candi
     assert trial.full_corrected_check_outline
     assert trial.seam_section_gap_trial is not None
     assert trial.seam_section_gap_trial.geometry_model.endswith("SAMPLED_CHECK")
+    assert trial.seam_section_gap_trial.off_datum_shortcut_station_count == sum(
+        row.off_datum_shortcut for row in trial.seam_section_gap_trial.sections
+    )
     assert trial.seam_section_gap_trial.measured_section_count + (
         trial.seam_section_gap_trial.missing_section_count
     ) == 7
