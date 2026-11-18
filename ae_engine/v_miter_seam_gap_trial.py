@@ -280,8 +280,15 @@ def project_v_miter_true_t_seam_section_gap_trial(
             if abs(math.dist(datum_first_xyz, datum_second_xyz) - datum_gap) > max(1e-6, tol * 10):
                 raise GeometryError("V-miter seam-section datum XY and 3D witness disagree")
             # A discrepancy between TWO real distances is not a factory
-            # gap threshold. Flag all zero-global/nonzero-datum shortcuts.
-            off_datum = datum_gap > gap + tol
+            # gap threshold. A shortcut is flagged only when BOTH global
+            # witnesses are physically farther from the seam datum than
+            # their independently nearest material point. Otherwise a
+            # legitimate near-datum face may explain a different pair gap.
+            off_datum = (
+                datum_gap > gap + tol
+                and global_first_reach > datum_first_reach + tol
+                and global_second_reach > datum_second_reach + tol
+            )
         sections.append(VMiterSeamSectionGap(
             fraction=fraction, station_mm=length * fraction,
             section_origin_xyz=origin,
