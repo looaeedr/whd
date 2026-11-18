@@ -41,6 +41,10 @@ from .v_miter_seam_gap_trial import (
     VMiterSeamSectionGapTrial,
     project_v_miter_true_t_seam_section_gap_trial,
 )
+from .v_miter_source_cut_face_trial import (
+    VMiterSourceCutFaceTrial,
+    trace_v_miter_source_true_t_cut_faces,
+)
 
 _EPS = 1e-7
 _ARC_SEGMENTS = 16
@@ -77,6 +81,9 @@ class VMiterRadiusCompensatedInterfaceTrial:
     first_edge_transition_span_mm: float = 0.0
     full_corrected_check_outline: tuple[Vec2, ...] = ()
     seam_section_gap_trial: VMiterSeamSectionGapTrial | None = None
+    first_source_cut_face: VMiterSourceCutFaceTrial | None = None
+    second_source_cut_face: VMiterSourceCutFaceTrial | None = None
+    source_cut_face_section_gap_trial: VMiterSeamSectionGapTrial | None = None
     geometry_model: str = "SOURCE_R_BA_CYLINDRICAL_FOLD_ONE_SIDED_V_TRIM_TRIAL"
     manufacturing_status: str = "V_MITER_RADIUS_BA_INTERFACE_UNCERTIFIED"
 
@@ -132,6 +139,7 @@ def _formed_curved_skin(
     patch: Polygon, apex: Vec2, axis, outside, *,
     angle_rad: float, inner_r: float, allowance: float, thickness: float,
     axial_span: float, flange_height: float,
+    return_flat_pairs: bool = False,
 ):
     """Develop flat neutral-axis u into a cylindrical mid-surface in 3D.
 
@@ -145,7 +153,7 @@ def _formed_curved_skin(
     stations.append(flange_height)
     mid_r = inner_r + thickness / 2.0
     neutral_r = allowance / angle_rad
-    result, planar_area = [], 0.0
+    result, flat_pairs, planar_area = [], [], 0.0
     for lo, hi in zip(stations, stations[1:]):
         if hi - lo <= _EPS:
             raise GeometryError("V-miter curved bend strip is degenerate")
@@ -190,9 +198,11 @@ def _formed_curved_skin(
                 if not all(math.isfinite(v) for point in formed for v in point):
                     raise GeometryError("V-miter physical curved skin contains non-finite geometry")
                 result.append(tuple(formed))
+                if return_flat_pairs:
+                    flat_pairs.append(tuple((float(x), float(y)) for x, y in triangle))
     if not result or abs(planar_area - patch.area) > max(1e-5, patch.area * 1e-6):
         raise GeometryError("V-miter R/BA surface loses original source material")
-    return tuple(result)
+    return (tuple(result), tuple(flat_pairs)) if return_flat_pairs else tuple(result)
 
 
 def _trim_one_v_edge(
@@ -757,6 +767,48 @@ def solve_v_miter_radius_ba_interface_trial(
         formed_seam_end=bounded.ideal.formed_seam_end,
     )
 
+    # Trace the *original* new 2D CUTTING edges to the actual 3D T-thick
+    # sidewalls after all one-sheet, real R/BA and collision gates.
+    # Preserve paired flat triangle provenance from the same fold owner;
+    # any 3D mesh mismatch or nonphysical sidewall fails closed.
+    original_cutting = _single_source_material(scene)
+    corrected_whole = best[7]
+    first_formed_check, first_flat_pairs = _formed_curved_skin(
+        best[0], apex, e1, n1, angle_rad=math.pi / 2, inner_r=r1,
+        allowance=ba1, thickness=q.thickness_mm,
+        axial_span=bounded.first_bend_span_mm,
+        flange_height=q.first_flange_height_mm,
+        return_flat_pairs=True,
+    )
+    second_formed_check, second_flat_pairs = _formed_curved_skin(
+        patch2, apex, e2, n2, angle_rad=theta, inner_r=r2,
+        allowance=ba2, thickness=q.thickness_mm,
+        axial_span=bounded.second_bend_span_mm,
+        flange_height=q.second_flange_height_mm,
+        return_flat_pairs=True,
+    )
+    if first_formed_check != best[1] or second_formed_check != skin2:
+        raise GeometryError("V-miter source-mapped 2D/3D cut-face mesh changed during CHECK")
+    first_cut_face = trace_v_miter_source_true_t_cut_faces(
+        original_cutting, corrected_whole,
+        first_flat_pairs, best[1], best[2], thickness_mm=q.thickness_mm,
+    )
+    second_cut_face = trace_v_miter_source_true_t_cut_faces(
+        original_cutting, corrected_whole,
+        second_flat_pairs, skin2, solid2, thickness_mm=q.thickness_mm,
+    )
+    cut_face_gap = (
+        project_v_miter_true_t_seam_section_gap_trial(
+            first_cut_face.true_cut_face_triangles,
+            second_cut_face.true_cut_face_triangles,
+            formed_seam_start=bounded.ideal.formed_seam_start,
+            formed_seam_end=bounded.ideal.formed_seam_end,
+        )
+        if first_cut_face.has_source_tagged_cut_faces
+        and second_cut_face.has_source_tagged_cut_faces
+        else None
+    )
+
     return VMiterRadiusCompensatedInterfaceTrial(
         first_inner_radius_mm=r1, second_inner_radius_mm=r2,
         first_bend_allowance_mm=ba1, second_bend_allowance_mm=ba2,
@@ -779,6 +831,9 @@ def solve_v_miter_radius_ba_interface_trial(
         formed_volume_containment_meshes_closed=bool(best[6]),
         first_edge_transition_span_mm=transition,
         seam_section_gap_trial=seam_gap,
+        first_source_cut_face=first_cut_face,
+        second_source_cut_face=second_cut_face,
+        source_cut_face_section_gap_trial=cut_face_gap,
         full_corrected_check_outline=tuple(
             Vec2(float(x), float(y)) for x, y in best[7].exterior.coords
         ),
