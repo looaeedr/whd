@@ -28,7 +28,8 @@ def _scene(angle=90):
     a, b = ideal.first_flat_miter_ray[1], ideal.second_flat_miter_ray[1]
     outline = PolylinePrimitive(
         (Vec2(-100, a.y), Vec2(b.x, a.y),
-         Vec2(b.x, 100), Vec2(-100, 100)),
+         Vec2(b.x, 0), Vec2(30, 10),
+         Vec2(30, 100), Vec2(-100, 100)),
         "CUTTING", closed=True,
     )
     return DrawingScene([outline, first, second]), first, second, input_args
