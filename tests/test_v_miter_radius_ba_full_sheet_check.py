@@ -113,6 +113,10 @@ def test_true_saved_source_recomputes_same_r_ba_2d_3d_after_project_reload(tmp_p
     assert old.trial.trimmed_surface_interference_pairs == new.trial.trimmed_surface_interference_pairs
     assert old.trial.first_thick_solid_triangles == new.trial.first_thick_solid_triangles
     assert old.trial.second_thick_solid_triangles == new.trial.second_thick_solid_triangles
+    # The actual folded seam-section distances are recomputed from the SAME
+    # persisted source, not copied from a stale CHECK candidate snapshot.
+    assert old.trial.seam_section_gap_trial == new.trial.seam_section_gap_trial
+    assert old.trial.seam_section_gap_trial.manufacturing_status.endswith("UNCERTIFIED")
     assert old.trial.geometry_model == new.trial.geometry_model
     assert old.trial.full_corrected_check_outline == new.trial.full_corrected_check_outline
     assert old.trial.manufacturing_status.endswith("UNCERTIFIED")
