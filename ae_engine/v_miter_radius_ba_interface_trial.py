@@ -277,6 +277,55 @@ def _checked_full_source_from_trim(
     return whole, removed
 
 
+def _search_source_safe_edge_trim(evaluate, limit: float, *, failure_message: str):
+    """Search only connected source-sheet candidates below an operator MAX.
+
+    A permitted maximum is not a mandatory cut.  If that maximum severs the
+    physical sheet (or destroys a flange), reduce the upper bound instead
+    of rejecting a potentially sound smaller trim.  Every evaluated
+    candidate still runs the original single-sheet/other-flange gate.
+    This is a diagnostic non-coplanar crossing search, NOT 3D certification.
+    """
+    original = evaluate(0.0)
+    if original[3] == 0:
+        return original, original, 0.0
+
+    safe_limit = limit
+    try:
+        upper = evaluate(limit)
+    except GeometryError:
+        # Keep a verified-valid lower candidate and a rejected upper limit.
+        # Do not accept a detached maximal trim, even if its 3D shadows
+        # would show zero surface crossings.
+        low, high = 0.0, limit
+        upper = original
+        for _ in range(_BINARY_STEPS):
+            mid = (low + high) / 2.0
+            try:
+                candidate = evaluate(mid)
+            except GeometryError:
+                high = mid
+            else:
+                low, upper = mid, candidate
+        safe_limit = low
+
+    if upper[3] != 0:
+        raise GeometryError(failure_message)
+
+    low, high = 0.0, safe_limit
+    best = upper
+    for _ in range(_BINARY_STEPS):
+        mid = (low + high) / 2.0
+        # Any non-monotone invalidity INSIDE an already-validated interval
+        # remains an error; do not guess a new safe manufacturing interval.
+        candidate = evaluate(mid)
+        if candidate[3] == 0:
+            high, best = mid, candidate
+        else:
+            low = mid
+    return original, best, high
+
+
 def solve_v_miter_radius_ba_interface_trial(
     scene: DrawingScene,
     v_edge_bend: LinePrimitive,
@@ -367,6 +416,9 @@ def solve_v_miter_radius_ba_interface_trial(
         ))
         if candidate.intersection(full_height).length <= _EPS:
             raise GeometryError("V-miter trial trim removes the first flange full-height source")
+        # Check the complete original single sheet before a local 3D
+        # collision result can qualify a candidate for the trim search.
+        _checked_full_source_from_trim(remaining, patch1, candidate, patch2)
         skin = _formed_curved_skin(
             candidate, apex, e1, n1, angle_rad=math.pi / 2, inner_r=r1,
             allowance=ba1, thickness=q.thickness_mm,
@@ -379,37 +431,15 @@ def solve_v_miter_radius_ba_interface_trial(
         collision = detect_world_mesh_surface_interference(solid, solid2)
         return candidate, skin, solid, collision.pair_count
 
-    original = evaluate(0.0)
-    if original[3] == 0:
-        best, selected = original, 0.0
-    else:
-        best = evaluate(limit)
-        if best[3] != 0:
-            if q.relief_mode is VMiterReliefMode.ROUND_R:
-                raise GeometryError(
-                    "V-miter ROUND_R source-preserving trim still has detected "
-                    "true-T interference within permitted trim"
-                )
-            raise GeometryError("V-miter R/BA trial cannot eliminate detected overlap within permitted trim")
-        lo, hi = 0.0, limit
-        for _ in range(_BINARY_STEPS):
-            mid = (lo + hi) / 2
-            try:
-                candidate = evaluate(mid)
-            except GeometryError:
-                # A smaller trim cannot solve a geometry/source invalidity
-                # created by a larger safe trim; never presume a safe hit.
-                raise
-            if candidate[3] == 0:
-                hi, best = mid, candidate
-            else:
-                lo = mid
-        selected = hi
-    # A locally safe T-thick pair is not a valid V-miter candidate if it
-    # disconnects the actual original sheet when reprojected. The public
-    # solver must enforce the same single-sheet rule as its CHECK projector,
-    # not leave it to an optional downstream consumer.
-    _checked_full_source_from_trim(remaining, patch1, best[0], patch2)
+    collision_failure = (
+        "V-miter ROUND_R source-preserving trim still has detected "
+        "true-T interference within permitted trim"
+        if q.relief_mode is VMiterReliefMode.ROUND_R
+        else "V-miter R/BA trial cannot eliminate detected overlap within permitted trim"
+    )
+    original, best, selected = _search_source_safe_edge_trim(
+        evaluate, limit, failure_message=collision_failure,
+    )
 
     return VMiterRadiusCompensatedInterfaceTrial(
         first_inner_radius_mm=r1, second_inner_radius_mm=r2,
