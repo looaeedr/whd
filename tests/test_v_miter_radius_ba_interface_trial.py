@@ -93,6 +93,21 @@ def test_90deg_hole_real_radius_ba_trial_is_source_bound_and_only_uncertified():
         continuity.both_face_span_mm, continuity.first_missing_span_mm,
         continuity.second_missing_span_mm, continuity.both_missing_span_mm,
     )) == pytest.approx(continuity.seam_length_mm)
+    for span in continuity.intervals:
+        if span.gap_bound_status == "CONSERVATIVE_SOURCE_MESH_ENVELOPE_CHECK":
+            assert span.has_both_cut_faces
+            assert span.max_gap_lower_bound_mm <= span.midpoint_section.measured_gap_mm + 1e-5
+            assert span.max_gap_upper_bound_mm >= span.midpoint_section.measured_gap_mm
+            assert span.min_gap_lower_bound_mm <= span.midpoint_section.measured_gap_mm
+            assert span.min_gap_upper_bound_mm >= span.midpoint_section.measured_gap_mm
+        else:
+            assert span.max_gap_upper_bound_mm is None
+    if continuity.gap_bound_status == "CONSERVATIVE_SOURCE_MESH_ENVELOPE_CHECK":
+        assert continuity.missing_face_interval_count == 0
+        assert continuity.max_gap_upper_bound_mm >= continuity.max_sampled_cut_face_gap_mm
+        assert continuity.min_gap_lower_bound_mm <= continuity.min_sampled_cut_face_gap_mm
+    else:
+        assert continuity.max_gap_upper_bound_mm is None
     assert all(0 <= span.start_mm < span.end_mm <= continuity.seam_length_mm + 1e-6
                for span in continuity.intervals)
     assert all(span.start_fraction < span.midpoint_section.fraction < span.end_fraction
