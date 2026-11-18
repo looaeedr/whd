@@ -1985,6 +1985,12 @@ from .joint_diagnostic_display import (
     JointDiagnosticOverlaySource, project_joint_diagnostic_display_sources,
 )
 
+# #3317: source V-miter folded true-T mesh collision shadow only.
+from .v_miter_true_t_collision import (
+    VMiterTrueThicknessCollisionShadow,
+    diagnose_v_miter_true_thickness_collision,
+)
+
 # #3317: source-bound V tip relief preview save/reload, never saved CUTTING.
 from .v_miter_trial_snapshot import (
     capture_v_miter_relief_trial_snapshot,
