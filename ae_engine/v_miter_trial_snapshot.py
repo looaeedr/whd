@@ -19,6 +19,10 @@ from collections.abc import Mapping
 
 from .sheetmetal_drawing import DrawingScene, LinePrimitive, PolylinePrimitive
 from .sheetmetal_geometry_core import GeometryError
+from .v_miter_true_t_collision import (
+    VMiterTrueThicknessCollisionShadow,
+    diagnose_v_miter_true_thickness_collision,
+)
 from .v_miter_relief_trial import (
     VMiterReliefMatingTrial,
     build_v_miter_relief_trial_check_scene,
@@ -185,5 +189,23 @@ def build_saved_v_miter_relief_trial_check_scene(
     """A saved trial may only recreate CHECK/DATUM, never manufacturing DXF."""
     first, second, parameters = _resolve_saved_trial_source(scene, snapshot)
     return build_v_miter_relief_trial_check_scene(
+        scene, first, second, **parameters,
+    )
+
+
+
+def replay_v_miter_true_thickness_collision_snapshot(
+    scene: DrawingScene,
+    snapshot: Mapping,
+) -> VMiterTrueThicknessCollisionShadow:
+    """Rebuild full local T-thick sharp-fold collision from saved REAL source.
+
+    All cut polygons, 3D surfaces, thickness meshes and collision segments
+    are rederived from the canonical DrawingScene after project reload.
+    No persisted collision result can certify an untested manufacturing DXF.
+    The 60-degree unresolved physical BEND extension still fails closed.
+    """
+    first, second, parameters = _resolve_saved_trial_source(scene, snapshot)
+    return diagnose_v_miter_true_thickness_collision(
         scene, first, second, **parameters,
     )
