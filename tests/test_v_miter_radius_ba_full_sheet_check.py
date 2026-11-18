@@ -255,3 +255,45 @@ def test_search_rejects_nonmonotone_source_invalidity_inside_valid_bracket():
         _search_source_safe_edge_trim(
             evaluate, 8, failure_message="V-miter cannot eliminate overlap",
         )
+
+
+def test_round_r_source_scaled_transition_trims_the_colliding_edge_without_touching_root():
+    from shapely.geometry import box
+    from ae_engine.v_miter_radius_ba_interface_trial import _trim_one_v_edge
+
+    patch = box(0, 0, 20, 12)
+    apex, tip = Vec2(0, 0), Vec2(20, 0)
+    cutback, edge_offset = 3.0, 4.0
+    legacy = _trim_one_v_edge(
+        patch, apex, tip, edge_offset, relief_open_length_mm=cutback,
+    )
+    local = _trim_one_v_edge(
+        patch, apex, tip, edge_offset,
+        relief_open_length_mm=cutback, transition_run_mm=cutback,
+    )
+    # The actual original R tangency and all stock before the real cutback
+    # remain unchanged. Only the post-R V-edge ramp becomes steeper.
+    untouched = box(0, 0, cutback, 12)
+    assert patch.intersection(untouched).symmetric_difference(
+        legacy.intersection(untouched)
+    ).area < 1e-9
+    assert patch.intersection(untouched).symmetric_difference(
+        local.intersection(untouched)
+    ).area < 1e-9
+    assert 0 < local.area < legacy.area < patch.area
+    assert local.is_valid and local.geom_type == "Polygon" and not local.interiors
+    assert local.difference(patch).area == pytest.approx(0)
+    assert local.intersection(box(0, 8, 20, 12)).area == pytest.approx(
+        legacy.intersection(box(0, 8, 20, 12)).area
+    )
+
+    with pytest.raises(GeometryError, match="transition_run_mm"):
+        _trim_one_v_edge(
+            patch, apex, tip, edge_offset,
+            relief_open_length_mm=cutback, transition_run_mm=0,
+        )
+    with pytest.raises(GeometryError, match="cannot exceed"):
+        _trim_one_v_edge(
+            patch, apex, tip, edge_offset,
+            relief_open_length_mm=cutback, transition_run_mm=5,
+        )
