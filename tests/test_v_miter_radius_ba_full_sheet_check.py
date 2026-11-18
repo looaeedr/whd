@@ -297,3 +297,61 @@ def test_round_r_source_scaled_transition_trims_the_colliding_edge_without_touch
             patch, apex, tip, edge_offset,
             relief_open_length_mm=cutback, transition_run_mm=5,
         )
+
+
+def test_shifted_round_r_retains_actual_radius_and_second_flange_source():
+    # Independent physical CUTTING perimeter, not a guessed whole rectangle:
+    # original V rays end at two real exterior points; a virtual one-sided
+    # asymmetry keeps the second ray and R=3 while the first cut moves 4 mm.
+    from shapely.geometry import box
+    from ae_engine.v_miter_relief_trial import _rounded_v_notch_polygon
+    from ae_engine.v_miter_radius_ba_interface_trial import (
+        _retarget_round_r_first_v_edge, _checked_full_source_profile,
+    )
+
+    material = Polygon((
+        (-100, -20), (20, -20), (20, 0),
+        (30, 10), (30, 100), (-100, 100),
+    ))
+    apex, first_tip, second_tip = Vec2(0, 0), Vec2(0, -20), Vec2(20, 0)
+    original_cut, tangency = _rounded_v_notch_polygon(
+        apex, first_tip, second_tip,
+        ((0, -20), (20, -20), (20, 0)), 3.0,
+    )
+    assert tangency == pytest.approx(3)
+    remaining = material.difference(original_cut)
+    first_source = remaining.intersection(box(-100, -20, 0, 0))
+    second_source = remaining.intersection(box(0, 0, 30, 100))
+
+    corrected = _retarget_round_r_first_v_edge(
+        material, remaining, first_source,
+        apex, first_tip, second_tip, radius=3, offset=4,
+    )
+    first_corrected = corrected.intersection(box(-100, -20, 0, 0))
+    whole, removed = _checked_full_source_profile(
+        remaining, corrected, first_source, first_corrected, second_source,
+    )
+    assert whole.geom_type == "Polygon" and whole.is_valid and not whole.interiors
+    assert removed.area > 0
+    assert whole.difference(remaining).area < 1e-7
+    assert remaining.area - whole.area == pytest.approx(removed.area)
+    assert whole.intersection(second_source).area == pytest.approx(second_source.area)
+    assert first_corrected.area < first_source.area
+
+    # The relocated tangent arc is the SAME circular R=3, centred at
+    # (-offset+R, -R) relative to the unchanged physical BEND intersection.
+    # No wedge was filled in and no second V cut boundary was moved.
+    cut = material.difference(whole)
+    same_r_arc = [
+        (x, y) for x, y in cut.exterior.coords
+        if -4.00001 <= x <= -0.99999 and -3.00001 <= y <= 0.00001
+    ]
+    assert len(same_r_arc) >= 10
+    for x, y in same_r_arc:
+        assert math.hypot(x - (-1.0), y - (-3.0)) == pytest.approx(3.0, abs=1e-6)
+    with pytest.raises(GeometryError, match="outside source"):
+        _retarget_round_r_first_v_edge(
+            material, remaining, first_source,
+            apex, first_tip, second_tip, radius=3, offset=200,
+        )
+    assert material.is_valid  # real source was not mutated
