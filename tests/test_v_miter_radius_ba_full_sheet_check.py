@@ -225,8 +225,8 @@ def test_permitted_maximum_is_not_required_to_be_a_destructive_trim():
     assert best[3] == 0
     assert 4 <= selected <= 7
     assert 20 in evaluated
-    assert selected in evaluated or selected > 0
-    assert all(row in {"source_checked", "skin", "solid", 0, 3} for row in best)
+    assert selected in evaluated
+    assert best[0] == "source_checked"
 
 
 def test_no_valid_source_preserving_candidate_never_reports_clearance():
