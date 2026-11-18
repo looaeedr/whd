@@ -308,6 +308,7 @@ def test_shifted_round_r_retains_actual_radius_and_second_flange_source():
     from ae_engine.v_miter_radius_ba_interface_trial import (
         _retarget_round_r_first_v_edge, _checked_full_source_profile,
     )
+    from ae_engine.v_miter_true_t_collision import _flange_footprint
 
     material = Polygon((
         (-100, -20), (20, -20), (20, 0),
@@ -327,7 +328,11 @@ def test_shifted_round_r_retains_actual_radius_and_second_flange_source():
         material, remaining, first_source,
         apex, first_tip, second_tip, radius=3, offset=4,
     )
-    first_corrected = corrected.intersection(box(-100, -20, 0, 0))
+    first_corrected, source_span = _flange_footprint(
+        corrected, apex, (-1., 0., 0.), (0., -1., 0.),
+        source_span=100, source_flange_height=20,
+    )
+    assert source_span > 0
     whole, removed = _checked_full_source_profile(
         remaining, corrected, first_source, first_corrected, second_source,
     )
@@ -355,3 +360,35 @@ def test_shifted_round_r_retains_actual_radius_and_second_flange_source():
             apex, first_tip, second_tip, radius=3, offset=200,
         )
     assert material.is_valid  # real source was not mutated
+
+
+def test_true_t_flange_source_clip_only_discards_zero_area_tangent_remnants():
+    from shapely.geometry import box
+    from ae_engine.v_miter_true_t_collision import _flange_footprint
+
+    # The physical material is one polygon; a coincident zero-area boundary
+    # fragment may appear as an extra Shapely LineString after clipping.
+    # Keep all positive source area, not that spurious line-only fragment.
+    sheet = Polygon((
+        (-100, -20), (0, -20), (0, -3),
+        (-4, -3), (-4, 0), (-100, 0),
+    ))
+    domain = box(-100, -20, 0, 0)
+    actual, span = _flange_footprint(
+        sheet, Vec2(0, 0), (-1., 0., 0.), (0., -1., 0.),
+        source_span=100, source_flange_height=20,
+    )
+    assert actual.geom_type == "Polygon"
+    assert actual.area == pytest.approx(sheet.intersection(domain).area)
+    assert span > 0
+
+    from shapely.geometry import MultiPolygon
+    detached = MultiPolygon((
+        box(-100, -20, -50, 0),
+        box(-10, -20, -1, 0),
+    ))
+    with pytest.raises(GeometryError, match="single valid flange"):
+        _flange_footprint(
+            detached, Vec2(0, 0), (-1., 0., 0.), (0., -1., 0.),
+            source_span=100, source_flange_height=20,
+        )
