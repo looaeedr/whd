@@ -52,6 +52,28 @@ def test_90deg_hole_real_radius_ba_trial_is_source_bound_and_only_uncertified():
     assert trial.manufacturing_status.endswith("UNCERTIFIED")
     assert trial.no_detected_noncoplanar_crossings
     assert trial.trimmed_surface_interference_pairs == 0
+    # Real T-solid world sections are independent of local flat source XY.
+    # Missing first/second section is NOT a zero contact gap.
+    gap = trial.seam_section_gap_trial
+    assert gap is not None
+    assert gap.manufacturing_status == "V_MITER_SEAM_GAP_UNCERTIFIED"
+    assert len(gap.sections) == 7
+    assert gap.measured_section_count + gap.missing_section_count == 7
+    for section in gap.sections:
+        assert 0 < section.fraction < 1
+        assert section.station_mm > 0
+        if section.status == "MEASURED":
+            assert section.measured_gap_mm is not None
+            assert section.measured_gap_mm >= 0
+            assert section.nearest_first_xyz is not None
+            assert section.nearest_second_xyz is not None
+            assert math.dist(
+                section.nearest_first_xyz, section.nearest_second_xyz,
+            ) == pytest.approx(section.measured_gap_mm, abs=1e-6)
+        else:
+            assert section.measured_gap_mm is None
+            assert section.nearest_first_xyz is None
+            assert section.nearest_second_xyz is None
     assert 0 <= trial.first_edge_trim_mm <= 12
     assert trial.first_flat_trimmed_area_mm2 <= trial.first_flat_source_area_mm2
     assert trial.second_flat_source_area_mm2 > 0
@@ -138,6 +160,11 @@ def test_real_round_R_thick_joint_keeps_R_BA_source_but_only_returns_check_candi
     assert trial.untrimmed_surface_interference_pairs > 0
     assert trial.trimmed_surface_interference_pairs == 0
     assert trial.full_corrected_check_outline
+    assert trial.seam_section_gap_trial is not None
+    assert trial.seam_section_gap_trial.geometry_model.endswith("SAMPLED_CHECK")
+    assert trial.seam_section_gap_trial.measured_section_count + (
+        trial.seam_section_gap_trial.missing_section_count
+    ) == 7
     assert len(trial.first_thick_solid_triangles) > len(trial.first_formed_skin_triangles)
     assert len(trial.second_thick_solid_triangles) > len(trial.second_formed_skin_triangles)
     assert not detect_world_mesh_surface_interference(
