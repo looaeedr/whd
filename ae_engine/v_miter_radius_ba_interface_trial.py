@@ -70,6 +70,25 @@ class VMiterRadiusCompensatedInterfaceTrial:
         return self.trimmed_surface_interference_pairs == 0
 
 
+class VMiterRadiusBAContactError(GeometryError):
+    """Source-backed rejection evidence from the existing 3D surface detector.
+
+    Segments are non-coplanar intersections, NOT a complete volumetric
+    penetration, mating tolerance or certified toolpath result.
+    """
+
+    def __init__(
+        self, message: str, *, original_pairs: int, attempted_pairs: int,
+        attempted_segments: tuple, attempted_trim_mm: float,
+    ):
+        super().__init__(message)
+        self.original_noncoplanar_pairs = original_pairs
+        self.attempted_noncoplanar_pairs = attempted_pairs
+        self.attempted_intersection_segments = tuple(attempted_segments)
+        self.attempted_trim_mm = attempted_trim_mm
+        self.manufacturing_status = "V_MITER_RADIUS_BA_INTERFACE_UNCERTIFIED"
+
+
 def _bend_measurement(radius: object, allowance: object, angle: float, t: float, name: str):
     """Check explicit R/BA agree with a possible neutral-axis location.
 
@@ -277,7 +296,7 @@ def _checked_full_source_from_trim(
     return whole, removed
 
 
-def _search_source_safe_edge_trim(evaluate, limit: float, *, failure_message: str):
+def _search_source_safe_edge_trim(evaluate, limit: float, *, failure_message: str, failure_factory=None):
     """Search only connected source-sheet candidates below an operator MAX.
 
     A permitted maximum is not a mandatory cut.  If that maximum severs the
@@ -310,6 +329,8 @@ def _search_source_safe_edge_trim(evaluate, limit: float, *, failure_message: st
         safe_limit = low
 
     if upper[3] != 0:
+        if failure_factory is not None:
+            raise failure_factory(original, upper, safe_limit)
         raise GeometryError(failure_message)
 
     low, high = 0.0, safe_limit
@@ -429,7 +450,7 @@ def solve_v_miter_radius_ba_interface_trial(
         if not solid:
             raise GeometryError("V-miter R/BA first solid is empty")
         collision = detect_world_mesh_surface_interference(solid, solid2)
-        return candidate, skin, solid, collision.pair_count
+        return candidate, skin, solid, collision.pair_count, collision.intersection_segments
 
     collision_failure = (
         "V-miter ROUND_R source-preserving trim still has detected "
@@ -439,6 +460,11 @@ def solve_v_miter_radius_ba_interface_trial(
     )
     original, best, selected = _search_source_safe_edge_trim(
         evaluate, limit, failure_message=collision_failure,
+        failure_factory=lambda baseline, rejected, attempted_trim: VMiterRadiusBAContactError(
+            collision_failure, original_pairs=baseline[3],
+            attempted_pairs=rejected[3], attempted_segments=rejected[4],
+            attempted_trim_mm=attempted_trim,
+        ),
     )
 
     return VMiterRadiusCompensatedInterfaceTrial(
