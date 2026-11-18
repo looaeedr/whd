@@ -254,11 +254,12 @@ def detect_world_mesh_surface_interference(source_triangles, target_triangles, *
 
 @dataclass(frozen=True)
 class MeshEnclosedVolumeDiagnostic:
-    """Conservative true-3D containment witness, never a clearance certificate.
+    """Conservative true-3D interior-overlap witness, not a clearance certificate.
 
-    Surface-crossing detectors cannot see a closed solid wholly embedded in
-    another. A positive sample is a material overlap witness; a negative
-    sample is NOT a proof of zero volume intersection or legal contact.
+    Surface-crossing detectors miss both nested closed solids AND coincident
+    coplanar shells. A positive STRICT interior point proves real 3D shared
+    volume; a negative finite sample is NOT a no-penetration certification.
+    The historical attribute names remain for callers' compatibility.
     """
 
     meshes_closed: bool
@@ -274,13 +275,20 @@ class MeshEnclosedVolumeDiagnostic:
 def detect_world_mesh_enclosed_volume_witness(
     source_triangles, target_triangles, *, tolerance=None,
 ):
-    """Find strictly interior points when two already-meshed closed solids nest.
+    """Find proven positive overlap of already-meshed closed T-thick solids.
 
-    Requires both meshes to have finite, nondegenerate, edge-manifold triangle
-    surfaces. Test in BOTH directions with independent non-axial ray parities.
-    Ambiguous edge/surface hits never become positive evidence. The bounded
-    deterministic sampling is intentionally conservative and cannot certify
-    the absence of penetration, kerf allowance or factory fit.
+    Requires finite, nondegenerate, edge-manifold closed triangle surfaces.
+    Original two-direction checks see nested solids when a *surface* point
+    lies strictly inside the other. For coincident coplanar shells ALL source
+    surface vertices and face centroids lie ON the other shell and that
+    sampling alone returns false: also sample independent shared interior
+    candidates within the intersection of the two real mesh AABBs and
+    require strict parity *inside both solids*. Touching faces have no 3D
+    AABB interior, so contact alone cannot be treated as positive overlap.
+
+    Ambiguous boundary/ray hits never become positive evidence. These remain
+    bounded deterministic positive-witness samples, NOT full collision-free
+    mathematical proof, shop clearance or factory fit acceptance.
     """
     from collections import Counter
     import numpy as np
@@ -391,6 +399,35 @@ def detect_world_mesh_enclosed_volume_witness(
         witness = check_samples(a, b)
         if witness is not None:
             return MeshEnclosedVolumeDiagnostic(True, points_checked, (witness,))
+
+    # #3317 TRUE-T: coincident / matched coplanar shells have no source
+    # *surface* point strictly inside the other. Their SHARED INTERIOR,
+    # however, is real physical volume interference. Derive deterministic
+    # candidates solely from the two existing world 3D closed meshes.
+    # The AABB intersection is a permissive search *domain*, not proof:
+    # each candidate MUST be strictly inside BOTH triangle meshes.
+    # No threshold here is a permitted factory gap or kerf allowance.
+    lower = np.maximum(src.min(axis=(0, 1)), dst.min(axis=(0, 1))) + tol
+    upper = np.minimum(src.max(axis=(0, 1)), dst.max(axis=(0, 1))) - tol
+    if np.all(lower < upper):
+        extent = upper - lower
+        # Centre first catches exactly coincident solids; the eight
+        # octants discover positive regions displaced from the AABB centre.
+        # Finite fixed sample budget (nine), never a no-overlap certificate.
+        fractions = ((.5, .5, .5),) + tuple(
+            (x, y, z)
+            for x in (.25, .75)
+            for y in (.25, .75)
+            for z in (.25, .75)
+        )
+        for frac in fractions:
+            point = lower + extent * np.asarray(frac)
+            points_checked += 1
+            if is_strictly_inside(point, src) and is_strictly_inside(point, dst):
+                witness = tuple(float(v) for v in point)
+                return MeshEnclosedVolumeDiagnostic(
+                    True, points_checked, (witness,),
+                )
     return MeshEnclosedVolumeDiagnostic(True, points_checked, ())
 
 
