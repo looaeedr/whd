@@ -37,6 +37,10 @@ from .v_miter_relief_trial import (
 )
 from .v_miter_material_trial import _short_outer_arc, _single_source_material
 from .v_miter_bounded_contact import diagnose_v_miter_bounded_bend_reach
+from .v_miter_seam_gap_trial import (
+    VMiterSeamSectionGapTrial,
+    project_v_miter_true_t_seam_section_gap_trial,
+)
 
 _EPS = 1e-7
 _ARC_SEGMENTS = 16
@@ -72,6 +76,7 @@ class VMiterRadiusCompensatedInterfaceTrial:
     formed_volume_containment_meshes_closed: bool = False
     first_edge_transition_span_mm: float = 0.0
     full_corrected_check_outline: tuple[Vec2, ...] = ()
+    seam_section_gap_trial: VMiterSeamSectionGapTrial | None = None
     geometry_model: str = "SOURCE_R_BA_CYLINDRICAL_FOLD_ONE_SIDED_V_TRIM_TRIAL"
     manufacturing_status: str = "V_MITER_RADIUS_BA_INTERFACE_UNCERTIFIED"
 
@@ -742,6 +747,16 @@ def solve_v_miter_radius_ba_interface_trial(
         )
         transition, local_root_taper = selected, False
 
+    # This section-based physical gap evidence is evaluated exactly ONCE
+    # after final 2D whole-source and R/BA/T collision checks, not in each
+    # trim search step. It can expose missing mating material and positive
+    # gaps, but has NO factory threshold and cannot certify seam continuity.
+    seam_gap = project_v_miter_true_t_seam_section_gap_trial(
+        best[2], solid2,
+        formed_seam_start=bounded.ideal.formed_seam_start,
+        formed_seam_end=bounded.ideal.formed_seam_end,
+    )
+
     return VMiterRadiusCompensatedInterfaceTrial(
         first_inner_radius_mm=r1, second_inner_radius_mm=r2,
         first_bend_allowance_mm=ba1, second_bend_allowance_mm=ba2,
@@ -763,6 +778,7 @@ def solve_v_miter_radius_ba_interface_trial(
         trimmed_enclosed_volume_witness_count=len(best[5]),
         formed_volume_containment_meshes_closed=bool(best[6]),
         first_edge_transition_span_mm=transition,
+        seam_section_gap_trial=seam_gap,
         full_corrected_check_outline=tuple(
             Vec2(float(x), float(y)) for x, y in best[7].exterior.coords
         ),
