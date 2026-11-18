@@ -172,8 +172,15 @@ def test_far_only_touching_reports_zero_but_explicit_large_datum_reach():
     second = _box((101, 0, 0), (102, 1, 10))
     result = _probe(first, second)
     assert result.min_measured_gap_mm == pytest.approx(0)
-    assert result.min_datum_anchored_gap_mm == pytest.approx(0)
+    # The source seam is at x=0. The closest first material is at x=100
+    # and the closest second material is at x=101, hence 1mm even though
+    # the remote solid surfaces also contact each other at x=101.
+    assert result.min_datum_anchored_gap_mm == pytest.approx(1)
+    assert result.max_datum_anchored_gap_mm == pytest.approx(1)
     for section in result.sections:
+        assert section.datum_anchored_gap_mm == pytest.approx(1)
+        assert section.datum_first_xyz[0] == pytest.approx(100)
+        assert section.datum_second_xyz[0] == pytest.approx(101)
         assert section.datum_first_reach_mm >= 100
         assert section.datum_second_reach_mm >= 100
     assert result.manufacturing_status.endswith("UNCERTIFIED")
