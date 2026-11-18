@@ -201,3 +201,57 @@ def test_real_source_single_sheet_gate_rejects_split_and_second_flange_shortenin
     assert not keep.interiors
     assert source.area == pytest.approx(keep.area + removed.area)
     assert keep.intersection(second).area == pytest.approx(second.area)
+
+
+
+def test_permitted_maximum_is_not_required_to_be_a_destructive_trim():
+    # A physical allowed maximum may overshoot all material. The SEARCH
+    # must still find a smaller single-sheet candidate with zero detected
+    # crossings, never use the invalid high candidate as evidence.
+    from ae_engine.v_miter_radius_ba_interface_trial import _search_source_safe_edge_trim
+
+    evaluated = []
+
+    def evaluate(trim):
+        evaluated.append(trim)
+        if trim > 7:
+            raise GeometryError("V-miter R/BA correction cannot keep one closed sheet")
+        return ("source_checked", "skin", "solid", 0 if trim >= 4 else 3)
+
+    original, best, selected = _search_source_safe_edge_trim(
+        evaluate, 20, failure_message="no qualifying source-preserving trim",
+    )
+    assert original[3] == 3
+    assert best[3] == 0
+    assert 4 <= selected <= 7
+    assert 20 in evaluated
+    assert selected in evaluated or selected > 0
+    assert all(row in {"source_checked", "skin", "solid", 0, 3} for row in best)
+
+
+def test_no_valid_source_preserving_candidate_never_reports_clearance():
+    from ae_engine.v_miter_radius_ba_interface_trial import _search_source_safe_edge_trim
+
+    def evaluate(trim):
+        if trim > 3:
+            raise GeometryError("V-miter trial trim destroys the single source flange patch")
+        return ("source_checked", "skin", "solid", 1)
+
+    with pytest.raises(GeometryError, match="cannot eliminate overlap"):
+        _search_source_safe_edge_trim(
+            evaluate, 18, failure_message="V-miter cannot eliminate overlap",
+        )
+
+
+def test_search_rejects_nonmonotone_source_invalidity_inside_valid_bracket():
+    from ae_engine.v_miter_radius_ba_interface_trial import _search_source_safe_edge_trim
+
+    def evaluate(trim):
+        if 3.9 < trim < 4.1:
+            raise GeometryError("V-miter R/BA correction cannot keep one closed sheet")
+        return ("source_checked", "skin", "solid", 1 if trim < 6 else 0)
+
+    with pytest.raises(GeometryError, match="cannot keep one closed sheet"):
+        _search_source_safe_edge_trim(
+            evaluate, 8, failure_message="V-miter cannot eliminate overlap",
+        )
