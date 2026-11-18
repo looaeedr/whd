@@ -18,7 +18,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import math
 
-from shapely.geometry import Polygon
+from shapely.geometry import LineString, Polygon
 from shapely.ops import triangulate
 
 from .assembly_geometry import detect_world_mesh_surface_interference
@@ -46,6 +46,8 @@ class VMiterTrueThicknessCollisionShadow:
     mating: VMiterReliefMatingTrial
     first_flange_flat_area_mm2: float
     second_flange_flat_area_mm2: float
+    first_full_height_source_span_mm: float
+    second_full_height_source_span_mm: float
     first_formed_skin_triangles: tuple[tuple[Vec3, Vec3, Vec3], ...]
     second_formed_skin_triangles: tuple[tuple[Vec3, Vec3, Vec3], ...]
     first_thick_solid_triangles: tuple[tuple[Vec3, Vec3, Vec3], ...]
@@ -69,8 +71,8 @@ def _flange_footprint(
     *,
     source_span: float,
     source_flange_height: float,
-) -> Polygon:
-    """Intersect *actual* remaining source stock with finite bend-side panel."""
+) -> tuple[Polygon, float]:
+    """Clip actual source stock and verify it reaches the declared flange height."""
     def flat(axial: float, outward: float) -> tuple[float, float]:
         return (
             origin.x + axis[0] * axial + outside[0] * outward,
@@ -89,7 +91,21 @@ def _flange_footprint(
     if (actual.geom_type != "Polygon" or actual.is_empty
             or not actual.is_valid or actual.interiors or actual.area <= _EPS):
         raise GeometryError("V-miter true-T source material has no single valid flange region")
-    return actual
+    # The requested height is a source material requirement, not a domain
+    # to which missing stock may be silently added. Check at least a real
+    # nonzero physical span reaches that height along the original BEND.
+    # This deliberately does NOT assert full-height material exists across
+    # the entire flange: local reliefs/trims can shorten some portions.
+    full_height_boundary = LineString((
+        flat(0.0, source_flange_height),
+        flat(source_span, source_flange_height),
+    ))
+    available_span = float(actual.intersection(full_height_boundary).length)
+    if not math.isfinite(available_span) or available_span <= _EPS:
+        raise GeometryError(
+            "V-miter true-T source flange missing requested full height"
+        )
+    return actual, available_span
 
 
 def _source_triangulation(patch: Polygon) -> tuple[tuple[tuple[float, float], ...], ...]:
@@ -212,12 +228,12 @@ def diagnose_v_miter_true_thickness_collision(
     ))
     if remaining.is_empty or not remaining.is_valid or remaining.area <= _EPS:
         raise GeometryError("V-miter true-T source remaining material is invalid")
-    first_patch = _flange_footprint(
+    first_patch, first_full_height_span = _flange_footprint(
         remaining, apex, e1, n1,
         source_span=bounded.first_bend_span_mm,
         source_flange_height=q.first_flange_height_mm,
     )
-    second_patch = _flange_footprint(
+    second_patch, second_full_height_span = _flange_footprint(
         remaining, apex, e2, n2,
         source_span=bounded.second_bend_span_mm,
         source_flange_height=q.second_flange_height_mm,
@@ -236,6 +252,8 @@ def diagnose_v_miter_true_thickness_collision(
         mating=mating,
         first_flange_flat_area_mm2=first_patch.area,
         second_flange_flat_area_mm2=second_patch.area,
+        first_full_height_source_span_mm=first_full_height_span,
+        second_full_height_source_span_mm=second_full_height_span,
         first_formed_skin_triangles=skin1,
         second_formed_skin_triangles=skin2,
         first_thick_solid_triangles=solid1,
