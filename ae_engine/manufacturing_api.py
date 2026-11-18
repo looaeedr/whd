@@ -1985,6 +1985,9 @@ from .joint_diagnostic_display import (
     JointDiagnosticOverlaySource, project_joint_diagnostic_display_sources,
 )
 
+# #3317: replay true-T collision source from .p6fold original BEND/CUTTING.
+from .v_miter_trial_snapshot import replay_v_miter_true_thickness_collision_snapshot
+
 # #3317: source V-miter folded true-T mesh collision shadow only.
 from .v_miter_true_t_collision import (
     VMiterTrueThicknessCollisionShadow,
