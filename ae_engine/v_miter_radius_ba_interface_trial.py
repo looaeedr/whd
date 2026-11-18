@@ -22,7 +22,10 @@ import math
 
 from shapely.geometry import LineString, Polygon
 
-from .assembly_geometry import detect_world_mesh_surface_interference
+from .assembly_geometry import (
+    detect_world_mesh_surface_interference,
+    detect_world_mesh_enclosed_volume_witness,
+)
 from .assembly_geometry_primitives import thicken_triangle_surface
 from .sheetmetal_drawing import DrawingScene, LinePrimitive
 from .sheetmetal_geometry_core import GeometryError, Vec2
@@ -61,6 +64,9 @@ class VMiterRadiusCompensatedInterfaceTrial:
     second_formed_skin_triangles: tuple
     first_thick_solid_triangles: tuple
     second_thick_solid_triangles: tuple
+    untrimmed_enclosed_volume_witness_count: int = 0
+    trimmed_enclosed_volume_witness_count: int = 0
+    formed_volume_containment_meshes_closed: bool = False
     geometry_model: str = "SOURCE_R_BA_CYLINDRICAL_FOLD_ONE_SIDED_V_TRIM_TRIAL"
     manufacturing_status: str = "V_MITER_RADIUS_BA_INTERFACE_UNCERTIFIED"
 
@@ -80,12 +86,14 @@ class VMiterRadiusBAContactError(GeometryError):
     def __init__(
         self, message: str, *, original_pairs: int, attempted_pairs: int,
         attempted_segments: tuple, attempted_trim_mm: float,
+        attempted_containment_points: tuple = (),
     ):
         super().__init__(message)
         self.original_noncoplanar_pairs = original_pairs
         self.attempted_noncoplanar_pairs = attempted_pairs
         self.attempted_intersection_segments = tuple(attempted_segments)
         self.attempted_trim_mm = attempted_trim_mm
+        self.attempted_containment_points = tuple(attempted_containment_points)
         self.manufacturing_status = "V_MITER_RADIUS_BA_INTERFACE_UNCERTIFIED"
 
 
@@ -305,8 +313,14 @@ def _search_source_safe_edge_trim(evaluate, limit: float, *, failure_message: st
     candidate still runs the original single-sheet/other-flange gate.
     This is a diagnostic non-coplanar crossing search, NOT 3D certification.
     """
+    def clear(candidate):
+        # Index 3 remains the original noncoplanar *surface* pair count.
+        # A genuine nested-volume witness is a separate physical failure;
+        # do not report it as a fake triangle surface crossing.
+        return candidate[3] == 0 and not (len(candidate) > 5 and candidate[5])
+
     original = evaluate(0.0)
-    if original[3] == 0:
+    if clear(original):
         return original, original, 0.0
 
     safe_limit = limit
@@ -328,7 +342,7 @@ def _search_source_safe_edge_trim(evaluate, limit: float, *, failure_message: st
                 low, upper = mid, candidate
         safe_limit = low
 
-    if upper[3] != 0:
+    if not clear(upper):
         if failure_factory is not None:
             raise failure_factory(original, upper, safe_limit)
         raise GeometryError(failure_message)
@@ -340,7 +354,7 @@ def _search_source_safe_edge_trim(evaluate, limit: float, *, failure_message: st
         # Any non-monotone invalidity INSIDE an already-validated interval
         # remains an error; do not guess a new safe manufacturing interval.
         candidate = evaluate(mid)
-        if candidate[3] == 0:
+        if clear(candidate):
             high, best = mid, candidate
         else:
             low = mid
@@ -450,7 +464,17 @@ def solve_v_miter_radius_ba_interface_trial(
         if not solid:
             raise GeometryError("V-miter R/BA first solid is empty")
         collision = detect_world_mesh_surface_interference(solid, solid2)
-        return candidate, skin, solid, collision.pair_count, collision.intersection_segments
+        if collision.pair_count:
+            # Surface crossing is already a definite rejection witness.
+            # The expensive enclosed-volume test is useful only when that
+            # older detector would have claimed no crossings.
+            enclosed = ()
+            closed = False
+        else:
+            inside = detect_world_mesh_enclosed_volume_witness(solid, solid2)
+            enclosed = inside.strictly_inside_points
+            closed = inside.meshes_closed
+        return candidate, skin, solid, collision.pair_count, collision.intersection_segments, enclosed, closed
 
     collision_failure = (
         "V-miter ROUND_R source-preserving trim still has detected "
@@ -461,9 +485,12 @@ def solve_v_miter_radius_ba_interface_trial(
     original, best, selected = _search_source_safe_edge_trim(
         evaluate, limit, failure_message=collision_failure,
         failure_factory=lambda baseline, rejected, attempted_trim: VMiterRadiusBAContactError(
-            collision_failure, original_pairs=baseline[3],
+            collision_failure if rejected[3] else (
+                "V-miter R/BA trial retains strictly enclosed true-T volume overlap"
+            ), original_pairs=baseline[3],
             attempted_pairs=rejected[3], attempted_segments=rejected[4],
             attempted_trim_mm=attempted_trim,
+            attempted_containment_points=rejected[5],
         ),
     )
 
@@ -484,6 +511,9 @@ def solve_v_miter_radius_ba_interface_trial(
         second_formed_skin_triangles=skin2,
         first_thick_solid_triangles=best[2],
         second_thick_solid_triangles=solid2,
+        untrimmed_enclosed_volume_witness_count=len(original[5]),
+        trimmed_enclosed_volume_witness_count=len(best[5]),
+        formed_volume_containment_meshes_closed=bool(best[6]),
     )
 
 
