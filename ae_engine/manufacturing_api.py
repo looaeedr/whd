@@ -1992,6 +1992,9 @@ from .v_miter_trial_snapshot import replay_v_miter_true_thickness_collision_snap
 from .v_miter_radius_ba_interface_trial import (
     VMiterRadiusCompensatedInterfaceTrial,
     solve_v_miter_radius_ba_interface_trial,
+    VMiterRadiusBAFullSheetCheck,
+    project_v_miter_radius_ba_full_sheet_check,
+    build_v_miter_radius_ba_full_sheet_check_scene,
 )
 
 # #3317: source V-miter folded true-T mesh collision shadow only.
