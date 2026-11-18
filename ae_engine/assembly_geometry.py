@@ -294,7 +294,7 @@ def detect_world_mesh_enclosed_volume_witness(
 
     def prepared(rows):
         try:
-            mesh = np.asarray(tuple(rows or ()), dtype=float)
+            mesh = np.asarray(tuple(rows if rows is not None else ()), dtype=float)
         except (TypeError, ValueError, OverflowError):
             return None
         if mesh.ndim != 3 or mesh.shape[1:] != (3, 3) or not np.isfinite(mesh).all():
