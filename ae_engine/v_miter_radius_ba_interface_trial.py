@@ -71,6 +71,7 @@ class VMiterRadiusCompensatedInterfaceTrial:
     trimmed_enclosed_volume_witness_count: int = 0
     formed_volume_containment_meshes_closed: bool = False
     first_edge_transition_span_mm: float = 0.0
+    full_corrected_check_outline: tuple[Vec2, ...] = ()
     geometry_model: str = "SOURCE_R_BA_CYLINDRICAL_FOLD_ONE_SIDED_V_TRIM_TRIAL"
     manufacturing_status: str = "V_MITER_RADIUS_BA_INTERFACE_UNCERTIFIED"
 
@@ -618,25 +619,18 @@ def solve_v_miter_radius_ba_interface_trial(
     solid2 = tuple(thicken_triangle_surface(skin2, q.thickness_mm))
     if not solid2:
         raise GeometryError("V-miter R/BA second solid is empty")
-    def evaluate(trim: float, transition_run_mm: float | None = None):
-        # An untrimmed baseline is EXACTLY the source patch. In particular,
-        # a rounded V tip may retain material slightly beyond the ideal
-        # zero-R ray; applying a zero-offset half-plane here would silently
-        # remove it before counting any actual correction.
-        candidate = patch1 if trim == 0.0 else _trim_one_v_edge(
-            patch1, apex, mating.relief.source_trial.ideal.first_flat_miter_ray[1],
-            trim, relief_open_length_mm=mating.formed_open_relief_length_mm,
-            transition_run_mm=transition_run_mm,
-        )
+    source_material = (
+        _single_source_material(scene)
+        if q.relief_mode is VMiterReliefMode.ROUND_R else None
+    )
+
+    def evaluate_formed(candidate: Polygon, whole: Polygon):
         full_height = LineString((
             _flat_point(apex, e1, n1, 0, q.first_flange_height_mm),
             _flat_point(apex, e1, n1, bounded.first_bend_span_mm, q.first_flange_height_mm),
         ))
         if candidate.intersection(full_height).length <= _EPS:
             raise GeometryError("V-miter trial trim removes the first flange full-height source")
-        # Check the complete original single sheet before a local 3D
-        # collision result can qualify a candidate for the trim search.
-        _checked_full_source_from_trim(remaining, patch1, candidate, patch2)
         skin = _formed_curved_skin(
             candidate, apex, e1, n1, angle_rad=math.pi / 2, inner_r=r1,
             allowance=ba1, thickness=q.thickness_mm,
@@ -648,16 +642,55 @@ def solve_v_miter_radius_ba_interface_trial(
             raise GeometryError("V-miter R/BA first solid is empty")
         collision = detect_world_mesh_surface_interference(solid, solid2)
         if collision.pair_count:
-            # Surface crossing is already a definite rejection witness.
-            # The expensive enclosed-volume test is useful only when that
-            # older detector would have claimed no crossings.
             enclosed = ()
             closed = False
         else:
+            # A zero surface-crossing verdict cannot conceal a fully
+            # nested closed physical volume in either direction.
             inside = detect_world_mesh_enclosed_volume_witness(solid, solid2)
             enclosed = inside.strictly_inside_points
             closed = inside.meshes_closed
-        return candidate, skin, solid, collision.pair_count, collision.intersection_segments, enclosed, closed
+        return (
+            candidate, skin, solid, collision.pair_count,
+            collision.intersection_segments, enclosed, closed, whole,
+        )
+
+    def evaluate(trim: float, transition_run_mm: float | None = None):
+        # A zero correction is EXACTLY the original source; do not clip
+        # the physical ROUND_R root before counting actual interference.
+        candidate = patch1 if trim == 0.0 else _trim_one_v_edge(
+            patch1, apex, mating.relief.source_trial.ideal.first_flat_miter_ray[1],
+            trim, relief_open_length_mm=mating.formed_open_relief_length_mm,
+            transition_run_mm=transition_run_mm,
+        )
+        whole, _ = _checked_full_source_from_trim(
+            remaining, patch1, candidate, patch2,
+        )
+        return evaluate_formed(candidate, whole)
+
+    def evaluate_retargeted_round_r(trim: float):
+        if trim == 0.0:
+            return evaluate(0.0)
+        if source_material is None:
+            raise GeometryError("V-miter asymmetric R-root trial requires ROUND_R source")
+        # Shift ONE original V cut line into the verified first-flange
+        # material; recompute its intersection and the *same radius* arc
+        # tangent to both lines. The second V line/end remain unchanged.
+        whole = _retarget_round_r_first_v_edge(
+            source_material, remaining, patch1,
+            apex, mating.relief.source_trial.ideal.first_flat_miter_ray[1],
+            mating.relief.source_trial.ideal.second_flat_miter_ray[1],
+            radius=mating.relief.relief_radius_mm, offset=trim,
+        )
+        first, _ = _flange_footprint(
+            whole, apex, e1, n1,
+            source_span=bounded.first_bend_span_mm,
+            source_flange_height=q.first_flange_height_mm,
+        )
+        _checked_full_source_profile(
+            remaining, whole, patch1, first, patch2,
+        )
+        return evaluate_formed(first, whole)
 
     collision_failure = (
         "V-miter ROUND_R source-preserving trim still has detected "
@@ -675,14 +708,32 @@ def solve_v_miter_radius_ba_interface_trial(
             attempted_containment_points=rejected[5],
         )
 
+    retargeted_round_r = False
     if q.relief_mode is VMiterReliefMode.ROUND_R:
-        original, best, selected, transition, local_root_taper = (
-            _search_round_r_source_tip_profiles(
-                evaluate, limit, mating.formed_open_relief_length_mm,
-                failure_message=collision_failure,
-                failure_factory=contact_failure,
+        try:
+            original, best, selected, transition, local_root_taper = (
+                _search_round_r_source_tip_profiles(
+                    evaluate, limit, mating.formed_open_relief_length_mm,
+                    failure_message=collision_failure,
+                    failure_factory=contact_failure,
+                )
             )
-        )
+        except VMiterRadiusBAContactError as first_attempt_failure:
+            # The original R-preserving profiles cannot clear the physical
+            # root. Only now consider a *same-R*, new-tangency asymmetric
+            # notch, still within the explicit one-side operator trim MAX.
+            try:
+                original, best, selected = _search_source_safe_edge_trim(
+                    evaluate_retargeted_round_r, limit,
+                    failure_message=collision_failure,
+                    failure_factory=contact_failure,
+                )
+            except GeometryError:
+                # Never promote a split source or unsupported new root. The
+                # initial measured 3D collision remains authoritative.
+                raise first_attempt_failure
+            transition, local_root_taper = 0.0, False
+            retargeted_round_r = True
     else:
         original, best, selected = _search_source_safe_edge_trim(
             lambda trim: evaluate(trim, None),
@@ -712,7 +763,12 @@ def solve_v_miter_radius_ba_interface_trial(
         trimmed_enclosed_volume_witness_count=len(best[5]),
         formed_volume_containment_meshes_closed=bool(best[6]),
         first_edge_transition_span_mm=transition,
+        full_corrected_check_outline=tuple(
+            Vec2(float(x), float(y)) for x, y in best[7].exterior.coords
+        ),
         geometry_model=(
+            "SOURCE_R_BA_CYLINDRICAL_FOLD_ASYMMETRIC_SAME_R_TANGENT_TRIM_TRIAL"
+            if retargeted_round_r else
             "SOURCE_R_BA_CYLINDRICAL_FOLD_R_TIP_LOCAL_V_TRIM_TRIAL"
             if local_root_taper else
             "SOURCE_R_BA_CYLINDRICAL_FOLD_ONE_SIDED_V_TRIM_TRIAL"
@@ -801,9 +857,17 @@ def project_v_miter_radius_ba_full_sheet_check(
         1e-5, source.area * 1e-9,
     ):
         raise GeometryError("V-miter CHECK source second flange differs from the solved source")
-    whole, removed = _checked_full_source_from_trim(
-        source, original_patch, trimmed_patch, second_patch,
-    )
+    if trial.full_corrected_check_outline:
+        corrected = Polygon((
+            (point.x, point.y) for point in trial.full_corrected_check_outline
+        ))
+        whole, removed = _checked_full_source_profile(
+            source, corrected, original_patch, trimmed_patch, second_patch,
+        )
+    else:
+        whole, removed = _checked_full_source_from_trim(
+            source, original_patch, trimmed_patch, second_patch,
+        )
     return VMiterRadiusBAFullSheetCheck(
         trial=trial,
         full_source_area_mm2=source.area,
