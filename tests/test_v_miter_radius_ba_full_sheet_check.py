@@ -173,3 +173,31 @@ def test_invalid_source_or_unset_trim_limit_does_not_emit_check_geometry():
     with pytest.raises(GeometryError, match="max_permitted_edge_trim_mm"):
         manufacturing_api.project_v_miter_radius_ba_full_sheet_check(
             scene, first, second, **args, **no_trim)
+
+
+
+def test_real_source_single_sheet_gate_rejects_split_and_second_flange_shortening():
+    from shapely.geometry import box
+    from ae_engine.v_miter_radius_ba_interface_trial import _checked_full_source_from_trim
+    source = box(0, 0, 10, 10)
+    first = box(3, 0, 7, 10)
+    second = box(8, 0, 10, 10)
+    # A local candidate can remain a perfectly valid polygon yet turn
+    # the single source sheet into two disconnected pieces after a 2D cut.
+    with pytest.raises(GeometryError, match="cannot keep one closed sheet"):
+        _checked_full_source_from_trim(source, first, box(3, 0, 4, 10), second)
+    # A clearance cut that crosses second-flange material is not allowed,
+    # even if both source and result remain mathematically connected.
+    with pytest.raises(GeometryError, match="shorten the unmodified second flange"):
+        _checked_full_source_from_trim(
+            source, box(7, 0, 10, 4), box(7, 2, 10, 4), box(8, 0, 10, 4),
+        )
+    # A genuine boundary-connected trim conserves every source coordinate
+    # outside the removed patch, and cannot invent cut material.
+    keep, removed = _checked_full_source_from_trim(
+        source, box(0, 0, 3, 4), box(1, 0, 3, 4), second,
+    )
+    assert keep.is_valid and keep.geom_type == "Polygon"
+    assert not keep.interiors
+    assert source.area == pytest.approx(keep.area + removed.area)
+    assert keep.intersection(second).area == pytest.approx(second.area)
