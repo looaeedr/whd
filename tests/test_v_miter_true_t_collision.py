@@ -47,10 +47,11 @@ def test_90_degree_true_t_mesh_reuses_real_source_and_detects_unbevelled_overlap
     assert result.second_flange_flat_area_mm2 > 0
     assert len(result.first_thick_solid_triangles) > len(result.first_formed_skin_triangles)
     assert len(result.second_thick_solid_triangles) > len(result.second_formed_skin_triangles)
-    assert result.surface_interference_pair_count >= 0
-    assert result.has_detected_surface_interference == (
-        result.surface_interference_pair_count > 0
-    )
+    # Orthogonal, unbevelled 2-mm sheets have true overlapping wall
+    # volume beyond the local R/hole root. The shared physical solver must
+    # find at least one noncoplanar surface crossing, not a silent "safe".
+    assert result.surface_interference_pair_count > 0
+    assert result.has_detected_surface_interference
     assert all(math.isfinite(value) for tri in (
         result.first_thick_solid_triangles + result.second_thick_solid_triangles
     ) for xyz in tri for value in xyz)
