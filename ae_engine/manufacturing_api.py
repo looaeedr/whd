@@ -1988,6 +1988,12 @@ from .joint_diagnostic_display import (
 # #3317: replay true-T collision source from .p6fold original BEND/CUTTING.
 from .v_miter_trial_snapshot import replay_v_miter_true_thickness_collision_snapshot
 
+# #3317 measured inside R/BA/T formed-interface correction candidate; never CUTTING.
+from .v_miter_radius_ba_interface_trial import (
+    VMiterRadiusCompensatedInterfaceTrial,
+    solve_v_miter_radius_ba_interface_trial,
+)
+
 # #3317: source V-miter folded true-T mesh collision shadow only.
 from .v_miter_true_t_collision import (
     VMiterTrueThicknessCollisionShadow,
