@@ -113,43 +113,51 @@ def test_true_saved_source_recomputes_same_r_ba_2d_3d_after_project_reload(tmp_p
     assert old.trial.first_thick_solid_triangles == new.trial.first_thick_solid_triangles
 
 
-def test_r_tip_connected_source_and_full_sheet_check_after_tangent_preserving_trim(tmp_path):
-    # Before the change the infinite offset removed source material at the
-    # R tangent itself and produced an unattached island in the whole sheet.
-    # The actual relief tangency, NOT a guessed T multiple, is the transition
-    # start in this CHECK-only correction. No material island may be dropped.
-    from shapely.geometry import Point
+def test_r_tip_source_preserving_trial_does_not_hide_remaining_true_T_overlap():
+    # This real R/BA/T specimen cannot satisfy the volume diagnostic with
+    # the original actual R-tip stock intact. An infinite offset used to
+    # discard that stock, producing a split full sheet; preserving the root
+    # must NOT promote an apparent zero-collision result.
     scene, first, second, args, calib = _scene("ROUND_R")
-    original = tuple(scene.primitives)
-    result = manufacturing_api.project_v_miter_radius_ba_full_sheet_check(
-        scene, first, second, **args, **calib)
-    trial = result.trial
-    assert result.manufacturing_status.endswith("UNCERTIFIED")
-    assert trial.manufacturing_status.endswith("UNCERTIFIED")
-    assert trial.trimmed_surface_interference_pairs == 0
-    assert trial.first_edge_trim_mm >= 0
-    assert result.full_source_area_mm2 == pytest.approx(
-        result.full_corrected_area_mm2 + result.actual_removed_trim_area_mm2)
-    assert result.actual_removed_trim_area_mm2 == pytest.approx(
-        trial.first_flat_source_area_mm2 - trial.first_flat_trimmed_area_mm2)
-    first_source = Polygon([(p.x, p.y) for p in trial.first_flat_source_outline])
-    first_final = Polygon([(p.x, p.y) for p in trial.first_trimmed_check_outline])
-    removed = first_source.difference(first_final)
-    mating = manufacturing_api.project_v_miter_relief_mating_trial(
-        scene, first, second, **args)
-    apex = mating.relief.source_trial.ideal.source.bend_intersection
-    assert removed.intersection(Point(apex.x, apex.y).buffer(
-        mating.formed_open_relief_length_mm - .0001)).area < 1e-7
-    material = Polygon([(p.x, p.y) for p in result.corrected_check_outline])
-    assert material.is_valid and not material.interiors
-    assert material.area == pytest.approx(result.full_corrected_area_mm2)
-    output = tmp_path / "round_R_tangent_preserved_CHECK.dxf"
-    save_scene_dxf(output,
+    before = tuple(scene.primitives)
+    with pytest.raises(GeometryError, match="ROUND_R source-preserving trim still has detected"):
+        manufacturing_api.project_v_miter_radius_ba_full_sheet_check(
+            scene, first, second, **args, **calib)
+    with pytest.raises(GeometryError, match="ROUND_R source-preserving trim still has detected"):
         manufacturing_api.build_v_miter_radius_ba_full_sheet_check_scene(
-            scene, first, second, **args, **calib))
-    assert [e.dxf.layer for e in ezdxf.readfile(output).modelspace()] == [
-        "DATUM", "CHECK", "DATUM", "DATUM"]
-    assert tuple(scene.primitives) == original
+            scene, first, second, **args, **calib)
+    assert tuple(scene.primitives) == before
+
+
+def test_progressive_edge_trim_starts_only_after_actual_relief_contact_source():
+    # Unit-test the physical 2D trim operator on one actual positive-area
+    # flange. The open R/hole root lies on the unmodified side of the
+    # measured cutback; do not invent new material or leave disconnected
+    # islands while interpolating towards the diagnostic offset.
+    from shapely.geometry import Point, box
+    from ae_engine.v_miter_radius_ba_interface_trial import _trim_one_v_edge
+
+    patch = box(0, 0, 20, 12)
+    apex, tip = Vec2(0, 0), Vec2(20, 0)
+    cutback, trim = 3.0, 2.0
+    corrected = _trim_one_v_edge(
+        patch, apex, tip, trim, relief_open_length_mm=cutback,
+    )
+    removed = patch.difference(corrected)
+    assert corrected.is_valid and corrected.geom_type == "Polygon"
+    assert not corrected.interiors
+    assert 0 < corrected.area < patch.area
+    assert removed.area == pytest.approx(patch.area - corrected.area)
+    assert corrected.difference(patch).area == 0
+    assert removed.intersection(box(0, 0, cutback, 12)).area < 1e-8
+    assert removed.intersection(Point(apex.x, apex.y).buffer(cutback - 1e-4)).area < 1e-8
+    # Beyond the finite transition the full requested trim is applied.
+    assert not corrected.contains(Point(19, 1))
+    assert corrected.contains(Point(19, 3))
+    with pytest.raises(GeometryError, match="relief cutback exhausts"):
+        _trim_one_v_edge(
+            patch, apex, tip, trim, relief_open_length_mm=21,
+        )
 
 
 def test_invalid_source_or_unset_trim_limit_does_not_emit_check_geometry():

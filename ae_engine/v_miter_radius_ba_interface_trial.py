@@ -337,6 +337,11 @@ def solve_v_miter_radius_ba_interface_trial(
     else:
         best = evaluate(limit)
         if best[3] != 0:
+            if q.relief_mode is VMiterReliefMode.ROUND_R:
+                raise GeometryError(
+                    "V-miter ROUND_R source-preserving trim still has detected "
+                    "true-T interference within permitted trim"
+                )
             raise GeometryError("V-miter R/BA trial cannot eliminate detected overlap within permitted trim")
         lo, hi = 0.0, limit
         for _ in range(_BINARY_STEPS):
