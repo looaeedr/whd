@@ -144,6 +144,33 @@ def project_v_miter_source_material_trial(
     e2 = _outward_bend_axis(second_bend, apex)
     n1 = _outside_normal(e1, e2)
     n2 = _outside_normal(e2, e1)
+    # Use the TWO ACTUAL unfolded V rays, not the original fold axes, as
+    # the angular bounds. At a 120-degree second fold a legitimate unequal
+    # V cut crosses the original orthogonal crease wedge; testing that
+    # fixed wedge would wrongly reject it. A concave source perimeter can
+    # still overhang *outside the true V-cut sector* while its midpoint
+    # looks correct. The sector is convex (two ray half-planes), so checking
+    # every straight arc vertex proves every connecting segment is inside.
+    first_dx, first_dy = first_tip.x - apex.x, first_tip.y - apex.y
+    second_dx, second_dy = second_tip.x - apex.x, second_tip.y - apex.y
+    first_len, second_len = math.hypot(first_dx, first_dy), math.hypot(second_dx, second_dy)
+    if not (math.isfinite(first_len) and math.isfinite(second_len)
+            and min(first_len, second_len) > _TOL):
+        raise GeometryError("V-miter trial cut sector has invalid ray lengths")
+    ux, uy = first_dx / first_len, first_dy / first_len
+    vx, vy = second_dx / second_len, second_dy / second_len
+    sector_cross = ux * vy - uy * vx
+    if abs(sector_cross) <= _TOL:
+        raise GeometryError("V-miter trial cut sector is degenerate")
+    orientation = 1.0 if sector_cross > 0 else -1.0
+    for x, y in outer_arc:
+        relative_x, relative_y = x - apex.x, y - apex.y
+        first_side = orientation * (ux * relative_y - uy * relative_x)
+        second_side = orientation * (relative_x * vy - relative_y * vx)
+        if min(first_side, second_side) < -_TOL:
+            raise GeometryError(
+                "V-miter trial exterior arc leaves the actual V cut sector"
+            )
     middle_arc_point = LineString(outer_arc).interpolate(LineString(outer_arc).length / 2)
     arc_relative = (
         middle_arc_point.x - apex.x, middle_arc_point.y - apex.y, 0.0,
