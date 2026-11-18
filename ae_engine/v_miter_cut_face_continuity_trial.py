@@ -49,6 +49,7 @@ class VMiterCutFaceOpenIntervalTrial:
     min_gap_lower_bound_mm: float | None = None
     min_gap_upper_bound_mm: float | None = None
     combined_transverse_speed: float | None = None
+    transverse_bounding_box_cap_mm: float | None = None
     gap_bound_status: str = "NOT_EVALUATED"
 
     @property
@@ -132,6 +133,55 @@ def _section_transverse_speed_bound(mesh, start, direction, lo_mm, hi_mm):
     return max_speed if active else None
 
 
+
+def _perpendicular_cut_face_bbox_gap_cap(
+    first, second, start, direction, lo_mm, hi_mm,
+):
+    """Second INDEPENDENT, conservative envelope from actual world vertices.
+
+    Every physical triangle section point is a convex combination of the
+    triangle's genuine 3D vertices. For the whole open vertex-event
+    interval its participating triangles are fixed, so projecting all
+    contributing *real vertices* onto the plane perpendicular to the
+    source seam yields two enclosing 2D boxes. The farthest distance
+    between these boxes bounds the separation of ANY pair of physical
+    section points; in particular it bounds the nearest-point gap.
+    Unlike the slope envelope this can be tight even when a triangulation
+    diagonal 'moves' rapidly but its combined physical surface is static.
+    It is still NOT a continuous contact proof or a factory tolerance.
+    """
+    reference = (0.0, 0.0, 1.0) if abs(direction[2]) < 0.9 else (1.0, 0.0, 0.0)
+    u = _unit(_cross(direction, reference))
+    v = _unit(_cross(direction, u))
+    mid = (lo_mm + hi_mm) * 0.5
+
+    def bounds(mesh):
+        xy = []
+        for tri in mesh:
+            axial = tuple(_dot(_sub(p, start), direction) for p in tri)
+            if max(axial) <= mid or min(axial) >= mid:
+                continue
+            for p in tri:
+                delta = _sub(p, start)
+                xy.append((_dot(delta, u), _dot(delta, v)))
+        if not xy:
+            return None
+        return (
+            min(x for x, y in xy), max(x for x, y in xy),
+            min(y for x, y in xy), max(y for x, y in xy),
+        )
+
+    a, b = bounds(first), bounds(second)
+    if a is None or b is None:
+        return None
+    dx = max(abs(a[1] - b[0]), abs(b[1] - a[0]))
+    dy = max(abs(a[3] - b[2]), abs(b[3] - a[2]))
+    cap = math.hypot(dx, dy)
+    if not math.isfinite(cap) or cap < 0:
+        raise GeometryError("V-miter cut-face 3D projected bounding cap invalid")
+    return cap
+
+
 def _midpoint_exact_cut_face_gap(first, second, start, direction, station_mm):
     """Independent *zero-clipping-epsilon* physical mesh section witness.
 
@@ -196,13 +246,22 @@ def _conservative_open_interval_gap_bounds(
     variation = speed * width * 0.5
     if not math.isfinite(variation):
         return None, "NUMERICALLY_UNRESOLVED_SECTION"
+    bbox_cap = _perpendicular_cut_face_bbox_gap_cap(
+        first, second, start, direction, lo_mm, hi_mm,
+    )
+    if bbox_cap is None:
+        return None, "NUMERICALLY_UNRESOLVED_SECTION"
+    # BOTH bounds hold for the same actual physical triangle section sets.
+    # Taking the smaller remains conservative; no welding fit tolerance
+    # or false exact extrema is introduced.
     return (
         (
-            max(0.0, exact - margin),           # sup gap >= actual midpoint
-            exact + variation + margin,         # sup gap <= speed envelope
+            max(0.0, exact - margin),              # sup gap >= actual midpoint
+            min(exact + variation, bbox_cap) + margin, # sup gap <= both caps
             max(0.0, exact - variation - margin), # inf gap >= speed envelope
-            exact + margin,                     # inf gap <= actual midpoint
+            exact + margin,                        # inf gap <= midpoint
             speed,
+            bbox_cap,
         ),
         "CONSERVATIVE_SOURCE_MESH_ENVELOPE_CHECK",
     )
@@ -304,6 +363,7 @@ def project_v_miter_true_cut_face_continuity_trial(
             min_gap_lower_bound_mm=bounds[2] if bounds else None,
             min_gap_upper_bound_mm=bounds[3] if bounds else None,
             combined_transverse_speed=bounds[4] if bounds else None,
+            transverse_bounding_box_cap_mm=bounds[5] if bounds else None,
             gap_bound_status=bound_status,
         ))
     if abs(sum(lengths.values()) - length) > max(1e-6, tol * 10):
