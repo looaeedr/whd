@@ -36,9 +36,8 @@ def _scene(mode="RELIEF_HOLE"):
     return DrawingScene([outline, first, second]), first, second, source, calibration
 
 
-@pytest.mark.parametrize("mode", ("ROUND_R", "RELIEF_HOLE"))
-def test_full_sheet_reprojection_preserves_second_flange_and_real_source_area(mode, tmp_path):
-    scene, first, second, params, calibration = _scene(mode)
+def test_hole_tip_full_sheet_reprojection_preserves_second_flange_and_real_source_area(tmp_path):
+    scene, first, second, params, calibration = _scene("RELIEF_HOLE")
     before = tuple(scene.primitives)
     out = manufacturing_api.project_v_miter_radius_ba_full_sheet_check(
         scene, first, second, **params, **calibration)
@@ -114,13 +113,28 @@ def test_true_saved_source_recomputes_same_r_ba_2d_3d_after_project_reload(tmp_p
     assert old.trial.first_thick_solid_triangles == new.trial.first_thick_solid_triangles
 
 
-def test_invalid_source_or_insufficient_trim_does_not_emit_check_geometry():
+def test_r_tip_disconnected_full_sheet_must_fail_closed_instead_of_faking_cutting():
+    # A valid local R/BA mesh preview need not result in one manufacturable
+    # whole-sheet contour. Its detached topology is an actual manufacturing
+    # blocker, not a reason to silently discard the extra material island.
+    scene, first, second, args, calib = _scene("ROUND_R")
+    before = tuple(scene.primitives)
+    with pytest.raises(GeometryError, match="cannot keep one closed sheet"):
+        manufacturing_api.build_v_miter_radius_ba_full_sheet_check_scene(
+            scene, first, second, **args, **calib)
+    assert tuple(scene.primitives) == before
+
+
+def test_invalid_source_or_unset_trim_limit_does_not_emit_check_geometry():
     scene, first, second, args, calib = _scene()
     fake = LinePrimitive(first.p1, first.p2, "BEND")
     with pytest.raises(GeometryError, match="original scene"):
         manufacturing_api.build_v_miter_radius_ba_full_sheet_check_scene(
             scene, fake, second, **args, **calib)
-    too_small = dict(calib, max_permitted_edge_trim_mm=.0001)
-    with pytest.raises(GeometryError, match="cannot eliminate detected overlap"):
+    # R/BA can naturally eliminate some overlaps at zero additional edge
+    # trim. A small *positive* trim limit is therefore NOT proof of failure.
+    # Zero itself is an invalid operator source and must always be rejected.
+    no_trim = dict(calib, max_permitted_edge_trim_mm=0)
+    with pytest.raises(GeometryError, match="max_permitted_edge_trim_mm"):
         manufacturing_api.project_v_miter_radius_ba_full_sheet_check(
-            scene, first, second, **args, **too_small)
+            scene, first, second, **args, **no_trim)
