@@ -187,10 +187,18 @@ def _verified_contiguous_positive_mesh_span(
             continue
         if not remaining.contains(addition.interpolate(0.5, normalized=True)):
             continue
-        # A crease coinciding with a newly cut edge is not interior stock.
-        # 1e-7mm is the pre-existing numerical GEOS boundary tolerance,
-        # NOT a manufacturing allowance.
-        if addition.intersection(remaining.boundary.buffer(_EPS)).length > 0:
+        # A crease coinciding with a new CUTTING edge is not interior
+        # stock.  At a genuinely drawn far OUTER endpoint, though, a
+        # 1e-7mm GEOS boundary neighborhood necessarily intersects the
+        # BEND by ~1e-7mm despite all its positive-length interior being
+        # foldable. Allow at most numerical end-cap contact at BOTH
+        # segment endpoints, not a positive-length boundary coincidence.
+        # This bound is *only* numerical resolution, never a factory kerf,
+        # gap, R/BA or physical bend-width allowance.
+        near_cut_length = float(
+            addition.intersection(remaining.boundary.buffer(_EPS)).length
+        )
+        if not math.isfinite(near_cut_length) or near_cut_length > 2 * _EPS + 1e-9:
             continue
         return end
     raise GeometryError(
