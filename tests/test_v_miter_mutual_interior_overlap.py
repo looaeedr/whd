@@ -196,6 +196,36 @@ def test_tetrahedra_with_only_shared_diagonal_face_are_not_volume_overlap():
     assert result.strictly_inside_points == ()
 
 
+def test_edge_closed_two_tetrahedra_pinched_at_one_vertex_are_not_one_solid():
+    # Each source tetrahedron independently has a valid closed triangulated
+    # surface. Joining ONLY their 0,0,0 vertices does NOT produce a physical
+    # 2-manifold solid: all edges remain paired, yet the common vertex link
+    # has two disconnected triangular fans.
+    a = _tetra(((0, 0, 0), (2, 0, 0), (0, 2, 0), (0, 0, 2)))
+    b = _tetra(((0, 0, 0), (-2, 0, 0), (0, -2, 0), (0, 0, -2)))
+    assert diagnose_world_mesh_triangle_edge_incidence(a).edges_manifold_closed
+    assert diagnose_world_mesh_triangle_edge_incidence(b).edges_manifold_closed
+    pinched = a + b
+    topology = diagnose_world_mesh_triangle_edge_incidence(pinched)
+    assert topology.triangle_count == 8
+    assert topology.boundary_edge_count == 0
+    assert topology.nonmanifold_edge_count == 0
+    assert topology.degenerate_triangle_count == 0
+    assert topology.nonmanifold_vertex_count == 1
+    assert topology.nonmanifold_vertex_examples_xyz == ((0.0, 0.0, 0.0),)
+    assert not topology.edges_manifold_closed
+
+    # This real closed cube is genuinely *inside one of the tetrahedra*.
+    # The previous parity function classified the pinched source as
+    # meshes_closed=True by checking edge counts only, which cannot safely
+    # support any volume acceptance of such invalid physical geometry.
+    inner = _box((.2, .2, .2), (.4, .4, .4))
+    witness = detect_world_mesh_enclosed_volume_witness(pinched, inner)
+    assert not witness.meshes_closed
+    assert not witness.has_enclosed_overlap
+    assert witness.sample_count == 0
+
+
 def test_actual_world_T_shell_edge_diagnostic_distinguishes_closed_open_and_nonmanifold():
     closed = _box((0, 0, 0), (2, 2, 2))
     valid = diagnose_world_mesh_triangle_edge_incidence(closed)
@@ -203,6 +233,8 @@ def test_actual_world_T_shell_edge_diagnostic_distinguishes_closed_open_and_nonm
     assert valid.edges_manifold_closed
     assert valid.boundary_edge_count == 0
     assert valid.nonmanifold_edge_count == 0
+    assert valid.nonmanifold_vertex_count == 0
+    assert valid.nonmanifold_vertex_examples_xyz == ()
     assert valid.degenerate_triangle_count == 0
     assert valid.boundary_edge_examples_xyz == ()
     assert valid.manufacturing_status.endswith("UNCERTIFIED")
