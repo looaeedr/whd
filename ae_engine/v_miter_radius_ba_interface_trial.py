@@ -33,7 +33,10 @@ from .sheetmetal_drawing import DrawingScene, LinePrimitive
 from .sheetmetal_geometry_core import GeometryError, Vec2
 from .v_miter_corner_source import VMiterReliefMode, _finite
 from .v_miter_ideal_mating import _UNIT_Z, _add, _dot, _outside_normal, _outward_bend_axis, _scale
-from .v_miter_true_t_collision import _flange_footprint, _source_triangulation
+from .v_miter_true_t_collision import (
+    _flange_footprint, _source_triangulation,
+    _verified_v_miter_source_bend_mesh_spans,
+)
 from .v_miter_relief_trial import (
     project_v_miter_relief_mating_trial, _rounded_v_notch_polygon,
 )
@@ -94,6 +97,8 @@ class VMiterRadiusCompensatedInterfaceTrial:
     second_thick_solid_boundary_edge_examples_xyz: tuple = ()
     true_t_volume_check_status: str = "V_MITER_TRUE_T_VOLUME_UNKNOWN_NOT_EVALUATED"
     first_edge_transition_span_mm: float = 0.0
+    first_mesh_source_bend_span_mm: float = 0.0
+    second_mesh_source_bend_span_mm: float = 0.0
     full_corrected_check_outline: tuple[Vec2, ...] = ()
     seam_section_gap_trial: VMiterSeamSectionGapTrial | None = None
     first_source_cut_face: VMiterSourceCutFaceTrial | None = None
@@ -671,8 +676,6 @@ def solve_v_miter_radius_ba_interface_trial(
     bounded = diagnose_v_miter_bounded_bend_reach(
         scene, v_edge_bend, second_bend, **params,
     )
-    if bounded.needs_independent_material_extension_evidence:
-        raise GeometryError("V-miter measured R/BA trial needs independent source material extension evidence")
     q = mating.relief.source_trial.ideal.source
     limit = _finite(max_permitted_edge_trim_mm, "max_permitted_edge_trim_mm", positive=True)
     r1, ba1, k1 = _bend_measurement(
@@ -691,14 +694,20 @@ def solve_v_miter_radius_ba_interface_trial(
     remaining = Polygon([(p.x, p.y) for p in mating.relief.trial_remaining_outline])
     if remaining.is_empty or not remaining.is_valid or remaining.interiors:
         raise GeometryError("V-miter R/BA trial remaining source is invalid")
+    # The sharp-T mesh owner and measured R/BA use the exact SAME physical
+    # source BEND continuity, post-relief stock and full-height mesh domain.
+    # No independent compensated BEND extension or virtual source is allowed.
+    first_mesh_span, second_mesh_span = _verified_v_miter_source_bend_mesh_spans(
+        scene, v_edge_bend, second_bend, bounded, remaining, params,
+    )
     patch1, _ = _flange_footprint(
         remaining, apex, e1, n1,
-        source_span=bounded.first_bend_span_mm,
+        source_span=first_mesh_span,
         source_flange_height=q.first_flange_height_mm,
     )
     patch2, _ = _flange_footprint(
         remaining, apex, e2, n2,
-        source_span=bounded.second_bend_span_mm,
+        source_span=second_mesh_span,
         source_flange_height=q.second_flange_height_mm,
     )
     if patch1.intersection(patch2).area > _EPS:
@@ -706,7 +715,7 @@ def solve_v_miter_radius_ba_interface_trial(
     skin2, flat2 = _formed_curved_skin(
         patch2, apex, e2, n2, angle_rad=theta, inner_r=r2,
         allowance=ba2, thickness=q.thickness_mm,
-        axial_span=bounded.second_bend_span_mm,
+        axial_span=second_mesh_span,
         flange_height=q.second_flange_height_mm,
         return_flat_pairs=True,
     )
@@ -728,14 +737,14 @@ def solve_v_miter_radius_ba_interface_trial(
     def evaluate_formed(candidate: Polygon, whole: Polygon):
         full_height = LineString((
             _flat_point(apex, e1, n1, 0, q.first_flange_height_mm),
-            _flat_point(apex, e1, n1, bounded.first_bend_span_mm, q.first_flange_height_mm),
+            _flat_point(apex, e1, n1, first_mesh_span, q.first_flange_height_mm),
         ))
         if candidate.intersection(full_height).length <= _EPS:
             raise GeometryError("V-miter trial trim removes the first flange full-height source")
         skin, flat = _formed_curved_skin(
             candidate, apex, e1, n1, angle_rad=math.pi / 2, inner_r=r1,
             allowance=ba1, thickness=q.thickness_mm,
-            axial_span=bounded.first_bend_span_mm,
+            axial_span=first_mesh_span,
             flange_height=q.first_flange_height_mm,
             return_flat_pairs=True,
         )
@@ -794,7 +803,7 @@ def solve_v_miter_radius_ba_interface_trial(
         )
         first, _ = _flange_footprint(
             whole, apex, e1, n1,
-            source_span=bounded.first_bend_span_mm,
+            source_span=first_mesh_span,
             source_flange_height=q.first_flange_height_mm,
         )
         _checked_full_source_profile(
@@ -887,14 +896,14 @@ def solve_v_miter_radius_ba_interface_trial(
     first_formed_check, first_flat_pairs = _formed_curved_skin(
         best[0], apex, e1, n1, angle_rad=math.pi / 2, inner_r=r1,
         allowance=ba1, thickness=q.thickness_mm,
-        axial_span=bounded.first_bend_span_mm,
+        axial_span=first_mesh_span,
         flange_height=q.first_flange_height_mm,
         return_flat_pairs=True,
     )
     second_formed_check, second_flat_pairs = _formed_curved_skin(
         patch2, apex, e2, n2, angle_rad=theta, inner_r=r2,
         allowance=ba2, thickness=q.thickness_mm,
-        axial_span=bounded.second_bend_span_mm,
+        axial_span=second_mesh_span,
         flange_height=q.second_flange_height_mm,
         return_flat_pairs=True,
     )
@@ -977,6 +986,8 @@ def solve_v_miter_radius_ba_interface_trial(
         second_thick_solid_boundary_edge_examples_xyz=topo_second.boundary_edge_examples_xyz,
         true_t_volume_check_status=true_t_volume_status,
         first_edge_transition_span_mm=transition,
+        first_mesh_source_bend_span_mm=first_mesh_span,
+        second_mesh_source_bend_span_mm=second_mesh_span,
         seam_section_gap_trial=seam_gap,
         first_source_cut_face=first_cut_face,
         second_source_cut_face=second_cut_face,
