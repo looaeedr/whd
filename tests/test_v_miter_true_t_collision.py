@@ -81,6 +81,115 @@ def test_60_degree_unbounded_source_bend_needs_material_extension_proof():
         )
 
 
+def _physical_short_first_source(*, mode="RELIEF_HOLE", factor=1.5):
+    scene, _, second, params = _part(angle=120)
+    short = LinePrimitive(Vec2(-5, 0), Vec2(0, 0), "BEND")
+    params = dict(params, relief_mode=mode, relief_t_factor=factor)
+    # Preserve the very same original physical CUTTING, and same second
+    # BEND owner, replacing only first physical source crease length.
+    return DrawingScene([scene.primitives[0], short, second]), short, second, params
+
+
+@pytest.mark.parametrize("mode", ("ROUND_R", "RELIEF_HOLE"))
+def test_120_source_continuation_builds_real_true_t_3d_mesh_not_a_virtual_fold(mode):
+    scene, short, second, params = _physical_short_first_source(mode=mode)
+    extra = LinePrimitive(Vec2(-5, 0), Vec2(-30, 0), "BEND")
+    scene.primitives.append(extra)
+    before = tuple(scene.primitives)
+    thick = manufacturing_api.diagnose_v_miter_true_thickness_collision(
+        scene, short, second, **params,
+    )
+    demanded = 20 / math.sqrt(3)
+    assert thick.manufacturing_status == "V_MITER_TRUE_T_COLLISION_UNCERTIFIED"
+    assert thick.first_mesh_source_bend_span_mm == pytest.approx(demanded)
+    assert thick.first_mesh_source_bend_span_mm > 5
+    assert thick.second_mesh_source_bend_span_mm == pytest.approx(100)
+    assert thick.first_flange_flat_area_mm2 > 0
+    assert thick.first_full_height_source_span_mm > 0
+    assert thick.first_formed_skin_triangles
+    assert thick.first_thick_solid_triangles
+    assert thick.second_thick_solid_triangles
+    # Prove exact same 2D/formed-3D finite material as a SINGLE genuinely
+    # contiguous source BEND of this length; not a synthetic mesh segment.
+    complete = LinePrimitive(Vec2(-demanded, 0), Vec2(0, 0), "BEND")
+    complete_scene = DrawingScene([scene.primitives[0], complete, second])
+    full = manufacturing_api.diagnose_v_miter_true_thickness_collision(
+        complete_scene, complete, second, **params,
+    )
+    assert thick.first_mesh_source_bend_span_mm == pytest.approx(
+        full.first_mesh_source_bend_span_mm
+    )
+    assert thick.first_flange_flat_area_mm2 == pytest.approx(
+        full.first_flange_flat_area_mm2
+    )
+    assert thick.second_flange_flat_area_mm2 == pytest.approx(
+        full.second_flange_flat_area_mm2
+    )
+    assert thick.first_formed_skin_triangles == full.first_formed_skin_triangles
+    assert thick.second_formed_skin_triangles == full.second_formed_skin_triangles
+    assert thick.first_thick_solid_triangles == full.first_thick_solid_triangles
+    assert thick.second_thick_solid_triangles == full.second_thick_solid_triangles
+    assert scene.primitives == list(before)
+    assert [p.layer for p in scene.primitives] == [
+        "CUTTING", "BEND", "BEND", "BEND",
+    ]
+
+
+@pytest.mark.parametrize("source_case", ("missing", "gap", "short", "offset", "cross"))
+def test_120_never_builds_extended_true_t_without_continuous_real_source_bend(source_case):
+    scene, short, second, params = _physical_short_first_source()
+    if source_case == "gap":
+        extras = [
+            LinePrimitive(Vec2(-5, 0), Vec2(-7, 0), "BEND"),
+            LinePrimitive(Vec2(-8, 0), Vec2(-30, 0), "BEND"),
+        ]
+    elif source_case == "short":
+        extras = [LinePrimitive(Vec2(-5, 0), Vec2(-7, 0), "BEND")]
+    elif source_case == "offset":
+        extras = [LinePrimitive(Vec2(-5, 0.001), Vec2(-30, 0.001), "BEND")]
+    elif source_case == "cross":
+        extras = [LinePrimitive(Vec2(-9, -10), Vec2(-9, 10), "BEND")]
+    else:
+        extras = []
+    scene.primitives.extend(extras)
+    with pytest.raises(GeometryError, match="independent source material extension"):
+        manufacturing_api.diagnose_v_miter_true_thickness_collision(
+            scene, short, second, **params,
+        )
+
+
+def test_120_real_bend_but_removed_post_relief_metal_never_builds_true_t():
+    scene, short, second, params = _physical_short_first_source(
+        factor=8, mode="RELIEF_HOLE",
+    )
+    scene.primitives.append(LinePrimitive(Vec2(-5, 0), Vec2(-30, 0), "BEND"))
+    check = manufacturing_api.diagnose_v_miter_physical_crease_after_relief(
+        scene, short, second, **params,
+    )
+    assert check.first_original_bend_continuation_covers is True
+    assert check.first_remaining_material_interior_covers is False
+    with pytest.raises(GeometryError, match="independent source material extension"):
+        manufacturing_api.diagnose_v_miter_true_thickness_collision(
+            scene, short, second, **params,
+        )
+
+
+@pytest.mark.parametrize("mode", ("ROUND_R", "RELIEF_HOLE"))
+def test_60_genuine_reverse_direction_bend_never_enters_positive_mesh_domain(mode):
+    scene, first, second, params = _part(angle=60)
+    params["relief_mode"] = mode
+    scene.primitives.append(LinePrimitive(Vec2(0, 0), Vec2(30, 0), "BEND"))
+    check = manufacturing_api.diagnose_v_miter_physical_crease_after_relief(
+        scene, first, second, **params,
+    )
+    assert check.first_original_bend_continuation_covers is True
+    assert check.first_remaining_material_interior_covers is False
+    with pytest.raises(GeometryError, match="independent source material extension"):
+        manufacturing_api.diagnose_v_miter_true_thickness_collision(
+            scene, first, second, **params,
+        )
+
+
 def test_true_thickness_changes_3d_skin_offsets_but_not_2d_source_flange_area():
     scene2, first2, second2, p2 = _part(t=2)
     scene1, first1, second1, p1 = _part(t=1)
