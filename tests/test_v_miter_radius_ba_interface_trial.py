@@ -383,3 +383,62 @@ def test_round_r_alternate_failure_keeps_original_collision_evidence():
         )
     assert caught.value.attempted_noncoplanar_pairs == 7
     assert caught.value.attempted_trim_mm == pytest.approx(12)
+
+
+def test_nonclosed_true_T_volume_is_not_accepted_as_a_clear_source_trial(monkeypatch):
+    from ae_engine import v_miter_radius_ba_interface_trial as owner
+    from ae_engine.assembly_geometry import MeshEnclosedVolumeDiagnostic
+
+    scene, first, second, args = _source(mode="RELIEF_HOLE")
+    original_primitives = tuple(scene.primitives)
+    # Run the genuine CUTTING -> measured R/BA -> source one-sheet check
+    # -> formed T-solid triangle meshes. Only the already-calculated
+    # closure verdict is replaced by a trustworthy UNKNOWN (e.g. one
+    # physical triangle sidewall was omitted). A zero surface-hit count
+    # MUST NOT be upgraded to valid 3D clearance when parity cannot run.
+    monkeypatch.setattr(
+        owner, "detect_world_mesh_enclosed_volume_witness",
+        lambda *_: MeshEnclosedVolumeDiagnostic(False, 0, ()),
+    )
+    with pytest.raises(owner.VMiterRadiusBAContactError, match="not verified closed") as caught:
+        manufacturing_api.solve_v_miter_radius_ba_interface_trial(
+            scene, first, second, **args, **_calibrated(),
+        )
+    error = caught.value
+    assert error.attempted_noncoplanar_pairs == 0
+    assert error.attempted_containment_points == ()
+    assert error.manufacturing_status.endswith("UNCERTIFIED")
+    assert tuple(scene.primitives) == original_primitives
+
+
+def test_source_safe_trim_chooses_verified_closed_mesh_not_just_zero_crossings():
+    from ae_engine.v_miter_radius_ba_interface_trial import _search_source_safe_edge_trim
+
+    attempted = []
+
+    def evaluate(trim):
+        attempted.append(trim)
+        # Surface geometry appears clear at every trim, but no verified
+        # true-T closed mesh exists until source-preserving trim>=3.
+        return ("one_sheet", "formed", "thick_solid", 0, (), (), trim >= 3, "whole_sheet")
+
+    original, selected, offset = _search_source_safe_edge_trim(
+        evaluate, 7,
+        failure_message="no closed T-solid candidate",
+    )
+    assert original[6] is False
+    assert selected[6] is True
+    assert offset == pytest.approx(3, abs=0.01)
+    assert 0.0 in attempted and 7 in attempted
+
+
+def test_missing_closed_volume_verdict_cannot_masquerade_as_valid_candidate():
+    from ae_engine.v_miter_radius_ba_interface_trial import _search_source_safe_edge_trim
+
+    def incomplete(_trim):
+        return ("one_sheet", "formed", "thick_solid", 0)
+
+    with pytest.raises(GeometryError, match="no closed true-T source"):
+        _search_source_safe_edge_trim(
+            incomplete, 3, failure_message="no closed true-T source",
+        )
