@@ -19,7 +19,7 @@ from dataclasses import dataclass
 import math
 
 from shapely.geometry import LineString, Polygon
-from shapely.ops import triangulate
+from shapely.ops import triangulate, unary_union
 
 from .assembly_geometry import detect_world_mesh_surface_interference
 from .assembly_geometry_primitives import thicken_triangle_surface
@@ -126,6 +126,76 @@ def _flange_footprint(
             "V-miter true-T source flange missing requested full height"
         )
     return actual, available_span
+
+
+def _verified_contiguous_positive_mesh_span(
+    scene: DrawingScene,
+    bend: LinePrimitive,
+    other_bend: LinePrimitive,
+    origin,
+    axis: Vec3,
+    remaining: Polygon,
+    *,
+    original_span: float,
+    required_reach: float,
+) -> float:
+    """Use only a complete, continuous ORIGINAL BEND + surviving stock span.
+
+    The mathematical seam is not necessarily the outer edge where the
+    requested full flange height occurs. A mesh cropped merely at the
+    seam would delete genuine outboard flange material and can fail the
+    original _flange_footprint full-height evidence. Select the farthest
+    *actually drawn* collinear BEND endpoint that is connected all the
+    way to the original BEND, and whose full added interval survives the
+    same original source's V/R/hole cut. Never invent an extension limit.
+    """
+    if required_reach <= original_span + _EPS:
+        return original_span
+    def axial(point) -> float:
+        return _dot((point.x - origin.x, point.y - origin.y, 0.0), axis)
+
+    physical_bends = (
+        item for item in scene.primitives
+        if isinstance(item, LinePrimitive) and item.layer == "BEND"
+        and item is not other_bend
+    )
+    lines = tuple(
+        LineString(((item.p1.x, item.p1.y), (item.p2.x, item.p2.y)))
+        for item in physical_bends
+    )
+    source_lines = unary_union(lines)
+    endpoints = sorted({
+        axial(point)
+        for item in scene.primitives
+        if isinstance(item, LinePrimitive) and item.layer == "BEND"
+        and item is not bend and item is not other_bend
+        for point in (item.p1, item.p2)
+        if math.isfinite(axial(point)) and axial(point) > required_reach + _EPS
+    }, reverse=True)
+    for end in endpoints:
+        far_point = (origin.x + axis[0] * end,
+                     origin.y + axis[1] * end)
+        whole_crease = LineString(((origin.x, origin.y), far_point))
+        if not whole_crease.difference(source_lines).is_empty:
+            continue
+        addition = LineString((
+            (origin.x + axis[0] * original_span,
+             origin.y + axis[1] * original_span),
+            far_point,
+        ))
+        if not remaining.covers(addition):
+            continue
+        if not remaining.contains(addition.interpolate(0.5, normalized=True)):
+            continue
+        # A crease coinciding with a newly cut edge is not interior stock.
+        # 1e-7mm is the pre-existing numerical GEOS boundary tolerance,
+        # NOT a manufacturing allowance.
+        if addition.intersection(remaining.boundary.buffer(_EPS)).length > 0:
+            continue
+        return end
+    raise GeometryError(
+        "V-miter true-T shadow needs independent source material extension evidence"
+    )
 
 
 def _source_triangulation(patch: Polygon) -> tuple[tuple[tuple[float, float], ...], ...]:
@@ -264,6 +334,9 @@ def diagnose_v_miter_true_thickness_collision(
                 raise GeometryError(
                     "V-miter true-T shadow needs independent source material extension evidence"
                 )
+        # This is only the minimum supported seam reach. The actual
+        # positive axial mesh span will be taken from the farthest proven
+        # surviving original BEND endpoint, never from this ideal seam.
         first_mesh_span = max(first_mesh_span, reach[0])
         second_mesh_span = max(second_mesh_span, reach[1])
 
@@ -281,6 +354,18 @@ def diagnose_v_miter_true_thickness_collision(
     ))
     if remaining.is_empty or not remaining.is_valid or remaining.area <= _EPS:
         raise GeometryError("V-miter true-T source remaining material is invalid")
+    if first_mesh_span > bounded.first_bend_span_mm + _EPS:
+        first_mesh_span = _verified_contiguous_positive_mesh_span(
+            scene, v_edge_bend, second_bend, apex, e1, remaining,
+            original_span=bounded.first_bend_span_mm,
+            required_reach=first_mesh_span,
+        )
+    if second_mesh_span > bounded.second_bend_span_mm + _EPS:
+        second_mesh_span = _verified_contiguous_positive_mesh_span(
+            scene, second_bend, v_edge_bend, apex, e2, remaining,
+            original_span=bounded.second_bend_span_mm,
+            required_reach=second_mesh_span,
+        )
     first_patch, first_full_height_span = _flange_footprint(
         remaining, apex, e1, n1,
         source_span=first_mesh_span,
