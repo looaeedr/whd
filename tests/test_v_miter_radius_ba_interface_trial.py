@@ -65,7 +65,10 @@ def test_opt_in_smooth_r_ba_thickening_closes_shared_physical_hinge_vertices():
 
 @pytest.mark.parametrize("mode", ("RELIEF_HOLE", "ROUND_R"))
 def test_true_source_r_ba_curved_shells_close_without_inventing_material(mode):
-    from ae_engine.assembly_geometry import diagnose_world_mesh_triangle_edge_incidence
+    from ae_engine.assembly_geometry import (
+        diagnose_world_mesh_triangle_edge_incidence,
+        diagnose_world_mesh_self_intersections,
+    )
 
     scene, first, second, args = _source(mode=mode)
     original = tuple(scene.primitives)
@@ -89,6 +92,14 @@ def test_true_source_r_ba_curved_shells_close_without_inventing_material(mode):
         assert topological_truth.nonmanifold_vertex_examples_xyz == ()
         assert reported_degenerate == topological_truth.degenerate_triangle_count == 0
         assert topological_truth.edges_manifold_closed
+        # Closed source vertex links alone would still admit two crossing
+        # manifold shells. The ORIGINAL R/Hole true-T geometry must also
+        # have no detected forbidden non-neighbor surface intersections.
+        own_surface = diagnose_world_mesh_self_intersections(solid)
+        assert own_surface.permits_strict_volume_sampling
+        assert own_surface.crossing_pair_count == 0
+        assert own_surface.coplanar_overlap_pair_count == 0
+        assert not own_surface.numerical_budget_exhausted
     assert trial.formed_volume_containment_meshes_closed
     assert "SAMPLED_NO_POSITIVE_WITNESS" in trial.true_t_volume_check_status
     assert trial.first_source_cut_face.has_source_tagged_cut_faces
