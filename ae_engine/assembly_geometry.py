@@ -263,15 +263,20 @@ class MeshTriangleEdgeIncidenceDiagnostic:
     boundary_edge_examples_xyz: tuple = ()
     geometry_model: str = "WORLD_TRUE_T_TRIANGLE_EDGE_INCIDENCE_CHECK"
     manufacturing_status: str = "TRUE_T_MESH_TOPOLOGY_UNCERTIFIED"
+    nonmanifold_vertex_count: int = 0
+    nonmanifold_vertex_examples_xyz: tuple = ()
 
     @property
     def edges_manifold_closed(self) -> bool:
-        # A two-use edge incidence is only a NECESSARY condition for a
-        # legitimate closed nonselfintersecting volume, not proof of one.
+        # Edge pairing is necessary but insufficient: two closed shells
+        # touching at ONE vertex can still have every edge used twice.
+        # A valid local 2-manifold vertex link must be one closed cycle.
+        # Even this is not a full self-intersection-free solid certificate.
         return (
             self.triangle_count > 0
             and not self.boundary_edge_count
             and not self.nonmanifold_edge_count
+            and not self.nonmanifold_vertex_count
             and not self.degenerate_triangle_count
         )
 
@@ -300,8 +305,12 @@ def diagnose_world_mesh_triangle_edge_incidence(triangles, *, tolerance=None):
     if mesh.ndim != 3 or mesh.shape[1:] != (3, 3) or not np.isfinite(mesh).all():
         raise ValueError("true-T edge witness needs actual finite 3D triangles")
 
+    from collections import defaultdict
+
     counts = Counter()
     representatives = {}
+    vertex_links = defaultdict(list)
+    vertex_positions = {}
     degenerate = 0
     for tri in mesh:
         u, v = tri[1] - tri[0], tri[2] - tri[0]
@@ -321,6 +330,41 @@ def diagnose_world_mesh_triangle_edge_incidence(triangles, *, tolerance=None):
                     tuple(float(c) for c in tri[i]),
                     tuple(float(c) for c in tri[j]),
                 )
+            # A triangle contributes the opposite-neighbor edge to each
+            # source vertex's local triangulated surface link.
+            vertex_links[keys[i]].append((keys[j], keys[(i + 2) % 3]))
+            vertex_positions.setdefault(keys[i], tuple(float(c) for c in tri[i]))
+
+    def one_closed_vertex_fan(links):
+        if len(links) < 3:
+            return False
+        neighbors = defaultdict(set)
+        link_edges = set()
+        for a, b in links:
+            pair = tuple(sorted((a, b)))
+            if a == b or pair in link_edges:
+                return False
+            link_edges.add(pair)
+            neighbors[a].add(b)
+            neighbors[b].add(a)
+        # A single 2-manifold vertex has exactly one connected degree-two
+        # cycle, not several fans that just happen to share its origin.
+        if len(neighbors) < 3 or any(len(row) != 2 for row in neighbors.values()):
+            return False
+        visited = set()
+        pending = [next(iter(neighbors))]
+        while pending:
+            node = pending.pop()
+            if node in visited:
+                continue
+            visited.add(node)
+            pending.extend(neighbors[node] - visited)
+        return len(visited) == len(neighbors) and len(link_edges) == len(neighbors)
+
+    invalid_vertices = tuple(
+        key for key, links in vertex_links.items()
+        if not one_closed_vertex_fan(links)
+    )
     boundary = tuple(key for key, count in counts.items() if count == 1)
     nonmanifold = sum(count > 2 for count in counts.values())
     return MeshTriangleEdgeIncidenceDiagnostic(
@@ -330,6 +374,10 @@ def diagnose_world_mesh_triangle_edge_incidence(triangles, *, tolerance=None):
         degenerate_triangle_count=degenerate,
         boundary_edge_examples_xyz=tuple(
             representatives[key] for key in boundary[:8]
+        ),
+        nonmanifold_vertex_count=len(invalid_vertices),
+        nonmanifold_vertex_examples_xyz=tuple(
+            vertex_positions[key] for key in invalid_vertices[:8]
         ),
     )
 
@@ -469,7 +517,7 @@ def detect_world_mesh_enclosed_volume_witness(
 ):
     """Find proven positive overlap of already-meshed closed T-thick solids.
 
-    Requires finite, nondegenerate, edge-manifold closed triangle surfaces.
+    Requires finite, nondegenerate, edge- and vertex-manifold closed triangles.
     Original two-direction checks see nested solids when a *surface* point
     lies strictly inside the other. For coincident coplanar shells ALL source
     surface vertices and face centroids lie ON the other shell and that
@@ -485,7 +533,6 @@ def detect_world_mesh_enclosed_volume_witness(
     both actual meshes. General nonconvex meshes remain finite-sample
     diagnostics, NOT complete collision-free proof or factory fit acceptance.
     """
-    from collections import Counter
     import numpy as np
 
     if tolerance is None:
@@ -502,20 +549,13 @@ def detect_world_mesh_enclosed_volume_witness(
             return None
         if mesh.ndim != 3 or mesh.shape[1:] != (3, 3) or not np.isfinite(mesh).all():
             return None
-        # The parity calculation is defined only for a closed, nonsingular
-        # surface. A missing wall is UNKNOWN, not a zero-collision certificate.
-        edges = Counter()
-        for tri in mesh:
-            u, v = tri[1] - tri[0], tri[2] - tri[0]
-            if np.linalg.norm(np.cross(u, v)) <= tol * tol:
-                return None
-            keys = [tuple(int(round(float(c) / tol)) for c in p) for p in tri]
-            if len(set(keys)) != 3:
-                return None
-            for i in range(3):
-                edge = tuple(sorted((keys[i], keys[(i + 1) % 3])))
-                edges[edge] += 1
-        if not edges or any(n != 2 for n in edges.values()):
+        # Use the SAME physical edge + vertex manifold test as source
+        # topology diagnostics. Two edge-closed shells pinched at a vertex
+        # are NOT one closed solid with reliable strict interior parity.
+        topology = diagnose_world_mesh_triangle_edge_incidence(
+            mesh, tolerance=tol,
+        )
+        if not topology.edges_manifold_closed:
             return None
         return mesh
 
