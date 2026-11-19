@@ -39,6 +39,76 @@ def _calibrated(angle=90, *, radius=0.5, k=0.4):
     )
 
 
+def test_v_miter_true_source_self_intersection_gate_retains_valid_check(monkeypatch):
+    from ae_engine import assembly_geometry as geo
+    from ae_engine import v_miter_radius_ba_interface_trial as owner
+
+    genuine = geo.diagnose_world_mesh_self_intersections
+    invalid = []
+
+    def observed(mesh, *, tolerance=None):
+        result = genuine(mesh, tolerance=tolerance)
+        if not result.permits_strict_volume_sampling and len(invalid) < 4:
+            pair = result.first_source_triangle_pair
+            sample = (mesh[pair[0]], mesh[pair[1]]) if pair else ()
+            invalid.append((len(mesh), result, sample))
+        return result
+
+    monkeypatch.setattr(geo, "diagnose_world_mesh_self_intersections", observed)
+    scene, first, second, args = _source(mode="RELIEF_HOLE")
+    try:
+        result = manufacturing_api.solve_v_miter_radius_ba_interface_trial(
+            scene, first, second, **args, **_calibrated(),
+        )
+    except owner.VMiterRadiusBAContactError:
+        pytest.fail("real physical source was rejected: " + repr(invalid))
+    assert result.formed_volume_containment_meshes_closed
+
+
+def test_measured_cylindrical_radials_do_not_depend_on_skin_triangle_aspect_ratio():
+    from shapely.geometry import box
+    from ae_engine.assembly_geometry import (
+        diagnose_world_mesh_triangle_edge_incidence,
+        diagnose_world_mesh_self_intersections,
+    )
+    from ae_engine.assembly_geometry_primitives import thicken_triangle_surface
+    from ae_engine.v_miter_radius_ba_interface_trial import (
+        _formed_curved_skin, _measured_cylindrical_half_t_offsets,
+    )
+    from ae_engine.contracts import PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES
+
+    t, r, theta = 2.0, 0.5, math.pi / 2
+    ba = theta * (r + .4 * t)
+    apex = Vec2(0, 0)
+    outside = (0.0, 1.0, 0.0)
+    skin, flat = _formed_curved_skin(
+        box(0, 0, 100, 20), apex,
+        (1.0, 0.0, 0.0), outside,
+        angle_rad=theta, inner_r=r,
+        allowance=ba, thickness=t,
+        axial_span=100, flange_height=20,
+        return_flat_pairs=True,
+    )
+    radial = _measured_cylindrical_half_t_offsets(
+        flat, skin, apex=apex, outside=outside,
+        angle_rad=theta, allowance=ba, thickness=t,
+    )
+    tol = PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES.boundary_separation_tolerance
+    for row_flat, row_world in zip(flat, skin):
+        for (_, u), point in zip(row_flat, row_world):
+            key = tuple(int(round(float(v) / tol)) for v in point)
+            phi = min(theta, max(0.0, u / (ba / theta)))
+            assert radial[key] == pytest.approx(
+                (0, -math.sin(phi), math.cos(phi)), abs=1e-7,
+            )
+    solid = thicken_triangle_surface(
+        skin, t, smooth_vertex_normals=True,
+        physical_vertex_offsets=radial,
+    )
+    assert diagnose_world_mesh_triangle_edge_incidence(solid).edges_manifold_closed
+    assert diagnose_world_mesh_self_intersections(solid).permits_strict_volume_sampling
+
+
 def test_opt_in_smooth_r_ba_thickening_closes_shared_physical_hinge_vertices():
     from ae_engine.assembly_geometry import diagnose_world_mesh_triangle_edge_incidence
     from ae_engine.assembly_geometry_primitives import thicken_triangle_surface
@@ -65,7 +135,10 @@ def test_opt_in_smooth_r_ba_thickening_closes_shared_physical_hinge_vertices():
 
 @pytest.mark.parametrize("mode", ("RELIEF_HOLE", "ROUND_R"))
 def test_true_source_r_ba_curved_shells_close_without_inventing_material(mode):
-    from ae_engine.assembly_geometry import diagnose_world_mesh_triangle_edge_incidence
+    from ae_engine.assembly_geometry import (
+        diagnose_world_mesh_triangle_edge_incidence,
+        diagnose_world_mesh_self_intersections,
+    )
 
     scene, first, second, args = _source(mode=mode)
     original = tuple(scene.primitives)
@@ -89,6 +162,14 @@ def test_true_source_r_ba_curved_shells_close_without_inventing_material(mode):
         assert topological_truth.nonmanifold_vertex_examples_xyz == ()
         assert reported_degenerate == topological_truth.degenerate_triangle_count == 0
         assert topological_truth.edges_manifold_closed
+        # Closed source vertex links alone would still admit two crossing
+        # manifold shells. The ORIGINAL R/Hole true-T geometry must also
+        # have no detected forbidden non-neighbor surface intersections.
+        own_surface = diagnose_world_mesh_self_intersections(solid)
+        assert own_surface.permits_strict_volume_sampling
+        assert own_surface.crossing_pair_count == 0
+        assert own_surface.coplanar_overlap_pair_count == 0
+        assert not own_surface.numerical_budget_exhausted
     assert trial.formed_volume_containment_meshes_closed
     assert "SAMPLED_NO_POSITIVE_WITNESS" in trial.true_t_volume_check_status
     assert trial.first_source_cut_face.has_source_tagged_cut_faces

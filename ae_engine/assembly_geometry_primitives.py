@@ -69,7 +69,10 @@ def smoothed_surface_vertex_offsets(triangles, thickness, *, tolerance):
     return offsets
 
 
-def thicken_triangle_surface(triangles, thickness, *, tolerance=None, smooth_vertex_normals=False):
+def thicken_triangle_surface(
+    triangles, thickness, *, tolerance=None,
+    smooth_vertex_normals=False, physical_vertex_offsets=None,
+):
     """Turn a zero-thickness folded triangle surface into a sharp-bend sheet solid.
 
     The folded surface remains the geometric mid-surface.  Two skins are offset by
@@ -80,6 +83,8 @@ def thicken_triangle_surface(triangles, thickness, *, tolerance=None, smooth_ver
     The default remains the historical sharp-bend model. Opt-in smooth
     vertex offsets apply only to source-meshed R/BA cylindrical trials, so
     adjacent curved facets do not each create a different physical vertex.
+    Measured cylindrical R/BA callers may supply per-source-vertex exact
+    radial T/2 offsets instead of triangle-area-averaged facet normals.
     This is renderer-independent and not a manufacturing certification.
     """
     import math
@@ -96,10 +101,28 @@ def thicken_triangle_surface(triangles, thickness, *, tolerance=None, smooth_ver
     if not source or t <= float(tolerance):
         return tuple(source)
     half = t / 2.0
-    smooth_offsets = (
-        smoothed_surface_vertex_offsets(source, t, tolerance=tolerance)
-        if smooth_vertex_normals else None
-    )
+    if physical_vertex_offsets is not None and not smooth_vertex_normals:
+        raise ValueError("physical radial T offsets require smooth source topology")
+    if physical_vertex_offsets is not None:
+        try:
+            smooth_offsets = {
+                tuple(int(k) for k in key): tuple(float(v) for v in offset)
+                for key, offset in physical_vertex_offsets.items()
+            }
+        except (AttributeError, ValueError, TypeError, OverflowError):
+            raise ValueError("physical radial T offsets must be finite source vertex vectors") from None
+        if not smooth_offsets or any(
+            len(key) != 3 or len(offset) != 3
+            or not all(math.isfinite(v) for v in offset)
+            or abs(math.sqrt(sum(v * v for v in offset)) - half) > max(10 * float(tolerance), 1e-8)
+            for key, offset in smooth_offsets.items()
+        ):
+            raise ValueError("physical radial T/2 offsets violate measured thickness")
+    else:
+        smooth_offsets = (
+            smoothed_surface_vertex_offsets(source, t, tolerance=tolerance)
+            if smooth_vertex_normals else None
+        )
 
     def add(a, b):
         return tuple(a[i] + b[i] for i in range(3))

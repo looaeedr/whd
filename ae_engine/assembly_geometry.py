@@ -383,6 +383,139 @@ def diagnose_world_mesh_triangle_edge_incidence(triangles, *, tolerance=None):
 
 
 @dataclass(frozen=True)
+class MeshSurfaceSelfIntersectionDiagnostic:
+    """Observed forbidden self-crossings of one *source* 3D shell, CHECK only.
+
+    Zero detected pairs is necessary, not a globally certified watertight
+    Boolean solid. An exhausted numerical work budget is explicitly UNKNOWN.
+    """
+
+    tested_nonadjacent_pairs: int
+    crossing_pair_count: int
+    coplanar_overlap_pair_count: int
+    numerical_budget_exhausted: bool
+    first_source_triangle_pair: tuple[int, int] | None = None
+    geometry_model: str = "WORLD_TRUE_T_SELF_SURFACE_INTERSECTION_CHECK"
+    manufacturing_status: str = "TRUE_T_SELF_INTERSECTION_UNCERTIFIED"
+
+    @property
+    def permits_strict_volume_sampling(self) -> bool:
+        return (
+            not self.numerical_budget_exhausted
+            and self.crossing_pair_count == 0
+            and self.coplanar_overlap_pair_count == 0
+        )
+
+
+def diagnose_world_mesh_self_intersections(
+    triangles, *, tolerance=None, max_nonadjacent_pairs=12000,
+):
+    """Find genuine non-neighbor triangle intersections in an actual T shell.
+
+    Bounds cull non-overlapping 3D triangle pairs. Faces sharing a complete
+    source edge are normal triangulation neighbors and are skipped; a pair
+    sharing zero/one vertices is checked for a nonzero crossing segment or
+    positive-area coplanar overlap. One-point contacts are not invented into
+    penetration. All comparisons use Engine NUMERICAL tolerance, not a
+    factory gap. Work exhaustion fails closed rather than claiming no hit.
+
+    This is a finite triangle-surface check. It is not a general-purpose
+    exact mesh Boolean, proof of global contact, or manufacturing approval.
+    """
+    import numpy as np
+
+    if tolerance is None:
+        from .contracts import PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES
+        tolerance = PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES.boundary_separation_tolerance
+    tol = float(tolerance)
+    if not np.isfinite(tol) or tol <= 0:
+        raise ValueError("true-T self-intersection tolerance must be finite and positive")
+    if isinstance(max_nonadjacent_pairs, bool) or not isinstance(max_nonadjacent_pairs, int) or max_nonadjacent_pairs < 1:
+        raise ValueError("true-T self-intersection work budget must be positive")
+    try:
+        mesh = np.asarray(tuple(triangles if triangles is not None else ()), dtype=float)
+    except (TypeError, ValueError, OverflowError):
+        raise ValueError("true-T self-intersection needs finite triangles") from None
+    if mesh.ndim != 3 or mesh.shape[1:] != (3, 3) or not np.isfinite(mesh).all():
+        raise ValueError("true-T self-intersection needs finite triangles")
+
+    mins = mesh.min(axis=1)
+    maxs = mesh.max(axis=1)
+    cross = np.cross(mesh[:, 1] - mesh[:, 0], mesh[:, 2] - mesh[:, 0])
+    magnitude = np.linalg.norm(cross, axis=1)
+    if np.any(magnitude <= tol * tol):
+        return MeshSurfaceSelfIntersectionDiagnostic(0, 0, 0, True)
+    unit = cross / magnitude[:, None]
+    lengths = np.maximum.reduce((
+        np.linalg.norm(mesh[:, 1] - mesh[:, 0], axis=1),
+        np.linalg.norm(mesh[:, 2] - mesh[:, 1], axis=1),
+        np.linalg.norm(mesh[:, 0] - mesh[:, 2], axis=1),
+    ))
+    keys = [
+        frozenset(tuple(int(round(float(v) / tol)) for v in p) for p in tri)
+        for tri in mesh
+    ]
+    checked = 0
+
+    def result(crossed=0, coplanar=0, exhausted=False, pair=None):
+        return MeshSurfaceSelfIntersectionDiagnostic(
+            checked, crossed, coplanar, exhausted, pair,
+        )
+
+    # The broad-phase is vectorized, but each real pair keeps its own
+    # physical triangle provenance; no surrogate convex hull is created.
+    for i in range(len(mesh)):
+        mask = np.all(maxs[i + 1:] + tol >= mins[i], axis=1) & np.all(
+            mins[i + 1:] - tol <= maxs[i], axis=1,
+        )
+        for j0 in np.flatnonzero(mask):
+            j = i + 1 + int(j0)
+            # Exactly two shared endpoints make a real triangulation
+            # hinge; identical three-vertex triangles instead duplicate a
+            # physical face and MUST be tested as coplanar overlap.
+            if len(keys[i].intersection(keys[j])) == 2:
+                continue
+            if checked >= max_nonadjacent_pairs:
+                return result(exhausted=True)
+            checked += 1
+            a, b = mesh[i], mesh[j]
+            parallel = abs(float(np.dot(unit[i], unit[j]))) >= 1.0 - 1e-10
+            if parallel:
+                # Parallel but distinct physical layers must not be treated
+                # as coplanar self-intersections.
+                plane_dist = np.abs((b - a[0]) @ unit[i])
+                if np.any(plane_dist > tol):
+                    continue
+                from shapely.geometry import Polygon
+                axes = [axis for axis in range(3) if axis != int(np.argmax(np.abs(unit[i])))]
+                pa = Polygon(a[:, axes])
+                pb = Polygon(b[:, axes])
+                if pa.intersection(pb).area > tol * max(float(lengths[i]), float(lengths[j])):
+                    return result(coplanar=1, pair=(i, j))
+                continue
+
+            hits = []
+            for source, target in ((a, b), (b, a)):
+                for k in range(3):
+                    hit = _segment_triangle_intersection(
+                        source[k], source[(k + 1) % 3], target, tolerance=tol,
+                    )
+                    if hit is None:
+                        continue
+                    p = np.asarray(hit, dtype=float)
+                    if all(np.linalg.norm(p - existing) > tol for existing in hits):
+                        hits.append(p)
+            # A genuine noncoplanar triangle crossing occupies a positive
+            # line segment. A single common endpoint is not evidence of it.
+            if len(hits) >= 2 and any(
+                np.linalg.norm(p - q) > 4 * tol
+                for ix, p in enumerate(hits) for q in hits[ix + 1:]
+            ):
+                return result(crossed=1, pair=(i, j))
+    return result()
+
+
+@dataclass(frozen=True)
 class MeshEnclosedVolumeDiagnostic:
     """Conservative true-3D interior-overlap witness, not a clearance certificate.
 
@@ -517,7 +650,8 @@ def detect_world_mesh_enclosed_volume_witness(
 ):
     """Find proven positive overlap of already-meshed closed T-thick solids.
 
-    Requires finite, nondegenerate, edge- and vertex-manifold closed triangles.
+    Requires finite, nondegenerate, edge- and vertex-manifold closed triangles,
+    and no detected forbidden non-neighbor source-surface self-crossing.
     Original two-direction checks see nested solids when a *surface* point
     lies strictly inside the other. For coincident coplanar shells ALL source
     surface vertices and face centroids lie ON the other shell and that
@@ -556,6 +690,15 @@ def detect_world_mesh_enclosed_volume_witness(
             mesh, tolerance=tol,
         )
         if not topology.edges_manifold_closed:
+            return None
+        # Pairwise edge/vertex closure does not rule out two individually
+        # closed source shells occupying each other's interior. An actual
+        # non-neighbor surface crossing or unresolved search is UNKNOWN for
+        # strict volume parity; never accept it as a closed physical part.
+        own_surface = diagnose_world_mesh_self_intersections(
+            mesh, tolerance=tol,
+        )
+        if not own_surface.permits_strict_volume_sampling:
             return None
         return mesh
 

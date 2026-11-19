@@ -28,6 +28,7 @@ from .assembly_geometry import (
     diagnose_world_mesh_triangle_edge_incidence,
 )
 from .assembly_geometry_primitives import thicken_triangle_surface
+from .contracts import PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES
 from .sheetmetal_drawing import DrawingScene, LinePrimitive
 from .sheetmetal_geometry_core import GeometryError, Vec2
 from .v_miter_corner_source import VMiterReliefMode, _finite
@@ -148,6 +149,58 @@ def _bend_measurement(radius: object, allowance: object, angle: float, t: float,
 def _flat_point(apex: Vec2, axis, outside, along: float, height: float):
     return (apex.x + axis[0] * along + outside[0] * height,
             apex.y + axis[1] * along + outside[1] * height)
+
+
+def _measured_cylindrical_half_t_offsets(
+    flat_triangles, formed_triangles, *,
+    apex: Vec2, outside, angle_rad: float, allowance: float,
+    thickness: float,
+):
+    """Exact source-vertex radial T/2 normals for measured R/BA trial.
+
+    The mid-surface's physical derivative at neutral-axis u is
+    (outside*cos(phi), sin(phi)), with phi=min(theta,u/(BA/theta)).
+    An area-weighted triangulation normal is NOT equivalent: a very long
+    axial triangle can tip an inner-R vertex across its neighboring curved
+    facet. Reuse one normal at every shared source vertex independently of
+    triangulation aspect ratio. This does not create any factory allowance.
+    """
+    tol = float(
+        PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES.boundary_separation_tolerance
+    )
+    if (
+        len(flat_triangles) != len(formed_triangles)
+        or not flat_triangles or allowance <= 0 or angle_rad <= 0
+        or thickness <= 0
+    ):
+        raise GeometryError("V-miter R/BA radial offsets need actual paired material")
+    half = thickness / 2.0
+    neutral_radius = allowance / angle_rad
+    offsets = {}
+    for flat, formed in zip(flat_triangles, formed_triangles):
+        if len(flat) != 3 or len(formed) != 3:
+            raise GeometryError("V-miter R/BA radial offsets require paired triangles")
+        for point2, point3 in zip(flat, formed):
+            delta = (
+                float(point2[0]) - apex.x, float(point2[1]) - apex.y, 0.0,
+            )
+            u = _dot(delta, outside)
+            if not math.isfinite(u) or u < -10 * tol:
+                raise GeometryError("V-miter R/BA source radial station is invalid")
+            phi = min(angle_rad, max(0.0, u / neutral_radius))
+            radial = (
+                -half * outside[0] * math.sin(phi),
+                -half * outside[1] * math.sin(phi),
+                half * math.cos(phi),
+            )
+            key = tuple(int(round(float(v) / tol)) for v in point3)
+            prior = offsets.get(key)
+            if prior is not None and max(
+                abs(prior[i] - radial[i]) for i in range(3)
+            ) > max(10 * tol, 1e-8):
+                raise GeometryError("V-miter R/BA shared source radial offset disagrees")
+            offsets[key] = radial
+    return offsets
 
 
 def _formed_curved_skin(
@@ -650,13 +703,21 @@ def solve_v_miter_radius_ba_interface_trial(
     )
     if patch1.intersection(patch2).area > _EPS:
         raise GeometryError("V-miter R/BA source flanges have flat material overlap")
-    skin2 = _formed_curved_skin(
+    skin2, flat2 = _formed_curved_skin(
         patch2, apex, e2, n2, angle_rad=theta, inner_r=r2,
         allowance=ba2, thickness=q.thickness_mm,
         axial_span=bounded.second_bend_span_mm,
         flange_height=q.second_flange_height_mm,
+        return_flat_pairs=True,
     )
-    solid2 = tuple(thicken_triangle_surface(skin2, q.thickness_mm, smooth_vertex_normals=True))
+    offsets2 = _measured_cylindrical_half_t_offsets(
+        flat2, skin2, apex=apex, outside=n2,
+        angle_rad=theta, allowance=ba2, thickness=q.thickness_mm,
+    )
+    solid2 = tuple(thicken_triangle_surface(
+        skin2, q.thickness_mm,
+        smooth_vertex_normals=True, physical_vertex_offsets=offsets2,
+    ))
     if not solid2:
         raise GeometryError("V-miter R/BA second solid is empty")
     source_material = (
@@ -671,13 +732,22 @@ def solve_v_miter_radius_ba_interface_trial(
         ))
         if candidate.intersection(full_height).length <= _EPS:
             raise GeometryError("V-miter trial trim removes the first flange full-height source")
-        skin = _formed_curved_skin(
+        skin, flat = _formed_curved_skin(
             candidate, apex, e1, n1, angle_rad=math.pi / 2, inner_r=r1,
             allowance=ba1, thickness=q.thickness_mm,
             axial_span=bounded.first_bend_span_mm,
             flange_height=q.first_flange_height_mm,
+            return_flat_pairs=True,
         )
-        solid = tuple(thicken_triangle_surface(skin, q.thickness_mm, smooth_vertex_normals=True))
+        offsets = _measured_cylindrical_half_t_offsets(
+            flat, skin, apex=apex, outside=n1,
+            angle_rad=math.pi / 2, allowance=ba1,
+            thickness=q.thickness_mm,
+        )
+        solid = tuple(thicken_triangle_surface(
+            skin, q.thickness_mm,
+            smooth_vertex_normals=True, physical_vertex_offsets=offsets,
+        ))
         if not solid:
             raise GeometryError("V-miter R/BA first solid is empty")
         collision = detect_world_mesh_surface_interference(solid, solid2)
@@ -828,15 +898,24 @@ def solve_v_miter_radius_ba_interface_trial(
         flange_height=q.second_flange_height_mm,
         return_flat_pairs=True,
     )
-    if first_formed_check != best[1] or second_formed_check != skin2:
+    if (
+        first_formed_check != best[1] or second_formed_check != skin2
+        or second_flat_pairs != flat2
+    ):
         raise GeometryError("V-miter source-mapped 2D/3D cut-face mesh changed during CHECK")
+    first_cut_offsets = _measured_cylindrical_half_t_offsets(
+        first_flat_pairs, best[1], apex=apex, outside=n1,
+        angle_rad=math.pi / 2, allowance=ba1, thickness=q.thickness_mm,
+    )
     first_cut_face = trace_v_miter_source_true_t_cut_faces(
         original_cutting, corrected_whole,
         first_flat_pairs, best[1], best[2], thickness_mm=q.thickness_mm,
+        physical_vertex_offsets=first_cut_offsets,
     )
     second_cut_face = trace_v_miter_source_true_t_cut_faces(
         original_cutting, corrected_whole,
         second_flat_pairs, skin2, solid2, thickness_mm=q.thickness_mm,
+        physical_vertex_offsets=offsets2,
     )
     cut_face_gap = (
         project_v_miter_true_t_seam_section_gap_trial(
