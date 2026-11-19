@@ -52,6 +52,7 @@ def test_90deg_hole_real_radius_ba_trial_is_source_bound_and_only_uncertified():
     assert trial.manufacturing_status.endswith("UNCERTIFIED")
     assert trial.no_detected_noncoplanar_crossings
     assert trial.trimmed_surface_interference_pairs == 0
+    assert trial.formed_volume_containment_meshes_closed is True
     # Real T-solid world sections are independent of local flat source XY.
     # Missing first/second section is NOT a zero contact gap.
     gap = trial.seam_section_gap_trial
@@ -232,6 +233,7 @@ def test_real_round_R_thick_joint_keeps_R_BA_source_but_only_returns_check_candi
     assert trial.first_edge_trim_mm <= _calibrated()["max_permitted_edge_trim_mm"]
     assert trial.untrimmed_surface_interference_pairs > 0
     assert trial.trimmed_surface_interference_pairs == 0
+    assert trial.formed_volume_containment_meshes_closed is True
     assert trial.full_corrected_check_outline
     assert trial.seam_section_gap_trial is not None
     assert trial.first_source_cut_face is not None
