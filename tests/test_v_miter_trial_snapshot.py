@@ -720,6 +720,176 @@ def test_measured_r_ba_saved_source_rejects_stale_or_forged_inputs():
     assert saved["manufacturing_status"].endswith("UNCERTIFIED")
 
 
+@pytest.mark.parametrize("revision", ("V1", "V2"))
+def test_saved_physical_bend_roles_are_stable_across_cosmetic_rows_with_extra_bend(
+    tmp_path, revision,
+):
+    """Real CHECK/DATUM reorder must not silently select a different BEND.
+
+    A third genuine BEND shares the physical scene but is NOT the V corner.
+    The saved indices address ordered CUTTING/BEND sources, not every drawing
+    primitive; source fingerprint binds the exact first/second bend roles.
+    """
+    from math import pi
+
+    cut_scene, first, second, base = _scene()
+    cut = cut_scene.primitives[0]
+    third = LinePrimitive(Vec2(30, 30), Vec2(60, 70), "BEND")
+    datum = LinePrimitive(Vec2(-5, -5), Vec2(-5, 5), "DATUM")
+    check = LinePrimitive(Vec2(-5, -4), Vec2(-5, 4), "CHECK")
+    mark = LinePrimitive(Vec2(-5, -3), Vec2(-5, 3), "MARKING")
+    original = DrawingScene([datum, cut, first, check, second, mark, third])
+    if revision == "V1":
+        saved = manufacturing_api.capture_v_miter_relief_trial_snapshot(
+            original, first, second, **base,
+        )
+        replay = manufacturing_api.replay_v_miter_relief_trial_snapshot
+        draw = manufacturing_api.build_saved_v_miter_relief_trial_check_scene
+    else:
+        saved = manufacturing_api.capture_v_miter_radius_ba_trial_snapshot(
+            original, first, second, **base,
+            first_inner_radius_mm=.5, second_inner_radius_mm=.5,
+            first_bend_allowance_mm=(pi / 2) * (0.5 + .4 * 2),
+            second_bend_allowance_mm=(pi / 2) * (0.5 + .4 * 2),
+            max_permitted_edge_trim_mm=12,
+        )
+        replay = manufacturing_api.replay_v_miter_radius_ba_trial_snapshot
+        draw = manufacturing_api.build_saved_v_miter_radius_ba_check_scene
+    assert saved["first_bend_index"] == 1
+    assert saved["second_bend_index"] == 2
+    assert saved["manufacturing_status"].endswith("UNCERTIFIED")
+    start = replay(original, saved)
+
+    project = write_project(tmp_path / f"{revision}_role_bound.p6fold", {
+        "schema": PROJECT_SCHEMA_V1,
+        "snapshot": {
+            "model": "金庫型", "w": 800, "h": 1600, "d": 350, "t": 2,
+            "v_miter_trial_preview" if revision == "V1" else
+            "v_miter_radius_ba_trial_preview": saved,
+        },
+    })
+    readback = read_project(project)["snapshot"]
+    stored = readback[
+        "v_miter_trial_preview" if revision == "V1" else
+        "v_miter_radius_ba_trial_preview"
+    ]
+    # Same physical CUTTING/BEND sequence; cosmetic overlays may move or
+    # disappear without affecting either fingerprint or selected V roles.
+    restored = DrawingScene([
+        cut, mark, first, second, third, datum, check,
+    ])
+    reread = replay(restored, stored)
+    if revision == "V1":
+        assert reread.relief.trial_remaining_outline == start.relief.trial_remaining_outline
+        assert reread.formed_contact_end == start.formed_contact_end
+    else:
+        assert reread.full_corrected_check_outline == start.full_corrected_check_outline
+        assert reread.first_thick_solid_triangles == start.first_thick_solid_triangles
+        assert reread.second_thick_solid_triangles == start.second_thick_solid_triangles
+    preview = draw(restored, stored, include_alignment_check=True)
+    assert all(p.layer in ("DATUM", "CHECK") for p in preview.primitives)
+    path = tmp_path / f"{revision}_role_bound_check.dxf"
+    save_scene_dxf(path, preview)
+    assert not any(
+        ent.dxf.layer in {"CUTTING", "BEND", "MARKING"}
+        for ent in ezdxf.readfile(path).modelspace()
+    )
+    assert original.primitives == [datum, cut, first, check, second, mark, third]
+
+
+@pytest.mark.parametrize("revision", ("V1", "V2"))
+def test_legacy_two_bend_snapshot_remains_replayable_after_cosmetic_reorder(
+    tmp_path, revision,
+):
+    """Old absolute-index V1/V2 data remains unambiguous with only two BENDs."""
+    from math import pi
+    from ae_engine.v_miter_trial_snapshot import _source_geometry_sha256
+
+    base_scene, first, second, source = _scene()
+    cut = base_scene.primitives[0]
+    datum = LinePrimitive(Vec2(-2, 0), Vec2(-2, 3), "DATUM")
+    check = LinePrimitive(Vec2(-3, 0), Vec2(-3, 3), "CHECK")
+    old_scene = DrawingScene([datum, cut, first, check, second])
+    if revision == "V1":
+        saved = manufacturing_api.capture_v_miter_relief_trial_snapshot(
+            old_scene, first, second, **source,
+        )
+        replay = manufacturing_api.replay_v_miter_relief_trial_snapshot
+    else:
+        saved = manufacturing_api.capture_v_miter_radius_ba_trial_snapshot(
+            old_scene, first, second, **source,
+            first_inner_radius_mm=.5, second_inner_radius_mm=.5,
+            first_bend_allowance_mm=(pi / 2) * (0.5 + .4 * 2),
+            second_bend_allowance_mm=(pi / 2) * (0.5 + .4 * 2),
+            max_permitted_edge_trim_mm=12,
+        )
+        replay = manufacturing_api.replay_v_miter_radius_ba_trial_snapshot
+    legacy = deepcopy(saved)
+    legacy["source_geometry_sha256"] = _source_geometry_sha256(old_scene)
+    legacy["first_bend_index"], legacy["second_bend_index"] = 2, 4
+    project = write_project(tmp_path / f"{revision}_legacy_roles.p6fold", {
+        "schema": PROJECT_SCHEMA_V1,
+        "snapshot": {
+            "model": "金庫型", "w": 800, "h": 1600, "d": 350, "t": 2,
+            "v_miter_trial_preview" if revision == "V1" else
+            "v_miter_radius_ba_trial_preview": legacy,
+        },
+    })
+    old = read_project(project)["snapshot"][
+        "v_miter_trial_preview" if revision == "V1" else
+        "v_miter_radius_ba_trial_preview"
+    ]
+    rebuilt = DrawingScene([cut, first, second])
+    assert replay(rebuilt, old) == replay(old_scene, legacy)
+    assert old["manufacturing_status"].endswith("UNCERTIFIED")
+
+
+def test_legacy_multi_bend_source_must_not_rebind_other_physical_role():
+    """Removing a cosmetic DATUM could shift BOTH legacy BEND indices.
+
+    The old SHA covers the same CUTTING/BEND list, while old absolute role
+    indices silently move from first/second to second/third. Without the new
+    role-bound fingerprint this is not recoverable: reject, never infer.
+    """
+    from ae_engine.v_miter_trial_snapshot import _source_geometry_sha256
+
+    base_scene, first, second, source = _scene()
+    cut = base_scene.primitives[0]
+    third = LinePrimitive(Vec2(0, 0), Vec2(100, 100), "BEND")
+    datum = LinePrimitive(Vec2(10, 10), Vec2(10, 20), "DATUM")
+    original = DrawingScene([datum, cut, first, second, third])
+    saved = manufacturing_api.capture_v_miter_relief_trial_snapshot(
+        original, first, second, **source,
+    )
+    old = deepcopy(saved)
+    old["source_geometry_sha256"] = _source_geometry_sha256(original)
+    old["first_bend_index"], old["second_bend_index"] = 2, 3
+    stripped = DrawingScene([cut, first, second, third])
+    # Physical SHA stayed the same: at indices [2,3] are now second/third.
+    assert _source_geometry_sha256(original) == _source_geometry_sha256(stripped)
+    assert stripped.primitives[2] is second and stripped.primitives[3] is third
+    with pytest.raises(GeometryError, match="legacy saved BEND source roles are ambiguous"):
+        manufacturing_api.replay_v_miter_relief_trial_snapshot(stripped, old)
+    # A NEW saved source binds the true role indices and survives this change.
+    assert manufacturing_api.replay_v_miter_relief_trial_snapshot(
+        stripped, saved,
+    ) == manufacturing_api.replay_v_miter_relief_trial_snapshot(original, saved)
+
+
+def test_source_role_swap_with_unchanged_cutting_and_bends_is_detected():
+    """Roles are part of the new source SHA even when geometry is unchanged."""
+    scene, first, second, params = _scene()
+    saved = manufacturing_api.capture_v_miter_relief_trial_snapshot(
+        scene, first, second, **params,
+    )
+    forged = deepcopy(saved)
+    forged["first_bend_index"], forged["second_bend_index"] = (
+        saved["second_bend_index"], saved["first_bend_index"],
+    )
+    with pytest.raises(GeometryError, match="source geometry has changed"):
+        manufacturing_api.replay_v_miter_relief_trial_snapshot(scene, forged)
+
+
 def test_saved_trial_rejects_changed_cutting_source_after_reload():
     scene, first, second, args = _scene()
     captured = manufacturing_api.capture_v_miter_relief_trial_snapshot(
