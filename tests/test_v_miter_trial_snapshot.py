@@ -112,6 +112,152 @@ def test_real_p6fold_saved_trial_recomputes_same_2d_3d_and_check_dxf(
     assert scene.primitives == before
 
 
+@pytest.mark.parametrize("angle", (90, 120))
+@pytest.mark.parametrize("mode", ("ROUND_R", "RELIEF_HOLE"))
+@pytest.mark.parametrize("family", ("金庫型", "受電箱"))
+def test_measured_r_ba_v2_p6fold_replays_same_physical_3d_and_check_dxf(
+    tmp_path, angle, mode, family,
+):
+    from math import radians, pi
+    from ae_engine.receiving_layout import new_receiving_layout
+
+    scene, first, second, base = _scene(angle)
+    base["relief_mode"] = mode
+    measurement = {
+        "first_inner_radius_mm": .5,
+        "second_inner_radius_mm": .5,
+        "first_bend_allowance_mm": (pi / 2) * (0.5 + .4 * 2),
+        "second_bend_allowance_mm": radians(angle) * (0.5 + .4 * 2),
+        "max_permitted_edge_trim_mm": 12,
+    }
+    before = tuple(scene.primitives)
+    captured = manufacturing_api.capture_v_miter_radius_ba_trial_snapshot(
+        scene, first, second, **base, **measurement,
+    )
+    assert captured["contract"] == "V_MITER_RADIUS_BA_SOURCE_V2"
+    assert captured["manufacturing_status"] == "V_MITER_RADIUS_BA_INTERFACE_UNCERTIFIED"
+    assert set(captured["parameters"]) == set(base) | set(measurement)
+    encoded = json.dumps(captured)
+    assert "triangles" not in encoded and "solid" not in encoded
+    assert "corrected_check_outline" not in encoded
+    original = manufacturing_api.replay_v_miter_radius_ba_trial_snapshot(
+        scene, captured,
+    )
+    assert original.formed_volume_containment_meshes_closed
+
+    project_snapshot = {
+        "model": family, "w": 800, "h": 1600, "d": 350, "t": 2,
+        "v_miter_radius_ba_trial_preview": captured,
+    }
+    if family == "受電箱":
+        project_snapshot["active_mode"] = "set_bay"
+        project_snapshot["receiving_layout"] = new_receiving_layout(
+            width=800, height=1600, depth=350,
+        )
+    saved = write_project(tmp_path / "measured_r_ba_source.p6fold", {
+        "schema": PROJECT_SCHEMA_V1,
+        "snapshot": project_snapshot,
+    })
+    recovered = read_project(saved)["snapshot"]["v_miter_radius_ba_trial_preview"]
+    assert recovered == captured
+    rebuilt = _new_scene_with_same_saved_physical_geometry(scene)
+    assert rebuilt.primitives[1] is not first
+    replay = manufacturing_api.replay_v_miter_radius_ba_trial_snapshot(
+        rebuilt, recovered,
+    )
+    assert replay.first_thick_solid_triangles == original.first_thick_solid_triangles
+    assert replay.second_thick_solid_triangles == original.second_thick_solid_triangles
+    assert replay.full_corrected_check_outline == original.full_corrected_check_outline
+    assert replay.first_source_cut_face == original.first_source_cut_face
+    assert replay.second_source_cut_face == original.second_source_cut_face
+    assert replay.source_cut_face_continuity_trial == original.source_cut_face_continuity_trial
+    assert replay.manufacturing_status.endswith("UNCERTIFIED")
+
+    preview = manufacturing_api.build_saved_v_miter_radius_ba_check_scene(
+        rebuilt, recovered,
+    )
+    assert [item.layer for item in preview.primitives] == [
+        "DATUM", "CHECK", "DATUM", "DATUM",
+    ]
+    assert preview.primitives[1].points == replay.full_corrected_check_outline
+    dxf = tmp_path / "saved_measured_r_ba_CHECK_only.dxf"
+    save_scene_dxf(dxf, preview)
+    layers = [item.dxf.layer for item in ezdxf.readfile(dxf).modelspace()]
+    assert layers == ["DATUM", "CHECK", "DATUM", "DATUM"]
+    assert not ({"CUTTING", "BEND", "MARKING"} & set(layers))
+    assert tuple(scene.primitives) == before
+
+
+def test_measured_r_ba_saved_source_rejects_stale_or_forged_inputs():
+    from math import radians, pi
+
+    scene, first, second, basic = _scene()
+    measured = {
+        "first_inner_radius_mm": .5,
+        "second_inner_radius_mm": .5,
+        "first_bend_allowance_mm": (pi / 2) * (0.5 + .4 * 2),
+        "second_bend_allowance_mm": radians(90) * (0.5 + .4 * 2),
+        "max_permitted_edge_trim_mm": 12,
+    }
+    saved = manufacturing_api.capture_v_miter_radius_ba_trial_snapshot(
+        scene, first, second, **basic, **measured,
+    )
+    # V1 relief snapshot and V2 measured-R/BA snapshot must never be
+    # silently interpreted as the other contract.
+    with pytest.raises(GeometryError, match="contract revision"):
+        manufacturing_api.replay_v_miter_relief_trial_snapshot(scene, saved)
+    v1 = manufacturing_api.capture_v_miter_relief_trial_snapshot(
+        scene, first, second, **basic,
+    )
+    with pytest.raises(GeometryError, match="contract revision"):
+        manufacturing_api.replay_v_miter_radius_ba_trial_snapshot(scene, v1)
+    corrupt = []
+    for key, invalid in (
+        ("contract", "V_MITER_CERTIFIED"),
+        ("manufacturing_status", "V_MITER_CUTTING_CERTIFIED"),
+        ("first_bend_index", True),
+    ):
+        trial = deepcopy(saved)
+        trial[key] = invalid
+        corrupt.append(trial)
+    for field, value in (
+        ("first_inner_radius_mm", True),
+        ("second_inner_radius_mm", "0.5"),
+        ("first_bend_allowance_mm", float("nan")),
+        ("second_bend_allowance_mm", float("inf")),
+        ("max_permitted_edge_trim_mm", 0),
+    ):
+        trial = deepcopy(saved)
+        trial["parameters"][field] = value
+        corrupt.append(trial)
+    missing = deepcopy(saved)
+    del missing["parameters"]["second_bend_allowance_mm"]
+    corrupt.append(missing)
+    extra = deepcopy(saved)
+    extra["parameters"]["verified"] = True
+    corrupt.append(extra)
+    for bad in corrupt:
+        with pytest.raises(GeometryError):
+            manufacturing_api.replay_v_miter_radius_ba_trial_snapshot(
+                scene, bad,
+            )
+        with pytest.raises(GeometryError):
+            manufacturing_api.build_saved_v_miter_radius_ba_check_scene(
+                scene, bad,
+            )
+    stale = _new_scene_with_same_saved_physical_geometry(scene)
+    old = stale.primitives[0]
+    stale.primitives[0] = PolylinePrimitive(
+        tuple(Vec2(p.x + .5, p.y) for p in old.points),
+        layer="CUTTING", closed=True,
+    )
+    with pytest.raises(GeometryError, match="source geometry has changed"):
+        manufacturing_api.replay_v_miter_radius_ba_trial_snapshot(
+            stale, saved,
+        )
+    assert saved["manufacturing_status"].endswith("UNCERTIFIED")
+
+
 def test_saved_trial_rejects_changed_cutting_source_after_reload():
     scene, first, second, args = _scene()
     captured = manufacturing_api.capture_v_miter_relief_trial_snapshot(
