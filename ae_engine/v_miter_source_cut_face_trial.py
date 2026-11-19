@@ -17,6 +17,7 @@ import math
 
 from shapely.geometry import LineString, Polygon
 
+from .assembly_geometry_primitives import smoothed_surface_vertex_offsets
 from .contracts import PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES
 from .sheetmetal_geometry_core import GeometryError
 
@@ -103,6 +104,10 @@ def trace_v_miter_source_true_t_cut_faces(
     if not flat or len(flat) != len(formed) or not solid:
         raise GeometryError("V-miter source cut-face lacks paired 2D/3D/true-T mesh")
     edges = defaultdict(list)
+    # Use the exact shared vertex offsets applied by the source R/BA curved
+    # T-shell builder. Recomputing a separate face normal here would invent
+    # a sidewall which does not exist in the physical mesh.
+    vertex_offsets = smoothed_surface_vertex_offsets(formed, t, tolerance=tol)
 
     def pair_point(a, name, dimension):
         try:
@@ -140,21 +145,12 @@ def trace_v_miter_source_true_t_cut_faces(
         # Avoid the global source perimeter and artificial clipping edges.
         if segment.intersection(new_cut).length < seg_length - tol:
             continue
-        u = tuple(b3[i] - a3[i] for i in range(3))
-        v = tuple(c3[i] - a3[i] for i in range(3))
-        normal = (
-            u[1] * v[2] - u[2] * v[1],
-            u[2] * v[0] - u[0] * v[2],
-            u[0] * v[1] - u[1] * v[0],
-        )
-        magnitude = math.sqrt(sum(x * x for x in normal))
-        if not math.isfinite(magnitude) or magnitude <= tol:
-            raise GeometryError("V-miter source V-cut wall has degenerate formed normal")
-        delta = tuple((t / (2 * magnitude)) * x for x in normal)
-        plus_a = tuple(a3[i] + delta[i] for i in range(3))
-        plus_b = tuple(b3[i] + delta[i] for i in range(3))
-        minus_a = tuple(a3[i] - delta[i] for i in range(3))
-        minus_b = tuple(b3[i] - delta[i] for i in range(3))
+        offset_a = vertex_offsets[_key(a3, tol)]
+        offset_b = vertex_offsets[_key(b3, tol)]
+        plus_a = tuple(a3[i] + offset_a[i] for i in range(3))
+        plus_b = tuple(b3[i] + offset_b[i] for i in range(3))
+        minus_a = tuple(a3[i] - offset_a[i] for i in range(3))
+        minus_b = tuple(b3[i] - offset_b[i] for i in range(3))
         wall = ((plus_a, plus_b, minus_b), (plus_a, minus_b, minus_a))
         if any(_tri_key(tri, tol) not in solid_keys for tri in wall):
             raise GeometryError(

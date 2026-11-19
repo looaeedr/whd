@@ -648,7 +648,7 @@ def solve_v_miter_radius_ba_interface_trial(
         axial_span=bounded.second_bend_span_mm,
         flange_height=q.second_flange_height_mm,
     )
-    solid2 = tuple(thicken_triangle_surface(skin2, q.thickness_mm))
+    solid2 = tuple(thicken_triangle_surface(skin2, q.thickness_mm, smooth_vertex_normals=True))
     if not solid2:
         raise GeometryError("V-miter R/BA second solid is empty")
     source_material = (
@@ -669,7 +669,7 @@ def solve_v_miter_radius_ba_interface_trial(
             axial_span=bounded.first_bend_span_mm,
             flange_height=q.first_flange_height_mm,
         )
-        solid = tuple(thicken_triangle_surface(skin, q.thickness_mm))
+        solid = tuple(thicken_triangle_surface(skin, q.thickness_mm, smooth_vertex_normals=True))
         if not solid:
             raise GeometryError("V-miter R/BA first solid is empty")
         collision = detect_world_mesh_surface_interference(solid, solid2)

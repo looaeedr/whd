@@ -19,7 +19,57 @@ def triangle_bounds(triangles):
     )
 
 
-def thicken_triangle_surface(triangles, thickness, *, tolerance=None):
+def smoothed_surface_vertex_offsets(triangles, thickness, *, tolerance):
+    """Return a single T/2 offset per *shared* formed-surface vertex.
+
+    Curved strips are triangulated into adjacent facets. Offsetting every
+    facet by its own face normal duplicates their common vertices and opens
+    the physical T shell. Summed area normals instead give one deterministic
+    displacement at each real source vertex; the two skins and the boundary
+    sidewalls then share exactly the same coordinates. This is a mesh
+    discretization operation, NOT a bend allowance or factory certification.
+    """
+    import math
+    from collections import defaultdict
+
+    t = float(thickness)
+    tol = float(tolerance)
+    if not math.isfinite(t) or t <= 0 or not math.isfinite(tol) or tol <= 0:
+        raise ValueError("smooth T-shell requires positive finite thickness/tolerance")
+    inv_tol = 1.0 / max(tol, 1e-12)
+
+    def key(point):
+        return tuple(int(round(float(v) * inv_tol)) for v in point)
+
+    sums = defaultdict(lambda: [0.0, 0.0, 0.0])
+    for tri in triangles:
+        if len(tri) != 3:
+            raise ValueError("smooth T-shell requires triangles")
+        a, b, c = tri
+        u = tuple(float(b[i]) - float(a[i]) for i in range(3))
+        v = tuple(float(c[i]) - float(a[i]) for i in range(3))
+        n = (u[1] * v[2] - u[2] * v[1],
+             u[2] * v[0] - u[0] * v[2],
+             u[0] * v[1] - u[1] * v[0])
+        mag = math.sqrt(sum(q * q for q in n))
+        if not math.isfinite(mag) or mag <= 1e-12:
+            raise ValueError("smooth T-shell has degenerate formed triangle")
+        for point in tri:
+            row = sums[key(point)]
+            for i in range(3):
+                row[i] += n[i]
+    if not sums:
+        raise ValueError("smooth T-shell has no surface vertices")
+    offsets = {}
+    for k, normal in sums.items():
+        mag = math.sqrt(sum(q * q for q in normal))
+        if not math.isfinite(mag) or mag <= 1e-12:
+            raise ValueError("smooth T-shell has ambiguous vertex orientation")
+        offsets[k] = tuple(q * t / (2.0 * mag) for q in normal)
+    return offsets
+
+
+def thicken_triangle_surface(triangles, thickness, *, tolerance=None, smooth_vertex_normals=False):
     """Turn a zero-thickness folded triangle surface into a sharp-bend sheet solid.
 
     The folded surface remains the geometric mid-surface.  Two skins are offset by
@@ -27,8 +77,10 @@ def thicken_triangle_surface(triangles, thickness, *, tolerance=None):
     side walls, while non-coplanar shared edges receive miter bridge faces so the
     formed sheet has visible inside/outside faces instead of a mathematical skin.
 
-    This is intentionally a sharp-bend solid (no bend-radius tessellation yet).
-    It is renderer-independent and can be reused by assembly collision later.
+    The default remains the historical sharp-bend model. Opt-in smooth
+    vertex offsets apply only to source-meshed R/BA cylindrical trials, so
+    adjacent curved facets do not each create a different physical vertex.
+    This is renderer-independent and not a manufacturing certification.
     """
     import math
     from collections import defaultdict
@@ -44,6 +96,10 @@ def thicken_triangle_surface(triangles, thickness, *, tolerance=None):
     if not source or t <= float(tolerance):
         return tuple(source)
     half = t / 2.0
+    smooth_offsets = (
+        smoothed_surface_vertex_offsets(source, t, tolerance=tolerance)
+        if smooth_vertex_normals else None
+    )
 
     def add(a, b):
         return tuple(a[i] + b[i] for i in range(3))
@@ -84,8 +140,8 @@ def thicken_triangle_surface(triangles, thickness, *, tolerance=None):
         if n is None:
             continue
         off = scale(n, half)
-        plus = tuple(add(point, off) for point in tri)
-        minus = tuple(sub(point, off) for point in tri)
+        plus = tuple(add(point, smooth_offsets[point_key(point)] if smooth_offsets is not None else off) for point in tri)
+        minus = tuple(sub(point, smooth_offsets[point_key(point)] if smooth_offsets is not None else off) for point in tri)
         solid.append(plus)
         solid.append((minus[0], minus[2], minus[1]))
         for index in range(3):
@@ -100,8 +156,17 @@ def thicken_triangle_surface(triangles, thickness, *, tolerance=None):
     for adjacent in edges.values():
         if len(adjacent) == 1:
             a, b, n = adjacent[0]
-            off = scale(n, half)
-            add_quad(add(a, off), add(b, off), sub(b, off), sub(a, off))
+            off_a = smooth_offsets[point_key(a)] if smooth_offsets is not None else scale(n, half)
+            off_b = smooth_offsets[point_key(b)] if smooth_offsets is not None else scale(n, half)
+            add_quad(add(a, off_a), add(b, off_b), sub(b, off_b), sub(a, off_a))
+            continue
+
+        # Smoothed source vertices already share both physical skin edges;
+        # introducing sharp hinge bridges would instead create overlapping
+        # internal walls. The default sharp-bend code below is unchanged.
+        if smooth_offsets is not None:
+            if len(adjacent) != 2:
+                raise ValueError("smooth T-shell source edge is nonmanifold")
             continue
 
         # Triangulation edges on one planar panel need no wall.  At a real fold
