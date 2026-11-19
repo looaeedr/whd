@@ -129,27 +129,28 @@ def _validate_snapshot(
     raw = payload["parameters"]
     if not isinstance(raw, Mapping) or set(raw) != input_keys:
         raise GeometryError("V-miter saved source parameter fields are invalid")
+    # Both saved CHECK revisions originate from the same validated physical
+    # two-bend source. Open must not accept corrupt inputs merely because it
+    # has no DrawingScene to replay yet. No saved metadata certifies CUTTING.
+    for field in (
+        "thickness_mm", "first_flange_height_mm",
+        "second_flange_height_mm", "relief_t_factor",
+    ):
+        value = raw[field]
+        if type(value) not in (int, float) or not math.isfinite(value) or value <= 0:
+            raise GeometryError(f"V-miter saved physical source {field} is invalid")
+    angle = raw["second_fold_angle_deg"]
+    if (type(angle) not in (int, float) or not math.isfinite(angle) or
+            not 0 < angle < 180):
+        raise GeometryError("V-miter saved physical source second_fold_angle_deg is invalid")
+    mode = raw["relief_mode"]
+    if type(mode) is not str or mode not in tuple(item.value for item in VMiterReliefMode):
+        raise GeometryError("V-miter saved physical source relief_mode is invalid")
     if contract == _R_BA_TRIAL_CONTRACT:
-        # The GUI Open->Save source projector calls this without a physical
-        # DrawingScene. Validate *every* V2 physical input before the GUI can
-        # admit it: the solver's later qualifier is not an Open-time gate.
-        # Preserve V1 legacy replay semantics; V2 alone requires typed shop
-        # inputs, including the original two-bend / relief source fields.
-        for field in (
-            "thickness_mm", "first_flange_height_mm",
-            "second_flange_height_mm", "relief_t_factor",
-            *_R_BA_MEASUREMENT_KEYS,
-        ):
+        for field in _R_BA_MEASUREMENT_KEYS:
             value = raw[field]
             if type(value) not in (int, float) or not math.isfinite(value) or value <= 0:
-                raise GeometryError(f"V-miter saved physical source {field} is invalid")
-        angle = raw["second_fold_angle_deg"]
-        if (type(angle) not in (int, float) or not math.isfinite(angle) or
-                not 0 < angle < 180):
-            raise GeometryError("V-miter saved physical source second_fold_angle_deg is invalid")
-        mode = raw["relief_mode"]
-        if type(mode) is not str or mode not in tuple(item.value for item in VMiterReliefMode):
-            raise GeometryError("V-miter saved physical source relief_mode is invalid")
+                raise GeometryError(f"V-miter saved measured R/BA source {field} is invalid")
     return first, second, dict(raw)
 
 
@@ -324,31 +325,24 @@ def capture_v_miter_radius_ba_trial_snapshot(
     }
 
 
-def project_operator_v_miter_radius_ba_preview_source(
-    source_snapshot: Mapping,
+def _project_operator_v_miter_preview_source(
+    source_snapshot: Mapping, *, key: str, contract: str,
+    status: str, input_keys: frozenset,
 ) -> dict[str, object] | None:
-    """Copy a saved V2 CHECK input through operator project re-save.
+    """Validate and copy stored CHECK inputs, never derived geometry.
 
-    The main GUI owns controls, not the physical 3D meshing or V R/BA
-    certification. Its project composition can preserve this *already
-    saved* source envelope, while Engine independently checks the exact
-    revision/uncertified status/typed measured values. No 2D or 3D
-    computed result is ever used as stored project authority.
-
-    Missing metadata means the current project has no V2 trial. A changed
-    CUTTING/BEND geometry is rejected later by real source-hash replay.
+    Both revisions remain independently replayable against the original
+    CUTTING/BEND SHA. Project Open/Save cannot certify a manufacturing cut.
     """
     from copy import deepcopy
 
     if not isinstance(source_snapshot, Mapping):
         raise GeometryError("V-miter operator source snapshot must be a mapping")
-    key = "v_miter_radius_ba_trial_preview"
     if key not in source_snapshot:
         return None
     row = source_snapshot[key]
     _validate_snapshot(
-        row, contract=_R_BA_TRIAL_CONTRACT, status=_R_BA_UNCERTIFIED,
-        input_keys=_R_BA_INPUT_KEYS,
+        row, contract=contract, status=status, input_keys=input_keys,
     )
     return deepcopy({
         "contract": row["contract"],
@@ -358,6 +352,28 @@ def project_operator_v_miter_radius_ba_preview_source(
         "second_bend_index": row["second_bend_index"],
         "parameters": dict(row["parameters"]),
     })
+
+
+def project_operator_v_miter_relief_preview_source(
+    source_snapshot: Mapping,
+) -> dict[str, object] | None:
+    """Preserve a legacy V1 R/hole CHECK input through main GUI Open->Save."""
+    return _project_operator_v_miter_preview_source(
+        source_snapshot, key="v_miter_trial_preview",
+        contract=_TRIAL_CONTRACT, status=_UNCERTIFIED,
+        input_keys=_INPUT_KEYS,
+    )
+
+
+def project_operator_v_miter_radius_ba_preview_source(
+    source_snapshot: Mapping,
+) -> dict[str, object] | None:
+    """Preserve a V2 measured-R/BA CHECK input through main GUI Open->Save."""
+    return _project_operator_v_miter_preview_source(
+        source_snapshot, key="v_miter_radius_ba_trial_preview",
+        contract=_R_BA_TRIAL_CONTRACT, status=_R_BA_UNCERTIFIED,
+        input_keys=_R_BA_INPUT_KEYS,
+    )
 
 
 def _resolve_saved_r_ba_trial_source(
