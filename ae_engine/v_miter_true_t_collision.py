@@ -187,10 +187,18 @@ def _verified_contiguous_positive_mesh_span(
             continue
         if not remaining.contains(addition.interpolate(0.5, normalized=True)):
             continue
-        # A crease coinciding with a newly cut edge is not interior stock.
-        # 1e-7mm is the pre-existing numerical GEOS boundary tolerance,
-        # NOT a manufacturing allowance.
-        if addition.intersection(remaining.boundary.buffer(_EPS)).length > 0:
+        # A crease coinciding with a new CUTTING edge is not interior
+        # stock.  At a genuinely drawn far OUTER endpoint, though, a
+        # 1e-7mm GEOS boundary neighborhood necessarily intersects the
+        # BEND by ~1e-7mm despite all its positive-length interior being
+        # foldable. Allow at most numerical end-cap contact at BOTH
+        # segment endpoints, not a positive-length boundary coincidence.
+        # This bound is *only* numerical resolution, never a factory kerf,
+        # gap, R/BA or physical bend-width allowance.
+        near_cut_length = float(
+            addition.intersection(remaining.boundary.buffer(_EPS)).length
+        )
+        if not math.isfinite(near_cut_length) or near_cut_length > 2 * _EPS + 1e-9:
             continue
         return end
     raise GeometryError(
@@ -267,6 +275,69 @@ def _formed_skin(
     return tuple(result)
 
 
+def _verified_v_miter_source_bend_mesh_spans(
+    scene: DrawingScene,
+    v_edge_bend: LinePrimitive,
+    second_bend: LinePrimitive,
+    bounded,
+    remaining: Polygon,
+    params: dict,
+) -> tuple[float, float]:
+    """One true physical source owner shared by sharp-T and measured R/BA.
+
+    The original BEND lengths are unchanged unless the ideal seam needs a
+    POSITIVE axial extension and the actual original CUTTING, a continuous
+    additional BEND, and post-relief material *all* prove it. Only actual
+    drawn far endpoints can bound the mesh, never projected mathematical
+    seam positions. Negative axial overreach (60°) is a distinct fold
+    topology and remains unsupported. This cannot certify manufacturing.
+    """
+    first_span = bounded.first_bend_span_mm
+    second_span = bounded.second_bend_span_mm
+    if not bounded.needs_independent_material_extension_evidence:
+        return first_span, second_span
+    reaches = (
+        bounded.first_axial_seam_reach_mm,
+        bounded.second_axial_seam_reach_mm,
+    )
+    if any(axial < -_EPS for axial in reaches):
+        raise GeometryError(
+            "V-miter source fold needs independent source material extension evidence"
+        )
+    physical = diagnose_v_miter_physical_crease_after_relief(
+        scene, v_edge_bend, second_bend, **params,
+    )
+    stock = physical.original_stock
+    proofs = (
+        (stock.first_original_stock_covers_extension,
+         physical.first_original_bend_continuation_covers,
+         physical.first_remaining_material_interior_covers),
+        (stock.second_original_stock_covers_extension,
+         physical.second_original_bend_continuation_covers,
+         physical.second_remaining_material_interior_covers),
+    )
+    apex = bounded.ideal.source.bend_intersection
+    axis1 = _outward_bend_axis(v_edge_bend, apex)
+    axis2 = _outward_bend_axis(second_bend, apex)
+    spans = []
+    for bend, other, axis, original, needed, evidence in (
+        (v_edge_bend, second_bend, axis1, first_span, reaches[0], proofs[0]),
+        (second_bend, v_edge_bend, axis2, second_span, reaches[1], proofs[1]),
+    ):
+        if needed <= original + _EPS:
+            spans.append(original)
+            continue
+        if not all(value is True for value in evidence):
+            raise GeometryError(
+                "V-miter source fold needs independent source material extension evidence"
+            )
+        spans.append(_verified_contiguous_positive_mesh_span(
+            scene, bend, other, apex, axis, remaining,
+            original_span=original, required_reach=needed,
+        ))
+    return tuple(spans)
+
+
 def diagnose_v_miter_true_thickness_collision(
     scene: DrawingScene,
     v_edge_bend: LinePrimitive,
@@ -299,47 +370,6 @@ def diagnose_v_miter_true_thickness_collision(
     bounded = diagnose_v_miter_bounded_bend_reach(
         scene, v_edge_bend, second_bend, **params,
     )
-    # The ideal seam may leave the selected finite BEND. A truly continuous
-    # *original* BEND continuation into the outward (+axial) source direction
-    # can contribute physical flange material to this diagnostic mesh, but
-    # only if the existing real R/hole V cut leaves that full missing crease
-    # in the remaining sheet interior. Never assume stock implies a BEND.
-    # A seam behind the common endpoint (negative axial, e.g. 60 degrees)
-    # is a DIFFERENT topology with no verified full-width first flange:
-    # extending the finite-domain mesh backwards here would invent a fold.
-    first_mesh_span = bounded.first_bend_span_mm
-    second_mesh_span = bounded.second_bend_span_mm
-    if bounded.needs_independent_material_extension_evidence:
-        reach = (bounded.first_axial_seam_reach_mm,
-                 bounded.second_axial_seam_reach_mm)
-        spans = (first_mesh_span, second_mesh_span)
-        if any(axial < -_EPS for axial in reach):
-            raise GeometryError(
-                "V-miter true-T shadow needs independent source material extension evidence"
-            )
-        physical = diagnose_v_miter_physical_crease_after_relief(
-            scene, v_edge_bend, second_bend, **params,
-        )
-        stock = physical.original_stock
-        physical_roles = (
-            (stock.first_original_stock_covers_extension,
-             physical.first_original_bend_continuation_covers,
-             physical.first_remaining_material_interior_covers),
-            (stock.second_original_stock_covers_extension,
-             physical.second_original_bend_continuation_covers,
-             physical.second_remaining_material_interior_covers),
-        )
-        for axial, span, proofs in zip(reach, spans, physical_roles):
-            if axial > span + _EPS and not all(value is True for value in proofs):
-                raise GeometryError(
-                    "V-miter true-T shadow needs independent source material extension evidence"
-                )
-        # This is only the minimum supported seam reach. The actual
-        # positive axial mesh span will be taken from the farthest proven
-        # surviving original BEND endpoint, never from this ideal seam.
-        first_mesh_span = max(first_mesh_span, reach[0])
-        second_mesh_span = max(second_mesh_span, reach[1])
-
     q = mating.relief.source_trial.ideal.source
     apex = q.bend_intersection
     e1 = _outward_bend_axis(v_edge_bend, apex)
@@ -354,18 +384,9 @@ def diagnose_v_miter_true_thickness_collision(
     ))
     if remaining.is_empty or not remaining.is_valid or remaining.area <= _EPS:
         raise GeometryError("V-miter true-T source remaining material is invalid")
-    if first_mesh_span > bounded.first_bend_span_mm + _EPS:
-        first_mesh_span = _verified_contiguous_positive_mesh_span(
-            scene, v_edge_bend, second_bend, apex, e1, remaining,
-            original_span=bounded.first_bend_span_mm,
-            required_reach=first_mesh_span,
-        )
-    if second_mesh_span > bounded.second_bend_span_mm + _EPS:
-        second_mesh_span = _verified_contiguous_positive_mesh_span(
-            scene, second_bend, v_edge_bend, apex, e2, remaining,
-            original_span=bounded.second_bend_span_mm,
-            required_reach=second_mesh_span,
-        )
+    first_mesh_span, second_mesh_span = _verified_v_miter_source_bend_mesh_spans(
+        scene, v_edge_bend, second_bend, bounded, remaining, params,
+    )
     first_patch, first_full_height_span = _flange_footprint(
         remaining, apex, e1, n1,
         source_span=first_mesh_span,

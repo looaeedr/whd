@@ -378,6 +378,97 @@ def test_cannot_use_detached_bend_or_invent_60deg_material_extension():
         )
 
 
+def _120_original_full_and_split_bends(*, mode):
+    full, first, second, inputs = _source(angle=120, mode=mode)
+    old = tuple(full.primitives)
+    short = LinePrimitive(Vec2(-5, 0), Vec2(0, 0), "BEND")
+    continuation = LinePrimitive(Vec2(-100, 0), Vec2(-5, 0), "BEND")
+    split = DrawingScene([old[0], short, second, continuation])
+    return (full, first, second), (split, short, second), inputs
+
+
+@pytest.mark.parametrize("mode", ("RELIEF_HOLE", "ROUND_R"))
+def test_120_measured_rba_real_continuation_matches_single_full_source_2d_3d(mode):
+    # Same physical original CUTTING, same real 100mm crease, but recorded
+    # as a 5mm selected BEND followed by a 95mm actual source BEND.
+    # This must be identical in real curved R/BA/T geometry to a canonical
+    # single 100mm BEND, NOT a virtual or infinite mathematical extension.
+    full, split, inputs = _120_original_full_and_split_bends(mode=mode)
+    full_before = tuple(full[0].primitives)
+    split_before = tuple(split[0].primitives)
+    calibration = _calibrated(120)
+    expected = manufacturing_api.solve_v_miter_radius_ba_interface_trial(
+        *full, **inputs, **calibration,
+    )
+    actual = manufacturing_api.solve_v_miter_radius_ba_interface_trial(
+        *split, **inputs, **calibration,
+    )
+    assert expected.manufacturing_status == "V_MITER_RADIUS_BA_INTERFACE_UNCERTIFIED"
+    assert actual.manufacturing_status == expected.manufacturing_status
+    assert actual.first_mesh_source_bend_span_mm == pytest.approx(100)
+    assert actual.second_mesh_source_bend_span_mm == pytest.approx(100)
+    assert actual.first_mesh_source_bend_span_mm == pytest.approx(
+        expected.first_mesh_source_bend_span_mm
+    )
+    assert actual.first_flat_source_area_mm2 == pytest.approx(
+        expected.first_flat_source_area_mm2
+    )
+    assert actual.second_flat_source_area_mm2 == pytest.approx(
+        expected.second_flat_source_area_mm2
+    )
+    assert actual.first_flat_source_outline == expected.first_flat_source_outline
+    assert actual.first_trimmed_check_outline == expected.first_trimmed_check_outline
+    assert actual.full_corrected_check_outline == expected.full_corrected_check_outline
+    assert actual.first_edge_trim_mm == pytest.approx(expected.first_edge_trim_mm)
+    assert actual.first_formed_skin_triangles == expected.first_formed_skin_triangles
+    assert actual.second_formed_skin_triangles == expected.second_formed_skin_triangles
+    assert actual.first_thick_solid_triangles == expected.first_thick_solid_triangles
+    assert actual.second_thick_solid_triangles == expected.second_thick_solid_triangles
+    assert actual.first_source_cut_face == expected.first_source_cut_face
+    assert actual.second_source_cut_face == expected.second_source_cut_face
+    assert actual.seam_section_gap_trial == expected.seam_section_gap_trial
+    assert actual.source_cut_face_continuity_trial == expected.source_cut_face_continuity_trial
+    assert actual.true_t_volume_check_status == expected.true_t_volume_check_status
+    assert tuple(full[0].primitives) == full_before
+    assert tuple(split[0].primitives) == split_before
+
+
+@pytest.mark.parametrize("kind", ("missing", "gap", "short", "offset", "cross"))
+def test_120_measured_rba_never_uses_unsourced_bend_extension(kind):
+    _, (scene, first, second), inputs = _120_original_full_and_split_bends(
+        mode="RELIEF_HOLE",
+    )
+    scene.primitives.pop()  # remove genuine continuation to create a bad source
+    if kind == "gap":
+        scene.primitives.extend([
+            LinePrimitive(Vec2(-5, 0), Vec2(-7, 0), "BEND"),
+            LinePrimitive(Vec2(-8, 0), Vec2(-100, 0), "BEND"),
+        ])
+    elif kind == "short":
+        scene.primitives.append(LinePrimitive(Vec2(-5, 0), Vec2(-7, 0), "BEND"))
+    elif kind == "offset":
+        scene.primitives.append(LinePrimitive(Vec2(-5, 0.01), Vec2(-100, 0.01), "BEND"))
+    elif kind == "cross":
+        scene.primitives.append(LinePrimitive(Vec2(-9, -10), Vec2(-9, 10), "BEND"))
+    with pytest.raises(GeometryError, match="source material extension evidence"):
+        manufacturing_api.solve_v_miter_radius_ba_interface_trial(
+            scene, first, second, **inputs, **_calibrated(120),
+        )
+
+
+@pytest.mark.parametrize("mode", ("ROUND_R", "RELIEF_HOLE"))
+def test_60_real_negative_axis_source_still_cannot_enter_measured_rba(mode):
+    scene, first, second, args = _source(60, mode=mode)
+    scene.primitives.append(LinePrimitive(Vec2(0, 0), Vec2(30, 0), "BEND"))
+    assert manufacturing_api.diagnose_v_miter_physical_crease_after_relief(
+        scene, first, second, **args,
+    ).first_original_bend_continuation_covers is True
+    with pytest.raises(GeometryError, match="source material extension evidence"):
+        manufacturing_api.solve_v_miter_radius_ba_interface_trial(
+            scene, first, second, **args, **_calibrated(60),
+        )
+
+
 def test_compensation_does_not_promote_new_corner_type_or_cutting():
     from ae_engine.sheetmetal_geometry_core import CornerTypeId, EDITABLE_CORNER_TYPE_IDS
     assert len(EDITABLE_CORNER_TYPE_IDS) == 4
