@@ -309,6 +309,42 @@ def capture_v_miter_radius_ba_trial_snapshot(
     }
 
 
+def project_operator_v_miter_radius_ba_preview_source(
+    source_snapshot: Mapping,
+) -> dict[str, object] | None:
+    """Copy a saved V2 CHECK input through operator project re-save.
+
+    The main GUI owns controls, not the physical 3D meshing or V R/BA
+    certification. Its project composition can preserve this *already
+    saved* source envelope, while Engine independently checks the exact
+    revision/uncertified status/typed measured values. No 2D or 3D
+    computed result is ever used as stored project authority.
+
+    Missing metadata means the current project has no V2 trial. A changed
+    CUTTING/BEND geometry is rejected later by real source-hash replay.
+    """
+    from copy import deepcopy
+
+    if not isinstance(source_snapshot, Mapping):
+        raise GeometryError("V-miter operator source snapshot must be a mapping")
+    key = "v_miter_radius_ba_trial_preview"
+    if key not in source_snapshot:
+        return None
+    row = source_snapshot[key]
+    _validate_snapshot(
+        row, contract=_R_BA_TRIAL_CONTRACT, status=_R_BA_UNCERTIFIED,
+        input_keys=_R_BA_INPUT_KEYS,
+    )
+    return deepcopy({
+        "contract": row["contract"],
+        "manufacturing_status": row["manufacturing_status"],
+        "source_geometry_sha256": row["source_geometry_sha256"],
+        "first_bend_index": row["first_bend_index"],
+        "second_bend_index": row["second_bend_index"],
+        "parameters": dict(row["parameters"]),
+    })
+
+
 def _resolve_saved_r_ba_trial_source(
     scene: DrawingScene, snapshot: Mapping,
 ) -> tuple[LinePrimitive, LinePrimitive, dict]:
