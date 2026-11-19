@@ -39,6 +39,62 @@ def _calibrated(angle=90, *, radius=0.5, k=0.4):
     )
 
 
+def test_opt_in_smooth_r_ba_thickening_closes_shared_physical_hinge_vertices():
+    from ae_engine.assembly_geometry import diagnose_world_mesh_triangle_edge_incidence
+    from ae_engine.assembly_geometry_primitives import thicken_triangle_surface
+
+    # Two truly shared source triangles meet on a non-coplanar hinge. A
+    # per-face normal creates different T/2 skin vertices at the same
+    # physical hinge and leaves an open shell. Opt-in smoothing uses one
+    # source vertex and one T/2 offset for both incident faces.
+    skin = (
+        ((0., 0., 0.), (1., 0., 0.), (0., 1., 0.)),
+        ((1., 0., 0.), (1., 1., 1.), (0., 1., 0.)),
+    )
+    solid = thicken_triangle_surface(
+        skin, 2., smooth_vertex_normals=True,
+    )
+    topo = diagnose_world_mesh_triangle_edge_incidence(solid)
+    assert topo.edges_manifold_closed
+    assert topo.boundary_edge_count == 0
+    assert topo.nonmanifold_edge_count == 0
+    assert topo.degenerate_triangle_count == 0
+    # The legacy sharp-fold mode must remain callable and independent.
+    assert thicken_triangle_surface(skin, 2.) != solid
+
+
+@pytest.mark.parametrize("mode", ("RELIEF_HOLE", "ROUND_R"))
+def test_true_source_r_ba_curved_shells_close_without_inventing_material(mode):
+    from ae_engine.assembly_geometry import diagnose_world_mesh_triangle_edge_incidence
+
+    scene, first, second, args = _source(mode=mode)
+    original = tuple(scene.primitives)
+    trial = manufacturing_api.solve_v_miter_radius_ba_interface_trial(
+        scene, first, second, **args, **_calibrated(),
+    )
+    for solid, reported_edges, reported_nonmanifold, reported_degenerate in (
+        (trial.first_thick_solid_triangles,
+         trial.first_thick_solid_boundary_edge_count,
+         trial.first_thick_solid_nonmanifold_edge_count,
+         trial.first_thick_solid_degenerate_triangle_count),
+        (trial.second_thick_solid_triangles,
+         trial.second_thick_solid_boundary_edge_count,
+         trial.second_thick_solid_nonmanifold_edge_count,
+         trial.second_thick_solid_degenerate_triangle_count),
+    ):
+        topological_truth = diagnose_world_mesh_triangle_edge_incidence(solid)
+        assert reported_edges == topological_truth.boundary_edge_count == 0
+        assert reported_nonmanifold == topological_truth.nonmanifold_edge_count == 0
+        assert reported_degenerate == topological_truth.degenerate_triangle_count == 0
+        assert topological_truth.edges_manifold_closed
+    assert trial.formed_volume_containment_meshes_closed
+    assert "SAMPLED_NO_POSITIVE_WITNESS" in trial.true_t_volume_check_status
+    assert trial.first_source_cut_face.has_source_tagged_cut_faces
+    assert trial.second_source_cut_face.has_source_tagged_cut_faces
+    assert trial.manufacturing_status.endswith("UNCERTIFIED")
+    assert tuple(scene.primitives) == original
+
+
 def test_90deg_hole_real_radius_ba_trial_is_source_bound_and_only_uncertified():
     scene, first, second, args = _source(mode="RELIEF_HOLE")
     original = tuple(scene.primitives)
