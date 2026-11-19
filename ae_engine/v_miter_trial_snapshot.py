@@ -69,42 +69,74 @@ def _point_row(point) -> list[float]:
     return [_source_float(point.x), _source_float(point.y)]
 
 
-def _source_geometry_sha256(scene: DrawingScene) -> str:
-    """A deterministic fingerprint of this scene's actual physical sources.
+def _physical_sources(scene: DrawingScene) -> tuple[list, list]:
+    """Return the same ordered CUTTING/BEND records and their original owners.
 
-    Ignore DATUM/CHECK/MARKING cosmetic or test overlay entities. Preserve
-    CUTTING and BEND order: saved BEND indices cannot silently alias a
-    different source after Save->Reload. This is a drift witness, not an HMAC
-    or a manufacturing certification.
+    CHECK/DATUM/MARKING are intentionally excluded, so an operator's drawing
+    annotations cannot readdress a physical BEND after project reload.
     """
     if not isinstance(scene, DrawingScene):
         raise GeometryError("V-miter snapshot needs DrawingScene source")
-    rows = []
+    rows, physical = [], []
     for item in scene.primitives:
         if item.layer == "CUTTING":
             if not isinstance(item, PolylinePrimitive) or not isinstance(item.closed, bool):
                 raise GeometryError("V-miter snapshot CUTTING source must be a closed polyline")
             rows.append(["CUTTING", item.closed, [_point_row(p) for p in item.points]])
+            physical.append(item)
         elif item.layer == "BEND":
             if not isinstance(item, LinePrimitive):
                 raise GeometryError("V-miter snapshot BEND source must be a LinePrimitive")
             rows.append(["BEND", _point_row(item.p1), _point_row(item.p2)])
+            physical.append(item)
     if sum(row[0] == "CUTTING" for row in rows) != 1 or sum(
         row[0] == "BEND" for row in rows
     ) < 2:
         raise GeometryError("V-miter snapshot missing physical CUTTING/BEND source")
+    return rows, physical
+
+
+def _source_geometry_sha256(
+    scene: DrawingScene, *, selected_physical_indices: tuple[int, int] | None = None,
+) -> str:
+    """Source-only SHA; newly captured records additionally bind BEND roles.
+
+    Legacy V1/V2 files used SHA256(ordered physical rows) but persisted
+    ABSOLUTE scene indices, so moving a nonphysical CHECK/DATUM row could
+    silently select different BENDs. New captures hash the selected physical
+    source ordinals as well: source geometry and role ordering are both
+    invariant under cosmetic row changes. Old two-BEND files are decoded
+    unambiguously by _resolve_saved_trial_source, without upgrading status.
+    Neither digest is an HMAC or manufacturing certification.
+    """
+    rows, physical = _physical_sources(scene)
+    payload = rows
+    if selected_physical_indices is not None:
+        first, second = selected_physical_indices
+        if (type(first) is not int or type(second) is not int or
+                first == second or min(first, second) < 0 or
+                max(first, second) >= len(physical) or
+                any(not isinstance(physical[i], LinePrimitive)
+                    or physical[i].layer != "BEND" for i in (first, second))):
+            raise GeometryError("V-miter saved BEND source roles are invalid")
+        payload = {
+            "revision": "V_MITER_SELECTED_PHYSICAL_BENDS_SHA256_V1",
+            "sources": rows,
+            "selected_bend_roles": [first, second],
+        }
     encoded = json.dumps(
-        rows, ensure_ascii=False, sort_keys=True,
+        payload, ensure_ascii=False, sort_keys=True,
         allow_nan=False, separators=(",", ":"),
     ).encode("utf-8")
     return hashlib.sha256(encoded).hexdigest()
 
 
 def _owned_index(scene: DrawingScene, bend: LinePrimitive) -> int:
-    for i, item in enumerate(scene.primitives):
-        if item is bend:
+    _, physical = _physical_sources(scene)
+    for i, item in enumerate(physical):
+        if item is bend and isinstance(item, LinePrimitive) and item.layer == "BEND":
             return i
-    raise GeometryError("V-miter saved BEND must belong to original source scene")
+    raise GeometryError("V-miter saved BEND must belong to original physical source scene")
 
 
 def _validate_snapshot(
@@ -178,12 +210,16 @@ def capture_v_miter_relief_trial_snapshot(
         relief_t_factor=relief_t_factor,
     )
     q = trial.relief.source_trial.ideal.source
+    first_role = _owned_index(scene, v_edge_bend)
+    second_role = _owned_index(scene, second_bend)
     return {
         "contract": _TRIAL_CONTRACT,
         "manufacturing_status": _UNCERTIFIED,
-        "source_geometry_sha256": _source_geometry_sha256(scene),
-        "first_bend_index": _owned_index(scene, v_edge_bend),
-        "second_bend_index": _owned_index(scene, second_bend),
+        "source_geometry_sha256": _source_geometry_sha256(
+            scene, selected_physical_indices=(first_role, second_role),
+        ),
+        "first_bend_index": first_role,
+        "second_bend_index": second_role,
         "parameters": {
             "thickness_mm": q.thickness_mm,
             "first_flange_height_mm": q.first_flange_height_mm,
@@ -206,15 +242,46 @@ def _resolve_saved_trial_source(
     first_idx, second_idx, parameters = _validate_snapshot(
         snapshot, contract=contract, status=status, input_keys=input_keys,
     )
-    if snapshot["source_geometry_sha256"] != _source_geometry_sha256(scene):
+    fingerprint = snapshot["source_geometry_sha256"]
+    _, physical = _physical_sources(scene)
+    # A legacy absolute index may now address a CUTTING row (or lie past
+    # the physical-only sequence). That is not a malformed modern record;
+    # try the explicitly recognized legacy digest before deciding.
+    is_modern_role_pair = (
+        max(first_idx, second_idx) < len(physical)
+        and all(
+            isinstance(physical[i], LinePrimitive) and physical[i].layer == "BEND"
+            for i in (first_idx, second_idx)
+        )
+    )
+    modern = (
+        _source_geometry_sha256(
+            scene, selected_physical_indices=(first_idx, second_idx),
+        ) if is_modern_role_pair else None
+    )
+    if fingerprint == modern:
+        first, second = physical[first_idx], physical[second_idx]
+    elif fingerprint == _source_geometry_sha256(scene):
+        # Original V1/V2 payloads used absolute DrawingScene indices and
+        # did not bind selected role geometry. If the scene has >2 BENDs,
+        # moving/removing a CHECK row can make both old indices alias OTHER
+        # physical BEND lines while its source SHA still matches. There is
+        # no information in the legacy envelope to recover which two were
+        # originally chosen: fail closed instead of guessing from a corner.
+        bends = tuple(item for item in physical if isinstance(item, LinePrimitive))
+        if len(bends) != 2:
+            raise GeometryError(
+                "V-miter legacy saved BEND source roles are ambiguous; recapture required"
+            )
+        first, second = (
+            (bends[0], bends[1]) if first_idx < second_idx
+            else (bends[1], bends[0])
+        )
+    else:
         raise GeometryError("V-miter saved source geometry has changed since capture")
-    try:
-        first = scene.primitives[first_idx]
-        second = scene.primitives[second_idx]
-    except (IndexError, TypeError) as exc:
-        raise GeometryError("V-miter saved source BEND indices are stale") from exc
     if (not isinstance(first, LinePrimitive) or first.layer != "BEND" or
-            not isinstance(second, LinePrimitive) or second.layer != "BEND"):
+            not isinstance(second, LinePrimitive) or second.layer != "BEND" or
+            first is second):
         raise GeometryError("V-miter saved source BEND references have changed roles")
     return first, second, parameters
 
