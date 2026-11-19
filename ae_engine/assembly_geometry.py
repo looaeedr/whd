@@ -272,6 +272,116 @@ class MeshEnclosedVolumeDiagnostic:
         return bool(self.strictly_inside_points)
 
 
+
+def _convex_closed_mesh_overlap_candidate(first_mesh, second_mesh, *, tolerance):
+    """Derive a *candidate* common interior from real 3D closed-mesh planes.
+
+    Each genuine triangle plane must support ALL vertices of its own mesh
+    on one side. Only then is that component convex for this limited proof.
+    For two convex meshes, all intersections of triples of face planes
+    determine their closed polyhedral intersection. A full-dimensional
+    intersection has a strictly interior vertex barycentre. The caller
+    MUST still validate this candidate with independent strict 3D ray
+    parity against BOTH original physical meshes; a bounding box, hull
+    approximation, candidate, or boundary-only contact proves nothing.
+
+    Non-convex, near-degenerate and overly complex solids return UNKNOWN
+    here and continue using the existing source-mesh witness checks.
+    Budget limits are numerical-work limits, NOT acceptable factory gaps.
+    """
+    from itertools import combinations
+    import numpy as np
+
+    tol = float(tolerance)
+    max_planes = 24
+
+    def supporting_planes(mesh):
+        points = mesh.reshape(-1, 3)
+        rows = []
+        for tri in mesh:
+            p, q, r = tri
+            normal = np.cross(q - p, r - p)
+            magnitude = float(np.linalg.norm(normal))
+            if not np.isfinite(magnitude) or magnitude <= tol * tol:
+                return None
+            normal /= magnitude
+            offset = float(np.dot(normal, p))
+            signed = points @ normal - offset
+            high, low = float(signed.max()), float(signed.min())
+            # A triangle cutting THROUGH the mesh's own vertices cannot
+            # serve as a supporting face of a convex *closed* volume.
+            if low < -tol and high > tol:
+                return None
+            if -tol <= low and high <= tol:
+                return None
+            # Determine outward-facing normals from actual source material,
+            # independent of imported triangle winding.
+            if high > tol:
+                normal = -normal
+                offset = -offset
+            if np.any(points @ normal - offset > tol):
+                return None
+            if not any(
+                float(np.linalg.norm(normal - prior_normal)) <= 1e-10
+                and abs(offset - prior_offset) <= tol
+                for prior_normal, prior_offset in rows
+            ):
+                rows.append((normal, offset))
+                if len(rows) > max_planes:
+                    return None
+        return rows if len(rows) >= 4 else None
+
+    first_planes = supporting_planes(first_mesh)
+    second_planes = supporting_planes(second_mesh)
+    if first_planes is None or second_planes is None:
+        return None
+    rows = first_planes + second_planes
+    if len(rows) > max_planes:
+        return None
+    normals = np.stack([row[0] for row in rows], axis=0)
+    offsets = np.asarray([row[1] for row in rows], dtype=float)
+    lower = np.maximum(
+        first_mesh.min(axis=(0, 1)), second_mesh.min(axis=(0, 1))
+    )
+    upper = np.minimum(
+        first_mesh.max(axis=(0, 1)), second_mesh.max(axis=(0, 1))
+    )
+    if np.any(upper - lower <= 2 * tol):
+        return None
+
+    feasible_vertices = []
+    # A physical full-dimensional polyhedral intersection has vertices
+    # defined by three independent actual supporting planes. Enumerate
+    # these, not any guessed sampling grid or synthetic mating surface.
+    for ids in combinations(range(len(rows)), 3):
+        mat = normals[list(ids)]
+        if abs(float(np.linalg.det(mat))) <= 1e-10:
+            continue
+        try:
+            candidate = np.linalg.solve(mat, offsets[list(ids)])
+        except np.linalg.LinAlgError:
+            continue
+        if not np.isfinite(candidate).all():
+            continue
+        if np.any(candidate < lower - tol) or np.any(candidate > upper + tol):
+            continue
+        if np.all(normals @ candidate - offsets <= tol):
+            feasible_vertices.append(candidate)
+    if len(feasible_vertices) < 4:
+        return None
+    vertices = np.stack(feasible_vertices, axis=0)
+    centre = vertices.mean(axis=0)
+    # A surface-only contact polygon / common edge has zero volume. Check
+    # the 3D affine rank rather than treating an overlapping 2D face as
+    # a forbidden volume intersection.
+    singular = np.linalg.svd(vertices - centre, compute_uv=False)
+    if len(singular) != 3 or singular[-1] <= tol:
+        return None
+    if not np.isfinite(centre).all():
+        return None
+    return tuple(float(value) for value in centre)
+
+
 def detect_world_mesh_enclosed_volume_witness(
     source_triangles, target_triangles, *, tolerance=None,
 ):
@@ -286,9 +396,12 @@ def detect_world_mesh_enclosed_volume_witness(
     require strict parity *inside both solids*. Touching faces have no 3D
     AABB interior, so contact alone cannot be treated as positive overlap.
 
-    Ambiguous boundary/ray hits never become positive evidence. These remain
-    bounded deterministic positive-witness samples, NOT full collision-free
-    mathematical proof, shop clearance or factory fit acceptance.
+    Ambiguous boundary/ray hits never become positive evidence. For closed,
+    genuinely convex polyhedral meshes, a final exact supporting-plane
+    intersection candidate can expose thin shared regions missed by ALL
+    finite surface and AABB samples; it must also pass strict parity inside
+    both actual meshes. General nonconvex meshes remain finite-sample
+    diagnostics, NOT complete collision-free proof or factory fit acceptance.
     """
     from collections import Counter
     import numpy as np
@@ -428,6 +541,24 @@ def detect_world_mesh_enclosed_volume_witness(
                 return MeshEnclosedVolumeDiagnostic(
                     True, points_checked, (witness,),
                 )
+
+    # Positive common-volume witness for simple CLOSED CONVEX true-T
+    # polyhedra with a narrow overlap missed by all nine AABB candidates.
+    # The plane intersection is ONLY a candidate: ray parity against
+    # BOTH original world meshes remains mandatory. For arbitrary curved
+    # non-convex V folds no convex assumption is made, and a negative
+    # answer stays an uncertified finite diagnostic.
+    candidate = _convex_closed_mesh_overlap_candidate(
+        src, dst, tolerance=tol,
+    )
+    if candidate is not None:
+        points_checked += 1
+        if is_strictly_inside(np.asarray(candidate), src) and is_strictly_inside(
+            np.asarray(candidate), dst
+        ):
+            return MeshEnclosedVolumeDiagnostic(
+                True, points_checked, (candidate,),
+            )
     return MeshEnclosedVolumeDiagnostic(True, points_checked, ())
 
 
