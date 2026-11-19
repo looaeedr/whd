@@ -85,6 +85,8 @@ def test_true_source_r_ba_curved_shells_close_without_inventing_material(mode):
         topological_truth = diagnose_world_mesh_triangle_edge_incidence(solid)
         assert reported_edges == topological_truth.boundary_edge_count == 0
         assert reported_nonmanifold == topological_truth.nonmanifold_edge_count == 0
+        assert topological_truth.nonmanifold_vertex_count == 0
+        assert topological_truth.nonmanifold_vertex_examples_xyz == ()
         assert reported_degenerate == topological_truth.degenerate_triangle_count == 0
         assert topological_truth.edges_manifold_closed
     assert trial.formed_volume_containment_meshes_closed
