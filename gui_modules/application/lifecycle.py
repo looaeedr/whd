@@ -468,6 +468,15 @@ def _apply_phase6_project_snapshot(self, snapshot):
         manufacturing_api.normalize_operator_settings_boolean(
             snapshot["use_box_distance"]
         )
+    # Source-only, CHECK-only V2 R/BA metadata: verify its Engine contract
+    # before resetting any GUI/project session. No 2D/3D manufacturing
+    # geometry is decoded or created by the UI.
+    v_miter_source = manufacturing_api.project_operator_v_miter_radius_ba_preview_source(
+        snapshot or {}
+    )
+    # Replace the previous project preview BEFORE any geometry refresh can
+    # resave/reuse stale source; the above preflight has not mutated state.
+    self._v_miter_radius_ba_trial_preview = v_miter_source
     self.workspace_controller.reset_receiving_mode_session()
     self._reset_manual_corner_parameter_locks()
     snapshot = deepcopy(dict(snapshot or {}))
@@ -643,6 +652,18 @@ def _compose_phase6_project_snapshot_from_main_gui(self):
     """從目前主 GUI 狀態建立唯一 canonical committed snapshot。"""
     snapshot = self._make_original_fold_designer_snapshot()
     snapshot.pop("_runtime_project_path", None)
+    saved_r_ba_source = getattr(
+        self, "_v_miter_radius_ba_trial_preview", None
+    )
+    if saved_r_ba_source is not None:
+        # The current GUI does not own these measured parameters or the
+        # DXF source scene. Preserve only the already-validated operator
+        # source envelope; replay later verifies real CUTTING/BEND SHA.
+        snapshot["v_miter_radius_ba_trial_preview"] = (
+            manufacturing_api.project_operator_v_miter_radius_ba_preview_source({
+                "v_miter_radius_ba_trial_preview": saved_r_ba_source,
+            })
+        )
     snapshot = _merge_live_receiving_candidate_libraries(self, snapshot)
     workspace_state = self.workspace_controller.workspace_snapshot()
     workspace = {

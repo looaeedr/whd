@@ -188,6 +188,97 @@ def test_measured_r_ba_v2_p6fold_replays_same_physical_3d_and_check_dxf(
     assert tuple(scene.primitives) == before
 
 
+def test_main_gui_committed_resave_preserves_existing_v2_r_ba_source_without_geometry(
+    tmp_path,
+):
+    """Actual GUI project-composition path must not drop checked R/BA inputs."""
+    from math import pi
+    from types import SimpleNamespace
+    from gui_modules.application import lifecycle as gui
+
+    scene, first, second, source = _scene()
+    measured = {
+        "first_inner_radius_mm": .5,
+        "second_inner_radius_mm": .5,
+        "first_bend_allowance_mm": (pi / 2) * (0.5 + .4 * 2),
+        "second_bend_allowance_mm": (pi / 2) * (0.5 + .4 * 2),
+        "max_permitted_edge_trim_mm": 12,
+    }
+    captured = manufacturing_api.capture_v_miter_radius_ba_trial_snapshot(
+        scene, first, second, **source, **measured,
+    )
+    saved_metadata = manufacturing_api.project_operator_v_miter_radius_ba_preview_source({
+        "v_miter_radius_ba_trial_preview": captured,
+    })
+    assert saved_metadata == captured
+    assert saved_metadata is not captured
+    assert saved_metadata["parameters"] is not captured["parameters"]
+
+    host = SimpleNamespace(
+        _v_miter_radius_ba_trial_preview=saved_metadata,
+        _make_original_fold_designer_snapshot=lambda: {
+            "model": "金庫型", "w": 800, "h": 1600, "d": 350,
+            "t": 2, "box_body_profile": [{"phase6_key": "zr1", "len": 25}],
+        },
+        workspace_controller=SimpleNamespace(
+            workspace_snapshot=lambda: {
+                "existing_parts": [], "active_part": None,
+                "part_profiles": {}, "box_body_structure": {},
+            },
+        ),
+        endcap_fw_state={},
+        endcap_bottom_wrap_state={},
+    )
+    composed = gui._compose_phase6_project_snapshot_from_main_gui(host)
+    assert composed["v_miter_radius_ba_trial_preview"] == captured
+    assert composed["v_miter_radius_ba_trial_preview"] is not captured
+
+    # Main GUI's actual phase6_file writer and independent read codec.
+    path = write_project(tmp_path / "gui_v_miter_resaved.p6fold", {
+        "schema": PROJECT_SCHEMA_V1, "snapshot": composed,
+    })
+    reopened = read_project(path)["snapshot"]
+    assert reopened["v_miter_radius_ba_trial_preview"] == captured
+    true_replay = manufacturing_api.replay_v_miter_radius_ba_trial_snapshot(
+        _new_scene_with_same_saved_physical_geometry(scene),
+        reopened["v_miter_radius_ba_trial_preview"],
+    )
+    assert true_replay.formed_volume_containment_meshes_closed
+    assert true_replay.manufacturing_status.endswith("UNCERTIFIED")
+
+    # Opening another project without saved R/BA is not permission to
+    # accidentally carry the previous project's orphaned trial source.
+    host._v_miter_radius_ba_trial_preview = manufacturing_api.project_operator_v_miter_radius_ba_preview_source({})
+    missing = gui._compose_phase6_project_snapshot_from_main_gui(host)
+    assert "v_miter_radius_ba_trial_preview" not in missing
+
+
+def test_main_gui_open_preflights_forged_v2_before_reset_and_does_not_lose_old_state():
+    from types import SimpleNamespace
+    from gui_modules.application import lifecycle as gui
+
+    events = []
+    host = SimpleNamespace(
+        _v_miter_radius_ba_trial_preview={"prior": "owned"},
+        workspace_controller=SimpleNamespace(
+            reset_receiving_mode_session=lambda: events.append("reset"),
+        ),
+        _reset_manual_corner_parameter_locks=lambda: events.append("corner_reset"),
+    )
+    corrupt = {
+        "model": "金庫型",
+        "v_miter_radius_ba_trial_preview": {
+            "contract": "V_MITER_RADIUS_BA_SOURCE_V2",
+            "manufacturing_status": "CERTIFIED",
+            "parameters": {},
+        },
+    }
+    with pytest.raises(GeometryError, match="saved trial"):
+        gui._apply_phase6_project_snapshot(host, corrupt)
+    assert events == []
+    assert host._v_miter_radius_ba_trial_preview == {"prior": "owned"}
+
+
 def test_measured_r_ba_saved_source_rejects_stale_or_forged_inputs():
     from math import radians, pi
 
