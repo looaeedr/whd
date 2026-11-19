@@ -54,6 +54,7 @@ def trace_v_miter_source_true_t_cut_faces(
     physical_thick_solid_triangles,
     *,
     thickness_mm: float,
+    physical_vertex_offsets=None,
 ) -> VMiterSourceCutFaceTrial:
     """Select only real new V-cut boundary sidewall triangles, not all faces.
 
@@ -105,9 +106,13 @@ def trace_v_miter_source_true_t_cut_faces(
         raise GeometryError("V-miter source cut-face lacks paired 2D/3D/true-T mesh")
     edges = defaultdict(list)
     # Use the exact shared vertex offsets applied by the source R/BA curved
-    # T-shell builder. Recomputing a separate face normal here would invent
-    # a sidewall which does not exist in the physical mesh.
-    vertex_offsets = smoothed_surface_vertex_offsets(formed, t, tolerance=tol)
+    # T-shell builder: now the measured cylindrical R/BA radial offsets,
+    # not triangulation-area-averaged face normals. A second independent
+    # sidewall formula could invent faces absent from the true physical T.
+    vertex_offsets = (
+        physical_vertex_offsets if physical_vertex_offsets is not None else
+        smoothed_surface_vertex_offsets(formed, t, tolerance=tol)
+    )
 
     def pair_point(a, name, dimension):
         try:
