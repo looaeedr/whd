@@ -39,6 +39,26 @@ def _analyze(first, second):
     )
 
 
+def test_mesh_vertex_roundoff_is_not_untracked_material_but_real_event_is_rejected():
+    from ae_engine.v_miter_cut_face_continuity_trial import (
+        _section_transverse_speed_bound,
+    )
+    wall = _wall(0, 5, 10)
+    # Projection stored as a source fraction and multiplied back to mm
+    # may differ from 5mm by floating arithmetic alone. No material is
+    # added, and the same genuine triangle still spans this interval.
+    lo = (5 / 7) * 7
+    assert _section_transverse_speed_bound(
+        wall, (0, 0, 0), (0, 0, 1), lo, 10,
+    ) is not None
+    # A genuine vertex at 5mm cannot be ignored by an asserted 4..10
+    # geometry interval (with the midpoint inside the triangle).
+    with pytest.raises(GeometryError, match="untracked mesh vertex"):
+        _section_transverse_speed_bound(
+            wall, (0, 0, 0), (0, 0, 1), 4, 10,
+        )
+
+
 def test_short_real_cut_face_material_break_between_seven_legacy_stations():
     first = _wall(0, 0, 10)
     second = _wall(2, 0, 5.2) + _wall(2, 5.4, 10)
