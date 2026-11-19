@@ -490,6 +490,9 @@ def test_real_open_true_T_volume_is_explicitly_unknown_in_source_CHECK(monkeypat
     assert trial.true_t_volume_check_status == (
         "V_MITER_TRUE_T_VOLUME_UNKNOWN_OPEN_MESH_UNCERTIFIED"
     )
+    # The mocked parity result is UNKNOWN independently of the *actual*
+    # topology: the repaired R/BA source now yields a closed physical shell.
+    # Never fabricate open edges just to agree with a parity failure.
     assert (
         trial.first_thick_solid_boundary_edge_count
         + trial.second_thick_solid_boundary_edge_count
@@ -497,7 +500,7 @@ def test_real_open_true_T_volume_is_explicitly_unknown_in_source_CHECK(monkeypat
         + trial.second_thick_solid_nonmanifold_edge_count
         + trial.first_thick_solid_degenerate_triangle_count
         + trial.second_thick_solid_degenerate_triangle_count
-    ) > 0
+    ) == 0
     assert len(trial.first_thick_solid_boundary_edge_examples_xyz) <= 8
     assert len(trial.second_thick_solid_boundary_edge_examples_xyz) <= 8
     assert trial.manufacturing_status.endswith("UNCERTIFIED")
