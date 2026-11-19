@@ -322,18 +322,25 @@ def diagnose_v_miter_physical_crease_after_relief(
         source_covered = bool(
             real_overlaps and missing.difference(unary_union(real_overlaps)).is_empty
         )
-        # Count exactly how much of the demanded crease occupies actual
-        # remaining material INTERIOR, excluding boundary-coincident lines.
-        # Endpoint touches are fine; any positive-length overlap with the
-        # new cutting perimeter is NOT foldable full-width material.
+        # R-arc polygonalization can leave a theoretical straight tangent
+        # CUTTING edge ~1e-15mm off its exact BEND ordinate. GEOS then says
+        # two physically coincident lines have ZERO exact overlap and may
+        # falsely classify the whole crease as interior stock. Use only the
+        # existing 1e-7mm *numerical geometry* tolerance to FAIL CLOSED for
+        # any near-boundary interval; this is NOT a new shop gap allowance,
+        # bend width, kerf or permission to adjust a manufactured outline.
+        boundary_neighborhood = remaining.boundary.buffer(1e-7)
         surviving = missing.intersection(remaining)
-        interior = float(surviving.difference(remaining.boundary).length)
-        if not math.isfinite(interior) or interior < 0 or interior > missing.length + 1e-7:
+        interior = float(surviving.difference(boundary_neighborhood).length)
+        near_cut_edge = float(missing.intersection(boundary_neighborhood).length)
+        if (not math.isfinite(interior) or interior < 0
+                or interior > missing.length + 1e-7
+                or not math.isfinite(near_cut_edge)):
             raise GeometryError("V-miter post-relief crease interval length is invalid")
         interior_full = bool(
             remaining.covers(missing)
             and remaining.contains(missing.interpolate(0.5, normalized=True))
-            and missing.intersection(remaining.boundary).length == 0.0
+            and near_cut_edge == 0.0
         )
         return source_covered, interior_full, interior
 
