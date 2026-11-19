@@ -146,11 +146,11 @@ def test_120_real_crease_extension_v2_saved_rba_replays_same_2d_3d_and_check_dxf
         "DATUM", "CHECK", "DATUM", "DATUM",
     ]
     assert not any(x.dxf.layer in {"CUTTING", "BEND", "MARKING"} for x in reopened)
-    assert tuple(
-        (p.x, p.y) for p in preview.primitives[1].points
-    ) == pytest.approx(tuple(
-        (x, y) for x, y in reopened[1].get_points("xy")
-    ))
+    expected = tuple((p.x, p.y) for p in preview.primitives[1].points)
+    actual = tuple((x, y) for x, y in reopened[1].get_points("xy"))
+    assert len(actual) == len(expected)
+    for got, wanted in zip(actual, expected):
+        assert got == pytest.approx(wanted)
     assert [r.layer for r in rebuilt.primitives] == [
         "CUTTING", "BEND", "BEND", "BEND",
     ]
