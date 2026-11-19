@@ -20,6 +20,7 @@ from collections.abc import Mapping
 from .sheetmetal_drawing import DrawingScene, LinePrimitive, PolylinePrimitive
 from .sheetmetal_geometry_core import GeometryError
 from .v_miter_corner_source import VMiterReliefMode
+from .v_miter_bend_marking import project_v_miter_bend_markings
 from .v_miter_true_t_collision import (
     VMiterTrueThicknessCollisionShadow,
     diagnose_v_miter_true_thickness_collision,
@@ -229,14 +230,46 @@ def replay_v_miter_relief_trial_snapshot(
     )
 
 
+def _append_saved_bend_alignment_check(
+    preview: DrawingScene,
+    first: LinePrimitive,
+    second: LinePrimitive,
+    *,
+    include_alignment_check: bool,
+) -> DrawingScene:
+    """Opt-in press-brake alignment *visualization*, NOT a MARKING toolpath.
+
+    Uses only the existing Engine 20-mm stroke / 50-mm blank-gap rule and
+    actual SHA-replayed BEND sources. Re-layering the marks to CHECK is
+    intentional: no engraving or CUTTING can be released from a V trial.
+    """
+    if type(include_alignment_check) is not bool:
+        raise GeometryError("V-miter CHECK alignment flag must be bool")
+    if not include_alignment_check:
+        return preview
+    result = DrawingScene(list(preview.primitives))
+    for bend in (first, second):
+        for stroke in project_v_miter_bend_markings(bend):
+            result.add(LinePrimitive(
+                stroke.p1, stroke.p2, layer="CHECK", color=211,
+            ))
+    return result
+
+
 def build_saved_v_miter_relief_trial_check_scene(
     scene: DrawingScene,
     snapshot: Mapping,
+    *,
+    include_alignment_check: bool = False,
 ) -> DrawingScene:
-    """A saved trial may only recreate CHECK/DATUM, never manufacturing DXF."""
+    """Saved V1 source recreates CHECK/DATUM and optional CHECK alignment."""
     first, second, parameters = _resolve_saved_trial_source(scene, snapshot)
-    return build_v_miter_relief_trial_check_scene(
+    preview = build_v_miter_relief_trial_check_scene(
         scene, first, second, **parameters,
+    )
+    return _append_saved_bend_alignment_check(
+        preview, first, second,
+        include_alignment_check=include_alignment_check,
     )
 
 
@@ -401,15 +434,21 @@ def replay_v_miter_radius_ba_trial_snapshot(
 
 def build_saved_v_miter_radius_ba_check_scene(
     scene: DrawingScene, snapshot: Mapping,
+    *,
+    include_alignment_check: bool = False,
 ) -> DrawingScene:
-    """Recreate only CHECK/DATUM 2D from the original source R/BA trial.
+    """Recreate V2 CHECK-only 2D with optional real-BEND alignment CHECK.
 
-    Do not substitute this preview for a fifth manufacturing CornerType
-    or include CUTTING/BEND/MARKING production layers in the output.
+    The additional strokes are never MARKING layer entities and cannot
+    release fifth-type CUTTING/BEND/MARKING manufacture or certify R/BA.
     """
     first, second, parameters = _resolve_saved_r_ba_trial_source(
         scene, snapshot,
     )
-    return build_v_miter_radius_ba_full_sheet_check_scene(
+    preview = build_v_miter_radius_ba_full_sheet_check_scene(
         scene, first, second, **parameters,
+    )
+    return _append_saved_bend_alignment_check(
+        preview, first, second,
+        include_alignment_check=include_alignment_check,
     )
