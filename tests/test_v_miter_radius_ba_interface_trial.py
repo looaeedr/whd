@@ -65,6 +65,50 @@ def test_v_miter_true_source_self_intersection_gate_retains_valid_check(monkeypa
     assert result.formed_volume_containment_meshes_closed
 
 
+def test_measured_cylindrical_radials_do_not_depend_on_skin_triangle_aspect_ratio():
+    from shapely.geometry import box
+    from ae_engine.assembly_geometry import (
+        diagnose_world_mesh_triangle_edge_incidence,
+        diagnose_world_mesh_self_intersections,
+    )
+    from ae_engine.assembly_geometry_primitives import thicken_triangle_surface
+    from ae_engine.v_miter_radius_ba_interface_trial import (
+        _formed_curved_skin, _measured_cylindrical_half_t_offsets,
+    )
+    from ae_engine.contracts import PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES
+
+    t, r, theta = 2.0, 0.5, math.pi / 2
+    ba = theta * (r + .4 * t)
+    apex = Vec2(0, 0)
+    outside = (0.0, 1.0, 0.0)
+    skin, flat = _formed_curved_skin(
+        box(0, 0, 100, 20), apex,
+        (1.0, 0.0, 0.0), outside,
+        angle_rad=theta, inner_r=r,
+        allowance=ba, thickness=t,
+        axial_span=100, flange_height=20,
+        return_flat_pairs=True,
+    )
+    radial = _measured_cylindrical_half_t_offsets(
+        flat, skin, apex=apex, outside=outside,
+        angle_rad=theta, allowance=ba, thickness=t,
+    )
+    tol = PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES.boundary_separation_tolerance
+    for row_flat, row_world in zip(flat, skin):
+        for (_, u), point in zip(row_flat, row_world):
+            key = tuple(int(round(float(v) / tol)) for v in point)
+            phi = min(theta, max(0.0, u / (ba / theta)))
+            assert radial[key] == pytest.approx(
+                (0, -math.sin(phi), math.cos(phi)), abs=1e-7,
+            )
+    solid = thicken_triangle_surface(
+        skin, t, smooth_vertex_normals=True,
+        physical_vertex_offsets=radial,
+    )
+    assert diagnose_world_mesh_triangle_edge_incidence(solid).edges_manifold_closed
+    assert diagnose_world_mesh_self_intersections(solid).permits_strict_volume_sampling
+
+
 def test_opt_in_smooth_r_ba_thickening_closes_shared_physical_hinge_vertices():
     from ae_engine.assembly_geometry import diagnose_world_mesh_triangle_edge_incidence
     from ae_engine.assembly_geometry_primitives import thicken_triangle_surface
