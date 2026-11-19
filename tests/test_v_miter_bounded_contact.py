@@ -156,6 +156,144 @@ def test_original_stock_crease_witness_never_infers_cutting_or_fake_bend_ownersh
         )
 
 
+def _v_source_with_actual_cut(angle, *, first_span=100, mirror=False):
+    """Original CUTTING from the same ideal two-fold source (not a fake notch)."""
+    _, first, second = _geometry(mirror=mirror, first_length=first_span)
+    p = _params(second_fold_angle_deg=angle, relief_t_factor=1.5)
+    ideal = manufacturing_api.project_ideal_v_miter_mating_candidate(
+        DrawingScene([first, second]), first, second, **p,
+    )
+    a, b = ideal.first_flat_miter_ray[1], ideal.second_flat_miter_ray[1]
+    # This is an operator-authored source rectangle that actually has
+    # both required V leg tips on its original real CUTTING boundary.
+    if mirror:
+        points = (
+            Vec2(100, a.y), Vec2(b.x, a.y),
+            Vec2(b.x, 100), Vec2(100, 100),
+        )
+    else:
+        points = (
+            Vec2(-100, a.y), Vec2(b.x, a.y),
+            Vec2(b.x, 100), Vec2(-100, 100),
+        )
+    cut = PolylinePrimitive(points, "CUTTING", closed=True)
+    return DrawingScene([cut, first, second]), first, second, p
+
+
+@pytest.mark.parametrize("mode", ("ROUND_R", "RELIEF_HOLE"))
+@pytest.mark.parametrize("mirror", (False, True))
+def test_60_degree_genuine_extension_is_not_foldable_after_v_relief(mode, mirror):
+    """A REAL extra BEND + original material still cannot fold removed V metal."""
+    scene, first, second, p = _v_source_with_actual_cut(60, mirror=mirror)
+    p["relief_mode"] = mode
+    sign = -1 if mirror else 1
+    extra = LinePrimitive(Vec2(0, 0), Vec2(sign * 20, 0), "BEND")
+    scene.primitives.append(extra)
+    before = list(scene.primitives)
+    result = manufacturing_api.diagnose_v_miter_physical_crease_after_relief(
+        scene, first, second, **p,
+    )
+    assert result.manufacturing_status == "V_MITER_POST_RELIEF_CREASE_UNCERTIFIED"
+    assert result.original_stock.first_original_stock_covers_extension is True
+    assert result.first_original_bend_continuation_covers is True
+    assert result.first_remaining_material_interior_covers is False
+    assert result.first_remaining_interior_crease_length_mm < (
+        result.original_stock.bounded.first_outside_bend_span_mm
+    )
+    assert result.second_original_bend_continuation_covers is None
+    assert result.second_remaining_material_interior_covers is None
+    assert result.second_remaining_interior_crease_length_mm is None
+    assert scene.primitives == before
+    # Positive source-crease witness never bypasses true R/BA/T guards.
+    with pytest.raises(GeometryError, match="material extension unverified"):
+        manufacturing_api.project_v_miter_sharp_thickness_witness(
+            scene, first, second, **p,
+        )
+
+
+@pytest.mark.parametrize("mode", ("ROUND_R", "RELIEF_HOLE"))
+def test_120_degree_short_crease_can_have_real_source_and_surviving_material(mode):
+    """Distinguish genuine negative-axial BEND reach from a 60° V-boundary."""
+    scene, first, second, p = _v_source_with_actual_cut(120, first_span=5)
+    p["relief_mode"] = mode
+    scene.primitives.append(
+        LinePrimitive(Vec2(-5, 0), Vec2(-20, 0), "BEND")
+    )
+    result = manufacturing_api.diagnose_v_miter_physical_crease_after_relief(
+        scene, first, second, **p,
+    )
+    assert result.original_stock.bounded.first_outside_bend_span_mm == pytest.approx(
+        20 / math.sqrt(3) - 5
+    )
+    assert result.first_original_bend_continuation_covers is True
+    assert result.first_remaining_material_interior_covers is True
+    assert result.first_remaining_interior_crease_length_mm == pytest.approx(
+        result.original_stock.bounded.first_outside_bend_span_mm
+    )
+    assert result.manufacturing_status.endswith("UNCERTIFIED")
+
+
+@pytest.mark.parametrize("coverage", ("none", "partial", "gap", "reversed", "cross"))
+def test_fold_extension_requires_contiguous_source_bend_not_intersection(coverage):
+    """No generated/material/virtual BEND can bridge a missing physical segment."""
+    scene, first, second, p = _v_source_with_actual_cut(60)
+    if coverage == "partial":
+        added = [LinePrimitive(Vec2(0, 0), Vec2(5, 0), "BEND")]
+    elif coverage == "gap":
+        added = [
+            LinePrimitive(Vec2(0, 0), Vec2(5, 0), "BEND"),
+            LinePrimitive(Vec2(6, 0), Vec2(20, 0), "BEND"),
+        ]
+    elif coverage == "reversed":
+        added = [LinePrimitive(Vec2(20, 0), Vec2(0, 0), "BEND")]
+    elif coverage == "cross":
+        added = [
+            LinePrimitive(Vec2(6, -5), Vec2(6, 5), "BEND"),
+            LinePrimitive(Vec2(0, 0.1), Vec2(20, 0.1), "BEND"),
+        ]
+    else:
+        added = []
+    scene.primitives.extend(added)
+    result = manufacturing_api.diagnose_v_miter_physical_crease_after_relief(
+        scene, first, second, **p,
+    )
+    assert result.first_original_bend_continuation_covers is (coverage == "reversed")
+    # Post-CUTTING is independently false regardless of extra source lines.
+    assert result.first_remaining_material_interior_covers is False
+    assert result.first_original_bend_continuation_covers is not None
+
+
+def test_without_overrun_returns_no_virtual_extension_evidence():
+    scene, first, second, p = _v_source_with_actual_cut(90)
+    result = manufacturing_api.diagnose_v_miter_physical_crease_after_relief(
+        scene, first, second, **p,
+    )
+    assert result.original_stock.bounded.needs_independent_material_extension_evidence is False
+    assert result.first_original_bend_continuation_covers is None
+    assert result.second_original_bend_continuation_covers is None
+    assert result.first_remaining_material_interior_covers is None
+    assert result.second_remaining_material_interior_covers is None
+
+
+def test_survival_witness_refuses_unqualified_source_and_missing_explicit_r_factor():
+    scene, first, second, p = _v_source_with_actual_cut(60)
+    missing = dict(p, relief_t_factor=None)
+    with pytest.raises(GeometryError, match="explicit trial factor"):
+        manufacturing_api.diagnose_v_miter_physical_crease_after_relief(
+            scene, first, second, **missing,
+        )
+    fake = LinePrimitive(first.p1, first.p2, "BEND")
+    with pytest.raises(GeometryError, match="original scene"):
+        manufacturing_api.diagnose_v_miter_physical_crease_after_relief(
+            scene, fake, second, **p,
+        )
+    cuts_only = DrawingScene([first, second])
+    with pytest.raises(GeometryError, match="one canonical closed CUTTING"):
+        manufacturing_api.diagnose_v_miter_physical_crease_after_relief(
+            cuts_only, first, second, **p,
+        )
+
+
 @pytest.mark.parametrize("angle", (90, 120))
 @pytest.mark.parametrize("mode", ("ROUND_R", "RELIEF_HOLE"))
 def test_bounded_finite_thickness_bisector_is_local_not_certified_cutting(angle, mode):
