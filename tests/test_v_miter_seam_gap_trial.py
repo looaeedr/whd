@@ -95,11 +95,36 @@ def test_absent_section_is_unknown_not_zero_or_infinite_gap():
     (((0, 0, float("nan")), (1, 0, 0), (0, 1, 0)),),
     (((0, 0, 0), (True, 0, 0), (0, 1, 0)),),
     (((0, 0, 0), (1, 0, 0)),),
+    # Three finite points can still have NO physical triangle area.
+    (((0, 0, 5), (1, 0, 5), (2, 0, 5)),),
+    (((0, 0, 0), (1, 0, 5), (2, 0, 10)),),
+    (((0, 0, 0), (0, 0, 0), (1, 0, 10)),),
 ))
 def test_invalid_true_solid_mesh_is_rejected_not_passed_as_missing(bad):
     first = _box((0, 0, 0), (1, 1, 10))
     with pytest.raises(GeometryError, match="seam-section"):
         _probe(first, bad)
+
+
+def test_zero_area_line_at_real_middle_station_is_not_a_physical_contact_face():
+    """A z=5 source line is not a T-thick triangle just because it intersects
+    a section plane along a segment. Do not report a fake 0-mm mating gap.
+    """
+    genuine = _box((0, 0, 0), (1, 1, 10))
+    fake_cut_face = (((0, 0, 5), (1, 0, 5), (2, 0, 5)),)
+    with pytest.raises(GeometryError, match="zero or invalid area"):
+        _probe(genuine, fake_cut_face)
+
+
+def test_real_positive_area_triangle_is_still_valid_3d_seam_source():
+    """Reject only missing physical faces, not genuine arbitrary-angle mesh."""
+    actual = (((0, 0, 0), (1, 0, 5), (0, 1, 10)),)
+    other = _box((2, 0, 0), (3, 1, 10))
+    observed = _probe(actual, other)
+    assert observed.manufacturing_status.endswith("UNCERTIFIED")
+    # One real triangle need not extend into every station: absence is
+    # UNKNOWN rather than inventing seam material or a zero-mm gap.
+    assert observed.measured_section_count + observed.missing_section_count == 7
 
 
 def test_zero_length_or_nonfinite_source_seam_is_rejected():
