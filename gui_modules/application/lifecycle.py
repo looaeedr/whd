@@ -468,15 +468,19 @@ def _apply_phase6_project_snapshot(self, snapshot):
         manufacturing_api.normalize_operator_settings_boolean(
             snapshot["use_box_distance"]
         )
-    # Source-only, CHECK-only V2 R/BA metadata: verify its Engine contract
-    # before resetting any GUI/project session. No 2D/3D manufacturing
-    # geometry is decoded or created by the UI.
-    v_miter_source = manufacturing_api.project_operator_v_miter_radius_ba_preview_source(
+    # Source-only CHECK snapshots V1 and V2: validate BOTH Engine contracts
+    # before resetting the previous GUI/project session. No preview can
+    # authorize any CUTTING/BEND/MARKING or provide GUI-owned geometry.
+    v_miter_v1 = manufacturing_api.project_operator_v_miter_relief_preview_source(
         snapshot or {}
     )
-    # Replace the previous project preview BEFORE any geometry refresh can
-    # resave/reuse stale source; the above preflight has not mutated state.
-    self._v_miter_radius_ba_trial_preview = v_miter_source
+    v_miter_v2 = manufacturing_api.project_operator_v_miter_radius_ba_preview_source(
+        snapshot or {}
+    )
+    # Switching projects must drop both previous sources; preflight failure
+    # above must leave BOTH old records and session unchanged.
+    self._v_miter_relief_trial_preview = v_miter_v1
+    self._v_miter_radius_ba_trial_preview = v_miter_v2
     self.workspace_controller.reset_receiving_mode_session()
     self._reset_manual_corner_parameter_locks()
     snapshot = deepcopy(dict(snapshot or {}))
@@ -652,6 +656,14 @@ def _compose_phase6_project_snapshot_from_main_gui(self):
     """從目前主 GUI 狀態建立唯一 canonical committed snapshot。"""
     snapshot = self._make_original_fold_designer_snapshot()
     snapshot.pop("_runtime_project_path", None)
+    saved_v1_source = getattr(self, "_v_miter_relief_trial_preview", None)
+    if saved_v1_source is not None:
+        # Preserve the original V1 operator inputs, not computed 2D/3D.
+        snapshot["v_miter_trial_preview"] = (
+            manufacturing_api.project_operator_v_miter_relief_preview_source({
+                "v_miter_trial_preview": saved_v1_source,
+            })
+        )
     saved_r_ba_source = getattr(
         self, "_v_miter_radius_ba_trial_preview", None
     )

@@ -188,6 +188,187 @@ def test_measured_r_ba_v2_p6fold_replays_same_physical_3d_and_check_dxf(
     assert tuple(scene.primitives) == before
 
 
+
+@pytest.mark.parametrize("family", ("金庫型", "受電箱"))
+@pytest.mark.parametrize("mode", ("ROUND_R", "RELIEF_HOLE"))
+@pytest.mark.parametrize("angle", (90, 120))
+def test_main_gui_open_save_preserves_legacy_v1_true_source_and_check_only_dxf(
+    tmp_path, family, mode, angle,
+):
+    """A V1 .p6fold must not lose its R/hole trial at main-GUI re-save."""
+    from types import SimpleNamespace
+    from ae_engine.receiving_layout import new_receiving_layout
+    from gui_modules.application import lifecycle as gui
+
+    scene, first, second, params = _scene(angle)
+    params["relief_mode"] = mode
+    captured = manufacturing_api.capture_v_miter_relief_trial_snapshot(
+        scene, first, second, **params,
+    )
+    original = manufacturing_api.replay_v_miter_true_thickness_collision_snapshot(
+        scene, captured,
+    )
+    data = {
+        "model": family, "w": 800, "h": 1600, "d": 350, "t": 2,
+        "v_miter_trial_preview": captured,
+    }
+    if family == "受電箱":
+        data["active_mode"] = "set_bay"
+        data["receiving_layout"] = new_receiving_layout(
+            width=800, height=1600, depth=350,
+        )
+    source_path = write_project(tmp_path / "source_v1.p6fold", {
+        "schema": PROJECT_SCHEMA_V1, "snapshot": data,
+    })
+    opened = read_project(source_path)["snapshot"]
+    preview = manufacturing_api.project_operator_v_miter_relief_preview_source(
+        opened,
+    )
+    assert preview == captured
+    assert preview is not captured
+    assert preview["parameters"] is not captured["parameters"]
+
+    host = SimpleNamespace(
+        _v_miter_relief_trial_preview=preview,
+        _v_miter_radius_ba_trial_preview=None,
+        _make_original_fold_designer_snapshot=lambda: {
+            key: value for key, value in opened.items()
+            if key != "v_miter_trial_preview"
+        },
+        workspace_controller=SimpleNamespace(
+            workspace_snapshot=lambda: {
+                "existing_parts": [], "active_part": None,
+                "part_profiles": {}, "box_body_structure": {},
+            },
+        ),
+        endcap_fw_state={},
+        endcap_bottom_wrap_state={},
+    )
+    composed = gui._compose_phase6_project_snapshot_from_main_gui(host)
+    assert composed["v_miter_trial_preview"] == captured
+    assert composed["v_miter_trial_preview"] is not captured
+    assert "v_miter_radius_ba_trial_preview" not in composed
+    resaved = write_project(tmp_path / "main_gui_resaved_v1.p6fold", {
+        "schema": PROJECT_SCHEMA_V1, "snapshot": composed,
+    })
+    reopened = read_project(resaved)["snapshot"]
+    assert reopened["v_miter_trial_preview"] == captured
+
+    detached_scene = _new_scene_with_same_saved_physical_geometry(scene)
+    restored = manufacturing_api.replay_v_miter_true_thickness_collision_snapshot(
+        detached_scene, reopened["v_miter_trial_preview"],
+    )
+    assert restored.first_thick_solid_triangles == original.first_thick_solid_triangles
+    assert restored.second_thick_solid_triangles == original.second_thick_solid_triangles
+    check = manufacturing_api.build_saved_v_miter_relief_trial_check_scene(
+        detached_scene, reopened["v_miter_trial_preview"],
+    )
+    output = tmp_path / "v1_gui_resaved_check.dxf"
+    save_scene_dxf(output, check)
+    assert [row.dxf.layer for row in ezdxf.readfile(output).modelspace()] == [
+        "DATUM", "CHECK", "DATUM", "DATUM",
+    ]
+    assert check.primitives[1].points == restored.mating.relief.trial_remaining_outline
+
+    # The next project has no V1: the previous source must not reappear.
+    host._v_miter_relief_trial_preview = (
+        manufacturing_api.project_operator_v_miter_relief_preview_source({})
+    )
+    missing = gui._compose_phase6_project_snapshot_from_main_gui(host)
+    assert "v_miter_trial_preview" not in missing
+
+
+@pytest.mark.parametrize("field,invalid", (
+    ("thickness_mm", True),
+    ("first_flange_height_mm", "20"),
+    ("second_flange_height_mm", float("nan")),
+    ("second_fold_angle_deg", 180),
+    ("second_fold_angle_deg", False),
+    ("relief_t_factor", None),
+    ("relief_t_factor", float("inf")),
+    ("relief_mode", "CERTIFIED"),
+))
+def test_legacy_v1_gui_open_rejects_corrupt_source_before_any_session_reset(
+    field, invalid,
+):
+    from types import SimpleNamespace
+    from gui_modules.application import lifecycle as gui
+
+    scene, first, second, params = _scene()
+    saved = manufacturing_api.capture_v_miter_relief_trial_snapshot(
+        scene, first, second, **params,
+    )
+    bad = deepcopy(saved)
+    bad["parameters"][field] = invalid
+    events = []
+    host = SimpleNamespace(
+        _v_miter_relief_trial_preview={"previous": "V1"},
+        _v_miter_radius_ba_trial_preview={"previous": "V2"},
+        workspace_controller=SimpleNamespace(
+            reset_receiving_mode_session=lambda: events.append("reset"),
+        ),
+        _reset_manual_corner_parameter_locks=lambda: events.append("corners"),
+    )
+    with pytest.raises(GeometryError, match="V-miter saved physical source"):
+        manufacturing_api.project_operator_v_miter_relief_preview_source({
+            "v_miter_trial_preview": bad,
+        })
+    with pytest.raises(GeometryError, match="V-miter saved physical source"):
+        gui._apply_phase6_project_snapshot(host, {
+            "model": "金庫型", "v_miter_trial_preview": bad,
+        })
+    assert events == []
+    assert host._v_miter_relief_trial_preview == {"previous": "V1"}
+    assert host._v_miter_radius_ba_trial_preview == {"previous": "V2"}
+
+
+def test_v1_v2_check_metadata_both_survive_main_gui_composition_independently(
+    tmp_path,
+):
+    """Different CHECK revisions can be stored without overwriting one another."""
+    from math import pi
+    from types import SimpleNamespace
+    from gui_modules.application import lifecycle as gui
+
+    scene, first, second, params = _scene()
+    first_source = manufacturing_api.capture_v_miter_relief_trial_snapshot(
+        scene, first, second, **params,
+    )
+    second_source = manufacturing_api.capture_v_miter_radius_ba_trial_snapshot(
+        scene, first, second, **params,
+        first_inner_radius_mm=.5, second_inner_radius_mm=.5,
+        first_bend_allowance_mm=(pi / 2) * (0.5 + .4 * 2),
+        second_bend_allowance_mm=(pi / 2) * (0.5 + .4 * 2),
+        max_permitted_edge_trim_mm=12,
+    )
+    host = SimpleNamespace(
+        _v_miter_relief_trial_preview=first_source,
+        _v_miter_radius_ba_trial_preview=second_source,
+        _make_original_fold_designer_snapshot=lambda: {
+            "model": "金庫型", "w": 800, "h": 1600, "d": 350, "t": 2,
+        },
+        workspace_controller=SimpleNamespace(
+            workspace_snapshot=lambda: {
+                "existing_parts": [], "active_part": None,
+                "part_profiles": {}, "box_body_structure": {},
+            },
+        ),
+        endcap_fw_state={}, endcap_bottom_wrap_state={},
+    )
+    project = gui._compose_phase6_project_snapshot_from_main_gui(host)
+    target = write_project(tmp_path / "both_check_sources.p6fold", {
+        "schema": PROJECT_SCHEMA_V1, "snapshot": project,
+    })
+    reread = read_project(target)["snapshot"]
+    assert reread["v_miter_trial_preview"] == first_source
+    assert reread["v_miter_radius_ba_trial_preview"] == second_source
+    assert "CERTIFIED" not in (
+        reread["v_miter_trial_preview"]["manufacturing_status"],
+        reread["v_miter_radius_ba_trial_preview"]["manufacturing_status"],
+    )
+
+
+
 def test_main_gui_committed_resave_preserves_existing_v2_r_ba_source_without_geometry(
     tmp_path,
 ):
