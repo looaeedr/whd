@@ -365,11 +365,45 @@ def test_search_rejects_nonmonotone_source_invalidity_inside_valid_bracket():
     def evaluate(trim):
         if 3.9 < trim < 4.1:
             raise GeometryError("V-miter R/BA correction cannot keep one closed sheet")
-        return ("source_checked", "skin", "solid", 1 if trim < 6 else 0)
+        return ("source_checked", "skin", "solid", 1 if trim < 6 else 0,
+                (), (), True, "whole_source")
 
     with pytest.raises(GeometryError, match="cannot keep one closed sheet"):
         _search_source_safe_edge_trim(
             evaluate, 8, failure_message="V-miter cannot eliminate overlap",
+        )
+
+
+@pytest.mark.parametrize("volume_closure, witness", (
+    (False, ()),
+    (False, ((1.0, 2.0, 3.0),)),
+    (True, ((1.0, 2.0, 3.0),)),
+))
+def test_search_never_selects_zero_surface_crossing_with_unknown_or_positive_volume(
+    volume_closure, witness,
+):
+    from ae_engine.v_miter_radius_ba_interface_trial import _search_source_safe_edge_trim
+
+    def evaluate(trim):
+        # Even a source-connected, zero-surface-crossing candidate is
+        # unacceptable if parity is UNKNOWN or positive witness exists.
+        return ("source_checked", "formed_skin", "thick_solid", 0,
+                (), witness, volume_closure, "single_sheet")
+
+    with pytest.raises(GeometryError, match="unverifiable true-T volume"):
+        _search_source_safe_edge_trim(
+            evaluate, 6.0,
+            failure_message="unverifiable true-T volume",
+        )
+
+
+def test_search_rejects_legacy_candidate_without_physical_volume_evidence():
+    from ae_engine.v_miter_radius_ba_interface_trial import _search_source_safe_edge_trim
+
+    with pytest.raises(GeometryError, match="closed 3D volume required"):
+        _search_source_safe_edge_trim(
+            lambda trim: ("one_sheet", "skin", "solid", 0),
+            6.0, failure_message="closed 3D volume required",
         )
 
 
