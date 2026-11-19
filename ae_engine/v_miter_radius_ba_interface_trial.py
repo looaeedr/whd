@@ -485,7 +485,16 @@ def _search_source_safe_edge_trim(evaluate, limit: float, *, failure_message: st
         # Index 3 remains the original noncoplanar *surface* pair count.
         # A genuine nested-volume witness is a separate physical failure;
         # do not report it as a fake triangle surface crossing.
-        return candidate[3] == 0 and not (len(candidate) > 5 and candidate[5])
+        # But missing / open true-T solid walls make volume parity UNKNOWN,
+        # NEVER proof of no overlap. Do not accept that candidate even as
+        # a source-preserving CHECK geometry search result: a later closed
+        # source-safe trim or an explicit refusal is required.
+        return (
+            len(candidate) >= 7
+            and candidate[3] == 0
+            and not candidate[5]
+            and candidate[6] is True
+        )
 
     original = evaluate(0.0)
     if clear(original):
@@ -721,6 +730,8 @@ def solve_v_miter_radius_ba_interface_trial(
     def contact_failure(baseline, rejected, attempted_trim):
         return VMiterRadiusBAContactError(
             collision_failure if rejected[3] else (
+                "V-miter R/BA true-T solid mesh is not verified closed for overlap CHECK"
+                if rejected[6] is not True else
                 "V-miter R/BA trial retains strictly enclosed true-T volume overlap"
             ), original_pairs=baseline[3],
             attempted_pairs=rejected[3], attempted_segments=rejected[4],
