@@ -4,7 +4,7 @@ import math
 import pytest
 
 from ae_engine import manufacturing_api
-from ae_engine.sheetmetal_drawing import DrawingScene, LinePrimitive
+from ae_engine.sheetmetal_drawing import DrawingScene, LinePrimitive, PolylinePrimitive
 from ae_engine.sheetmetal_geometry_core import GeometryError, Vec2
 
 
@@ -40,6 +40,119 @@ def test_60_degree_ideal_miter_is_outside_one_original_bend_ray():
     with pytest.raises(GeometryError, match="material extension unverified"):
         manufacturing_api.project_v_miter_sharp_thickness_witness(
             scene, first, second, **_params(second_fold_angle_deg=60)
+        )
+
+
+def _source_stock_with_bends(first, second, *, right=130, left=-130, top=130):
+    """A real single closed CUTTING stock, not inferred from a candidate V."""
+    cutting = PolylinePrimitive((
+        Vec2(left, -70), Vec2(right, -70),
+        Vec2(right, top), Vec2(left, top),
+    ), "CUTTING", closed=True)
+    return DrawingScene([cutting, first, second])
+
+
+@pytest.mark.parametrize("mirror", (False, True))
+@pytest.mark.parametrize("mode", ("ROUND_R", "RELIEF_HOLE"))
+def test_60_degree_source_stock_exists_but_missing_real_first_bend_is_still_blocked(
+    mirror, mode,
+):
+    """Independently show real original stock is NOT a source BEND extension."""
+    _, first, second = _geometry(mirror=mirror)
+    scene = _source_stock_with_bends(first, second)
+    original = list(scene.primitives)
+    p = _params(second_fold_angle_deg=60, relief_mode=mode, relief_t_factor=1.5)
+    result = manufacturing_api.diagnose_v_miter_original_stock_crease_extension(
+        scene, first, second, **p,
+    )
+    sign = -1 if mirror else 1
+    assert result.manufacturing_status == "V_MITER_SOURCE_BEND_EXTENSION_UNCERTIFIED"
+    assert result.bounded.needs_independent_material_extension_evidence
+    assert result.first_original_stock_covers_extension is True
+    assert result.second_original_stock_covers_extension is None
+    assert result.second_missing_bend_extension is None
+    assert result.bounded.first_outside_bend_span_mm == pytest.approx(20 / math.sqrt(3))
+    start, end = result.first_missing_bend_extension
+    assert (start.x, start.y) == pytest.approx((0, 0))
+    assert (end.x, end.y) == pytest.approx((sign * 20 / math.sqrt(3), 0))
+    # Explicitly NOT a permission to move the existing BEND, cut the
+    # stock, fit a virtual flange, or publish any manufacturing MARKING.
+    assert scene.primitives == original
+    with pytest.raises(GeometryError, match="material extension unverified"):
+        manufacturing_api.project_v_miter_sharp_thickness_witness(
+            scene, first, second, **p,
+        )
+
+
+def test_60_degree_stock_missing_interior_is_detected_separately_from_bend():
+    _, first, second = _geometry()
+    p = _params(second_fold_angle_deg=60)
+    # The first physical BEND ends at x=0; a negative-axis reach requires
+    # +X stock. The original CUTTING here has none, despite valid BEND data.
+    no_positive_x = _source_stock_with_bends(first, second, right=0)
+    absent = manufacturing_api.diagnose_v_miter_original_stock_crease_extension(
+        no_positive_x, first, second, **p,
+    )
+    assert absent.bounded.first_outside_bend_span_mm > 0
+    assert absent.first_original_stock_covers_extension is False
+    assert absent.first_missing_bend_extension is not None
+
+    # Even if the hypothetical crease is ON original CUTTING perimeter,
+    # a zero-width boundary coincidence cannot count as interior stock.
+    first_on_boundary = PolylinePrimitive((
+        Vec2(-100, -70), Vec2(130, -70),
+        Vec2(130, 0), Vec2(-100, 0),
+    ), "CUTTING", closed=True)
+    boundary = DrawingScene([first_on_boundary, first, second])
+    edge_only = manufacturing_api.diagnose_v_miter_original_stock_crease_extension(
+        boundary, first, second, **p,
+    )
+    assert edge_only.first_original_stock_covers_extension is False
+
+
+@pytest.mark.parametrize("angle,first_span", ((90, 100), (120, 100), (120, 5)))
+def test_original_stock_extension_witness_tracks_actual_finite_bend_end(
+    angle, first_span,
+):
+    _, first, second = _geometry(first_length=first_span)
+    scene = _source_stock_with_bends(first, second)
+    result = manufacturing_api.diagnose_v_miter_original_stock_crease_extension(
+        scene, first, second, **_params(second_fold_angle_deg=angle),
+    )
+    assert result.manufacturing_status.endswith("UNCERTIFIED")
+    if first_span == 5:
+        assert result.bounded.first_outside_bend_span_mm == pytest.approx(
+            20 / math.sqrt(3) - 5
+        )
+        start, end = result.first_missing_bend_extension
+        assert (start.x, start.y) == pytest.approx((-5, 0))
+        assert (end.x, end.y) == pytest.approx((-20 / math.sqrt(3), 0))
+        assert result.first_original_stock_covers_extension is True
+        with pytest.raises(GeometryError, match="material extension"):
+            manufacturing_api.project_v_miter_sharp_thickness_witness(
+                scene, first, second,
+                **_params(second_fold_angle_deg=angle),
+            )
+    else:
+        assert not result.bounded.needs_independent_material_extension_evidence
+        assert result.first_missing_bend_extension is None
+        assert result.second_missing_bend_extension is None
+        assert result.first_original_stock_covers_extension is None
+        assert result.second_original_stock_covers_extension is None
+
+
+def test_original_stock_crease_witness_never_infers_cutting_or_fake_bend_ownership():
+    scene, first, second = _geometry()
+    p = _params(second_fold_angle_deg=60)
+    with pytest.raises(GeometryError, match="one canonical closed CUTTING"):
+        manufacturing_api.diagnose_v_miter_original_stock_crease_extension(
+            scene, first, second, **p,
+        )
+    stock = _source_stock_with_bends(first, second)
+    forged = LinePrimitive(first.p1, first.p2, "BEND")
+    with pytest.raises(GeometryError, match="original scene"):
+        manufacturing_api.diagnose_v_miter_original_stock_crease_extension(
+            stock, forged, second, **p,
         )
 
 
