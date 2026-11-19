@@ -7,6 +7,7 @@ from ae_engine.assembly_geometry import (
     detect_world_mesh_enclosed_volume_witness,
     detect_world_mesh_surface_interference,
     diagnose_world_mesh_triangle_edge_incidence,
+    diagnose_world_mesh_self_intersections,
 )
 
 
@@ -224,6 +225,59 @@ def test_edge_closed_two_tetrahedra_pinched_at_one_vertex_are_not_one_solid():
     assert not witness.meshes_closed
     assert not witness.has_enclosed_overlap
     assert witness.sample_count == 0
+
+
+def test_two_crossing_closed_physical_boxes_are_not_one_valid_true_t_volume():
+    # Both actual shells independently pass edge+vertex manifold closure.
+    # Their UNION still passes that local topology gate despite real
+    # non-neighbor triangle segments crossing inside 1..2 mm cube.
+    first = _box((0, 0, 0), (2, 2, 2))
+    second = _box((1, 1, 1), (3, 3, 3))
+    crossed = first + second
+    local_topology = diagnose_world_mesh_triangle_edge_incidence(crossed)
+    assert local_topology.edges_manifold_closed
+    assert local_topology.nonmanifold_vertex_count == 0
+    assert local_topology.nonmanifold_edge_count == 0
+
+    actual = diagnose_world_mesh_self_intersections(crossed)
+    assert actual.crossing_pair_count > 0
+    assert not actual.permits_strict_volume_sampling
+    assert actual.first_source_triangle_pair is not None
+    # Its own strict-volume parity must NEVER claim source 'closed' just
+    # because there are no missing edges/faces. A remote valid target
+    # cannot make the invalid source into a valid physical part.
+    remote = _box((6, 6, 6), (7, 7, 7))
+    witness = detect_world_mesh_enclosed_volume_witness(crossed, remote)
+    assert not witness.meshes_closed
+    assert witness.sample_count == 0
+    assert not witness.has_enclosed_overlap
+
+
+def test_separate_true_t_boxes_and_single_box_do_not_invent_self_crossings():
+    first = _box((-5, 0, 0), (-4, 1, 1))
+    second = _box((4, 0, 0), (5, 1, 1))
+    for actual in (first, second, first + second):
+        topology = diagnose_world_mesh_triangle_edge_incidence(actual)
+        assert topology.edges_manifold_closed
+        self_check = diagnose_world_mesh_self_intersections(actual)
+        assert self_check.permits_strict_volume_sampling
+        assert self_check.crossing_pair_count == 0
+        assert self_check.coplanar_overlap_pair_count == 0
+        assert not self_check.numerical_budget_exhausted
+    witness = detect_world_mesh_enclosed_volume_witness(first, second)
+    assert witness.meshes_closed and not witness.has_enclosed_overlap
+
+
+def test_coplanar_duplicate_physical_shells_are_reported_not_silent():
+    first = _box((0, 0, 0), (2, 2, 2))
+    duplicated_shell = first + first
+    diag = diagnose_world_mesh_self_intersections(duplicated_shell)
+    assert diag.coplanar_overlap_pair_count > 0
+    assert not diag.permits_strict_volume_sampling
+    remote = _box((5, 5, 5), (6, 6, 6))
+    assert not detect_world_mesh_enclosed_volume_witness(
+        duplicated_shell, remote,
+    ).meshes_closed
 
 
 def test_actual_world_T_shell_edge_diagnostic_distinguishes_closed_open_and_nonmanifold():
