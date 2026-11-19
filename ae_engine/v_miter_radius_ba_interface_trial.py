@@ -489,15 +489,23 @@ def _search_source_safe_edge_trim(evaluate, limit: float, *, failure_message: st
     physical sheet (or destroys a flange), reduce the upper bound instead
     of rejecting a potentially sound smaller trim.  Every evaluated
     candidate still runs the original single-sheet/other-flange gate.
-    This is a diagnostic non-coplanar crossing search, NOT 3D certification.
+    This is only an uncertified geometry search, NOT 3D clearance
+    certification. The genuine R/BA curved skins are now source-vertex
+    watertight; a candidate for which the strict volume detector cannot
+    even verify both closed meshes must be rejected, not silently selected.
     """
     def clear(candidate):
-        # Select only a source-preserving *CHECK geometry* with no observed
-        # positive surface/interior witness. An OPEN true-T mesh remains
-        # volume UNKNOWN, NOT certified clearance. This diagnostic status
-        # must be published separately in the final immutable result: the
-        # existing real curved strip meshes are not all manifold-closed.
-        return candidate[3] == 0 and not (len(candidate) > 5 and candidate[5])
+        # A returned CHECK hypothesis must be evaluable as two real closed
+        # T-shells with no DETECTED crossing or positive volume witness.
+        # Closed+zero sampled witnesses is STILL NOT certified zero overlap.
+        # No shortened legacy synthetic candidate without a volume result
+        # may bypass this physical precondition.
+        return (
+            len(candidate) >= 7
+            and candidate[3] == 0
+            and not candidate[5]
+            and candidate[6] is True
+        )
 
     original = evaluate(0.0)
     if clear(original):
@@ -734,6 +742,8 @@ def solve_v_miter_radius_ba_interface_trial(
         return VMiterRadiusBAContactError(
             collision_failure if rejected[3] else (
                 "V-miter R/BA trial retains strictly enclosed true-T volume overlap"
+                if rejected[5] else
+                "V-miter R/BA trial cannot accept UNKNOWN true-T volume closure"
             ), original_pairs=baseline[3],
             attempted_pairs=rejected[3], attempted_segments=rejected[4],
             attempted_trim_mm=attempted_trim,
@@ -774,10 +784,11 @@ def solve_v_miter_radius_ba_interface_trial(
         )
         transition, local_root_taper = selected, False
 
-    # The curved R/BA source can produce nonconforming or open physical
-    # triangle shells even when their surface crossing search is clear.
-    # Publish real edge-incidence evidence; UNKNOWN can never be an
-    # implicit closed-volume clearance or a manufacturing certificate.
+    # The source-safe trim search now rejects any UNKNOWN strict-volume
+    # closure before returning CHECK. Publish independent edge-incidence
+    # evidence as well: verified closure + no detected finite witness is
+    # only a precondition for an uncertified geometry hypothesis, not a
+    # proof of arbitrary non-convex zero overlap or factory acceptance.
     topo_first = diagnose_world_mesh_triangle_edge_incidence(best[2])
     topo_second = diagnose_world_mesh_triangle_edge_incidence(solid2)
     true_t_volume_status = (
