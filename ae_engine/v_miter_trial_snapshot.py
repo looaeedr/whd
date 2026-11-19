@@ -28,13 +28,26 @@ from .v_miter_relief_trial import (
     build_v_miter_relief_trial_check_scene,
     project_v_miter_relief_mating_trial,
 )
+from .v_miter_radius_ba_interface_trial import (
+    VMiterRadiusCompensatedInterfaceTrial,
+    solve_v_miter_radius_ba_interface_trial,
+    build_v_miter_radius_ba_full_sheet_check_scene,
+)
 
 _TRIAL_CONTRACT = "V_MITER_RELIEF_TRIAL_SOURCE_V1"
 _UNCERTIFIED = "V_MITER_RELIEF_FORMED_CONTACT_UNCERTIFIED"
+_R_BA_TRIAL_CONTRACT = "V_MITER_RADIUS_BA_SOURCE_V2"
+_R_BA_UNCERTIFIED = "V_MITER_RADIUS_BA_INTERFACE_UNCERTIFIED"
 _INPUT_KEYS = frozenset({
     "thickness_mm", "first_flange_height_mm", "second_flange_height_mm",
     "second_fold_angle_deg", "relief_mode", "relief_t_factor",
 })
+_R_BA_MEASUREMENT_KEYS = frozenset({
+    "first_inner_radius_mm", "second_inner_radius_mm",
+    "first_bend_allowance_mm", "second_bend_allowance_mm",
+    "max_permitted_edge_trim_mm",
+})
+_R_BA_INPUT_KEYS = _INPUT_KEYS | _R_BA_MEASUREMENT_KEYS
 _SNAPSHOT_KEYS = frozenset({
     "contract", "manufacturing_status", "source_geometry_sha256",
     "first_bend_index", "second_bend_index", "parameters",
@@ -92,12 +105,17 @@ def _owned_index(scene: DrawingScene, bend: LinePrimitive) -> int:
     raise GeometryError("V-miter saved BEND must belong to original source scene")
 
 
-def _validate_snapshot(payload: Mapping) -> tuple[int, int, dict]:
+def _validate_snapshot(
+    payload: Mapping, *,
+    contract: str = _TRIAL_CONTRACT,
+    status: str = _UNCERTIFIED,
+    input_keys: frozenset = _INPUT_KEYS,
+) -> tuple[int, int, dict]:
     if not isinstance(payload, Mapping) or set(payload) != _SNAPSHOT_KEYS:
         raise GeometryError("V-miter saved trial record has invalid fields")
-    if payload["contract"] != _TRIAL_CONTRACT:
+    if payload["contract"] != contract:
         raise GeometryError("V-miter saved trial contract revision is unsupported")
-    if payload["manufacturing_status"] != _UNCERTIFIED:
+    if payload["manufacturing_status"] != status:
         raise GeometryError("V-miter saved trial cannot claim certified manufacture")
     fingerprint = payload["source_geometry_sha256"]
     if (not isinstance(fingerprint, str) or len(fingerprint) != 64 or
@@ -108,8 +126,15 @@ def _validate_snapshot(payload: Mapping) -> tuple[int, int, dict]:
             first < 0 or second < 0 or first == second):
         raise GeometryError("V-miter saved BEND references are invalid")
     raw = payload["parameters"]
-    if not isinstance(raw, Mapping) or set(raw) != _INPUT_KEYS:
+    if not isinstance(raw, Mapping) or set(raw) != input_keys:
         raise GeometryError("V-miter saved source parameter fields are invalid")
+    if contract == _R_BA_TRIAL_CONTRACT:
+        # No booleans, text coerced to floats, NaNs or missing measurements
+        # can be replayed as physical R/BA or certified source data.
+        for field in _R_BA_MEASUREMENT_KEYS:
+            value = raw[field]
+            if type(value) not in (int, float) or not math.isfinite(value) or value <= 0:
+                raise GeometryError(f"V-miter saved measured R/BA source {field} is invalid")
     return first, second, dict(raw)
 
 
@@ -156,8 +181,14 @@ def capture_v_miter_relief_trial_snapshot(
 def _resolve_saved_trial_source(
     scene: DrawingScene,
     snapshot: Mapping,
+    *,
+    contract: str = _TRIAL_CONTRACT,
+    status: str = _UNCERTIFIED,
+    input_keys: frozenset = _INPUT_KEYS,
 ) -> tuple[LinePrimitive, LinePrimitive, dict]:
-    first_idx, second_idx, parameters = _validate_snapshot(snapshot)
+    first_idx, second_idx, parameters = _validate_snapshot(
+        snapshot, contract=contract, status=status, input_keys=input_keys,
+    )
     if snapshot["source_geometry_sha256"] != _source_geometry_sha256(scene):
         raise GeometryError("V-miter saved source geometry has changed since capture")
     try:
@@ -207,5 +238,111 @@ def replay_v_miter_true_thickness_collision_snapshot(
     """
     first, second, parameters = _resolve_saved_trial_source(scene, snapshot)
     return diagnose_v_miter_true_thickness_collision(
+        scene, first, second, **parameters,
+    )
+
+
+def capture_v_miter_radius_ba_trial_snapshot(
+    scene: DrawingScene,
+    v_edge_bend: LinePrimitive,
+    second_bend: LinePrimitive,
+    *,
+    thickness_mm: float,
+    first_flange_height_mm: float,
+    second_flange_height_mm: float,
+    second_fold_angle_deg: float,
+    relief_mode: str,
+    relief_t_factor: float | None = None,
+    first_inner_radius_mm: float,
+    second_inner_radius_mm: float,
+    first_bend_allowance_mm: float,
+    second_bend_allowance_mm: float,
+    max_permitted_edge_trim_mm: float,
+) -> dict[str, object]:
+    """Store verified operator R/BA source, never the computed mesh/CUTTING.
+
+    Existing V1 source-only snapshots are unchanged. This V2 CHECK contract
+    additionally preserves measured R/BA and the *maximum* permitted trim,
+    all explicitly supplied by the operator. Geometry still must be fully
+    re-solved from original physical CUTTING/BEND after .p6fold reload.
+    """
+    basic = {
+        "thickness_mm": thickness_mm,
+        "first_flange_height_mm": first_flange_height_mm,
+        "second_flange_height_mm": second_flange_height_mm,
+        "second_fold_angle_deg": second_fold_angle_deg,
+        "relief_mode": relief_mode,
+        "relief_t_factor": relief_t_factor,
+    }
+    old = capture_v_miter_relief_trial_snapshot(
+        scene, v_edge_bend, second_bend, **basic,
+    )
+    measured = {
+        "first_inner_radius_mm": first_inner_radius_mm,
+        "second_inner_radius_mm": second_inner_radius_mm,
+        "first_bend_allowance_mm": first_bend_allowance_mm,
+        "second_bend_allowance_mm": second_bend_allowance_mm,
+        "max_permitted_edge_trim_mm": max_permitted_edge_trim_mm,
+    }
+    # Inputs must be genuine typed shop measurements before any potential
+    # normalization; strings/bools never become an apparent measured R.
+    for field, value in measured.items():
+        if type(value) not in (int, float) or not math.isfinite(value) or value <= 0:
+            raise GeometryError(f"V-miter measured R/BA source {field} is invalid")
+    solved = solve_v_miter_radius_ba_interface_trial(
+        scene, v_edge_bend, second_bend, **basic, **measured,
+    )
+    return {
+        "contract": _R_BA_TRIAL_CONTRACT,
+        "manufacturing_status": _R_BA_UNCERTIFIED,
+        "source_geometry_sha256": old["source_geometry_sha256"],
+        "first_bend_index": old["first_bend_index"],
+        "second_bend_index": old["second_bend_index"],
+        "parameters": {
+            **old["parameters"],
+            "first_inner_radius_mm": solved.first_inner_radius_mm,
+            "second_inner_radius_mm": solved.second_inner_radius_mm,
+            "first_bend_allowance_mm": solved.first_bend_allowance_mm,
+            "second_bend_allowance_mm": solved.second_bend_allowance_mm,
+            "max_permitted_edge_trim_mm": solved.max_permitted_edge_trim_mm,
+        },
+    }
+
+
+def _resolve_saved_r_ba_trial_source(
+    scene: DrawingScene, snapshot: Mapping,
+) -> tuple[LinePrimitive, LinePrimitive, dict]:
+    return _resolve_saved_trial_source(
+        scene, snapshot,
+        contract=_R_BA_TRIAL_CONTRACT,
+        status=_R_BA_UNCERTIFIED,
+        input_keys=_R_BA_INPUT_KEYS,
+    )
+
+
+def replay_v_miter_radius_ba_trial_snapshot(
+    scene: DrawingScene, snapshot: Mapping,
+) -> VMiterRadiusCompensatedInterfaceTrial:
+    """Re-solve true R/BA/T 3D CHECK from saved source with no mesh trust."""
+    first, second, parameters = _resolve_saved_r_ba_trial_source(
+        scene, snapshot,
+    )
+    return solve_v_miter_radius_ba_interface_trial(
+        scene, first, second, **parameters,
+    )
+
+
+def build_saved_v_miter_radius_ba_check_scene(
+    scene: DrawingScene, snapshot: Mapping,
+) -> DrawingScene:
+    """Recreate only CHECK/DATUM 2D from the original source R/BA trial.
+
+    Do not substitute this preview for a fifth manufacturing CornerType
+    or include CUTTING/BEND/MARKING production layers in the output.
+    """
+    first, second, parameters = _resolve_saved_r_ba_trial_source(
+        scene, snapshot,
+    )
+    return build_v_miter_radius_ba_full_sheet_check_scene(
         scene, first, second, **parameters,
     )
