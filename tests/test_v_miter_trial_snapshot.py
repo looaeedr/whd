@@ -112,6 +112,121 @@ def test_real_p6fold_saved_trial_recomputes_same_2d_3d_and_check_dxf(
     assert scene.primitives == before
 
 
+@pytest.mark.parametrize("revision,mode,angle", (
+    ("V1", "RELIEF_HOLE", 90),
+    ("V1", "ROUND_R", 120),
+    ("V2", "RELIEF_HOLE", 90),
+    ("V2", "ROUND_R", 120),
+))
+def test_saved_v_miter_alignment_check_uses_actual_20_50_bend_strokes_without_marking(
+    tmp_path, revision, mode, angle,
+):
+    """Saved V1/V2 can preview press alignment without CNC marking release."""
+    from math import radians, pi
+
+    scene, first, second, source = _scene(angle)
+    source["relief_mode"] = mode
+    original = tuple(scene.primitives)
+    if revision == "V1":
+        saved = manufacturing_api.capture_v_miter_relief_trial_snapshot(
+            scene, first, second, **source,
+        )
+        key = "v_miter_trial_preview"
+        builder = manufacturing_api.build_saved_v_miter_relief_trial_check_scene
+    else:
+        saved = manufacturing_api.capture_v_miter_radius_ba_trial_snapshot(
+            scene, first, second, **source,
+            first_inner_radius_mm=.5, second_inner_radius_mm=.5,
+            first_bend_allowance_mm=(pi / 2) * 1.3,
+            second_bend_allowance_mm=radians(angle) * 1.3,
+            max_permitted_edge_trim_mm=12,
+        )
+        key = "v_miter_radius_ba_trial_preview"
+        builder = manufacturing_api.build_saved_v_miter_radius_ba_check_scene
+
+    path = write_project(tmp_path / "source_only.p6fold", {
+        "schema": PROJECT_SCHEMA_V1,
+        "snapshot": {
+            "model": "金庫型", "w": 800, "h": 1600, "d": 350, "t": 2,
+            key: saved,
+        },
+    })
+    reopened = read_project(path)["snapshot"][key]
+    loaded = _new_scene_with_same_saved_physical_geometry(scene)
+    first_reloaded, second_reloaded = loaded.primitives[1:3]
+    normal = builder(loaded, reopened)
+    alignment = builder(loaded, reopened, include_alignment_check=True)
+    assert len(normal.primitives) == 4
+    assert alignment.primitives[:4] == normal.primitives
+    expected = (
+        *manufacturing_api.project_v_miter_bend_markings(first_reloaded),
+        *manufacturing_api.project_v_miter_bend_markings(second_reloaded),
+    )
+    actual = alignment.primitives[4:]
+    assert len(actual) == len(expected) == 4
+    for checked, physical in zip(actual, expected):
+        assert checked.layer == "CHECK"
+        assert checked.color == physical.color == 211
+        assert (checked.p1, checked.p2) == (physical.p1, physical.p2)
+    assert all(row.layer in ("DATUM", "CHECK") for row in alignment.primitives)
+    assert tuple(scene.primitives) == original
+    assert tuple(loaded.primitives) == original
+
+    output = tmp_path / "v_miter_alignment_check_only.dxf"
+    save_scene_dxf(output, alignment)
+    reopened_dxf = list(ezdxf.readfile(output).modelspace())
+    assert [row.dxf.layer for row in reopened_dxf[:4]] == [
+        "DATUM", "CHECK", "DATUM", "DATUM",
+    ]
+    checked_lines = [
+        row for row in reopened_dxf if row.dxftype() == "LINE"
+        and row.dxf.layer == "CHECK"
+    ]
+    assert len(checked_lines) == len(expected)
+    for row, physical in zip(checked_lines, expected):
+        assert (row.dxf.start.x, row.dxf.start.y) == pytest.approx(
+            (physical.p1.x, physical.p1.y)
+        )
+        assert (row.dxf.end.x, row.dxf.end.y) == pytest.approx(
+            (physical.p2.x, physical.p2.y)
+        )
+    assert not any(
+        row.dxf.layer in {"CUTTING", "BEND", "MARKING"}
+        for row in reopened_dxf
+    )
+
+
+@pytest.mark.parametrize("invalid", (1, "true", None))
+def test_saved_v_miter_alignment_check_refuses_non_boolean_opt_in(invalid):
+    scene, first, second, source = _scene()
+    saved = manufacturing_api.capture_v_miter_relief_trial_snapshot(
+        scene, first, second, **source,
+    )
+    before = tuple(scene.primitives)
+    with pytest.raises(GeometryError, match="alignment flag must be bool"):
+        manufacturing_api.build_saved_v_miter_relief_trial_check_scene(
+            scene, saved, include_alignment_check=invalid,
+        )
+    assert tuple(scene.primitives) == before
+
+
+def test_saved_v_miter_alignment_check_refuses_drifted_cutting_source():
+    scene, first, second, source = _scene()
+    saved = manufacturing_api.capture_v_miter_relief_trial_snapshot(
+        scene, first, second, **source,
+    )
+    moved = _new_scene_with_same_saved_physical_geometry(scene)
+    source_cut = moved.primitives[0]
+    moved.primitives[0] = PolylinePrimitive(
+        tuple(Vec2(p.x + .25, p.y) for p in source_cut.points),
+        "CUTTING", closed=True,
+    )
+    with pytest.raises(GeometryError, match="source geometry has changed"):
+        manufacturing_api.build_saved_v_miter_relief_trial_check_scene(
+            moved, saved, include_alignment_check=True,
+        )
+
+
 @pytest.mark.parametrize("angle", (90, 120))
 @pytest.mark.parametrize("mode", ("ROUND_R", "RELIEF_HOLE"))
 @pytest.mark.parametrize("family", ("金庫型", "受電箱"))
