@@ -110,7 +110,16 @@ def _section_transverse_speed_bound(mesh, start, direction, lo_mm, hi_mm):
         # endpoints, this triangle must cover the ENTIRE open interval.
         # A missed vertex event or grouped near-vertex invalidates the
         # mathematical speed certificate instead of silently shrinking it.
-        if min(axial) > lo_mm or max(axial) < hi_mm:
+        # Stations were first projected as fractions and later converted
+        # back to millimetres. That multiplication can shift an otherwise
+        # identical mesh-vertex station by a few IEEE-754 ulps. Do not turn
+        # those roundoff bits into a false geometric topology violation.
+        # A missed physical vertex beyond float roundoff STILL fails closed.
+        arithmetic_roundoff = 16.0 * math.ulp(
+            max(1.0, abs(lo_mm), abs(hi_mm))
+        )
+        if (min(axial) > lo_mm + arithmetic_roundoff or
+                max(axial) < hi_mm - arithmetic_roundoff):
             raise GeometryError(
                 "V-miter cut-face speed interval crosses an untracked mesh vertex"
             )
