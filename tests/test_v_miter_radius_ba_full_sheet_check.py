@@ -69,6 +69,93 @@ def test_hole_tip_full_sheet_reprojection_preserves_second_flange_and_real_sourc
     assert tuple(scene.primitives) == before
 
 
+@pytest.mark.parametrize("mode", ("ROUND_R", "RELIEF_HOLE"))
+def test_120_real_crease_extension_v2_saved_rba_replays_same_2d_3d_and_check_dxf(
+    mode, tmp_path,
+):
+    # An operator-authored source CUTTING matching actual 120-degree V rays,
+    # a selected 5mm first BEND and a separate *real* 95mm continuation.
+    first = LinePrimitive(Vec2(-5, 0), Vec2(0, 0), "BEND")
+    second = LinePrimitive(Vec2(0, 0), Vec2(0, 100), "BEND")
+    extra = LinePrimitive(Vec2(-100, 0), Vec2(-5, 0), "BEND")
+    params = dict(thickness_mm=2, first_flange_height_mm=20,
+                  second_flange_height_mm=30, second_fold_angle_deg=120,
+                  relief_mode=mode, relief_t_factor=1.5)
+    ideal = manufacturing_api.project_ideal_v_miter_mating_candidate(
+        DrawingScene([first, second]), first, second, **params,
+    )
+    a, b = ideal.first_flat_miter_ray[1], ideal.second_flat_miter_ray[1]
+    original_cut = PolylinePrimitive((
+        Vec2(-100, a.y), Vec2(b.x, a.y), Vec2(b.x, 0),
+        Vec2(30, 10), Vec2(30, 100), Vec2(-100, 100),
+    ), "CUTTING", closed=True)
+    scene = DrawingScene([original_cut, first, second, extra])
+    calibration = dict(
+        first_inner_radius_mm=.5, second_inner_radius_mm=.5,
+        first_bend_allowance_mm=math.pi / 2 * 1.3,
+        second_bend_allowance_mm=math.radians(120) * 1.3,
+        max_permitted_edge_trim_mm=12,
+    )
+    old = manufacturing_api.project_v_miter_radius_ba_full_sheet_check(
+        scene, first, second, **params, **calibration,
+    )
+    assert old.manufacturing_status.endswith("UNCERTIFIED")
+    assert old.trial.first_mesh_source_bend_span_mm == pytest.approx(100)
+    assert old.trial.second_mesh_source_bend_span_mm == pytest.approx(100)
+    snapshot = manufacturing_api.capture_v_miter_radius_ba_trial_snapshot(
+        scene, first, second, **params, **calibration,
+    )
+    assert snapshot["manufacturing_status"].endswith("UNCERTIFIED")
+    target = write_project(tmp_path / f"real_120_extension_{mode}.p6fold", {
+        "schema": PROJECT_SCHEMA_V1,
+        "snapshot": {
+            "model": "金庫型", "w": 800, "h": 1600, "d": 350, "t": 2,
+            "v_miter_radius_ba_trial_preview": snapshot,
+        },
+    })
+    restored = read_project(target)["snapshot"]["v_miter_radius_ba_trial_preview"]
+    rebuilt = DrawingScene([
+        PolylinePrimitive(tuple(Vec2(p.x, p.y) for p in original_cut.points),
+                          "CUTTING", closed=True),
+        LinePrimitive(first.p1, first.p2, "BEND"),
+        LinePrimitive(second.p1, second.p2, "BEND"),
+        LinePrimitive(extra.p1, extra.p2, "BEND"),
+    ])
+    replay = manufacturing_api.replay_v_miter_radius_ba_trial_snapshot(
+        rebuilt, restored,
+    )
+    assert replay.first_mesh_source_bend_span_mm == pytest.approx(100)
+    assert replay.first_formed_skin_triangles == old.trial.first_formed_skin_triangles
+    assert replay.second_formed_skin_triangles == old.trial.second_formed_skin_triangles
+    assert replay.first_thick_solid_triangles == old.trial.first_thick_solid_triangles
+    assert replay.second_thick_solid_triangles == old.trial.second_thick_solid_triangles
+    assert replay.first_source_cut_face == old.trial.first_source_cut_face
+    assert replay.second_source_cut_face == old.trial.second_source_cut_face
+    assert replay.full_corrected_check_outline == old.corrected_check_outline
+    preview = manufacturing_api.build_saved_v_miter_radius_ba_check_scene(
+        rebuilt, restored,
+    )
+    assert [r.layer for r in preview.primitives] == [
+        "DATUM", "CHECK", "DATUM", "DATUM",
+    ]
+    assert preview.primitives[1].points == old.corrected_check_outline
+    dxf = tmp_path / f"real_120_extension_{mode}_CHECK.dxf"
+    save_scene_dxf(dxf, preview)
+    reopened = tuple(ezdxf.readfile(dxf).modelspace())
+    assert [x.dxf.layer for x in reopened] == [
+        "DATUM", "CHECK", "DATUM", "DATUM",
+    ]
+    assert not any(x.dxf.layer in {"CUTTING", "BEND", "MARKING"} for x in reopened)
+    assert tuple(
+        (p.x, p.y) for p in preview.primitives[1].points
+    ) == pytest.approx(tuple(
+        (x, y) for x, y in reopened[1].get_points("xy")
+    ))
+    assert [r.layer for r in rebuilt.primitives] == [
+        "CUTTING", "BEND", "BEND", "BEND",
+    ]
+
+
 @pytest.mark.parametrize("family", ("金庫型", "受電箱"))
 @pytest.mark.parametrize("mode", ("RELIEF_HOLE", "ROUND_R"))
 def test_true_saved_source_recomputes_same_r_ba_2d_3d_after_project_reload(tmp_path, family, mode):
