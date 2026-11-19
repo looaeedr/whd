@@ -17,6 +17,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 import math
 
+from shapely.geometry import LineString, Point
+
+from .v_miter_material_trial import _single_source_material
 from .sheetmetal_drawing import DrawingScene, LinePrimitive
 from .sheetmetal_geometry_core import GeometryError, Vec2
 from .v_miter_corner_source import VMiterReliefMode
@@ -115,6 +118,109 @@ def diagnose_v_miter_bounded_bend_reach(
         needs_independent_material_extension_evidence=(
             first_outside > tolerance or second_outside > tolerance
         ),
+    )
+
+
+@dataclass(frozen=True)
+class VMiterOriginalStockCreaseExtensionWitness:
+    """Real CUTTING coverage of a MISSING BEND segment; CHECK evidence only.
+
+    A crease drawn past an existing BEND endpoint has no fold identity even
+    if the *uncut* sheet contains material underneath the hypothetical
+    extension. `stock_covers` proves only a necessary 2D fact, never that a
+    crease exists, that the flange retains enough material after V relief,
+    or that R/BA/T mating and machine parameters are safe.
+    """
+
+    bounded: VMiterBendReachWitness
+    first_missing_bend_extension: tuple[Vec2, Vec2] | None
+    second_missing_bend_extension: tuple[Vec2, Vec2] | None
+    first_original_stock_covers_extension: bool | None
+    second_original_stock_covers_extension: bool | None
+    manufacturing_status: str = "V_MITER_SOURCE_BEND_EXTENSION_UNCERTIFIED"
+
+
+def diagnose_v_miter_original_stock_crease_extension(
+    scene: DrawingScene,
+    v_edge_bend: LinePrimitive,
+    second_bend: LinePrimitive,
+    *,
+    thickness_mm: float,
+    first_flange_height_mm: float,
+    second_flange_height_mm: float,
+    second_fold_angle_deg: float,
+    relief_mode: VMiterReliefMode | str,
+    relief_t_factor: float | None = None,
+) -> VMiterOriginalStockCreaseExtensionWitness:
+    """Check exact missing finite BEND segments against ORIGINAL CUTTING.
+
+    This is a narrow independent stock-availability *necessary condition*
+    for an operator/source-model correction, not a method of authorizing
+    a virtual crease. A missing BEND stays missing even if its extension
+    lies inside the original sheet: true-T and R/BA solvers MUST still
+    fail closed until actual source BEND geometry is independently present.
+    Do not use an inferred/preview V CUTTING polygon as the source.
+    """
+    bounded = diagnose_v_miter_bounded_bend_reach(
+        scene, v_edge_bend, second_bend,
+        thickness_mm=thickness_mm,
+        first_flange_height_mm=first_flange_height_mm,
+        second_flange_height_mm=second_flange_height_mm,
+        second_fold_angle_deg=second_fold_angle_deg,
+        relief_mode=relief_mode,
+        relief_t_factor=relief_t_factor,
+    )
+    # This owner requires exactly one pre-existing, closed original stock
+    # CUTTING. A BEND-only candidate cannot furnish missing material proof.
+    material = _single_source_material(scene)
+    apex = bounded.ideal.source.bend_intersection
+
+    def missing_segment(bend, axial_reach, source_span, overrun):
+        if overrun <= 1e-7:
+            return None, None
+        axis, actual_span = _source_axis_span(bend, apex)
+        if not math.isclose(actual_span, source_span, abs_tol=1e-9):
+            raise GeometryError("V-miter original BEND span changed during source check")
+        # The closest real crease endpoint is either the common V corner
+        # or the far end of its finite, verified original source BEND.
+        nearest = max(0.0, min(axial_reach, source_span))
+        a = Vec2(apex.x + axis[0] * nearest, apex.y + axis[1] * nearest)
+        b = Vec2(apex.x + axis[0] * axial_reach, apex.y + axis[1] * axial_reach)
+        line = LineString(((a.x, a.y), (b.x, b.y)))
+        if not math.isfinite(line.length) or line.length <= 0:
+            raise GeometryError("V-miter source missing BEND extension is degenerate")
+        # An original CUTTING *boundary line* alone is not stock to fold:
+        # require the actual missing interval's midpoint to be in the
+        # positive-area interior, not just a coincident perimeter edge.
+        # This remains necessary, never sufficient: a line has no width.
+        covered = bool(
+            material.covers(line)
+            and material.contains(Point((a.x + b.x) * 0.5, (a.y + b.y) * 0.5))
+        )
+        return (a, b), covered
+
+    f_segment, f_stock = missing_segment(
+        v_edge_bend,
+        bounded.first_axial_seam_reach_mm,
+        bounded.first_bend_span_mm,
+        bounded.first_outside_bend_span_mm,
+    )
+    s_segment, s_stock = missing_segment(
+        second_bend,
+        bounded.second_axial_seam_reach_mm,
+        bounded.second_bend_span_mm,
+        bounded.second_outside_bend_span_mm,
+    )
+    if (f_segment is not None or s_segment is not None) != (
+        bounded.needs_independent_material_extension_evidence
+    ):
+        raise GeometryError("V-miter missing crease coverage disagrees with finite BEND reach")
+    return VMiterOriginalStockCreaseExtensionWitness(
+        bounded=bounded,
+        first_missing_bend_extension=f_segment,
+        second_missing_bend_extension=s_segment,
+        first_original_stock_covers_extension=f_stock,
+        second_original_stock_covers_extension=s_stock,
     )
 
 
