@@ -172,6 +172,17 @@ def test_explicit_section_station_override_fail_closed(invalid):
         )
 
 
+@pytest.mark.parametrize("degenerate", (
+    (((0, 0, 5), (1, 0, 5), (2, 0, 5)),),
+    (((2, 0, 0), (2, 0, 5), (2, 0, 10)),),
+    (((0, 0, 0), (0, 0, 0), (1, 0, 5)),),
+))
+def test_cut_face_interval_rejects_zero_area_source_mesh_before_coverage(degenerate):
+    """Source-tagged V cut face needs a genuine positive-area 3D surface."""
+    with pytest.raises(GeometryError, match="zero or invalid area"):
+        _analyze(_wall(0, 0, 10), degenerate)
+
+
 def test_zero_length_or_absent_source_cut_face_rejects_continuity_trial():
     mesh = _wall(0, 0, 10)
     with pytest.raises(GeometryError, match="seam"):
