@@ -101,8 +101,11 @@ def test_120_source_continuation_builds_real_true_t_3d_mesh_not_a_virtual_fold(m
     )
     demanded = 20 / math.sqrt(3)
     assert thick.manufacturing_status == "V_MITER_TRUE_T_COLLISION_UNCERTIFIED"
-    assert thick.first_mesh_source_bend_span_mm == pytest.approx(demanded)
-    assert thick.first_mesh_source_bend_span_mm > 5
+    # The actual source continues to -30mm, while the theoretical seam
+    # stops at -11.547mm: the outboard stock is needed to satisfy the
+    # actual 20mm first flange full-height source, not invented beyond it.
+    assert thick.first_mesh_source_bend_span_mm == pytest.approx(30)
+    assert thick.first_mesh_source_bend_span_mm > demanded > 5
     assert thick.second_mesh_source_bend_span_mm == pytest.approx(100)
     assert thick.first_flange_flat_area_mm2 > 0
     assert thick.first_full_height_source_span_mm > 0
@@ -111,7 +114,7 @@ def test_120_source_continuation_builds_real_true_t_3d_mesh_not_a_virtual_fold(m
     assert thick.second_thick_solid_triangles
     # Prove exact same 2D/formed-3D finite material as a SINGLE genuinely
     # contiguous source BEND of this length; not a synthetic mesh segment.
-    complete = LinePrimitive(Vec2(-demanded, 0), Vec2(0, 0), "BEND")
+    complete = LinePrimitive(Vec2(-30, 0), Vec2(0, 0), "BEND")
     complete_scene = DrawingScene([scene.primitives[0], complete, second])
     full = manufacturing_api.diagnose_v_miter_true_thickness_collision(
         complete_scene, complete, second, **params,
