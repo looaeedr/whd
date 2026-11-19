@@ -279,6 +279,81 @@ def test_main_gui_open_preflights_forged_v2_before_reset_and_does_not_lose_old_s
     assert host._v_miter_radius_ba_trial_preview == {"prior": "owned"}
 
 
+
+def test_v2_main_gui_open_rejects_all_untyped_or_invalid_physical_source_fields():
+    """A saved CHECK-only V2 preview must fail before the GUI mutates state.
+
+    #3356 preflight previously validated only measured R/BA/trim values.
+    Changing an older base source field still passed through Open->Save,
+    even though a fresh physical solver would refuse the same input.
+    """
+    from math import pi
+    from types import SimpleNamespace
+    from gui_modules.application import lifecycle as gui
+
+    scene, first, second, source = _scene()
+    measured = {
+        "first_inner_radius_mm": .5,
+        "second_inner_radius_mm": .5,
+        "first_bend_allowance_mm": (pi / 2) * (0.5 + .4 * 2),
+        "second_bend_allowance_mm": (pi / 2) * (0.5 + .4 * 2),
+        "max_permitted_edge_trim_mm": 12,
+    }
+    captured = manufacturing_api.capture_v_miter_radius_ba_trial_snapshot(
+        scene, first, second, **source, **measured,
+    )
+    events = []
+    host = SimpleNamespace(
+        _v_miter_radius_ba_trial_preview={"prior": "unchanged"},
+        workspace_controller=SimpleNamespace(
+            reset_receiving_mode_session=lambda: events.append("reset"),
+        ),
+        _reset_manual_corner_parameter_locks=lambda: events.append("corner_reset"),
+    )
+    invalid_sources = (
+        ("thickness_mm", True),
+        ("thickness_mm", "2"),
+        ("thickness_mm", 0),
+        ("first_flange_height_mm", float("nan")),
+        ("first_flange_height_mm", 0),
+        ("second_flange_height_mm", float("inf")),
+        ("second_flange_height_mm", -1),
+        ("second_fold_angle_deg", True),
+        ("second_fold_angle_deg", "90"),
+        ("second_fold_angle_deg", 0),
+        ("second_fold_angle_deg", 180),
+        ("relief_mode", "UNKNOWN"),
+        ("relief_mode", True),
+        ("relief_t_factor", None),
+        ("relief_t_factor", False),
+        ("relief_t_factor", "1.5"),
+        ("relief_t_factor", -1),
+    )
+    for field, value in invalid_sources:
+        invalid = deepcopy(captured)
+        invalid["parameters"][field] = value
+        envelope = {"v_miter_radius_ba_trial_preview": invalid}
+        with pytest.raises(GeometryError, match="V-miter saved physical source"):
+            manufacturing_api.project_operator_v_miter_radius_ba_preview_source(
+                envelope,
+            )
+        with pytest.raises(GeometryError, match="V-miter saved physical source"):
+            manufacturing_api.replay_v_miter_radius_ba_trial_snapshot(
+                scene, invalid,
+            )
+        with pytest.raises(GeometryError, match="V-miter saved physical source"):
+            gui._apply_phase6_project_snapshot(host, {
+                "model": "金庫型", **envelope,
+            })
+        assert events == [], (field, value)
+        assert host._v_miter_radius_ba_trial_preview == {
+            "prior": "unchanged",
+        }
+    assert captured["manufacturing_status"].endswith("UNCERTIFIED")
+    assert captured["parameters"]["thickness_mm"] == source["thickness_mm"]
+
+
+
 def test_measured_r_ba_saved_source_rejects_stale_or_forged_inputs():
     from math import radians, pi
 
