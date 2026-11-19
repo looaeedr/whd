@@ -98,3 +98,98 @@ def test_two_noncontacting_true_solids_never_need_invented_overlap_witness():
     result = detect_world_mesh_enclosed_volume_witness(a, b)
     assert result.meshes_closed
     assert not result.has_enclosed_overlap
+
+
+def _strict_inside_actual_tetra(point, vertices):
+    """Independent barycentric ground truth, not the Engine ray detector."""
+    import numpy as np
+    rows = np.asarray(vertices, dtype=float)
+    delta = np.asarray(point, dtype=float) - rows[0]
+    weights = np.linalg.solve((rows[1:] - rows[0]).T, delta)
+    barycentric = (1.0 - float(weights.sum()),) + tuple(float(v) for v in weights)
+    return all(v > 1e-8 for v in barycentric)
+
+
+def test_narrow_convex_tetra_overlap_escapes_old_nine_aabb_and_surface_samples():
+    # Both four-triangle solids occupy a REAL common 3D volume near the
+    # oblique faces. No source mesh vertex/face-centroid is strictly inside
+    # the other, and the previous AABB 1+8 probes ALL miss that volume.
+    # This is a true closed-surface fixture, not a bounding-box assertion.
+    first_vertices = (
+        (0.0, 0.0, 0.0), (3.0, 0.0, 0.0),
+        (0.0, 3.0, 0.0), (0.0, 0.0, 3.0),
+    )
+    second_vertices = (
+        (-1.29759186, 3.6464283, 2.82933773),
+        (4.60418533, 3.95045064, 3.4176386),
+        (0.15336671, -1.02663957, -0.90074075),
+        (3.37077506, 4.26330466, 4.14362644),
+    )
+    a = _tetra(first_vertices)
+    b = _tetra(second_vertices)
+    for surface, other in ((a, second_vertices), (b, first_vertices)):
+        for triangle in surface:
+            assert not _strict_inside_actual_tetra(
+                tuple(sum(p[i] for p in triangle) / 3 for i in range(3)), other,
+            )
+            for vertex in triangle:
+                assert not _strict_inside_actual_tetra(vertex, other)
+
+    import numpy as np
+    first_bounds = np.asarray(first_vertices)
+    second_bounds = np.asarray(second_vertices)
+    lower = np.maximum(first_bounds.min(axis=0), second_bounds.min(axis=0))
+    upper = np.minimum(first_bounds.max(axis=0), second_bounds.max(axis=0))
+    assert np.all(lower < upper)
+    fractions = ((.5, .5, .5),) + tuple(
+        (x, y, z) for x in (.25, .75)
+        for y in (.25, .75) for z in (.25, .75)
+    )
+    for row in fractions:
+        xyz = lower + (upper - lower) * np.asarray(row)
+        assert not (
+            _strict_inside_actual_tetra(xyz, first_vertices)
+            and _strict_inside_actual_tetra(xyz, second_vertices)
+        )
+
+    result = detect_world_mesh_enclosed_volume_witness(a, b)
+    assert result.meshes_closed
+    assert result.has_enclosed_overlap
+    assert len(result.strictly_inside_points) == 1
+    actual = result.strictly_inside_points[0]
+    assert _strict_inside_actual_tetra(actual, first_vertices)
+    assert _strict_inside_actual_tetra(actual, second_vertices)
+    # This point came from ACTUAL shared supporting planes, and not
+    # the centre/octants of the intersecting bounding boxes.
+    assert result.sample_count >= len(fractions) + 1
+
+
+def test_narrow_convex_overlap_is_winding_independent_and_order_independent():
+    a_vertices = ((0, 0, 0), (3, 0, 0), (0, 3, 0), (0, 0, 3))
+    b_vertices = (
+        (-1.29759186, 3.6464283, 2.82933773),
+        (4.60418533, 3.95045064, 3.4176386),
+        (0.15336671, -1.02663957, -0.90074075),
+        (3.37077506, 4.26330466, 4.14362644),
+    )
+    a = _tetra(a_vertices)
+    b = tuple((tri[0], tri[2], tri[1]) for tri in _tetra(b_vertices))
+    for first, second in ((a, b), (b, a)):
+        result = detect_world_mesh_enclosed_volume_witness(first, second)
+        assert result.meshes_closed
+        assert result.has_enclosed_overlap
+        point = result.strictly_inside_points[0]
+        assert _strict_inside_actual_tetra(point, a_vertices)
+        assert _strict_inside_actual_tetra(point, b_vertices)
+
+
+def test_tetrahedra_with_only_shared_diagonal_face_are_not_volume_overlap():
+    # Both true closed solids have the SAME outer AABB. One simplex occupies
+    # x+y+z <= 3, the other occupies the other side of the exact shared
+    # triangle x+y+z=3. The intersection is a surface, not a solid.
+    a = _tetra(((0, 0, 0), (3, 0, 0), (0, 3, 0), (0, 0, 3)))
+    b = _tetra(((3, 0, 0), (0, 3, 0), (0, 0, 3), (3, 3, 3)))
+    result = detect_world_mesh_enclosed_volume_witness(a, b)
+    assert result.meshes_closed
+    assert not result.has_enclosed_overlap
+    assert result.strictly_inside_points == ()
