@@ -2034,8 +2034,10 @@ from .v_miter_material_trial import (
 # #3317: bounded BEND/material reach and finite-t sharp-fold witness only.
 from .v_miter_bounded_contact import (
     VMiterBendReachWitness,
+    VMiterOriginalStockCreaseExtensionWitness,
     VMiterSharpThicknessWitness,
     diagnose_v_miter_bounded_bend_reach,
+    diagnose_v_miter_original_stock_crease_extension,
     project_v_miter_sharp_thickness_witness,
 )
 
