@@ -253,6 +253,88 @@ def detect_world_mesh_surface_interference(source_triangles, target_triangles, *
 
 
 @dataclass(frozen=True)
+class MeshTriangleEdgeIncidenceDiagnostic:
+    """Physical 3D triangle shell edge evidence, CHECK-only, never a solid proof."""
+
+    triangle_count: int
+    boundary_edge_count: int
+    nonmanifold_edge_count: int
+    degenerate_triangle_count: int
+    boundary_edge_examples_xyz: tuple = ()
+    geometry_model: str = "WORLD_TRUE_T_TRIANGLE_EDGE_INCIDENCE_CHECK"
+    manufacturing_status: str = "TRUE_T_MESH_TOPOLOGY_UNCERTIFIED"
+
+    @property
+    def edges_manifold_closed(self) -> bool:
+        # A two-use edge incidence is only a NECESSARY condition for a
+        # legitimate closed nonselfintersecting volume, not proof of one.
+        return (
+            self.triangle_count > 0
+            and not self.boundary_edge_count
+            and not self.nonmanifold_edge_count
+            and not self.degenerate_triangle_count
+        )
+
+
+def diagnose_world_mesh_triangle_edge_incidence(triangles, *, tolerance=None):
+    """Report real physical missing/nonmanifold edges of the SAME 3D shell.
+
+    Reuse the numerical point-key contract of the existing strict parity
+    closure checker. Never repair via convex hull, welding tolerance,
+    fictitious triangles, or silent snapping: this is diagnostic evidence
+    for the one source-owned CHECK mesh, not a manufacturing correction.
+    """
+    from collections import Counter
+    import numpy as np
+
+    if tolerance is None:
+        from .contracts import PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES
+        tolerance = PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES.boundary_separation_tolerance
+    tol = float(tolerance)
+    if not np.isfinite(tol) or tol <= 0:
+        raise ValueError("true-T mesh edge numerical tolerance must be positive and finite")
+    try:
+        mesh = np.asarray(tuple(triangles if triangles is not None else ()), dtype=float)
+    except (TypeError, ValueError, OverflowError):
+        raise ValueError("true-T edge witness needs actual finite 3D triangles") from None
+    if mesh.ndim != 3 or mesh.shape[1:] != (3, 3) or not np.isfinite(mesh).all():
+        raise ValueError("true-T edge witness needs actual finite 3D triangles")
+
+    counts = Counter()
+    representatives = {}
+    degenerate = 0
+    for tri in mesh:
+        u, v = tri[1] - tri[0], tri[2] - tri[0]
+        keys = [tuple(int(round(float(c) / tol)) for c in p) for p in tri]
+        if (
+            len(set(keys)) != 3
+            or np.linalg.norm(np.cross(u, v)) <= tol * tol
+        ):
+            degenerate += 1
+            continue
+        for i in range(3):
+            j = (i + 1) % 3
+            key = tuple(sorted((keys[i], keys[j])))
+            counts[key] += 1
+            if key not in representatives:
+                representatives[key] = (
+                    tuple(float(c) for c in tri[i]),
+                    tuple(float(c) for c in tri[j]),
+                )
+    boundary = tuple(key for key, count in counts.items() if count == 1)
+    nonmanifold = sum(count > 2 for count in counts.values())
+    return MeshTriangleEdgeIncidenceDiagnostic(
+        triangle_count=len(mesh),
+        boundary_edge_count=len(boundary),
+        nonmanifold_edge_count=nonmanifold,
+        degenerate_triangle_count=degenerate,
+        boundary_edge_examples_xyz=tuple(
+            representatives[key] for key in boundary[:8]
+        ),
+    )
+
+
+@dataclass(frozen=True)
 class MeshEnclosedVolumeDiagnostic:
     """Conservative true-3D interior-overlap witness, not a clearance certificate.
 

@@ -52,6 +52,21 @@ def test_90deg_hole_real_radius_ba_trial_is_source_bound_and_only_uncertified():
     assert trial.manufacturing_status.endswith("UNCERTIFIED")
     assert trial.no_detected_noncoplanar_crossings
     assert trial.trimmed_surface_interference_pairs == 0
+    # A geometry CHECK candidate is NOT a full 3D volume-clear verdict.
+    # Publish actual source mesh topology, never infer closure from zero hits.
+    assert trial.true_t_volume_check_status.endswith("UNCERTIFIED")
+    if trial.formed_volume_containment_meshes_closed:
+        assert "SAMPLED_NO_POSITIVE_WITNESS" in trial.true_t_volume_check_status
+    else:
+        assert "UNKNOWN_OPEN_MESH" in trial.true_t_volume_check_status
+        assert (
+            trial.first_thick_solid_boundary_edge_count
+            + trial.second_thick_solid_boundary_edge_count
+            + trial.first_thick_solid_nonmanifold_edge_count
+            + trial.second_thick_solid_nonmanifold_edge_count
+            + trial.first_thick_solid_degenerate_triangle_count
+            + trial.second_thick_solid_degenerate_triangle_count
+        ) > 0
     # Real T-solid world sections are independent of local flat source XY.
     # Missing first/second section is NOT a zero contact gap.
     gap = trial.seam_section_gap_trial
@@ -232,6 +247,17 @@ def test_real_round_R_thick_joint_keeps_R_BA_source_but_only_returns_check_candi
     assert trial.first_edge_trim_mm <= _calibrated()["max_permitted_edge_trim_mm"]
     assert trial.untrimmed_surface_interference_pairs > 0
     assert trial.trimmed_surface_interference_pairs == 0
+    assert trial.true_t_volume_check_status.endswith("UNCERTIFIED")
+    if not trial.formed_volume_containment_meshes_closed:
+        assert "UNKNOWN_OPEN_MESH" in trial.true_t_volume_check_status
+        assert (
+            trial.first_thick_solid_boundary_edge_count
+            + trial.second_thick_solid_boundary_edge_count
+            + trial.first_thick_solid_nonmanifold_edge_count
+            + trial.second_thick_solid_nonmanifold_edge_count
+            + trial.first_thick_solid_degenerate_triangle_count
+            + trial.second_thick_solid_degenerate_triangle_count
+        ) > 0
     assert trial.full_corrected_check_outline
     assert trial.seam_section_gap_trial is not None
     assert trial.first_source_cut_face is not None
@@ -383,3 +409,40 @@ def test_round_r_alternate_failure_keeps_original_collision_evidence():
         )
     assert caught.value.attempted_noncoplanar_pairs == 7
     assert caught.value.attempted_trim_mm == pytest.approx(12)
+
+
+
+def test_real_open_true_T_volume_is_explicitly_unknown_in_source_CHECK(monkeypatch):
+    from ae_engine import v_miter_radius_ba_interface_trial as owner
+    from ae_engine.assembly_geometry import MeshEnclosedVolumeDiagnostic
+
+    scene, first, second, args = _source(mode="RELIEF_HOLE")
+    original_primitives = tuple(scene.primitives)
+    # Reuse the GENUINE source CUTTING, measured R/BA, curved 3D thickness
+    # meshes and same CHECK-only trim solver. The independent strict-parity
+    # checker reports an open shell; it cannot claim no penetration.
+    monkeypatch.setattr(
+        owner, "detect_world_mesh_enclosed_volume_witness",
+        lambda *_: MeshEnclosedVolumeDiagnostic(False, 0, ()),
+    )
+    trial = manufacturing_api.solve_v_miter_radius_ba_interface_trial(
+        scene, first, second, **args, **_calibrated(),
+    )
+    assert trial.trimmed_surface_interference_pairs == 0
+    assert trial.trimmed_enclosed_volume_witness_count == 0
+    assert trial.formed_volume_containment_meshes_closed is False
+    assert trial.true_t_volume_check_status == (
+        "V_MITER_TRUE_T_VOLUME_UNKNOWN_OPEN_MESH_UNCERTIFIED"
+    )
+    assert (
+        trial.first_thick_solid_boundary_edge_count
+        + trial.second_thick_solid_boundary_edge_count
+        + trial.first_thick_solid_nonmanifold_edge_count
+        + trial.second_thick_solid_nonmanifold_edge_count
+        + trial.first_thick_solid_degenerate_triangle_count
+        + trial.second_thick_solid_degenerate_triangle_count
+    ) > 0
+    assert len(trial.first_thick_solid_boundary_edge_examples_xyz) <= 8
+    assert len(trial.second_thick_solid_boundary_edge_examples_xyz) <= 8
+    assert trial.manufacturing_status.endswith("UNCERTIFIED")
+    assert tuple(scene.primitives) == original_primitives

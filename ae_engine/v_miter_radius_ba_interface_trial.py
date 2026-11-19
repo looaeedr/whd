@@ -25,6 +25,7 @@ from shapely.geometry import LineString, Point, Polygon
 from .assembly_geometry import (
     detect_world_mesh_surface_interference,
     detect_world_mesh_enclosed_volume_witness,
+    diagnose_world_mesh_triangle_edge_incidence,
 )
 from .assembly_geometry_primitives import thicken_triangle_surface
 from .sheetmetal_drawing import DrawingScene, LinePrimitive
@@ -82,6 +83,15 @@ class VMiterRadiusCompensatedInterfaceTrial:
     untrimmed_enclosed_volume_witness_count: int = 0
     trimmed_enclosed_volume_witness_count: int = 0
     formed_volume_containment_meshes_closed: bool = False
+    first_thick_solid_boundary_edge_count: int = 0
+    second_thick_solid_boundary_edge_count: int = 0
+    first_thick_solid_nonmanifold_edge_count: int = 0
+    second_thick_solid_nonmanifold_edge_count: int = 0
+    first_thick_solid_degenerate_triangle_count: int = 0
+    second_thick_solid_degenerate_triangle_count: int = 0
+    first_thick_solid_boundary_edge_examples_xyz: tuple = ()
+    second_thick_solid_boundary_edge_examples_xyz: tuple = ()
+    true_t_volume_check_status: str = "V_MITER_TRUE_T_VOLUME_UNKNOWN_NOT_EVALUATED"
     first_edge_transition_span_mm: float = 0.0
     full_corrected_check_outline: tuple[Vec2, ...] = ()
     seam_section_gap_trial: VMiterSeamSectionGapTrial | None = None
@@ -482,9 +492,11 @@ def _search_source_safe_edge_trim(evaluate, limit: float, *, failure_message: st
     This is a diagnostic non-coplanar crossing search, NOT 3D certification.
     """
     def clear(candidate):
-        # Index 3 remains the original noncoplanar *surface* pair count.
-        # A genuine nested-volume witness is a separate physical failure;
-        # do not report it as a fake triangle surface crossing.
+        # Select only a source-preserving *CHECK geometry* with no observed
+        # positive surface/interior witness. An OPEN true-T mesh remains
+        # volume UNKNOWN, NOT certified clearance. This diagnostic status
+        # must be published separately in the final immutable result: the
+        # existing real curved strip meshes are not all manifold-closed.
         return candidate[3] == 0 and not (len(candidate) > 5 and candidate[5])
 
     original = evaluate(0.0)
@@ -762,6 +774,19 @@ def solve_v_miter_radius_ba_interface_trial(
         )
         transition, local_root_taper = selected, False
 
+    # The curved R/BA source can produce nonconforming or open physical
+    # triangle shells even when their surface crossing search is clear.
+    # Publish real edge-incidence evidence; UNKNOWN can never be an
+    # implicit closed-volume clearance or a manufacturing certificate.
+    topo_first = diagnose_world_mesh_triangle_edge_incidence(best[2])
+    topo_second = diagnose_world_mesh_triangle_edge_incidence(solid2)
+    true_t_volume_status = (
+        "V_MITER_TRUE_T_VOLUME_SAMPLED_NO_POSITIVE_WITNESS_UNCERTIFIED"
+        if best[6] and topo_first.edges_manifold_closed
+        and topo_second.edges_manifold_closed else
+        "V_MITER_TRUE_T_VOLUME_UNKNOWN_OPEN_MESH_UNCERTIFIED"
+    )
+
     # This section-based physical gap evidence is evaluated exactly ONCE
     # after final 2D whole-source and R/BA/T collision checks, not in each
     # trim search step. It can expose missing mating material and positive
@@ -852,6 +877,15 @@ def solve_v_miter_radius_ba_interface_trial(
         untrimmed_enclosed_volume_witness_count=len(original[5]),
         trimmed_enclosed_volume_witness_count=len(best[5]),
         formed_volume_containment_meshes_closed=bool(best[6]),
+        first_thick_solid_boundary_edge_count=topo_first.boundary_edge_count,
+        second_thick_solid_boundary_edge_count=topo_second.boundary_edge_count,
+        first_thick_solid_nonmanifold_edge_count=topo_first.nonmanifold_edge_count,
+        second_thick_solid_nonmanifold_edge_count=topo_second.nonmanifold_edge_count,
+        first_thick_solid_degenerate_triangle_count=topo_first.degenerate_triangle_count,
+        second_thick_solid_degenerate_triangle_count=topo_second.degenerate_triangle_count,
+        first_thick_solid_boundary_edge_examples_xyz=topo_first.boundary_edge_examples_xyz,
+        second_thick_solid_boundary_edge_examples_xyz=topo_second.boundary_edge_examples_xyz,
+        true_t_volume_check_status=true_t_volume_status,
         first_edge_transition_span_mm=transition,
         seam_section_gap_trial=seam_gap,
         first_source_cut_face=first_cut_face,

@@ -120,6 +120,20 @@ def test_true_saved_source_recomputes_same_r_ba_2d_3d_after_project_reload(tmp_p
     assert old.trial.second_source_cut_face == new.trial.second_source_cut_face
     assert old.trial.source_cut_face_section_gap_trial == new.trial.source_cut_face_section_gap_trial
     assert old.trial.source_cut_face_continuity_trial == new.trial.source_cut_face_continuity_trial
+    assert old.trial.true_t_volume_check_status == new.trial.true_t_volume_check_status
+    assert old.trial.true_t_volume_check_status.endswith("UNCERTIFIED")
+    assert old.trial.formed_volume_containment_meshes_closed == new.trial.formed_volume_containment_meshes_closed
+    for field in (
+        "first_thick_solid_boundary_edge_count",
+        "second_thick_solid_boundary_edge_count",
+        "first_thick_solid_nonmanifold_edge_count",
+        "second_thick_solid_nonmanifold_edge_count",
+        "first_thick_solid_degenerate_triangle_count",
+        "second_thick_solid_degenerate_triangle_count",
+        "first_thick_solid_boundary_edge_examples_xyz",
+        "second_thick_solid_boundary_edge_examples_xyz",
+    ):
+        assert getattr(old.trial, field) == getattr(new.trial, field)
     assert old.trial.source_cut_face_continuity_trial is not None
     assert old.trial.source_cut_face_continuity_trial.manufacturing_status.endswith("UNCERTIFIED")
     assert old.trial.seam_section_gap_trial.manufacturing_status.endswith("UNCERTIFIED")
@@ -315,7 +329,10 @@ def test_permitted_maximum_is_not_required_to_be_a_destructive_trim():
         evaluated.append(trim)
         if trim > 7:
             raise GeometryError("V-miter R/BA correction cannot keep one closed sheet")
-        return ("source_checked", "skin", "solid", 0 if trim >= 4 else 3)
+        # Synthetic route-only candidate still honours the real search
+        # tuple contract: physical volume parity was run on a closed mesh.
+        return ("source_checked", "skin", "solid", 0 if trim >= 4 else 3,
+                (), (), True, "whole_source")
 
     original, best, selected = _search_source_safe_edge_trim(
         evaluate, 20, failure_message="no qualifying source-preserving trim",
