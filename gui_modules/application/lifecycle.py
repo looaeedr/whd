@@ -474,6 +474,9 @@ def _apply_phase6_project_snapshot(self, snapshot):
     v_miter_source = manufacturing_api.project_operator_v_miter_radius_ba_preview_source(
         snapshot or {}
     )
+    # Replace the previous project preview BEFORE any geometry refresh can
+    # resave/reuse stale source; the above preflight has not mutated state.
+    self._v_miter_radius_ba_trial_preview = v_miter_source
     self.workspace_controller.reset_receiving_mode_session()
     self._reset_manual_corner_parameter_locks()
     snapshot = deepcopy(dict(snapshot or {}))
@@ -582,9 +585,6 @@ def _apply_phase6_project_snapshot(self, snapshot):
     self._active_cabinet_type = _current_cabinet_type_name(self)
     self._reload_current_baseline_features()
     self.refresh_corner_type_panel()
-    # A new project without V2 must also clear any previous project's
-    # optional trial source. This is independent of editable CornerType.
-    self._v_miter_radius_ba_trial_preview = v_miter_source
     self._request_phase6_update("geometry")
     return snapshot
 
