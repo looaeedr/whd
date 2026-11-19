@@ -95,6 +95,26 @@ def test_true_source_r_ba_curved_shells_close_without_inventing_material(mode):
     assert tuple(scene.primitives) == original
 
 
+@pytest.mark.parametrize("mode", ("RELIEF_HOLE", "ROUND_R"))
+@pytest.mark.parametrize("angle", (90, 120))
+def test_real_source_trial_requires_closed_verified_true_t_volume_before_check(mode, angle):
+    # The repaired R/BA true-T shells must be accepted based on the ACTUAL
+    # strict-closure detector, not just zero noncoplanar intersections.
+    scene, first, second, args = _source(angle=angle, mode=mode)
+    trial = manufacturing_api.solve_v_miter_radius_ba_interface_trial(
+        scene, first, second, **args, **_calibrated(angle),
+    )
+    assert trial.formed_volume_containment_meshes_closed
+    assert trial.first_thick_solid_boundary_edge_count == 0
+    assert trial.second_thick_solid_boundary_edge_count == 0
+    assert trial.trimmed_surface_interference_pairs == 0
+    assert trial.trimmed_enclosed_volume_witness_count == 0
+    assert trial.true_t_volume_check_status == (
+        "V_MITER_TRUE_T_VOLUME_SAMPLED_NO_POSITIVE_WITNESS_UNCERTIFIED"
+    )
+    assert trial.manufacturing_status.endswith("UNCERTIFIED")
+
+
 def test_90deg_hole_real_radius_ba_trial_is_source_bound_and_only_uncertified():
     scene, first, second, args = _source(mode="RELIEF_HOLE")
     original = tuple(scene.primitives)
@@ -468,7 +488,7 @@ def test_round_r_alternate_failure_keeps_original_collision_evidence():
 
 
 
-def test_real_open_true_T_volume_is_explicitly_unknown_in_source_CHECK(monkeypatch):
+def test_unknown_true_T_volume_never_returns_any_source_CHECK_candidate(monkeypatch):
     from ae_engine import v_miter_radius_ba_interface_trial as owner
     from ae_engine.assembly_geometry import MeshEnclosedVolumeDiagnostic
 
@@ -481,27 +501,19 @@ def test_real_open_true_T_volume_is_explicitly_unknown_in_source_CHECK(monkeypat
         owner, "detect_world_mesh_enclosed_volume_witness",
         lambda *_: MeshEnclosedVolumeDiagnostic(False, 0, ()),
     )
-    trial = manufacturing_api.solve_v_miter_radius_ba_interface_trial(
-        scene, first, second, **args, **_calibrated(),
-    )
-    assert trial.trimmed_surface_interference_pairs == 0
-    assert trial.trimmed_enclosed_volume_witness_count == 0
-    assert trial.formed_volume_containment_meshes_closed is False
-    assert trial.true_t_volume_check_status == (
-        "V_MITER_TRUE_T_VOLUME_UNKNOWN_OPEN_MESH_UNCERTIFIED"
-    )
-    # The mocked parity result is UNKNOWN independently of the *actual*
-    # topology: the repaired R/BA source now yields a closed physical shell.
-    # Never fabricate open edges just to agree with a parity failure.
-    assert (
-        trial.first_thick_solid_boundary_edge_count
-        + trial.second_thick_solid_boundary_edge_count
-        + trial.first_thick_solid_nonmanifold_edge_count
-        + trial.second_thick_solid_nonmanifold_edge_count
-        + trial.first_thick_solid_degenerate_triangle_count
-        + trial.second_thick_solid_degenerate_triangle_count
-    ) == 0
-    assert len(trial.first_thick_solid_boundary_edge_examples_xyz) <= 8
-    assert len(trial.second_thick_solid_boundary_edge_examples_xyz) <= 8
-    assert trial.manufacturing_status.endswith("UNCERTIFIED")
+    # Real formed physical triangles are built, but UNKNOWN parity is now a
+    # HARD rejection, rather than a CHECK contour chosen from unverifiable
+    # physical volume. No source edit and no DXF producer may get a result.
+    with pytest.raises(owner.VMiterRadiusBAContactError, match="UNKNOWN true-T volume closure") as caught:
+        manufacturing_api.solve_v_miter_radius_ba_interface_trial(
+            scene, first, second, **args, **_calibrated(),
+        )
+    failure = caught.value
+    assert failure.attempted_noncoplanar_pairs == 0
+    assert failure.attempted_containment_points == ()
+    assert failure.manufacturing_status.endswith("UNCERTIFIED")
+    with pytest.raises(owner.VMiterRadiusBAContactError, match="UNKNOWN true-T volume closure"):
+        manufacturing_api.build_v_miter_radius_ba_full_sheet_check_scene(
+            scene, first, second, **args, **_calibrated(),
+        )
     assert tuple(scene.primitives) == original_primitives
