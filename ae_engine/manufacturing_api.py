@@ -2035,9 +2035,11 @@ from .v_miter_material_trial import (
 from .v_miter_bounded_contact import (
     VMiterBendReachWitness,
     VMiterOriginalStockCreaseExtensionWitness,
+    VMiterPhysicalCreaseAfterReliefWitness,
     VMiterSharpThicknessWitness,
     diagnose_v_miter_bounded_bend_reach,
     diagnose_v_miter_original_stock_crease_extension,
+    diagnose_v_miter_physical_crease_after_relief,
     project_v_miter_sharp_thickness_witness,
 )
 
