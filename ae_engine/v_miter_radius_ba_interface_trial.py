@@ -89,6 +89,8 @@ class VMiterRadiusCompensatedInterfaceTrial:
     second_thick_solid_nonmanifold_edge_count: int = 0
     first_thick_solid_degenerate_triangle_count: int = 0
     second_thick_solid_degenerate_triangle_count: int = 0
+    first_thick_solid_boundary_edge_examples_xyz: tuple = ()
+    second_thick_solid_boundary_edge_examples_xyz: tuple = ()
     true_t_volume_check_status: str = "V_MITER_TRUE_T_VOLUME_UNKNOWN_NOT_EVALUATED"
     first_edge_transition_span_mm: float = 0.0
     full_corrected_check_outline: tuple[Vec2, ...] = ()
@@ -881,6 +883,8 @@ def solve_v_miter_radius_ba_interface_trial(
         second_thick_solid_nonmanifold_edge_count=topo_second.nonmanifold_edge_count,
         first_thick_solid_degenerate_triangle_count=topo_first.degenerate_triangle_count,
         second_thick_solid_degenerate_triangle_count=topo_second.degenerate_triangle_count,
+        first_thick_solid_boundary_edge_examples_xyz=topo_first.boundary_edge_examples_xyz,
+        second_thick_solid_boundary_edge_examples_xyz=topo_second.boundary_edge_examples_xyz,
         true_t_volume_check_status=true_t_volume_status,
         first_edge_transition_span_mm=transition,
         seam_section_gap_trial=seam_gap,
