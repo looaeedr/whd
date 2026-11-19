@@ -39,6 +39,32 @@ def _calibrated(angle=90, *, radius=0.5, k=0.4):
     )
 
 
+def test_v_miter_true_source_self_intersection_gate_retains_valid_check(monkeypatch):
+    from ae_engine import assembly_geometry as geo
+    from ae_engine import v_miter_radius_ba_interface_trial as owner
+
+    genuine = geo.diagnose_world_mesh_self_intersections
+    invalid = []
+
+    def observed(mesh, *, tolerance=None):
+        result = genuine(mesh, tolerance=tolerance)
+        if not result.permits_strict_volume_sampling and len(invalid) < 4:
+            pair = result.first_source_triangle_pair
+            sample = (mesh[pair[0]], mesh[pair[1]]) if pair else ()
+            invalid.append((len(mesh), result, sample))
+        return result
+
+    monkeypatch.setattr(geo, "diagnose_world_mesh_self_intersections", observed)
+    scene, first, second, args = _source(mode="RELIEF_HOLE")
+    try:
+        result = manufacturing_api.solve_v_miter_radius_ba_interface_trial(
+            scene, first, second, **args, **_calibrated(),
+        )
+    except owner.VMiterRadiusBAContactError:
+        pytest.fail("real physical source was rejected: " + repr(invalid))
+    assert result.formed_volume_containment_meshes_closed
+
+
 def test_opt_in_smooth_r_ba_thickening_closes_shared_physical_hinge_vertices():
     from ae_engine.assembly_geometry import diagnose_world_mesh_triangle_edge_incidence
     from ae_engine.assembly_geometry_primitives import thicken_triangle_surface
