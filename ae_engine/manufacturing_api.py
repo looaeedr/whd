@@ -2008,6 +2008,9 @@ from .v_miter_trial_snapshot import (
     capture_v_miter_relief_trial_snapshot,
     replay_v_miter_relief_trial_snapshot,
     build_saved_v_miter_relief_trial_check_scene,
+    capture_v_miter_radius_ba_trial_snapshot,
+    replay_v_miter_radius_ba_trial_snapshot,
+    build_saved_v_miter_radius_ba_check_scene,
 )
 
 # #3317: physical R-circle / hole-shaped V-tip trial, never a production CUTTING.
