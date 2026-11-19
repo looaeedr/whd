@@ -125,7 +125,18 @@ def _mesh(triangles: object, name: str) -> tuple[tuple[Vec3, Vec3, Vec3], ...]:
             raise GeometryError(f"V-miter seam-section {name} triangle is invalid") from None
         if len(points) != 3:
             raise GeometryError(f"V-miter seam-section {name} triangle needs three vertices")
-        result.append(tuple(_point(p, name + " triangle") for p in points))
+        triangle = tuple(_point(p, name + " triangle") for p in points)
+        # Three finite vertices do NOT prove a physical face. Collinear or
+        # coincident vertices have zero area, but a legacy section plane
+        # through such a line could mistake it for real source material.
+        # Test strictly for nonzero geometric area; no arbitrary factory
+        # thickness, bevel or mating tolerance is introduced.
+        first_edge = _sub(triangle[1], triangle[0])
+        second_edge = _sub(triangle[2], triangle[0])
+        doubled_area = math.hypot(*_cross(first_edge, second_edge))
+        if not math.isfinite(doubled_area) or doubled_area == 0:
+            raise GeometryError(f"V-miter seam-section {name} triangle has zero or invalid area")
+        result.append(triangle)
     return tuple(result)
 
 
