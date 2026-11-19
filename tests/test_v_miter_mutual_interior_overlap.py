@@ -6,6 +6,7 @@ import pytest
 from ae_engine.assembly_geometry import (
     detect_world_mesh_enclosed_volume_witness,
     detect_world_mesh_surface_interference,
+    diagnose_world_mesh_triangle_edge_incidence,
 )
 
 
@@ -193,3 +194,33 @@ def test_tetrahedra_with_only_shared_diagonal_face_are_not_volume_overlap():
     assert result.meshes_closed
     assert not result.has_enclosed_overlap
     assert result.strictly_inside_points == ()
+
+
+def test_actual_world_T_shell_edge_diagnostic_distinguishes_closed_open_and_nonmanifold():
+    closed = _box((0, 0, 0), (2, 2, 2))
+    valid = diagnose_world_mesh_triangle_edge_incidence(closed)
+    assert valid.triangle_count == 12
+    assert valid.edges_manifold_closed
+    assert valid.boundary_edge_count == 0
+    assert valid.nonmanifold_edge_count == 0
+    assert valid.degenerate_triangle_count == 0
+    assert valid.boundary_edge_examples_xyz == ()
+    assert valid.manufacturing_status.endswith("UNCERTIFIED")
+
+    open_shell = diagnose_world_mesh_triangle_edge_incidence(closed[:-1])
+    assert not open_shell.edges_manifold_closed
+    assert open_shell.boundary_edge_count == 3
+    assert open_shell.nonmanifold_edge_count == 0
+    assert len(open_shell.boundary_edge_examples_xyz) == 3
+    assert all(len(edge) == 2 and all(len(p) == 3 for p in edge)
+               for edge in open_shell.boundary_edge_examples_xyz)
+
+    duplicated = diagnose_world_mesh_triangle_edge_incidence(closed + (closed[0],))
+    assert not duplicated.edges_manifold_closed
+    assert duplicated.nonmanifold_edge_count == 3
+
+    degenerate = diagnose_world_mesh_triangle_edge_incidence(
+        closed + (((0, 0, 0), (0, 0, 0), (1, 1, 1)),),
+    )
+    assert not degenerate.edges_manifold_closed
+    assert degenerate.degenerate_triangle_count == 1
