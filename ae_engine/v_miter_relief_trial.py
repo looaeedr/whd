@@ -16,11 +16,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 import math
 
-from shapely.geometry import Point, Polygon
+from shapely.geometry import LineString, Point, Polygon
+from shapely.ops import substring, unary_union
 
 from .sheetmetal_drawing import DrawingScene, LinePrimitive, PolylinePrimitive
 from .sheetmetal_geometry_core import GeometryError, Vec2
-from .v_miter_corner_source import VMiterReliefMode
+from .v_miter_corner_source import VMiterReliefMode, _finite
 from .v_miter_material_trial import (
     VMiterMaterialOutlineTrial, _single_source_material,
     build_v_miter_trial_check_scene, project_v_miter_source_material_trial,
@@ -205,6 +206,191 @@ def project_v_miter_relief_trial(
             Vec2(float(x), float(y)) for x, y in remaining.exterior.coords
         ),
     )
+
+
+@dataclass(frozen=True)
+class VMiterReverseCreaseAsymmetricCutTrial:
+    """Real stock-removal alternative for a negative-axial 60° fold; CHECK ONLY.
+
+    The outer-perimeter arc retract is an EXPLICIT candidate source input.
+    It is NOT a shop allowance, not a resolved 3D seam and not permission
+    to cut, bend or mark. The original ideal seam/cut-face mating becomes
+    invalid after moving this V leg and MUST be re-solved independently.
+    """
+
+    original_relief: VMiterReliefTrial
+    second_leg_outer_perimeter_retract_mm: float
+    second_leg_relocated_tip: Vec2
+    candidate_remaining_outline: tuple[Vec2, ...]
+    candidate_removed_area_mm2: float
+    candidate_remaining_area_mm2: float
+    first_original_stock_covers_extension: bool
+    first_real_bend_continuation_covers: bool
+    first_remaining_interior_covers_extension: bool
+    first_remaining_interior_crease_length_mm: float
+    geometry_model: str = "V_MITER_60_DEG_SOURCE_OUTER_PERIMETER_ASYMMETRIC_LEG_CHECK"
+    manufacturing_status: str = "V_MITER_REVERSE_CREASE_CUT_UNCERTIFIED"
+
+
+def project_v_miter_reverse_crease_asymmetric_cut_trial(
+    scene: DrawingScene,
+    v_edge_bend: LinePrimitive,
+    second_bend: LinePrimitive,
+    *,
+    thickness_mm: float,
+    first_flange_height_mm: float,
+    second_flange_height_mm: float,
+    second_fold_angle_deg: float,
+    relief_mode: VMiterReliefMode | str,
+    relief_t_factor: float | None,
+    second_leg_outer_perimeter_retract_mm: float,
+) -> VMiterReverseCreaseAsymmetricCutTrial:
+    """Move the SECOND V tip along REAL original exterior stock, not a GUI ray.
+
+    For a 60° formed second fold the analytical second V leg can coincide
+    with the physical first BEND continuation after cutting. Retraction of
+    that OUTER tip toward the first V leg can retain a strip of genuine
+    original stock under the full missing crease. This only constructs and
+    checks one alternate physical CUTTING *hypothesis*, not a corrected
+    formed seam, thickness-safe R/BA/bevel or certified factory relief.
+
+    No inferred stock: both leg tips and the complete shortened outer arc
+    come from the verified source CUTTING perimeter and the Engine's
+    original ideal V geometry. The original R or drill diameter remains the
+    operator's explicit T multiple. Any candidate causing invalid stock,
+    crossing a source edge, or splitting the original sheet is rejected.
+    """
+    from .v_miter_bounded_contact import diagnose_v_miter_original_stock_crease_extension
+
+    p = dict(thickness_mm=thickness_mm,
+             first_flange_height_mm=first_flange_height_mm,
+             second_flange_height_mm=second_flange_height_mm,
+             second_fold_angle_deg=second_fold_angle_deg,
+             relief_mode=relief_mode, relief_t_factor=relief_t_factor)
+    original = project_v_miter_relief_trial(
+        scene, v_edge_bend, second_bend, **p,
+    )
+    reach = diagnose_v_miter_original_stock_crease_extension(
+        scene, v_edge_bend, second_bend, **p,
+    )
+    if not (0 < original.source_trial.ideal.source.second_fold_angle_deg < 90
+            and reach.first_missing_bend_extension is not None
+            and reach.bounded.first_axial_seam_reach_mm < -_AREA_TOL
+            and reach.second_missing_bend_extension is None):
+        raise GeometryError(
+            "V-miter asymmetric reverse crease cut requires a negative first BEND 60-degree-type reach"
+        )
+    amount = _finite(
+        second_leg_outer_perimeter_retract_mm,
+        "second_leg_outer_perimeter_retract_mm", positive=True,
+    )
+    stock = _single_source_material(scene)
+    sharp = original.source_trial
+    apex = sharp.ideal.source.bend_intersection
+    first_tip = sharp.ideal.first_flat_miter_ray[1]
+    outer = tuple((p.x, p.y) for p in sharp.removed_corner_outline[1:-1])
+    perimeter_arc = LineString(outer)
+    if (not perimeter_arc.is_simple or not math.isfinite(perimeter_arc.length)
+            or amount >= perimeter_arc.length - _AREA_TOL):
+        raise GeometryError("V-miter asymmetric leg retract exceeds original source exterior arc")
+    shortened = substring(perimeter_arc, 0.0, perimeter_arc.length - amount)
+    coords = tuple((float(x), float(y)) for x, y in shortened.coords)
+    if len(coords) < 2:
+        raise GeometryError("V-miter asymmetric leg has no physical exterior arc")
+    tip = Vec2(*coords[-1])
+    if Point(*coords[-1]).distance(stock.boundary) > _AREA_TOL:
+        raise GeometryError("V-miter asymmetric second tip is not on original CUTTING")
+
+    if original.relief_mode is VMiterReliefMode.ROUND_R:
+        removed, _ = _rounded_v_notch_polygon(
+            apex, first_tip, tip, coords, original.relief_radius_mm,
+        )
+    else:
+        hole = Point(apex.x, apex.y).buffer(
+            original.relief_radius_mm, resolution=48,
+        )
+        removed = Polygon(((apex.x, apex.y), *coords)).union(hole)
+    if (removed.is_empty or removed.geom_type != "Polygon"
+            or not removed.is_valid or removed.interiors
+            or removed.area <= _AREA_TOL
+            or removed.difference(stock).area > _AREA_TOL):
+        raise GeometryError("V-miter asymmetric leg has no valid source-stock removal")
+    remaining = stock.difference(removed)
+    if (remaining.is_empty or remaining.geom_type != "Polygon"
+            or not remaining.is_valid or remaining.interiors
+            or remaining.area <= _AREA_TOL
+            or abs(stock.area - removed.area - remaining.area) >
+            max(1e-5, stock.area * 1e-9)):
+        raise GeometryError("V-miter asymmetric leg breaks one-piece source stock")
+
+    a, b = reach.first_missing_bend_extension
+    missing = LineString(((a.x, a.y), (b.x, b.y)))
+    extras = tuple(
+        LineString(((item.p1.x, item.p1.y), (item.p2.x, item.p2.y)))
+        for item in scene.primitives
+        if isinstance(item, LinePrimitive) and item.layer == "BEND"
+        and item is not v_edge_bend and item is not second_bend
+    )
+    # Exact collinear source ownership; crossing, offset or interrupted
+    # BENDs cannot collectively create a virtual missing fold interval.
+    true_bend = bool(
+        extras and missing.difference(unary_union(extras)).is_empty
+    )
+    near_boundary = remaining.boundary.buffer(_AREA_TOL * .1)
+    interior = float(
+        missing.intersection(remaining).difference(near_boundary).length
+    )
+    # Do not confuse an intentional tip-hole cutback with true material
+    # covering the full crease. Report the partial material separately.
+    full_interior = bool(
+        remaining.covers(missing)
+        and remaining.contains(missing.interpolate(0.5, normalized=True))
+        and missing.intersection(near_boundary).length == 0
+    )
+    return VMiterReverseCreaseAsymmetricCutTrial(
+        original_relief=original,
+        second_leg_outer_perimeter_retract_mm=amount,
+        second_leg_relocated_tip=tip,
+        candidate_remaining_outline=tuple(
+            Vec2(float(x), float(y)) for x, y in remaining.exterior.coords
+        ),
+        candidate_removed_area_mm2=float(removed.area),
+        candidate_remaining_area_mm2=float(remaining.area),
+        first_original_stock_covers_extension=bool(
+            reach.first_original_stock_covers_extension
+        ),
+        first_real_bend_continuation_covers=true_bend,
+        first_remaining_interior_covers_extension=full_interior,
+        first_remaining_interior_crease_length_mm=interior,
+    )
+
+
+def build_v_miter_reverse_crease_asymmetric_check_scene(
+    scene: DrawingScene,
+    v_edge_bend: LinePrimitive,
+    second_bend: LinePrimitive,
+    **kwargs,
+) -> DrawingScene:
+    """CHECK-only, never CNC CUTTING/BEND/MARKING for a changed 60° V ray."""
+    trial = project_v_miter_reverse_crease_asymmetric_cut_trial(
+        scene, v_edge_bend, second_bend, **kwargs,
+    )
+    source = _single_source_material(scene)
+    out = DrawingScene()
+    out.add(PolylinePrimitive(
+        points=tuple(Vec2(float(x), float(y)) for x, y in source.exterior.coords),
+        layer="DATUM", closed=True, color=6,
+        semantic_id="v_miter_reverse_original_stock_only",
+    ))
+    out.add(PolylinePrimitive(
+        points=trial.candidate_remaining_outline,
+        layer="CHECK", closed=True, color=2,
+        semantic_id="v_miter_reverse_asymmetric_cut_uncertified_only",
+    ))
+    for bend in (v_edge_bend, second_bend):
+        out.add(LinePrimitive(p1=bend.p1, p2=bend.p2,
+                              layer="DATUM", color=6))
+    return out
 
 
 def build_v_miter_relief_trial_check_scene(

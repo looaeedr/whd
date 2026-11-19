@@ -182,6 +182,126 @@ def _v_source_with_actual_cut(angle, *, first_span=100, mirror=False):
 
 @pytest.mark.parametrize("mode", ("ROUND_R", "RELIEF_HOLE"))
 @pytest.mark.parametrize("mirror", (False, True))
+def test_60_reverse_crease_alternate_real_source_cut_saves_metal_not_virtual_bend(
+    tmp_path, mode, mirror,
+):
+    import ezdxf
+    from shapely.geometry import LineString, Polygon
+    from ae_engine.dxf_serialization import save_scene_dxf
+
+    scene, first, second, p = _v_source_with_actual_cut(60, mirror=mirror)
+    p["relief_mode"] = mode
+    sign = -1 if mirror else 1
+    scene.primitives.append(LinePrimitive(
+        Vec2(0, 0), Vec2(sign * 20, 0), "BEND",
+    ))
+    before = tuple(scene.primitives)
+    original = manufacturing_api.project_v_miter_relief_trial(
+        scene, first, second, **p,
+    )
+    original_stock = Polygon((x.x, x.y) for x in scene.primitives[0].points)
+    original_remaining = Polygon(
+        (x.x, x.y) for x in original.trial_remaining_outline
+    )
+    candidate = manufacturing_api.project_v_miter_reverse_crease_asymmetric_cut_trial(
+        scene, first, second, **p,
+        second_leg_outer_perimeter_retract_mm=6.0,
+    )
+    revised = Polygon(
+        (x.x, x.y) for x in candidate.candidate_remaining_outline
+    )
+    assert candidate.manufacturing_status == "V_MITER_REVERSE_CREASE_CUT_UNCERTIFIED"
+    assert candidate.first_original_stock_covers_extension is True
+    assert candidate.first_real_bend_continuation_covers is True
+    assert revised.is_valid and revised.geom_type == "Polygon"
+    assert original_stock.covers(revised)
+    assert revised.area == pytest.approx(candidate.candidate_remaining_area_mm2)
+    assert candidate.candidate_remaining_area_mm2 > original.remaining_material_area_mm2
+    # Original 60-degree V lies on the back-pointing first BEND extension;
+    # the changed, SOURCE PERIMETER-backed V removes less of that metal.
+    assert candidate.first_remaining_interior_crease_length_mm > 0
+    assert candidate.first_remaining_interior_crease_length_mm > (
+        LineString(((0, 0), (sign * 20 / math.sqrt(3), 0)))
+        .intersection(original_remaining)
+        .difference(original_remaining.boundary.buffer(1e-7)).length
+    )
+    if mode == "RELIEF_HOLE":
+        # An actual hole centred at apex still cuts through the start of
+        # the crease; never promote partial physical interior to full.
+        assert candidate.first_remaining_interior_covers_extension is False
+    assert scene.primitives == list(before)
+    with pytest.raises(GeometryError, match="independent source material extension"):
+        manufacturing_api.diagnose_v_miter_true_thickness_collision(
+            scene, first, second, **p,
+        )
+    preview = manufacturing_api.build_v_miter_reverse_crease_asymmetric_check_scene(
+        scene, first, second, **p,
+        second_leg_outer_perimeter_retract_mm=6.0,
+    )
+    assert [x.layer for x in preview.primitives] == [
+        "DATUM", "CHECK", "DATUM", "DATUM",
+    ]
+    assert preview.primitives[1].points == candidate.candidate_remaining_outline
+    dxf = tmp_path / f"reverse_60_{mode}_{mirror}.dxf"
+    save_scene_dxf(dxf, preview)
+    reopened = tuple(ezdxf.readfile(dxf).modelspace())
+    assert [x.dxf.layer for x in reopened] == [
+        "DATUM", "CHECK", "DATUM", "DATUM",
+    ]
+    assert not any(x.dxf.layer in {"CUTTING", "BEND", "MARKING"} for x in reopened)
+
+
+@pytest.mark.parametrize("bad", (0, -1, 9999, float("nan"), True))
+def test_reverse_crease_asymmetric_leg_retract_requires_explicit_finite_source_arc(bad):
+    scene, first, second, p = _v_source_with_actual_cut(60)
+    with pytest.raises(GeometryError):
+        manufacturing_api.project_v_miter_reverse_crease_asymmetric_cut_trial(
+            scene, first, second, **p,
+            second_leg_outer_perimeter_retract_mm=bad,
+        )
+
+
+def test_reverse_crease_asymmetric_leg_requires_real_60_source_not_90_or_forged():
+    scene, first, second, p = _v_source_with_actual_cut(90)
+    with pytest.raises(GeometryError, match="negative first BEND"):
+        manufacturing_api.project_v_miter_reverse_crease_asymmetric_cut_trial(
+            scene, first, second, **p,
+            second_leg_outer_perimeter_retract_mm=6,
+        )
+    scene, first, second, p = _v_source_with_actual_cut(60)
+    clone = LinePrimitive(first.p1, first.p2, "BEND")
+    with pytest.raises(GeometryError, match="original scene"):
+        manufacturing_api.project_v_miter_reverse_crease_asymmetric_cut_trial(
+            scene, clone, second, **p,
+            second_leg_outer_perimeter_retract_mm=6,
+        )
+
+
+@pytest.mark.parametrize("extra", ("none", "partial", "gap", "offset", "cross"))
+def test_reverse_crease_cut_never_infers_missing_bend_from_saved_stock(extra):
+    scene, first, second, p = _v_source_with_actual_cut(60)
+    if extra == "partial":
+        scene.primitives.append(LinePrimitive(Vec2(0, 0), Vec2(3, 0), "BEND"))
+    elif extra == "gap":
+        scene.primitives.extend([
+            LinePrimitive(Vec2(0, 0), Vec2(3, 0), "BEND"),
+            LinePrimitive(Vec2(4, 0), Vec2(20, 0), "BEND"),
+        ])
+    elif extra == "offset":
+        scene.primitives.append(LinePrimitive(Vec2(0, .01), Vec2(20, .01), "BEND"))
+    elif extra == "cross":
+        scene.primitives.append(LinePrimitive(Vec2(6, -10), Vec2(6, 10), "BEND"))
+    result = manufacturing_api.project_v_miter_reverse_crease_asymmetric_cut_trial(
+        scene, first, second, **p,
+        second_leg_outer_perimeter_retract_mm=6,
+    )
+    assert result.first_original_stock_covers_extension is True
+    assert result.first_real_bend_continuation_covers is False
+    assert result.manufacturing_status.endswith("UNCERTIFIED")
+
+
+@pytest.mark.parametrize("mode", ("ROUND_R", "RELIEF_HOLE"))
+@pytest.mark.parametrize("mirror", (False, True))
 def test_60_degree_genuine_extension_is_not_foldable_after_v_relief(mode, mirror):
     """A REAL extra BEND + original material still cannot fold removed V metal."""
     scene, first, second, p = _v_source_with_actual_cut(60, mirror=mirror)
