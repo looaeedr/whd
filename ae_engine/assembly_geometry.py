@@ -470,7 +470,10 @@ def diagnose_world_mesh_self_intersections(
         )
         for j0 in np.flatnonzero(mask):
             j = i + 1 + int(j0)
-            if len(keys[i].intersection(keys[j])) >= 2:
+            # Exactly two shared endpoints make a real triangulation
+            # hinge; identical three-vertex triangles instead duplicate a
+            # physical face and MUST be tested as coplanar overlap.
+            if len(keys[i].intersection(keys[j])) == 2:
                 continue
             if checked >= max_nonadjacent_pairs:
                 return result(exhausted=True)
