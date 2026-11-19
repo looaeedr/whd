@@ -244,9 +244,21 @@ def _resolve_saved_trial_source(
     )
     fingerprint = snapshot["source_geometry_sha256"]
     _, physical = _physical_sources(scene)
-    modern = _source_geometry_sha256(
-        scene, selected_physical_indices=(first_idx, second_idx),
-    ) if max(first_idx, second_idx) < len(physical) else None
+    # A legacy absolute index may now address a CUTTING row (or lie past
+    # the physical-only sequence). That is not a malformed modern record;
+    # try the explicitly recognized legacy digest before deciding.
+    is_modern_role_pair = (
+        max(first_idx, second_idx) < len(physical)
+        and all(
+            isinstance(physical[i], LinePrimitive) and physical[i].layer == "BEND"
+            for i in (first_idx, second_idx)
+        )
+    )
+    modern = (
+        _source_geometry_sha256(
+            scene, selected_physical_indices=(first_idx, second_idx),
+        ) if is_modern_role_pair else None
+    )
     if fingerprint == modern:
         first, second = physical[first_idx], physical[second_idx]
     elif fingerprint == _source_geometry_sha256(scene):
