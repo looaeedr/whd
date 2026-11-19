@@ -315,7 +315,10 @@ def test_permitted_maximum_is_not_required_to_be_a_destructive_trim():
         evaluated.append(trim)
         if trim > 7:
             raise GeometryError("V-miter R/BA correction cannot keep one closed sheet")
-        return ("source_checked", "skin", "solid", 0 if trim >= 4 else 3)
+        # Synthetic route-only candidate still honours the real search
+        # tuple contract: physical volume parity was run on a closed mesh.
+        return ("source_checked", "skin", "solid", 0 if trim >= 4 else 3,
+                (), (), True, "whole_source")
 
     original, best, selected = _search_source_safe_edge_trim(
         evaluate, 20, failure_message="no qualifying source-preserving trim",
