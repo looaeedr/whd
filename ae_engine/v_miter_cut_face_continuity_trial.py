@@ -16,7 +16,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import math
 
-from shapely.geometry import LineString, MultiLineString
+from shapely.geometry import LineString, MultiLineString, Point
 from shapely.ops import nearest_points
 
 from .contracts import PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES
@@ -51,6 +51,13 @@ class VMiterCutFaceOpenIntervalTrial:
     combined_transverse_speed: float | None = None
     transverse_bounding_box_cap_mm: float | None = None
     gap_bound_status: str = "NOT_EVALUATED"
+    # Independent source-datum reach envelope for EACH real V-cut face.
+    # Every section in this open interval has a true face at distance
+    # BETWEEN these bounds. Neither bound is a shop fit tolerance.
+    first_datum_reach_lower_bound_mm: float | None = None
+    first_datum_reach_upper_bound_mm: float | None = None
+    second_datum_reach_lower_bound_mm: float | None = None
+    second_datum_reach_upper_bound_mm: float | None = None
 
     @property
     def has_both_cut_faces(self) -> bool:
@@ -80,6 +87,12 @@ class VMiterCutFaceContinuityTrial:
     min_gap_lower_bound_mm: float | None = None
     min_gap_upper_bound_mm: float | None = None
     gap_bound_status: str = "UNRESOLVED_OR_PARTIAL_SOURCE_COVERAGE"
+    # Global per-face lower/upper bounds on distance from the original
+    # physical formed-seam datum, valid only for complete event coverage.
+    first_datum_reach_lower_bound_mm: float | None = None
+    first_datum_reach_upper_bound_mm: float | None = None
+    second_datum_reach_lower_bound_mm: float | None = None
+    second_datum_reach_upper_bound_mm: float | None = None
     geometry_model: str = "SOURCE_TRUE_T_V_CUT_FACE_OPEN_INTERVAL_TOPOLOGY_CHECK"
     manufacturing_status: str = "V_MITER_CUT_FACE_CONTINUITY_UNCERTIFIED"
 
@@ -143,44 +156,40 @@ def _section_transverse_speed_bound(mesh, start, direction, lo_mm, hi_mm):
 
 
 
-def _perpendicular_cut_face_bbox_gap_cap(
-    first, second, start, direction, lo_mm, hi_mm,
+def _perpendicular_cut_face_projected_bbox(
+    mesh, start, direction, lo_mm, hi_mm,
 ):
-    """Second INDEPENDENT, conservative envelope from actual world vertices.
-
-    Every physical triangle section point is a convex combination of the
-    triangle's genuine 3D vertices. For the whole open vertex-event
-    interval its participating triangles are fixed, so projecting all
-    contributing *real vertices* onto the plane perpendicular to the
-    source seam yields two enclosing 2D boxes. The farthest distance
-    between these boxes bounds the separation of ANY pair of physical
-    section points; in particular it bounds the nearest-point gap.
-    Unlike the slope envelope this can be tight even when a triangulation
-    diagonal 'moves' rapidly but its combined physical surface is static.
-    It is still NOT a continuous contact proof or a factory tolerance.
-    """
+    """Source-vertex enclosure of ALL 2D transverse sections in an interval."""
     reference = (0.0, 0.0, 1.0) if abs(direction[2]) < 0.9 else (1.0, 0.0, 0.0)
     u = _unit(_cross(direction, reference))
     v = _unit(_cross(direction, u))
     mid = (lo_mm + hi_mm) * 0.5
+    xy = []
+    for tri in mesh:
+        axial = tuple(_dot(_sub(p, start), direction) for p in tri)
+        if max(axial) <= mid or min(axial) >= mid:
+            continue
+        for p in tri:
+            delta = _sub(p, start)
+            xy.append((_dot(delta, u), _dot(delta, v)))
+    if not xy:
+        return None
+    return (
+        min(x for x, y in xy), max(x for x, y in xy),
+        min(y for x, y in xy), max(y for x, y in xy),
+    )
 
-    def bounds(mesh):
-        xy = []
-        for tri in mesh:
-            axial = tuple(_dot(_sub(p, start), direction) for p in tri)
-            if max(axial) <= mid or min(axial) >= mid:
-                continue
-            for p in tri:
-                delta = _sub(p, start)
-                xy.append((_dot(delta, u), _dot(delta, v)))
-        if not xy:
-            return None
-        return (
-            min(x for x, y in xy), max(x for x, y in xy),
-            min(y for x, y in xy), max(y for x, y in xy),
-        )
 
-    a, b = bounds(first), bounds(second)
+def _perpendicular_cut_face_bbox_gap_cap(
+    first, second, start, direction, lo_mm, hi_mm,
+):
+    """Farthest distance between true vertex enclosures bounds any face gap."""
+    a = _perpendicular_cut_face_projected_bbox(
+        first, start, direction, lo_mm, hi_mm,
+    )
+    b = _perpendicular_cut_face_projected_bbox(
+        second, start, direction, lo_mm, hi_mm,
+    )
     if a is None or b is None:
         return None
     dx = max(abs(a[1] - b[0]), abs(b[1] - a[0]))
@@ -191,8 +200,33 @@ def _perpendicular_cut_face_bbox_gap_cap(
     return cap
 
 
-def _midpoint_exact_cut_face_gap(first, second, start, direction, station_mm):
-    """Independent *zero-clipping-epsilon* physical mesh section witness.
+def _perpendicular_cut_face_datum_reach_lower_bound(
+    mesh, start, direction, lo_mm, hi_mm,
+):
+    """Distance from ideal seam datum (0,0) to vertex bounding enclosure.
+
+    Every physical triangle-section point lies WITHIN this enclosure.
+    Therefore a strictly positive lower bound proves that NO actual source
+    V-cut face in this entire interval reaches the seam datum, even if the
+    two remote cut faces touch each other (inter-face gap = zero).
+    """
+    box = _perpendicular_cut_face_projected_bbox(
+        mesh, start, direction, lo_mm, hi_mm,
+    )
+    if box is None:
+        return None
+    xlo, xhi, ylo, yhi = box
+    x = max(xlo, 0.0, -xhi)
+    y = max(ylo, 0.0, -yhi)
+    result = math.hypot(x, y)
+    if not math.isfinite(result):
+        raise GeometryError("V-miter cut-face datum bounding distance invalid")
+    return result
+
+
+
+def _midpoint_exact_cut_face_metrics(first, second, start, direction, station_mm):
+    """Independent *zero-clipping-epsilon* section gap AND datum reach.
 
     The public CHECK sampler has a numerical clipping tolerance and may
     omit tiny, valid physical segments. Do NOT use an overestimated sampled
@@ -213,9 +247,12 @@ def _midpoint_exact_cut_face_gap(first, second, start, direction, station_mm):
     gb = LineString(b[0]) if len(b) == 1 else MultiLineString(b)
     pa, pb = nearest_points(ga, gb)
     gap = float(pa.distance(pb))
-    if not math.isfinite(gap) or gap < 0:
-        raise GeometryError("V-miter exact cut-face section gap is invalid")
-    return gap
+    datum = Point(0.0, 0.0)
+    first_reach = float(datum.distance(ga))
+    second_reach = float(datum.distance(gb))
+    if any(not math.isfinite(v) or v < 0 for v in (gap, first_reach, second_reach)):
+        raise GeometryError("V-miter exact cut-face section gap/datum reach is invalid")
+    return gap, first_reach, second_reach
 
 
 def _conservative_open_interval_gap_bounds(
@@ -241,15 +278,22 @@ def _conservative_open_interval_gap_bounds(
     speed2 = _section_transverse_speed_bound(second, start, direction, lo_mm, hi_mm)
     if speed1 is None or speed2 is None:
         return None, "MISSING_PHYSICAL_CUT_FACE"
-    exact = _midpoint_exact_cut_face_gap(
+    metrics = _midpoint_exact_cut_face_metrics(
         first, second, start, direction, (lo_mm + hi_mm) * 0.5,
     )
-    if exact is None or section.measured_gap_mm is None:
+    if metrics is None or section.measured_gap_mm is None:
         return None, "NUMERICALLY_UNRESOLVED_SECTION"
+    exact, first_reach, second_reach = metrics
     # Rejected numerical mismatch must not be converted to a fictitious
     # factory tolerance or a falsely precise gap upper/lower certificate.
     margin = max(1e-9, 10 * tolerance)
-    if abs(exact - section.measured_gap_mm) > margin:
+    if (
+        abs(exact - section.measured_gap_mm) > margin
+        or section.datum_first_reach_mm is None
+        or section.datum_second_reach_mm is None
+        or abs(first_reach - section.datum_first_reach_mm) > margin
+        or abs(second_reach - section.datum_second_reach_mm) > margin
+    ):
         return None, "NUMERICALLY_UNRESOLVED_SECTION"
     speed = speed1 + speed2
     variation = speed * width * 0.5
@@ -258,7 +302,27 @@ def _conservative_open_interval_gap_bounds(
     bbox_cap = _perpendicular_cut_face_bbox_gap_cap(
         first, second, start, direction, lo_mm, hi_mm,
     )
-    if bbox_cap is None:
+    first_datum_min = _perpendicular_cut_face_datum_reach_lower_bound(
+        first, start, direction, lo_mm, hi_mm,
+    )
+    second_datum_min = _perpendicular_cut_face_datum_reach_lower_bound(
+        second, start, direction, lo_mm, hi_mm,
+    )
+    if bbox_cap is None or first_datum_min is None or second_datum_min is None:
+        return None, "NUMERICALLY_UNRESOLVED_SECTION"
+    # Distance from the ideal seam datum to a source-face section is
+    # 1-Lipschitz in that section set's Hausdorff motion. The SAME proven
+    # transverse triangle-edge speeds give a continuous upper reach bound.
+    # Independent projected-vertex boxes give lower bounds, unaffected by
+    # remote inter-face touching or which face is nearest to the other.
+    first_datum_max = first_reach + speed1 * width * 0.5 + margin
+    second_datum_max = second_reach + speed2 * width * 0.5 + margin
+    if (
+        not math.isfinite(first_datum_max)
+        or not math.isfinite(second_datum_max)
+        or first_datum_max + margin < first_datum_min
+        or second_datum_max + margin < second_datum_min
+    ):
         return None, "NUMERICALLY_UNRESOLVED_SECTION"
     # BOTH bounds hold for the same actual physical triangle section sets.
     # Taking the smaller remains conservative; no welding fit tolerance
@@ -271,6 +335,10 @@ def _conservative_open_interval_gap_bounds(
             exact + margin,                        # inf gap <= midpoint
             speed,
             bbox_cap,
+            first_datum_min,
+            first_datum_max,
+            second_datum_min,
+            second_datum_max,
         ),
         "CONSERVATIVE_SOURCE_MESH_ENVELOPE_CHECK",
     )
@@ -374,6 +442,10 @@ def project_v_miter_true_cut_face_continuity_trial(
             combined_transverse_speed=bounds[4] if bounds else None,
             transverse_bounding_box_cap_mm=bounds[5] if bounds else None,
             gap_bound_status=bound_status,
+            first_datum_reach_lower_bound_mm=bounds[6] if bounds else None,
+            first_datum_reach_upper_bound_mm=bounds[7] if bounds else None,
+            second_datum_reach_lower_bound_mm=bounds[8] if bounds else None,
+            second_datum_reach_upper_bound_mm=bounds[9] if bounds else None,
         ))
     if abs(sum(lengths.values()) - length) > max(1e-6, tol * 10):
         raise GeometryError("V-miter cut-face interval source seam coverage does not balance")
@@ -430,5 +502,21 @@ def project_v_miter_true_cut_face_continuity_trial(
         gap_bound_status=(
             "CONSERVATIVE_SOURCE_MESH_ENVELOPE_CHECK"
             if has_complete_bounds else "UNRESOLVED_OR_PARTIAL_SOURCE_COVERAGE"
+        ),
+        first_datum_reach_lower_bound_mm=(
+            min(p.first_datum_reach_lower_bound_mm for p in spans)
+            if has_complete_bounds else None
+        ),
+        first_datum_reach_upper_bound_mm=(
+            max(p.first_datum_reach_upper_bound_mm for p in spans)
+            if has_complete_bounds else None
+        ),
+        second_datum_reach_lower_bound_mm=(
+            min(p.second_datum_reach_lower_bound_mm for p in spans)
+            if has_complete_bounds else None
+        ),
+        second_datum_reach_upper_bound_mm=(
+            max(p.second_datum_reach_upper_bound_mm for p in spans)
+            if has_complete_bounds else None
         ),
     )
