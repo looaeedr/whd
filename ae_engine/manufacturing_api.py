@@ -2011,6 +2011,7 @@ from .v_miter_trial_snapshot import (
     capture_v_miter_radius_ba_trial_snapshot,
     replay_v_miter_radius_ba_trial_snapshot,
     build_saved_v_miter_radius_ba_check_scene,
+    project_operator_v_miter_relief_preview_source,
     project_operator_v_miter_radius_ba_preview_source,
 )
 
