@@ -19,6 +19,7 @@ from collections.abc import Mapping
 
 from .sheetmetal_drawing import DrawingScene, LinePrimitive, PolylinePrimitive
 from .sheetmetal_geometry_core import GeometryError
+from .v_miter_corner_source import VMiterReliefMode
 from .v_miter_true_t_collision import (
     VMiterTrueThicknessCollisionShadow,
     diagnose_v_miter_true_thickness_collision,
@@ -129,12 +130,26 @@ def _validate_snapshot(
     if not isinstance(raw, Mapping) or set(raw) != input_keys:
         raise GeometryError("V-miter saved source parameter fields are invalid")
     if contract == _R_BA_TRIAL_CONTRACT:
-        # No booleans, text coerced to floats, NaNs or missing measurements
-        # can be replayed as physical R/BA or certified source data.
-        for field in _R_BA_MEASUREMENT_KEYS:
+        # The GUI Open->Save source projector calls this without a physical
+        # DrawingScene. Validate *every* V2 physical input before the GUI can
+        # admit it: the solver's later qualifier is not an Open-time gate.
+        # Preserve V1 legacy replay semantics; V2 alone requires typed shop
+        # inputs, including the original two-bend / relief source fields.
+        for field in (
+            "thickness_mm", "first_flange_height_mm",
+            "second_flange_height_mm", "relief_t_factor",
+            *_R_BA_MEASUREMENT_KEYS,
+        ):
             value = raw[field]
             if type(value) not in (int, float) or not math.isfinite(value) or value <= 0:
-                raise GeometryError(f"V-miter saved measured R/BA source {field} is invalid")
+                raise GeometryError(f"V-miter saved physical source {field} is invalid")
+        angle = raw["second_fold_angle_deg"]
+        if (type(angle) not in (int, float) or not math.isfinite(angle) or
+                not 0 < angle < 180):
+            raise GeometryError("V-miter saved physical source second_fold_angle_deg is invalid")
+        mode = raw["relief_mode"]
+        if type(mode) is not str or mode not in tuple(item.value for item in VMiterReliefMode):
+            raise GeometryError("V-miter saved physical source relief_mode is invalid")
     return first, second, dict(raw)
 
 
