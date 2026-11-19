@@ -233,6 +233,53 @@ def test_conservative_bounds_cover_unsampled_peak_at_actual_triangle_vertex():
     assert result.manufacturing_status.endswith("UNCERTIFIED")
 
 
+def test_remote_source_cut_faces_touch_but_entire_seam_remains_far_from_datum():
+    """Inter-face gap=0 cannot pretend either physical cut face reaches seam."""
+    result = _analyze(_wall(100, 0, 10), _wall(100, 0, 10))
+    assert result.coverage_status == "FACE_COVERAGE_SAMPLED_ONLY"
+    assert result.gap_bound_status == "CONSERVATIVE_SOURCE_MESH_ENVELOPE_CHECK"
+    assert result.min_sampled_cut_face_gap_mm == pytest.approx(0)
+    assert result.max_gap_upper_bound_mm >= 0
+    assert result.first_datum_reach_lower_bound_mm == pytest.approx(100)
+    assert result.second_datum_reach_lower_bound_mm == pytest.approx(100)
+    assert result.first_datum_reach_upper_bound_mm >= 100
+    assert result.second_datum_reach_upper_bound_mm >= 100
+    assert len(result.intervals) == 1
+    row = result.intervals[0]
+    for side in ("first", "second"):
+        lo = getattr(row, f"{side}_datum_reach_lower_bound_mm")
+        hi = getattr(row, f"{side}_datum_reach_upper_bound_mm")
+        assert lo == pytest.approx(100)
+        assert hi >= lo
+        assert lo <= getattr(result, f"{side}_datum_reach_lower_bound_mm") <= hi
+    assert result.manufacturing_status.endswith("UNCERTIFIED")
+
+
+def test_real_sloped_mesh_datum_reach_bounds_cover_unsampled_event_extrema():
+    """Vertex-event intervals cover physical source-datum reach, not 7 probes."""
+    first = _sloped_wall(100, 101, 0, 5) + _sloped_wall(101, 100, 5, 10)
+    second = _wall(103, 0, 10)
+    result = _analyze(first, second)
+    assert result.coverage_status == "FACE_COVERAGE_SAMPLED_ONLY"
+    assert result.gap_bound_status == "CONSERVATIVE_SOURCE_MESH_ENVELOPE_CHECK"
+    assert len(result.intervals) == 2
+    # First cut face is x=100 at endpoints and x=101 at the mesh event.
+    # Its two midpoint sections only see x=100.5.
+    assert result.first_datum_reach_lower_bound_mm <= 100
+    assert result.first_datum_reach_upper_bound_mm >= 101
+    assert result.second_datum_reach_lower_bound_mm == pytest.approx(103)
+    assert result.second_datum_reach_upper_bound_mm >= 103
+    for row in result.intervals:
+        assert row.gap_bound_status == "CONSERVATIVE_SOURCE_MESH_ENVELOPE_CHECK"
+        assert row.first_datum_reach_lower_bound_mm <= 100
+        assert row.first_datum_reach_upper_bound_mm >= 101
+        assert row.second_datum_reach_lower_bound_mm == pytest.approx(103)
+        assert row.second_datum_reach_upper_bound_mm >= 103
+        assert row.first_datum_reach_lower_bound_mm <= row.first_datum_reach_upper_bound_mm
+        assert row.second_datum_reach_lower_bound_mm <= row.second_datum_reach_upper_bound_mm
+    assert result.manufacturing_status.endswith("UNCERTIFIED")
+
+
 def test_partial_real_cut_face_coverage_disables_global_max_gap_envelope():
     result = _analyze(
         _wall(0, 0, 10),
@@ -240,6 +287,9 @@ def test_partial_real_cut_face_coverage_disables_global_max_gap_envelope():
     )
     assert result.coverage_status == "FACE_COVERAGE_INCOMPLETE"
     assert result.gap_bound_status == "UNRESOLVED_OR_PARTIAL_SOURCE_COVERAGE"
+    for side in ("first", "second"):
+        assert getattr(result, f"{side}_datum_reach_lower_bound_mm") is None
+        assert getattr(result, f"{side}_datum_reach_upper_bound_mm") is None
     assert result.max_gap_lower_bound_mm is None
     assert result.max_gap_upper_bound_mm is None
     assert result.min_gap_lower_bound_mm is None
@@ -247,6 +297,8 @@ def test_partial_real_cut_face_coverage_disables_global_max_gap_envelope():
     missing = [row for row in result.intervals if not row.has_both_cut_faces]
     assert len(missing) == 1
     assert missing[0].gap_bound_status == "MISSING_PHYSICAL_CUT_FACE"
+    assert missing[0].first_datum_reach_lower_bound_mm is None
+    assert missing[0].second_datum_reach_upper_bound_mm is None
     assert missing[0].max_gap_upper_bound_mm is None
     assert all(row.max_gap_upper_bound_mm is not None
                for row in result.intervals if row.has_both_cut_faces)
@@ -264,5 +316,8 @@ def test_tiny_unresolved_vertex_clusters_never_claim_gap_upper_certificate():
     assert result.numerically_unresolved_vertex_event_count > 0
     assert result.coverage_status == "FACE_COVERAGE_INCOMPLETE"
     assert result.gap_bound_status == "UNRESOLVED_OR_PARTIAL_SOURCE_COVERAGE"
+    for side in ("first", "second"):
+        assert getattr(result, f"{side}_datum_reach_lower_bound_mm") is None
+        assert getattr(result, f"{side}_datum_reach_upper_bound_mm") is None
     assert result.max_gap_upper_bound_mm is None
     assert all(row.max_gap_upper_bound_mm is None for row in result.intervals)
