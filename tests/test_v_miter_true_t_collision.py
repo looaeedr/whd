@@ -130,8 +130,12 @@ def test_60_actual_asymmetric_cut_forms_two_original_crease_attached_true_t_piec
     assert result.cut.manufacturing_status.endswith("UNCERTIFIED")
     assert result.cut.first_real_bend_continuation_covers is True
     assert result.first_reverse_source_end_axial_mm == pytest.approx(-20)
-    assert result.first_bend_source_component_count == 2
-    assert len(result.first_component_flat_areas_mm2) == 2
+    # A true fillet leaves a physical root bridge; a drilled hole cuts
+    # that root and makes a separate reverse lip. Neither shape may be
+    # forced into the other's material topology by numerical repair.
+    expected_components = 1 if mode == "ROUND_R" else 2
+    assert result.first_bend_source_component_count == expected_components
+    assert len(result.first_component_flat_areas_mm2) == expected_components
     assert all(area > 0 for area in result.first_component_flat_areas_mm2)
     assert all(span > 0 for span in result.first_component_real_bend_attachment_mm)
     assert result.first_flange_flat_area_mm2 == pytest.approx(
@@ -140,9 +144,9 @@ def test_60_actual_asymmetric_cut_forms_two_original_crease_attached_true_t_piec
     assert result.first_full_height_source_span_mm > 0
     assert result.second_full_height_source_span_mm > 0
     assert result.second_flange_flat_area_mm2 > 0
-    # This 3D isometry keeps both real first-flange islands: the tiny
-    # positive-X lip must NOT be silently dropped, convex-hull filled or
-    # counted twice in a mathematical single-panel phantom.
+    # The formed surface retains the EXACT physical first-flange area,
+    # whether the true round-R root connects the lip or a hole separates
+    # it. No island gets dropped, hull-filled, or counted twice.
     assert _surface_area_of_triangles(result.first_formed_skin_triangles) == pytest.approx(
         result.first_flange_flat_area_mm2, rel=1e-6, abs=1e-5
     )
