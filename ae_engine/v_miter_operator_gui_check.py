@@ -38,6 +38,8 @@ class VMiterOperatorGUICheck:
     second_fold_angle_deg: float
     ideal: VMiterIdealMatingCandidate
     check_scene: DrawingScene
+    first_bend_source_gap_mm: float = 0.0
+    second_bend_source_gap_mm: float = 0.0
     manufacturing_status: str = V_MITER_GUI_UNCERTIFIED
 
 
@@ -107,11 +109,6 @@ def require_no_operator_v_miter_gui_check_for_export(snapshot: Mapping) -> None:
         )
 
 
-def _endpoint_matches(bend: LinePrimitive, point: Vec2) -> bool:
-    return any(math.hypot(p.x - point.x, p.y - point.y) <= 1e-6
-               for p in (bend.p1, bend.p2))
-
-
 def _orthogonal_bends(scene: DrawingScene):
     vertical, horizontal = [], []
     for row in scene.primitives:
@@ -128,38 +125,82 @@ def _orthogonal_bends(scene: DrawingScene):
     return vertical, horizontal
 
 
+def _station_gap(position: float, a: float, b: float) -> float:
+    """Actual missing length from one orthogonal station to real drawn BEND."""
+    lo, hi = min(a, b), max(a, b)
+    return max(0.0, lo - position, position - hi)
+
+
 def _physical_corner_bends(scene, material, corner_key):
+    """Resolve real BEND stations, not a fictional continuous source crease.
+
+    Four-side manufacturing BENDs may cross in their interiors (Door) or end
+    1-2 mm short of an orthogonal station (EndCap CornerType relief). These
+    shortfalls are *measured*, never interpreted as manufactured BEND or
+    certified clearance. A detached virtual station is used only to draw the
+    ideal CHECK rays; actual scene/CUTTING/BEND are untouched.
+    """
     vertical, horizontal = _orthogonal_bends(scene)
     if not vertical or not horizontal:
         raise GeometryError("V_MITER_GUI_TWO_PHYSICAL_BENDS_REQUIRED")
-    pairs = []
-    for vx in vertical:
-        for hy in horizontal:
-            meet = Vec2(vx.p1.x, hy.p1.y)
-            if _endpoint_matches(vx, meet) and _endpoint_matches(hy, meet):
-                pairs.append((meet, vx, hy))
-    if not pairs:
-        raise GeometryError("V_MITER_GUI_NO_SOURCE_BEND_CORNER_ENDPOINT")
     minx, miny, maxx, maxy = material.bounds
+    midx, midy = (minx + maxx) / 2.0, (miny + maxy) / 2.0
     cx = minx if corner_key.endswith("left") else maxx
     cy = maxy if corner_key.startswith("top") else miny
     width, height = maxx - minx, maxy - miny
     if min(width, height) <= 1e-8:
         raise GeometryError("V_MITER_GUI_INVALID_MATERIAL_BOUNDS")
-    ranked = sorted(
-        ((math.hypot((row[0].x - cx) / width, (row[0].y - cy) / height),
-          index, row)
-         for index, row in enumerate(pairs)),
-        key=lambda item: item[0],
-    )
-    if len(ranked) > 1 and abs(ranked[1][0] - ranked[0][0]) <= 1e-9:
+    choices = []
+    for vx in vertical:
+        for hy in horizontal:
+            meet = Vec2(vx.p1.x, hy.p1.y)
+            # Only source BEND stations in the requested physical quadrant.
+            if not (minx < meet.x < maxx and miny < meet.y < maxy):
+                continue
+            if (corner_key.endswith("left") and meet.x >= midx
+                    or corner_key.endswith("right") and meet.x <= midx
+                    or corner_key.startswith("bottom") and meet.y >= midy
+                    or corner_key.startswith("top") and meet.y <= midy):
+                continue
+            gap_v = _station_gap(meet.y, vx.p1.y, vx.p2.y)
+            gap_h = _station_gap(meet.x, hy.p1.x, hy.p2.x)
+            distance = math.hypot(
+                (meet.x - cx) / width, (meet.y - cy) / height,
+            )
+            choices.append((gap_v + gap_h, distance, meet, vx, hy, gap_v, gap_h))
+    if not choices:
+        raise GeometryError("V_MITER_GUI_NO_PHYSICAL_BEND_STATIONS_IN_CORNER")
+    choices.sort(key=lambda row: (row[0], row[1]))
+    if len(choices) > 1 and all(
+        abs(choices[1][i] - choices[0][i]) <= 1e-9 for i in (0, 1)
+    ):
         raise GeometryError("V_MITER_GUI_AMBIGUOUS_SOURCE_CORNER")
-    meet, vertical, horizontal = ranked[0][2]
-    flange_x = meet.x - minx if corner_key.endswith("left") else maxx - meet.x
-    flange_y = maxy - meet.y if corner_key.startswith("top") else meet.y - miny
+    _, _, meet, vx, hy, gap_v, gap_h = choices[0]
+    # The inward rays follow genuine BEND material; only a possible short
+    # station-to-first-drawn-point gap is virtual, quantified for the operator.
+    up = corner_key.startswith("bottom")
+    right = corner_key.endswith("left")
+    far_v = max((vx.p1, vx.p2), key=lambda p: p.y) if up else min(
+        (vx.p1, vx.p2), key=lambda p: p.y
+    )
+    far_h = max((hy.p1, hy.p2), key=lambda p: p.x) if right else min(
+        (hy.p1, hy.p2), key=lambda p: p.x
+    )
+    if (abs(far_v.y - meet.y) <= 1e-7
+            or abs(far_h.x - meet.x) <= 1e-7):
+        raise GeometryError("V_MITER_GUI_BEND_CORE_RAYS_HAVE_NO_REACH")
+    if up != (far_v.y > meet.y) or right != (far_h.x > meet.x):
+        raise GeometryError("V_MITER_GUI_BEND_CORE_RAY_DIRECTION_INVALID")
+    flange_x = meet.x - minx if right else maxx - meet.x
+    flange_y = meet.y - miny if up else maxy - meet.y
     if min(flange_x, flange_y) <= 1e-8:
         raise GeometryError("V_MITER_GUI_MISSING_FLANGE_MATERIAL")
-    return vertical, horizontal, float(flange_x), float(flange_y)
+    projected_v = LinePrimitive(meet, far_v, "BEND")
+    projected_h = LinePrimitive(meet, far_h, "BEND")
+    return (
+        projected_v, projected_h, float(flange_x), float(flange_y),
+        float(gap_v), float(gap_h),
+    )
 
 
 def _profile_angle_at_bend(profile, position, origin):
@@ -212,7 +253,7 @@ def project_operator_v_miter_live_corner_check(
         # Do not synthesize an orthogonal fold from a nominal rectangle.
         raise GeometryError("V_MITER_GUI_PART_HAS_NO_VERIFIED_TWO_BEND_SOURCE")
     material = _single_source_material(render_data.scene)
-    x_bend, y_bend, x_height, y_height = _physical_corner_bends(
+    x_bend, y_bend, x_height, y_height, x_gap, y_gap = _physical_corner_bends(
         render_data.scene, material, corner_key,
     )
     if isinstance(part_spec, DoorPartSpec):
@@ -242,8 +283,11 @@ def project_operator_v_miter_live_corner_check(
     t = part_spec.thickness
     if type(t) not in (int, float) or not math.isfinite(t) or t <= 0:
         raise GeometryError("V_MITER_GUI_THICKNESS_INVALID")
+    # Temporary two-station CHECK scene: derived from original source
+    # BEND coordinates and measured gaps, NEVER a production FinalScene.
+    # Both source owners are originals; the stage itself cannot be exported.
     ideal = project_ideal_v_miter_mating_candidate(
-        render_data.scene, first[0], second[0],
+        DrawingScene([first[0], second[0]]), first[0], second[0],
         thickness_mm=t,
         first_flange_height_mm=first[2],
         second_flange_height_mm=second[2],
@@ -259,4 +303,6 @@ def project_operator_v_miter_live_corner_check(
         first_bend_axis=first[1], second_bend_axis=second[1],
         first_flange_height_mm=first[2], second_flange_height_mm=second[2],
         second_fold_angle_deg=second_angle, ideal=ideal, check_scene=check,
+        first_bend_source_gap_mm=x_gap if first[1] == "x" else y_gap,
+        second_bend_source_gap_mm=y_gap if second[1] == "y" else x_gap,
     )
