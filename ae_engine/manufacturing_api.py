@@ -2001,6 +2001,8 @@ from .v_miter_radius_ba_interface_trial import (
 from .v_miter_true_t_collision import (
     VMiterTrueThicknessCollisionShadow,
     diagnose_v_miter_true_thickness_collision,
+    VMiterReverseCreaseTrueTTrial,
+    diagnose_v_miter_reverse_crease_true_t_trial,
 )
 
 # #3317: source-bound V tip relief preview save/reload, never saved CUTTING.
