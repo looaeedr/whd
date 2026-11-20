@@ -477,10 +477,14 @@ def _apply_phase6_project_snapshot(self, snapshot):
     v_miter_v2 = manufacturing_api.project_operator_v_miter_radius_ba_preview_source(
         snapshot or {}
     )
+    v_miter_gui_choice = manufacturing_api.normalize_operator_v_miter_gui_choices(
+        (snapshot or {}).get("v_miter_gui_check_corners"),
+    )
     # Switching projects must drop both previous sources; preflight failure
     # above must leave BOTH old records and session unchanged.
     self._v_miter_relief_trial_preview = v_miter_v1
     self._v_miter_radius_ba_trial_preview = v_miter_v2
+    self.v_miter_gui_check_corners = v_miter_gui_choice
     self.workspace_controller.reset_receiving_mode_session()
     self._reset_manual_corner_parameter_locks()
     snapshot = deepcopy(dict(snapshot or {}))
