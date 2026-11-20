@@ -131,7 +131,7 @@ def project_v_miter_source_bend_marking_check(
                 # segment retains the same physical coordinate as Engine
                 # MARKING projector but is never an approved MARKING layer.
                 strokes.append(LinePrimitive(
-                    source_mark.p1, source_mark.p2, "CHECK", color=2,
+                    source_mark.p1, source_mark.p2, "CHECK", color=4,
                 ))
         counts.append(len(strokes) - before)
     return VMiterSourceBendMarkingCheck(
