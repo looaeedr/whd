@@ -334,6 +334,7 @@ from gui_modules.parts.panels.assembly_corner import (
     refresh_manual_corner_parameter_rows as _refresh_manual_corner_parameter_rows_impl,
     toggle_manual_corner_parameter_lock as _toggle_manual_corner_parameter_lock_impl,
     create_corner_type_panel as _create_corner_type_panel_impl,
+    v_miter_check_source_summary as _v_miter_check_source_summary_impl,
 )
 
 from gui_modules.parts.panels.common import (
@@ -1028,6 +1029,21 @@ class Phase6ApplicationHost:
     @classmethod
     def _corner_parameter_summary(cls, selection):
         return _corner_parameter_summary_impl(cls, selection)
+
+    def show_v_miter_check_source(self):
+        """Inspect Engine-validated saved CHECK source; no physical corner edit."""
+        from tkinter import messagebox
+        try:
+            snapshot = self._make_original_fold_designer_snapshot()
+            detail = _v_miter_check_source_summary_impl(snapshot)
+        except (TypeError, ValueError) as exc:
+            messagebox.showerror(
+                "V 型斜接｜試算來源無效",
+                f"Engine 拒絕保存的未認證 V 型來源：{exc}",
+            )
+            return None
+        messagebox.showinfo("V 型斜接｜CHECK 試算來源", detail)
+        return detail
 
     def create_corner_type_panel(self, parent):
         return _create_corner_type_panel_impl(self, parent)

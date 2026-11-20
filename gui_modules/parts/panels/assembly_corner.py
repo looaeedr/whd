@@ -338,6 +338,43 @@ from tkinter import ttk
 from ae_engine.corner_type_ui import CORNER_LABELS
 from ae_engine.sheetmetal_geometry import EDITABLE_CORNER_TYPE_IDS
 
+def v_miter_check_source_summary(source_snapshot):
+    """Read saved Engine CHECK evidence without changing any CornerType state.
+
+    The V trial source is independent of a particular GUI corner selection.
+    It cannot become CUTTING, MARKING or a manufacturing-ready fifth type.
+    """
+    measured = manufacturing_api.project_operator_v_miter_radius_ba_preview_source(
+        source_snapshot,
+    )
+    row = measured
+    if row is None:
+        row = manufacturing_api.project_operator_v_miter_relief_preview_source(
+            source_snapshot,
+        )
+    if row is None:
+        return (
+            "目前專案沒有已保存的 V 型斜接 CHECK 試算來源。\n"
+            "請先由既有板件折彎來源建立 Engine 試算；此入口不會代填角度或折邊高度。\n"
+            "第五種截角尚未認證，正式 CUTTING／BEND／MARKING／DXF 均不開放。"
+        )
+    params = row["parameters"]
+    relief = {
+        "ROUND_R": "R 圓角",
+        "RELIEF_HOLE": "圓形避裂孔",
+    }[params["relief_mode"]]
+    return (
+        "已保存的 V 型斜接 CHECK 來源（僅供核對，未綁定目前選取的角落）\n"
+        f"來源折彎角度：{params['second_fold_angle_deg']:g}°\n"
+        f"兩側折高：{params['first_flange_height_mm']:g} / "
+        f"{params['second_flange_height_mm']:g} mm\n"
+        f"避裂：{relief}，比率 {params['relief_t_factor']:g}T\n"
+        f"Engine 狀態：{row['manufacturing_status']}\n"
+        "這些是舊 CHECK 試算的已保存數值，不會覆寫板件目前折彎設定。\n"
+        "未認證，不能作正式截角或加工出圖。"
+    )
+
+
 def _build_corner_pair_controls(host, editor):
     # 預設以上方／下方成對編輯；只有取消「左右相同」才拆成左右兩個角。
     host.manual_corner_pair_buttons = {}
@@ -416,6 +453,24 @@ def _build_corner_type_selector(host, editor):
         )
         rb.pack(side=tk.LEFT, fill=tk.X, expand=True)
         host.manual_corner_type_buttons[type_id] = rb
+
+    # A separate CHECK-only inspection action: never a fifth manufacturing
+    # CornerType radio button and never an alternate exporter.
+    v_row = tk.Frame(type_frame, bg=host.COLOR_INPUT_BG)
+    v_row.pack(fill=tk.X, pady=(6, 2))
+    host.v_miter_check_source_button = tk.Button(
+        v_row, text="V 型斜接｜查看試算來源",
+        command=host.show_v_miter_check_source,
+        bg=host.COLOR_PANEL, fg=host.COLOR_TEXT,
+        activebackground=host.COLOR_ACCENT_HOVER,
+        activeforeground="#ffffff", anchor=tk.W,
+    )
+    host.v_miter_check_source_button.pack(side=tk.LEFT, fill=tk.X, expand=True)
+    tk.Label(
+        type_frame, text="未認證 CHECK；不可選為正式截角或輸出加工 DXF",
+        bg=host.COLOR_INPUT_BG, fg=host.COLOR_TEXT_MUTED,
+        anchor=tk.W, justify=tk.LEFT, wraplength=500,
+    ).pack(fill=tk.X, pady=(0, 3))
 
 def _build_corner_parameter_controls(host, editor):
     host.manual_corner_param_summary = tk.Label(
