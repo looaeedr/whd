@@ -378,6 +378,167 @@ def test_cannot_use_detached_bend_or_invent_60deg_material_extension():
         )
 
 
+
+def _60_reverse_source_for_measured_rba(*, mode="RELIEF_HOLE", mirror=False):
+    scene, first, second, inputs = _source(angle=60, mode=mode)
+    if mirror:
+        original = scene.primitives[0]
+        original = PolylinePrimitive(
+            tuple(Vec2(-p.x, p.y) for p in original.points),
+            "CUTTING", closed=True,
+        )
+        first = LinePrimitive(Vec2(100, 0), Vec2(0, 0), "BEND")
+        second = LinePrimitive(Vec2(0, 0), Vec2(0, 100), "BEND")
+        scene = DrawingScene([original, first, second])
+    sign = -1 if mirror else 1
+    extra = LinePrimitive(Vec2(0, 0), Vec2(sign * 20, 0), "BEND")
+    scene.primitives.append(extra)
+    return scene, first, second, extra, inputs
+
+
+@pytest.mark.parametrize("mode", ("ROUND_R", "RELIEF_HOLE"))
+@pytest.mark.parametrize("mirror", (False, True))
+def test_60_measured_rba_curves_every_verified_real_reverse_bend_component(mode, mirror):
+    scene, first, second, extra, inputs = _60_reverse_source_for_measured_rba(
+        mode=mode, mirror=mirror,
+    )
+    initial = tuple(scene.primitives)
+    measured = manufacturing_api.diagnose_v_miter_reverse_crease_measured_r_ba_trial(
+        scene, first, second, **inputs, **{
+            key: value for key, value in _calibrated(60).items()
+            if key != "max_permitted_edge_trim_mm"
+        }, second_leg_outer_perimeter_retract_mm=6,
+    )
+    sharp = manufacturing_api.diagnose_v_miter_reverse_crease_true_t_trial(
+        scene, first, second, **inputs, second_leg_outer_perimeter_retract_mm=6,
+    )
+    assert measured.manufacturing_status == "V_MITER_REVERSE_CREASE_R_BA_UNCERTIFIED"
+    assert measured.geometry_model.endswith("CYLINDRICAL_T_CHECK")
+    assert measured.reverse_actual_bend_start_axial_mm == pytest.approx(-20)
+    assert measured.first_actual_bend_end_axial_mm == pytest.approx(100)
+    assert measured.second_actual_bend_end_axial_mm == pytest.approx(100)
+    expected_components = 1 if mode == "ROUND_R" else 2
+    assert len(measured.first_component_flat_areas_mm2) == expected_components
+    assert measured.first_component_flat_areas_mm2 == pytest.approx(
+        sharp.first_component_flat_areas_mm2
+    )
+    assert measured.first_component_real_bend_attachment_mm == pytest.approx(
+        sharp.first_component_real_bend_attachment_mm
+    )
+    assert measured.first_flat_source_area_mm2 == pytest.approx(
+        sharp.first_flange_flat_area_mm2
+    )
+    assert measured.second_flat_source_area_mm2 == pytest.approx(
+        sharp.second_flange_flat_area_mm2
+    )
+    assert measured.source_cut_remaining_outline == sharp.cut.candidate_remaining_outline
+    assert measured.first_formed_curved_skin_triangles
+    assert measured.second_formed_curved_skin_triangles
+    # Cylinder T/BA arc cannot silently reuse the old sharp-fold vertices.
+    assert measured.first_formed_curved_skin_triangles != sharp.first_formed_skin_triangles
+    assert measured.second_formed_curved_skin_triangles != sharp.second_formed_skin_triangles
+    assert len(measured.first_thick_curved_solid_triangles) > len(
+        measured.first_formed_curved_skin_triangles
+    )
+    assert len(measured.second_thick_curved_solid_triangles) > len(
+        measured.second_formed_curved_skin_triangles
+    )
+    assert measured.surface_interference_pair_count >= 0
+    assert measured.true_t_volume_check_status.endswith("UNCERTIFIED")
+    assert all(math.isfinite(v) for tri in (
+        measured.first_thick_curved_solid_triangles +
+        measured.second_thick_curved_solid_triangles
+    ) for point in tri for v in point)
+    assert tuple(scene.primitives) == initial
+    # Old ideal-mate R/BA output may not be a substitute for this new
+    # physical reversed-source geometry; preserve its strict rejection.
+    with pytest.raises(GeometryError, match="source material extension"):
+        manufacturing_api.solve_v_miter_radius_ba_interface_trial(
+            scene, first, second, **inputs, **_calibrated(60),
+        )
+
+
+@pytest.mark.parametrize("mode", ("ROUND_R", "RELIEF_HOLE"))
+def test_60_measured_reverse_curved_mesh_is_sensitive_to_actual_r_and_ba(mode):
+    scene, first, second, extra, inputs = _60_reverse_source_for_measured_rba(
+        mode=mode,
+    )
+    def solve(radius):
+        measurements = {
+            key: value for key, value in _calibrated(60, radius=radius).items()
+            if key != "max_permitted_edge_trim_mm"
+        }
+        return manufacturing_api.diagnose_v_miter_reverse_crease_measured_r_ba_trial(
+            scene, first, second, **inputs, **measurements,
+            second_leg_outer_perimeter_retract_mm=6,
+        )
+    small, large = solve(.5), solve(1.0)
+    assert small.first_neutral_axis_k == pytest.approx(.4)
+    assert large.first_neutral_axis_k == pytest.approx(.4)
+    assert small.first_flat_source_area_mm2 == pytest.approx(large.first_flat_source_area_mm2)
+    assert small.second_flat_source_area_mm2 == pytest.approx(large.second_flat_source_area_mm2)
+    assert small.source_cut_remaining_outline == large.source_cut_remaining_outline
+    assert small.first_formed_curved_skin_triangles != large.first_formed_curved_skin_triangles
+    assert small.second_formed_curved_skin_triangles != large.second_formed_curved_skin_triangles
+    assert small.first_thick_curved_solid_triangles != large.first_thick_curved_solid_triangles
+
+
+@pytest.mark.parametrize("kind", ("none", "short", "gap", "offset", "cross"))
+def test_60_reverse_measured_curve_refuses_nonphysical_bend_source(kind):
+    scene, first, second, extra, inputs = _60_reverse_source_for_measured_rba()
+    scene.primitives.remove(extra)
+    if kind == "short":
+        scene.primitives.append(LinePrimitive(Vec2(0, 0), Vec2(5, 0), "BEND"))
+    elif kind == "gap":
+        scene.primitives.extend([
+            LinePrimitive(Vec2(0, 0), Vec2(5, 0), "BEND"),
+            LinePrimitive(Vec2(6, 0), Vec2(20, 0), "BEND"),
+        ])
+    elif kind == "offset":
+        scene.primitives.append(LinePrimitive(Vec2(0, .01), Vec2(20, .01), "BEND"))
+    elif kind == "cross":
+        scene.primitives.append(LinePrimitive(Vec2(6, -10), Vec2(6, 10), "BEND"))
+    with pytest.raises(GeometryError, match="real continuous BEND"):
+        manufacturing_api.diagnose_v_miter_reverse_crease_measured_r_ba_trial(
+            scene, first, second, **inputs, **{
+                key: val for key, val in _calibrated(60).items()
+                if key != "max_permitted_edge_trim_mm"
+            }, second_leg_outer_perimeter_retract_mm=6,
+        )
+
+
+@pytest.mark.parametrize("bad", ("negative_radius", "zero_ba", "inconsistent_ba"))
+def test_60_reverse_measured_curve_requires_independent_valid_r_ba(bad):
+    scene, first, second, extra, inputs = _60_reverse_source_for_measured_rba()
+    measured = {
+        key: val for key, val in _calibrated(60).items()
+        if key != "max_permitted_edge_trim_mm"
+    }
+    if bad == "negative_radius":
+        measured["first_inner_radius_mm"] = -1
+    elif bad == "zero_ba":
+        measured["second_bend_allowance_mm"] = 0
+    else:
+        measured["first_bend_allowance_mm"] = .001
+    with pytest.raises(GeometryError):
+        manufacturing_api.diagnose_v_miter_reverse_crease_measured_r_ba_trial(
+            scene, first, second, **inputs, **measured,
+            second_leg_outer_perimeter_retract_mm=6,
+        )
+
+
+def test_90_and_unsourced_60_cannot_enter_reverse_measured_rba():
+    scene, first, second, inputs = _source(angle=90)
+    measurements = {
+        key: val for key, val in _calibrated(90).items()
+        if key != "max_permitted_edge_trim_mm"
+    }
+    with pytest.raises(GeometryError, match="negative first BEND"):
+        manufacturing_api.diagnose_v_miter_reverse_crease_measured_r_ba_trial(
+            scene, first, second, **inputs, **measurements,
+            second_leg_outer_perimeter_retract_mm=6,
+        )
+
 def _120_original_full_and_split_bends(*, mode):
     full, first, second, inputs = _source(angle=120, mode=mode)
     old = tuple(full.primitives)

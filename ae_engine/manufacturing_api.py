@@ -1995,6 +1995,8 @@ from .v_miter_radius_ba_interface_trial import (
     VMiterRadiusBAFullSheetCheck,
     project_v_miter_radius_ba_full_sheet_check,
     build_v_miter_radius_ba_full_sheet_check_scene,
+    VMiterReverseCreaseMeasuredCurvedTTrial,
+    diagnose_v_miter_reverse_crease_measured_r_ba_trial,
 )
 
 # #3317: source V-miter folded true-T mesh collision shadow only.

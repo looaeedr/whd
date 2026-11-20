@@ -455,50 +455,22 @@ class VMiterReverseCreaseTrueTTrial:
     manufacturing_status: str = "V_MITER_REVERSE_CREASE_TRUE_T_UNCERTIFIED"
 
 
-def diagnose_v_miter_reverse_crease_true_t_trial(
+def _reverse_crease_physical_source_patches(
     scene: DrawingScene,
     v_edge_bend: LinePrimitive,
     second_bend: LinePrimitive,
     *,
-    thickness_mm: float,
-    first_flange_height_mm: float,
-    second_flange_height_mm: float,
-    second_fold_angle_deg: float,
-    relief_mode: VMiterReliefMode | str,
-    relief_t_factor: float | None,
+    params: dict,
     second_leg_outer_perimeter_retract_mm: float,
-) -> VMiterReverseCreaseTrueTTrial:
-    """Form every actually connected first-flange component of a 60° V trial.
+):
+    """Sole verified source-patch owner for reverse sharp and measured R/BA.
 
-    A drilled relief can separate a reverse-crease lip from the main
-    flange; a true ROUND_R fillet can retain a narrow physical root bridge
-    and leave ONE connected source polygon. The component count is an
-    actual material topology result, not a user/solver assumption.
-    Forcing two or applying convex-hull repair would INVENT/REMOVE sheet.
-    Instead:
-      * require original collinear real BENDs over the reverse reach,
-      * take a physically drawn far reverse endpoint still inside stock,
-      * clip the actual alternate CUTTING by finite first/second fold
-        domains, never the old ideal mate's original V sector,
-      * preserve EVERY positive-area connected source component and
-        prove each is attached over a real length of that actual BEND,
-      * independently bend/triangulate every source patch and thicken the
-        EXACT collected 3D skins using the existing Engine owners.
-
-    NO old seam gap/clearance claim: changing the V cut changes the
-    actual mate and needs a newly measured R/BA and finite-T cut-face
-    solution. This API cannot generate production CUTTING/BEND/MARKING.
+    Keep the actual negative-axis BEND proof, original true CUTTING, full
+    flange heights and EVERY connected component as one Engine truth.
+    Do not let a second curved-skin solver reconstruct different stock.
     """
     from .v_miter_material_trial import _single_source_material
 
-    params = dict(
-        thickness_mm=thickness_mm,
-        first_flange_height_mm=first_flange_height_mm,
-        second_flange_height_mm=second_flange_height_mm,
-        second_fold_angle_deg=second_fold_angle_deg,
-        relief_mode=relief_mode,
-        relief_t_factor=relief_t_factor,
-    )
     candidate = project_v_miter_reverse_crease_asymmetric_cut_trial(
         scene, v_edge_bend, second_bend,
         second_leg_outer_perimeter_retract_mm=second_leg_outer_perimeter_retract_mm,
@@ -637,6 +609,64 @@ def diagnose_v_miter_reverse_crease_true_t_trial(
             "V-miter reverse true-T cannot assign the same original stock to two folds"
         )
 
+    return (
+        candidate, q, apex, e1, e2, n1, n2,
+        negative_end, bounded.first_bend_span_mm, parts,
+        attachments, available_first_height, second, second_full_height,
+    )
+
+
+def diagnose_v_miter_reverse_crease_true_t_trial(
+    scene: DrawingScene,
+    v_edge_bend: LinePrimitive,
+    second_bend: LinePrimitive,
+    *,
+    thickness_mm: float,
+    first_flange_height_mm: float,
+    second_flange_height_mm: float,
+    second_fold_angle_deg: float,
+    relief_mode: VMiterReliefMode | str,
+    relief_t_factor: float | None,
+    second_leg_outer_perimeter_retract_mm: float,
+) -> VMiterReverseCreaseTrueTTrial:
+    """Form every actually connected first-flange component of a 60° V trial.
+
+    A drilled relief can separate a reverse-crease lip from the main
+    flange; a true ROUND_R fillet can retain a narrow physical root bridge
+    and leave ONE connected source polygon. The component count is an
+    actual material topology result, not a user/solver assumption.
+    Forcing two or applying convex-hull repair would INVENT/REMOVE sheet.
+    Instead:
+      * require original collinear real BENDs over the reverse reach,
+      * take a physically drawn far reverse endpoint still inside stock,
+      * clip the actual alternate CUTTING by finite first/second fold
+        domains, never the old ideal mate's original V sector,
+      * preserve EVERY positive-area connected source component and
+        prove each is attached over a real length of that actual BEND,
+      * independently bend/triangulate every source patch and thicken the
+        EXACT collected 3D skins using the existing Engine owners.
+
+    NO old seam gap/clearance claim: changing the V cut changes the
+    actual mate and needs a newly measured R/BA and finite-T cut-face
+    solution. This API cannot generate production CUTTING/BEND/MARKING.
+    """
+    params = dict(
+        thickness_mm=thickness_mm,
+        first_flange_height_mm=first_flange_height_mm,
+        second_flange_height_mm=second_flange_height_mm,
+        second_fold_angle_deg=second_fold_angle_deg,
+        relief_mode=relief_mode,
+        relief_t_factor=relief_t_factor,
+    )
+    (
+        candidate, q, apex, e1, e2, n1, n2,
+        negative_end, _first_positive_span, parts,
+        attachments, available_first_height, second, second_full_height,
+    ) = _reverse_crease_physical_source_patches(
+        scene, v_edge_bend, second_bend,
+        params=params,
+        second_leg_outer_perimeter_retract_mm=second_leg_outer_perimeter_retract_mm,
+    )
     theta = math.radians(q.second_fold_angle_deg)
     b2 = _add(_scale(n2, math.cos(theta)), _scale(_UNIT_Z, math.sin(theta)))
     # Form each actual material component separately, whether the real
