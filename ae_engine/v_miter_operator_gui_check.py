@@ -32,6 +32,10 @@ from .v_miter_bounded_contact import (
     VMiterSharpThicknessWitness,
     project_v_miter_sharp_thickness_witness,
 )
+from .v_miter_source_marking_check import (
+    VMiterSourceBendMarkingCheck,
+    project_v_miter_source_bend_marking_check,
+)
 
 V_MITER_GUI_CHECK = "V_MITER_CHECK"
 V_MITER_GUI_UNCERTIFIED = "V_MITER_GUI_CHECK_ONLY_UNCERTIFIED"
@@ -56,6 +60,7 @@ class VMiterOperatorGUICheck:
     full_sheet_check_scene: DrawingScene | None = None
     sharp_t_witness: VMiterSharpThicknessWitness | None = None
     sharp_t_failure: str | None = None
+    source_bend_marking_check: VMiterSourceBendMarkingCheck | None = None
     first_bend_source_gap_mm: float = 0.0
     second_bend_source_gap_mm: float = 0.0
     manufacturing_status: str = V_MITER_GUI_UNCERTIFIED
@@ -217,7 +222,7 @@ def _physical_corner_bends(scene, material, corner_key):
     projected_h = LinePrimitive(meet, far_h, "BEND")
     return (
         projected_v, projected_h, float(flange_x), float(flange_y),
-        float(gap_v), float(gap_h),
+        float(gap_v), float(gap_h), vx, hy,
     )
 
 
@@ -306,7 +311,7 @@ def project_operator_v_miter_live_corner_check(
         # Do not synthesize an orthogonal fold from a nominal rectangle.
         raise GeometryError("V_MITER_GUI_PART_HAS_NO_VERIFIED_TWO_BEND_SOURCE")
     material = _single_source_material(render_data.scene)
-    x_bend, y_bend, x_height, y_height, x_gap, y_gap = _physical_corner_bends(
+    x_bend, y_bend, x_height, y_height, x_gap, y_gap, x_real, y_real = _physical_corner_bends(
         render_data.scene, material, corner_key,
     )
     if isinstance(part_spec, DoorPartSpec):
@@ -392,6 +397,16 @@ def project_operator_v_miter_live_corner_check(
         build_v_miter_whole_sheet_check_scene(render_data, stock_check, ideal)
         if stock_check is not None else None
     )
+    marking = None
+    if stock_check is not None:
+        # These exact objects are the original physical BEND primitives,
+        # not the temporary corner-station extensions used for ideal rays.
+        real_first = x_real if first[1] == "x" else y_real
+        real_second = y_real if second[1] == "y" else x_real
+        marking = project_v_miter_source_bend_marking_check(
+            render_data.scene, real_first, real_second, stock_check,
+        )
+        whole_sheet.extend(marking.check_strokes)
     # A finite T local sharp-fold cross-section is meaningful only where
     # the original BEND actually contains the physical intersection and
     # one closed source sheet survives. It remains strictly CHECK: the
@@ -426,6 +441,7 @@ def project_operator_v_miter_live_corner_check(
         full_sheet_check_scene=whole_sheet,
         sharp_t_witness=sharp_t,
         sharp_t_failure=sharp_t_failure,
+        source_bend_marking_check=marking,
         first_bend_source_gap_mm=x_gap if first[1] == "x" else y_gap,
         second_bend_source_gap_mm=y_gap if second[1] == "y" else x_gap,
     )
