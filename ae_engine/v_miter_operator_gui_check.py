@@ -27,6 +27,7 @@ from .v_miter_factory_mother_check import (
     VMiterFactoryMotherReplacementCheck,
     project_v_miter_replaced_factory_corner_check,
 )
+from .v_miter_full_sheet_check import build_v_miter_whole_sheet_check_scene
 
 V_MITER_GUI_CHECK = "V_MITER_CHECK"
 V_MITER_GUI_UNCERTIFIED = "V_MITER_GUI_CHECK_ONLY_UNCERTIFIED"
@@ -48,6 +49,7 @@ class VMiterOperatorGUICheck:
     material_check: VMiterSourceBoundSharpCheck | None
     factory_mother_check: VMiterFactoryMotherReplacementCheck | None
     material_check_failure: str | None
+    full_sheet_check_scene: DrawingScene | None = None
     first_bend_source_gap_mm: float = 0.0
     second_bend_source_gap_mm: float = 0.0
     manufacturing_status: str = V_MITER_GUI_UNCERTIFIED
@@ -380,6 +382,10 @@ def project_operator_v_miter_live_corner_check(
             LinePrimitive(ideal.second_flat_miter_ray[0], ideal.second_flat_miter_ray[1], "CHECK", 211),
         ]
     )
+    whole_sheet = (
+        build_v_miter_whole_sheet_check_scene(render_data, stock_check, ideal)
+        if stock_check is not None else None
+    )
     return VMiterOperatorGUICheck(
         part_key=part_key, corner_key=corner_key,
         first_bend_axis=first[1], second_bend_axis=second[1],
@@ -388,6 +394,7 @@ def project_operator_v_miter_live_corner_check(
         material_check=stock_check,
         factory_mother_check=factory_mother,
         material_check_failure=stock_failure,
+        full_sheet_check_scene=whole_sheet,
         first_bend_source_gap_mm=x_gap if first[1] == "x" else y_gap,
         second_bend_source_gap_mm=y_gap if second[1] == "y" else x_gap,
     )

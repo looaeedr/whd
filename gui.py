@@ -1073,6 +1073,65 @@ class Phase6ApplicationHost:
             spec, render_data, physical,
         )
 
+    def export_v_miter_whole_sheet_check_dxf(self):
+        """Save only a fresh Engine CHECK/DATUM diagnostic, not a production DXF."""
+        part_key = self._current_manual_corner_part_key()
+        if not self._corner_part_type_editable(part_key):
+            messagebox.showerror("V 型斜接 CHECK", "目前板件不可進行 V 型試算。")
+            return None
+        target = self._normalize_manual_corner_target(part_key)
+        physical = manufacturing_api.project_operator_corner_selection_target(target)
+        selected = getattr(self, "v_miter_gui_check_corners", {}).get(part_key, {})
+        if selected.get(physical) != "V_MITER_CHECK":
+            messagebox.showerror("V 型斜接 CHECK", "必須先選取此角的 V 型斜接（試算）。")
+            return None
+        try:
+            live = self._project_v_miter_gui_check_for_corner(part_key, target)
+            if live.full_sheet_check_scene is None:
+                raise ValueError(
+                    f"真實板料來源不足：{live.material_check_failure}"
+                )
+        except (TypeError, ValueError) as exc:
+            messagebox.showerror(
+                "V 型斜接 CHECK", f"無法產生整片試算圖：{exc}",
+            )
+            return None
+        target_path = filedialog.asksaveasfilename(
+            title="另存 V 型試算 CHECK DXF（禁止加工）",
+            defaultextension=".dxf",
+            filetypes=[("DXF 圖檔", "*.dxf")],
+            initialfile=f"V_{part_key}_{physical}_CHECK_ONLY_UNCERTIFIED.dxf",
+        )
+        if not target_path:
+            return None
+        try:
+            # Refresh after the modal file picker. A stale pre-dialog
+            # PartSpec/FinalScene must never be written after live edits.
+            current = self._project_v_miter_gui_check_for_corner(part_key, target)
+            active = getattr(self, "v_miter_gui_check_corners", {}).get(part_key, {})
+            if active.get(physical) != "V_MITER_CHECK":
+                raise ValueError("V_MITER_CHECK_SELECTION_CHANGED_DURING_SAVE")
+            if current.full_sheet_check_scene is None:
+                raise ValueError(
+                    f"V_MITER_CHECK_SOURCE_CHANGED: {current.material_check_failure}"
+                )
+            if current.full_sheet_check_scene.primitives != live.full_sheet_check_scene.primitives:
+                raise ValueError("V_MITER_CHECK_SOURCE_CHANGED_DURING_SAVE")
+            result = manufacturing_api.save_v_miter_whole_sheet_check_dxf(
+                current.full_sheet_check_scene, target_path, overwrite=False,
+            )
+        except (TypeError, ValueError, OSError) as exc:
+            messagebox.showerror(
+                "V 型斜接 CHECK", f"試算 DXF 未儲存：{exc}",
+            )
+            return None
+        messagebox.showinfo(
+            "V 型斜接 CHECK",
+            f"已獨立重開核對圖元：{result}\\n"
+            "僅 CHECK/DATUM，沒有 CUTTING／BEND／MARKING；禁止當加工圖。",
+        )
+        return result
+
     def create_corner_type_panel(self, parent):
         return _create_corner_type_panel_impl(self, parent)
 
