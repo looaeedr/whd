@@ -2033,8 +2033,9 @@ from .v_miter_relief_trial import (
 
 # #3317: same-source CUTTING outline subtraction, trial only (CHECK preview).
 from .v_miter_material_trial import (
-    VMiterMaterialOutlineTrial,
+    VMiterMaterialOutlineTrial, VMiterSourceBoundSharpCheck,
     project_v_miter_source_material_trial,
+    project_v_miter_sharp_source_perimeter_check,
     build_v_miter_trial_check_scene,
 )
 

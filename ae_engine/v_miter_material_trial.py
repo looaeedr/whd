@@ -252,3 +252,136 @@ def build_v_miter_trial_check_scene(
             layer="DATUM", color=6,
         ))
     return result
+
+
+@dataclass(frozen=True)
+class VMiterSourceBoundSharpCheck:
+    """One actual-source perimeter notch proposal; NOT a production CUTTING.
+
+    Intersections are with the original single-piece stock, never a guessed
+    rectangle. The missing physical R/BA and T-sidewall mating remain
+    explicitly unverified even when the *flat* removal balances.
+    """
+    source_material_area_mm2: float
+    removed_material_area_mm2: float
+    remaining_material_area_mm2: float
+    removed_corner_outline: tuple[Vec2, ...]
+    remaining_outline: tuple[Vec2, ...]
+    first_perimeter_hit: Vec2
+    second_perimeter_hit: Vec2
+    first_perimeter_to_ideal_reach_ratio: float
+    second_perimeter_to_ideal_reach_ratio: float
+    manufacturing_status: str = "V_MITER_SHARP_SOURCE_PERIMETER_CHECK_ONLY_UNCERTIFIED"
+
+
+def _forward_source_ray_perimeter_hit(
+    material: Polygon, apex: Vec2, ideal_tip: Vec2,
+) -> tuple[Vec2, float]:
+    """Find one unique outward crossing of the *real* original CUTTING ring.
+
+    Refuse collinear grazing, re-entering concave material and tangent hits:
+    those cases cannot be manufactured by extending one ideal V ray.
+    """
+    dx, dy = ideal_tip.x - apex.x, ideal_tip.y - apex.y
+    norm = math.hypot(dx, dy)
+    if not math.isfinite(norm) or norm <= _TOL:
+        raise GeometryError("V_MITER_SHARP_CHECK_DEGENERATE_IDEAL_RAY")
+    ux, uy = dx / norm, dy / norm
+    coords = tuple(material.exterior.coords)
+    hits = []
+    for (ax, ay), (bx, by) in zip(coords, coords[1:]):
+        sx, sy = bx - ax, by - ay
+        px, py = ax - apex.x, ay - apex.y
+        denominator = ux * sy - uy * sx
+        if abs(denominator) <= 1e-11:
+            if abs(px * uy - py * ux) <= _TOL:
+                raise GeometryError("V_MITER_SHARP_CHECK_RAY_OVERLAPS_SOURCE_EDGE")
+            continue
+        t = (px * sy - py * sx) / denominator
+        u = (px * uy - py * ux) / denominator
+        if t > _TOL and -_TOL <= u <= 1.0 + _TOL:
+            hits.append(float(t))
+    # Deduplicate a single ring vertex shared by two line segments.
+    distinct = []
+    for value in sorted(hits):
+        if not distinct or abs(value - distinct[-1]) > _TOL:
+            distinct.append(value)
+    if len(distinct) != 1:
+        raise GeometryError("V_MITER_SHARP_CHECK_RAY_HAS_AMBIGUOUS_STOCK_EXIT")
+    distance = distinct[0]
+    midpoint = Point(apex.x + 0.5 * ux * distance,
+                     apex.y + 0.5 * uy * distance)
+    if not material.contains(midpoint):
+        raise GeometryError("V_MITER_SHARP_CHECK_RAY_LEAVES_SOURCE_MATERIAL")
+    return Vec2(apex.x + ux * distance, apex.y + uy * distance), distance / norm
+
+
+def project_v_miter_sharp_source_perimeter_check(
+    original_scene: DrawingScene,
+    ideal: VMiterIdealMatingCandidate,
+) -> VMiterSourceBoundSharpCheck:
+    """Source-constrained closed V notch from the already-solved ideal rays.
+
+    Geometry uses the existing *actual* CUTTING outline and two 3D-derived
+    ray directions; it makes no claim of finite-T bevel, contact gap, bend
+    allowance, bend radius or selected relief. A notch that extends past
+    the shorter ideal seam is a CHECK candidate, not an authorized trim.
+    """
+    if not isinstance(original_scene, DrawingScene) or not isinstance(
+        ideal, VMiterIdealMatingCandidate
+    ):
+        raise GeometryError("V_MITER_SHARP_CHECK_SOURCE_TYPES_INVALID")
+    material = _single_source_material(original_scene)
+    apex = ideal.source.bend_intersection
+    if not material.contains(Point(apex.x, apex.y)):
+        raise GeometryError("V_MITER_SHARP_CHECK_APEX_NOT_IN_SOURCE_MATERIAL")
+    a, factor_a = _forward_source_ray_perimeter_hit(
+        material, apex, ideal.first_flat_miter_ray[1]
+    )
+    b, factor_b = _forward_source_ray_perimeter_hit(
+        material, apex, ideal.second_flat_miter_ray[1]
+    )
+    arc = _short_outer_arc(material, a, b)
+
+    first_x, first_y = a.x - apex.x, a.y - apex.y
+    second_x, second_y = b.x - apex.x, b.y - apex.y
+    na, nb = math.hypot(first_x, first_y), math.hypot(second_x, second_y)
+    cross = first_x * second_y - first_y * second_x
+    if min(na, nb) <= _TOL or abs(cross) <= _TOL:
+        raise GeometryError("V_MITER_SHARP_CHECK_SOURCE_WEDGE_DEGENERATE")
+    sense = 1.0 if cross > 0 else -1.0
+    for x, y in arc:
+        px, py = x - apex.x, y - apex.y
+        left = sense * (first_x * py - first_y * px)
+        right = sense * (px * second_y - py * second_x)
+        if min(left, right) < -max(_TOL, na * nb * 1e-9):
+            raise GeometryError("V_MITER_SHARP_CHECK_OUTER_ARC_OUTSIDE_V_WEDGE")
+
+    removed = Polygon([(apex.x, apex.y), *arc])
+    if removed.is_empty or not removed.is_valid or removed.area <= _TOL:
+        raise GeometryError("V_MITER_SHARP_CHECK_REMOVED_GEOMETRY_INVALID")
+    if removed.difference(material).area > _TOL:
+        raise GeometryError("V_MITER_SHARP_CHECK_REMOVAL_EXCEEDS_SOURCE")
+    remain = material.difference(removed)
+    if (remain.is_empty or remain.geom_type != "Polygon" or
+            not remain.is_valid or remain.interiors or remain.area <= _TOL):
+        raise GeometryError("V_MITER_SHARP_CHECK_BREAKS_SINGLE_SHEET")
+    if abs(material.area - removed.area - remain.area) > max(
+        _TOL, material.area * 1e-9
+    ):
+        raise GeometryError("V_MITER_SHARP_CHECK_AREA_CONSERVATION_FAILED")
+
+    return VMiterSourceBoundSharpCheck(
+        source_material_area_mm2=float(material.area),
+        removed_material_area_mm2=float(removed.area),
+        remaining_material_area_mm2=float(remain.area),
+        removed_corner_outline=tuple(
+            Vec2(float(x), float(y)) for x, y in removed.exterior.coords
+        ),
+        remaining_outline=tuple(
+            Vec2(float(x), float(y)) for x, y in remain.exterior.coords
+        ),
+        first_perimeter_hit=a, second_perimeter_hit=b,
+        first_perimeter_to_ideal_reach_ratio=factor_a,
+        second_perimeter_to_ideal_reach_ratio=factor_b,
+    )
