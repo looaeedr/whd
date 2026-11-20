@@ -1048,6 +1048,9 @@ class VMiterReverseCreaseMeasuredCurvedTTrial:
     surface_intersection_segments: tuple
     enclosed_volume_witness_count: int
     true_t_volume_check_status: str
+    first_source_cut_face: VMiterSourceCutFaceTrial | None = None
+    second_source_cut_face: VMiterSourceCutFaceTrial | None = None
+    source_cut_face_coverage_status: str = "NOT_TRACED"
     geometry_model: str = "V_MITER_60_DEG_REVERSE_SOURCE_MEASURED_R_BA_CYLINDRICAL_T_CHECK"
     manufacturing_status: str = "V_MITER_REVERSE_CREASE_R_BA_UNCERTIFIED"
 
@@ -1162,6 +1165,42 @@ def diagnose_v_miter_reverse_crease_measured_r_ba_trial(
     if not first_solid or not second_solid:
         raise GeometryError("V-miter reverse R/BA cannot thicken the real source")
 
+    # Match every returned 3D sidewall back to the ALTERED original-source
+    # 60° V CUTTING boundary. The genuine paired 2D flat triangles and the
+    # same physical R/BA radial offsets used to thicken the solids are the
+    # sole provenance: no closest-surface guess and no OLD ideal seam.
+    original_stock = _single_source_material(scene)
+    alternate_stock = Polygon(
+        tuple((pt.x, pt.y) for pt in cut.candidate_remaining_outline)
+    )
+    first_cut = trace_v_miter_source_true_t_cut_faces(
+        original_stock, alternate_stock, first_flat, first_skin, first_solid,
+        thickness_mm=q.thickness_mm, physical_vertex_offsets=first_offsets,
+    )
+    second_cut = trace_v_miter_source_true_t_cut_faces(
+        original_stock, alternate_stock, second_flat, second_skin, second_solid,
+        thickness_mm=q.thickness_mm, physical_vertex_offsets=second_offsets,
+    )
+    if not math.isclose(
+        first_cut.source_new_v_cut_length_mm,
+        second_cut.source_new_v_cut_length_mm,
+        rel_tol=1e-9, abs_tol=_EPS,
+    ):
+        raise GeometryError("V-miter reverse R/BA source V CUTTING owners disagree")
+    # A missing source-tagged face is a real material-coverage limitation,
+    # NEVER zero joint gap or a production-safe clearance result.
+    first_has_cut = first_cut.has_source_tagged_cut_faces
+    second_has_cut = second_cut.has_source_tagged_cut_faces
+    source_cut_face_coverage_status = (
+        "BOTH_SOURCE_CUT_FACES_IDENTIFIED"
+        if first_has_cut and second_has_cut else
+        "FIRST_ONLY_SOURCE_CUT_FACE"
+        if first_has_cut else
+        "SECOND_ONLY_SOURCE_CUT_FACE"
+        if second_has_cut else
+        "NO_SOURCE_CUT_FACES_IDENTIFIED"
+    )
+
     first_topo = diagnose_world_mesh_triangle_edge_incidence(first_solid)
     second_topo = diagnose_world_mesh_triangle_edge_incidence(second_solid)
     first_self = diagnose_world_mesh_self_intersections(first_solid)
@@ -1222,6 +1261,9 @@ def diagnose_v_miter_reverse_crease_measured_r_ba_trial(
         surface_intersection_segments=collision.intersection_segments,
         enclosed_volume_witness_count=volume_witness_count,
         true_t_volume_check_status=volume_status,
+        first_source_cut_face=first_cut,
+        second_source_cut_face=second_cut,
+        source_cut_face_coverage_status=source_cut_face_coverage_status,
     )
 
 
