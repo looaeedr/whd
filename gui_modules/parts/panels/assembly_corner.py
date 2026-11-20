@@ -302,6 +302,20 @@ def draw_v_miter_gui_live_check(host, result):
                       outline="#ff9f0a")
     three.create_text(75, 10, text="3D 理想成形接合線",
                       fill=host.COLOR_TEXT, font=("Microsoft JhengHei", 8))
+    if result.sharp_t_witness is not None:
+        # Draw the two actual Engine 3D points of the local sharp-T bisector.
+        # This is a CHECK-only thickness cross-section, not a machined bevel.
+        section = result.sharp_t_witness
+        m, t = project(section.seam_midpoint), project(section.cross_section_tip)
+        three.create_line(
+            midx + m[0] * sf, midy + m[1] * sf,
+            midx + t[0] * sf, midy + t[1] * sf,
+            fill="#4dc7e5", width=3, dash=(3, 2),
+        )
+        three.create_text(
+            75, 84, text=f"T {section.thickness_mm:g} mm／局部剖面 CHECK",
+            fill="#4dc7e5", font=("Microsoft JhengHei", 8),
+        )
     three.create_text(75, 98,
                       text=f"接合長 {result.ideal.formed_contact_length_mm:g} mm",
                       fill=host.COLOR_TEXT_MUTED, font=("Microsoft JhengHei", 8))
@@ -450,6 +464,18 @@ def refresh_corner_type_panel(self):
                     f"{live.material_check.removed_material_area_mm2:g} mm²，"
                     "已核對單片板料面積守恆。"
                 )
+            if live.sharp_t_witness is not None:
+                section_note = (
+                    f"T {live.sharp_t_witness.thickness_mm:g} mm 已帶入"
+                    f"理想尖角的局部厚度剖面，寬 "
+                    f"{live.sharp_t_witness.cross_section_width_mm:g} mm；"
+                    "這不是整片實體切面或干涉認證。"
+                )
+            else:
+                section_note = (
+                    f"現有板厚 T 的局部剖面來源不足："
+                    f"{live.sharp_t_failure}；不補不存在的 BEND。"
+                )
             self.manual_corner_param_summary.configure(
                 text=(
                     f"V 型斜接（未認證 CHECK）｜另一側折彎 "
@@ -458,8 +484,9 @@ def refresh_corner_type_panel(self):
                     f"{live.second_flange_height_mm:g} mm\\n"
                     "角度與折高取自目前 PartSpec/Fold，沒有新增折彎輸入；"
                     f"{material_note}\\n"
-                    "2D 為 CHECK、3D 是理想接合線；"
-                    "未驗證內 R／BA、實體 T 切面及避裂，不可當加工圖。\\n"
+                    "2D 為 CHECK、3D 接合線及局部 T 剖面為未認證模型；"
+                    "內 R／BA、實際 3D 切面及避裂未驗證，不可當加工圖。\\n"
+                    f"{section_note}\\n"
                     f"原 BEND 至理想交點缺段：{live.first_bend_source_gap_mm:g} / "
                     f"{live.second_bend_source_gap_mm:g} mm（僅來源診斷，"
                     "缺段不可視為已實際打標或可製造折線）。"
