@@ -24,6 +24,9 @@ from gui_modules.application.render_snapshots import _collect_live_indicator_gro
 
 def export_multi_door_layout_dxfs(self, folder, val, *, draw_stock=False):
     """Preflight every Engine Door identity and PartSpec before writing any DXF."""
+    manufacturing_api.require_no_operator_v_miter_gui_check_for_export({
+        "v_miter_gui_check_corners": getattr(self, "v_miter_gui_check_corners", {}),
+    })
     context = self._manufacturing_context(draw_stock=draw_stock)
     planned = []
     for cell in self.get_door_layout_cells():
@@ -228,6 +231,9 @@ def _current_authoritative_export_guard(
 
 
 def _export_selected_resolved_parts(self, folder, flags):
+    manufacturing_api.require_no_operator_v_miter_gui_check_for_export({
+        "v_miter_gui_check_corners": getattr(self, "v_miter_gui_check_corners", {}),
+    })
     """Export the primary GUI's canonical resolved physical inventory when available."""
     designer = getattr(self, "fold_designer_app", None)
     resolver = getattr(designer, "_phase6_resolve_manufacturing_geometry", None)
@@ -408,6 +414,9 @@ def _export_selected_resolved_parts(self, folder, flags):
 
 
 def _export_selected_parts(self, folder, val, flags, draw_stock):
+    manufacturing_api.require_no_operator_v_miter_gui_check_for_export({
+        "v_miter_gui_check_corners": getattr(self, "v_miter_gui_check_corners", {}),
+    })
     # Primary Phase6 UI already owns one canonical ResolvedManufacturingGeometry.
     # Export its physical inventory directly; logical checkboxes only filter
     # operator intention and never become a second physical-part authority.
@@ -879,11 +888,23 @@ def _selected_dxf_live_operator_sources(self):
         "door_layout_indicator_door_features": deepcopy(
             getattr(self, "door_layout_indicator_door_features", None),
         ),
+        "v_miter_gui_check_corners": deepcopy(
+            getattr(self, "v_miter_gui_check_corners", {}),
+        ),
     }
 
 
 def export_selected_dxf(self):
     """Batch export selected existing parts through authoritative manufacturing APIs."""
+    # Run before file dialogs or staging; neither a CHECK preview nor an
+    # old four-CornerType FinalScene may silently publish as V manufacture.
+    try:
+        manufacturing_api.require_no_operator_v_miter_gui_check_for_export({
+            "v_miter_gui_check_corners": getattr(self, "v_miter_gui_check_corners", {}),
+        })
+    except (TypeError, ValueError) as exc:
+        messagebox.showerror("V 型斜接尚未認證", str(exc))
+        return
     self._flush_phase6_authoritative_state()
     existing_parts = self._phase6_current_existing_parts()
     try:
