@@ -445,6 +445,31 @@ def test_60_measured_rba_curves_every_verified_real_reverse_bend_component(mode,
     )
     assert measured.surface_interference_pair_count >= 0
     assert measured.true_t_volume_check_status.endswith("UNCERTIFIED")
+    # This is the NEW 60-degree asymmetric actual CUTTING sidewall, not
+    # an inverse projection onto the obsolete ideal V-contact line.
+    first_cut, second_cut = measured.first_source_cut_face, measured.second_source_cut_face
+    assert first_cut is not None and second_cut is not None
+    assert first_cut.manufacturing_status == "V_MITER_TRUE_CUT_FACE_UNCERTIFIED"
+    assert second_cut.manufacturing_status == first_cut.manufacturing_status
+    assert first_cut.source_new_v_cut_length_mm > 0
+    assert second_cut.source_new_v_cut_length_mm == pytest.approx(
+        first_cut.source_new_v_cut_length_mm
+    )
+    assert first_cut.selected_flat_v_cut_length_mm >= 0
+    assert second_cut.selected_flat_v_cut_length_mm >= 0
+    assert first_cut.selected_flat_v_cut_length_mm <= first_cut.source_new_v_cut_length_mm + 1e-6
+    assert second_cut.selected_flat_v_cut_length_mm <= second_cut.source_new_v_cut_length_mm + 1e-6
+    assert len(first_cut.true_cut_face_triangles) == 2 * first_cut.formed_boundary_edge_count
+    assert len(second_cut.true_cut_face_triangles) == 2 * second_cut.formed_boundary_edge_count
+    assert measured.source_cut_face_coverage_status == (
+        "BOTH_SOURCE_CUT_FACES_IDENTIFIED"
+        if first_cut.has_source_tagged_cut_faces and second_cut.has_source_tagged_cut_faces else
+        "FIRST_ONLY_SOURCE_CUT_FACE"
+        if first_cut.has_source_tagged_cut_faces else
+        "SECOND_ONLY_SOURCE_CUT_FACE"
+        if second_cut.has_source_tagged_cut_faces else
+        "NO_SOURCE_CUT_FACES_IDENTIFIED"
+    )
     assert all(math.isfinite(v) for tri in (
         measured.first_thick_curved_solid_triangles +
         measured.second_thick_curved_solid_triangles
@@ -456,6 +481,54 @@ def test_60_measured_rba_curves_every_verified_real_reverse_bend_component(mode,
         manufacturing_api.solve_v_miter_radius_ba_interface_trial(
             scene, first, second, **inputs, **_calibrated(60),
         )
+
+
+@pytest.mark.parametrize("mode", ("ROUND_R", "RELIEF_HOLE"))
+def test_60_reverse_actual_v_cut_face_owner_receives_exact_original_stock_and_curved_t(
+    monkeypatch, mode,
+):
+    from shapely.geometry import Polygon
+    from ae_engine import v_miter_radius_ba_interface_trial as owner
+    from ae_engine.v_miter_material_trial import _single_source_material
+    from ae_engine.v_miter_source_cut_face_trial import trace_v_miter_source_true_t_cut_faces
+
+    scene, first, second, extra, params = _60_reverse_source_for_measured_rba(
+        mode=mode,
+    )
+    actual_original = _single_source_material(scene)
+    before = tuple(scene.primitives)
+    seen = []
+
+    def provenance(original, altered, flat, skin, solid, *, thickness_mm, physical_vertex_offsets):
+        assert original.equals_exact(actual_original, 1e-9)
+        assert altered.area < original.area
+        assert altered.difference(original).area == pytest.approx(0)
+        assert flat and len(flat) == len(skin) and solid
+        assert thickness_mm == pytest.approx(2)
+        assert physical_vertex_offsets
+        checked = trace_v_miter_source_true_t_cut_faces(
+            original, altered, flat, skin, solid,
+            thickness_mm=thickness_mm,
+            physical_vertex_offsets=physical_vertex_offsets,
+        )
+        seen.append((altered, checked))
+        return checked
+
+    monkeypatch.setattr(owner, "trace_v_miter_source_true_t_cut_faces", provenance)
+    out = manufacturing_api.diagnose_v_miter_reverse_crease_measured_r_ba_trial(
+        scene, first, second, **params,
+        second_leg_outer_perimeter_retract_mm=6,
+        **{k: v for k, v in _calibrated(60).items()
+           if k != "max_permitted_edge_trim_mm"},
+    )
+    assert len(seen) == 2
+    expected_remaining = Polygon((p.x, p.y) for p in out.source_cut_remaining_outline)
+    for altered, checked in seen:
+        assert altered.equals(expected_remaining)
+        assert checked.source_new_v_cut_length_mm > 0
+    assert out.first_source_cut_face == seen[0][1]
+    assert out.second_source_cut_face == seen[1][1]
+    assert tuple(scene.primitives) == before
 
 
 @pytest.mark.parametrize("mode", ("ROUND_R", "RELIEF_HOLE"))
