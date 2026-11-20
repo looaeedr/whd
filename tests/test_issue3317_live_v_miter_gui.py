@@ -197,3 +197,46 @@ def test_all_main_dxfs_and_direct_fold_designer_export_guard_v_selection():
     for handler in ("export_selected_dxf", "_export_selected_parts", "_export_selected_resolved_parts"):
         excerpt = main_export.split(f"def {handler}(")[1].split("\n\ndef ", 1)[0]
         assert "require_no_operator_v_miter_gui_check_for_export" in excerpt
+
+
+def test_real_tk_fifth_choice_is_clickable_and_keeps_manufacturing_corner_type():
+    import tkinter as tk
+    import gui
+
+    root = tk.Tk()
+    app = None
+    try:
+        app = gui.BoxCalculatorGUI(root)
+        app.baseline_var.set("自訂")
+        app.workspace_controller.set_active_part("door")
+        app.select_manual_corner("bottom")
+        app.refresh_corner_type_panel()
+        assert app.v_miter_gui_check_radio.cget("state") == "normal"
+        assert app.manual_corner_type_var.get() != "V_MITER_CHECK"
+        before = {
+            k: v for k, v in app.manual_corner_state["door"].items()
+        }
+        app.v_miter_gui_check_radio.invoke()
+        assert app.manual_corner_type_var.get() == "V_MITER_CHECK"
+        assert app.v_miter_gui_check_corners["door"] == {
+            "bottom_left": "V_MITER_CHECK",
+            "bottom_right": "V_MITER_CHECK",
+        }
+        assert app.manual_corner_state["door"] == before
+        saved = app._compose_phase6_project_snapshot_from_main_gui()
+        assert saved["v_miter_gui_check_corners"]["door"]["bottom_right"] == "V_MITER_CHECK"
+        with pytest.raises(GeometryError, match="CHECK_ONLY_UNCERTIFIED"):
+            api.require_no_operator_v_miter_gui_check_for_export(saved)
+        # Re-select the original production CornerType; this removes the
+        # fifth CHECK state without changing the engine's manufacturing type.
+        current = before["bottom_left"].type_id
+        app.set_manual_corner_type(current)
+        assert app.v_miter_gui_check_corners == {}
+        assert app.manual_corner_type_var.get() == current.value
+    finally:
+        if app is not None:
+            try:
+                getattr(app, "fold_designer_app", None).root.destroy()
+            except (AttributeError, Exception):
+                pass
+        root.destroy()
