@@ -428,7 +428,7 @@ def diagnose_v_miter_true_thickness_collision(
 
 @dataclass(frozen=True)
 class VMiterReverseCreaseTrueTTrial:
-    """Real 60° source flange COMPONENTS and zero-R formed T skin; CHECK only.
+    """Real 60° source flange components and zero-R formed T skin; CHECK only.
 
     This deliberately has NO formed mating seam, gap, bevel, calibrated
     inside R, BA or factory-accepted contact result: moving the second
@@ -451,7 +451,7 @@ class VMiterReverseCreaseTrueTTrial:
     second_thick_solid_triangles: tuple[tuple[Vec3, Vec3, Vec3], ...]
     surface_interference_pair_count: int
     surface_intersection_segments: tuple
-    geometry_model: str = "REAL_SOURCE_60_DEG_TWO_COMPONENT_SHARP_FOLD_TRUE_T_CHECK"
+    geometry_model: str = "REAL_SOURCE_60_DEG_COMPONENT_RESOLVED_SHARP_FOLD_TRUE_T_CHECK"
     manufacturing_status: str = "V_MITER_REVERSE_CREASE_TRUE_T_UNCERTIFIED"
 
 
@@ -468,12 +468,14 @@ def diagnose_v_miter_reverse_crease_true_t_trial(
     relief_t_factor: float | None,
     second_leg_outer_perimeter_retract_mm: float,
 ) -> VMiterReverseCreaseTrueTTrial:
-    """Form BOTH actual disconnected first-flange pieces of a 60° V trial.
+    """Form every actually connected first-flange component of a 60° V trial.
 
-    The source-backed asymmetric relief can leave a SECOND triangular
-    reverse-crease lip. Treating the clipped first flange as a single
-    Polygon silently throws away that real positive-area stock. Convex
-    hull or union repair would INVENT sheet over the V slot. Instead:
+    A drilled relief can separate a reverse-crease lip from the main
+    flange; a true ROUND_R fillet can retain a narrow physical root bridge
+    and leave ONE connected source polygon. The component count is an
+    actual material topology result, not a user/solver assumption.
+    Forcing two or applying convex-hull repair would INVENT/REMOVE sheet.
+    Instead:
       * require original collinear real BENDs over the reverse reach,
       * take a physically drawn far reverse endpoint still inside stock,
       * clip the actual alternate CUTTING by finite first/second fold
@@ -573,9 +575,10 @@ def diagnose_v_miter_reverse_crease_true_t_trial(
             apex.y + axis[1] * axial_mm + outside[1] * outward_mm,
         )
 
-    # This physical first fold contains TWO independent material lobes
-    # after the asymmetric V relief. Both must be kept, even when the
-    # second is a small lip without the full declared flange height.
+    # The actual source R may bridge two lobes into one sheet component;
+    # a drill hole may disconnect them. Never assume either topology.
+    # Keep every actual positive-area component, including a small
+    # reverse lip without the full declared flange height.
     domain = Polygon((
         flat(negative_end, 0, e1, n1),
         flat(bounded.first_bend_span_mm, 0, e1, n1),
@@ -636,8 +639,9 @@ def diagnose_v_miter_reverse_crease_true_t_trial(
 
     theta = math.radians(q.second_fold_angle_deg)
     b2 = _add(_scale(n2, math.cos(theta)), _scale(_UNIT_Z, math.sin(theta)))
-    # Keep both disconnected source surfaces separately. The existing
-    # Engine triangulator checks 2D area parity before each 3D fold.
+    # Form each actual material component separately, whether the real
+    # source has one root-connected ROUND_R patch or separate hole patches.
+    # The Engine triangulator checks source 2D area parity on each fold.
     first_skin = tuple(
         tri for part in parts
         for tri in _formed_skin(part, apex, e1, n1, _UNIT_Z)
