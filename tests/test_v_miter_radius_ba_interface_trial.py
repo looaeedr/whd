@@ -458,9 +458,21 @@ def test_60_measured_rba_curves_every_verified_real_reverse_bend_component(mode,
     # A real positive-length 3D CUTTING sidewall must be recovered on
     # BOTH physical flanges, not a plausible empty status-only witness.
     assert first_cut.has_source_tagged_cut_faces
-    assert second_cut.has_source_tagged_cut_faces
     assert first_cut.selected_flat_v_cut_length_mm > 0
-    assert second_cut.selected_flat_v_cut_length_mm > 0
+    if mode == "ROUND_R":
+        # Root-connected ROUND_R geometry preserves the first real V
+        # source sidewall, but the second flange has NO selected 3D
+        # V cut-face from this actual asymmetric source: this physical
+        # topology is NOT a two-face mating seam and must stay blocked.
+        assert second_cut.has_source_tagged_cut_faces is False
+        assert second_cut.selected_flat_v_cut_length_mm == pytest.approx(0)
+        assert measured.source_cut_face_coverage_status == "FIRST_ONLY_SOURCE_CUT_FACE"
+    else:
+        # Explicit source hole removes the root and leaves genuine
+        # independently verifiable physical cut faces on both flanges.
+        assert second_cut.has_source_tagged_cut_faces
+        assert second_cut.selected_flat_v_cut_length_mm > 0
+        assert measured.source_cut_face_coverage_status == "BOTH_SOURCE_CUT_FACES_IDENTIFIED"
     assert first_cut.selected_flat_v_cut_length_mm <= first_cut.source_new_v_cut_length_mm + 1e-6
     assert second_cut.selected_flat_v_cut_length_mm <= second_cut.source_new_v_cut_length_mm + 1e-6
     assert len(first_cut.true_cut_face_triangles) == 2 * first_cut.formed_boundary_edge_count
@@ -484,6 +496,33 @@ def test_60_measured_rba_curves_every_verified_real_reverse_bend_component(mode,
     with pytest.raises(GeometryError, match="source material extension"):
         manufacturing_api.solve_v_miter_radius_ba_interface_trial(
             scene, first, second, **inputs, **_calibrated(60),
+        )
+
+
+def test_60_round_r_missing_second_physical_cut_face_cannot_claim_seam_gap():
+    from ae_engine.v_miter_cut_face_continuity_trial import (
+        project_v_miter_true_cut_face_continuity_trial,
+    )
+    scene, first, second, extra, inputs = _60_reverse_source_for_measured_rba(
+        mode="ROUND_R",
+    )
+    result = manufacturing_api.diagnose_v_miter_reverse_crease_measured_r_ba_trial(
+        scene, first, second, **inputs,
+        second_leg_outer_perimeter_retract_mm=6,
+        **{k: v for k, v in _calibrated(60).items()
+           if k != "max_permitted_edge_trim_mm"},
+    )
+    assert result.source_cut_face_coverage_status == "FIRST_ONLY_SOURCE_CUT_FACE"
+    assert result.second_source_cut_face.true_cut_face_triangles == ()
+    # The still-obsolete ideal seam MUST NOT be used as proof of
+    # correction. The shared actual-face continuity Engine rejects an
+    # absent sidewall, even when a caller supplies plausible seam points.
+    with pytest.raises(GeometryError, match="second V-cut face|mesh|cut-face"):
+        project_v_miter_true_cut_face_continuity_trial(
+            result.first_source_cut_face.true_cut_face_triangles,
+            result.second_source_cut_face.true_cut_face_triangles,
+            formed_seam_start=(0.0, 0.0, 0.0),
+            formed_seam_end=(0.0, 0.0, 20.0),
         )
 
 
