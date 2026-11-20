@@ -2057,6 +2057,12 @@ from .v_miter_ideal_mating import (
     project_ideal_v_miter_mating_candidate,
 )
 
+# #3317: factory-owned pre-corner mother replacement, CHECK-only.
+from .v_miter_factory_mother_check import (
+    VMiterFactoryMotherReplacementCheck,
+    project_v_miter_replaced_factory_corner_check,
+)
+
 # #3317: live GUI CHECK choice, source-backed Fold/FinalScene projection only.
 from .v_miter_operator_gui_check import (
     V_MITER_GUI_CHECK, V_MITER_GUI_UNCERTIFIED,
