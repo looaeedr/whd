@@ -289,13 +289,19 @@ def _forward_source_ray_perimeter_hit(
     ux, uy = dx / norm, dy / norm
     coords = tuple(material.exterior.coords)
     hits = []
+    collinear_forward_intervals = []
     for (ax, ay), (bx, by) in zip(coords, coords[1:]):
         sx, sy = bx - ax, by - ay
         px, py = ax - apex.x, ay - apex.y
         denominator = ux * sy - uy * sx
         if abs(denominator) <= 1e-11:
             if abs(px * uy - py * ux) <= _TOL:
-                raise GeometryError("V_MITER_SHARP_CHECK_RAY_OVERLAPS_SOURCE_EDGE")
+                near = px * ux + py * uy
+                far = (bx - apex.x) * ux + (by - apex.y) * uy
+                if max(near, far) > _TOL:
+                    collinear_forward_intervals.append(
+                        (min(near, far), max(near, far))
+                    )
             continue
         t = (px * sy - py * sx) / denominator
         u = (px * uy - py * ux) / denominator
@@ -309,6 +315,13 @@ def _forward_source_ray_perimeter_hit(
     if len(distinct) != 1:
         raise GeometryError("V_MITER_SHARP_CHECK_RAY_HAS_AMBIGUOUS_STOCK_EXIT")
     distance = distinct[0]
+    # A remote edge of a *different* factory corner may share the infinite
+    # line with this ray, but it is irrelevant when strictly beyond its
+    # first actual source exit. Reject only an overlapping segment on the
+    # material ray before that exit, never a coincident infinite extension.
+    for start, stop in collinear_forward_intervals:
+        if max(start, 0.0) < min(stop, distance) - _TOL:
+            raise GeometryError("V_MITER_SHARP_CHECK_RAY_OVERLAPS_SOURCE_EDGE")
     midpoint = Point(apex.x + 0.5 * ux * distance,
                      apex.y + 0.5 * uy * distance)
     if not material.contains(midpoint):

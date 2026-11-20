@@ -422,8 +422,13 @@ def refresh_corner_type_panel(self):
                     "目前只有理想 V 線，沒有可確認的實際扣料輪廓。"
                 )
             else:
+                mother_source = (
+                    "由原 Engine Factory 母板只替換所選舊截角；"
+                    if live.factory_mother_check is not None else
+                    "直接使用現有原始 CUTTING；"
+                )
                 material_note = (
-                    f"原料 V 扣料候選："
+                    f"{mother_source}V 扣料候選："
                     f"{live.material_check.removed_material_area_mm2:g} mm²，"
                     "已核對單片板料面積守恆。"
                 )
