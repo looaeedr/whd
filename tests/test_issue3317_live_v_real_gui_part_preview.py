@@ -39,6 +39,13 @@ def test_real_tk_physical_part_live_v_preview_from_current_fold(part_key):
         assert result.corner_key == "bottom_left"
         assert result.ideal.formed_contact_length_mm > 0
         assert all(item.layer == "CHECK" for item in result.check_scene.primitives)
+        assert result.check_scene.primitives[0].closed
+        assert result.material_check.removed_material_area_mm2 > 0
+        assert result.material_check.remaining_material_area_mm2 > 0
+        assert result.material_check.source_material_area_mm2 == pytest.approx(
+            result.material_check.remaining_material_area_mm2 +
+            result.material_check.removed_material_area_mm2
+        )
         assert app.v_miter_check_3d_preview_canvas is not None
         # A rendered live source must show more than the blank/error message.
         assert len(app.corner_type_preview_canvas.find_all()) > 1
