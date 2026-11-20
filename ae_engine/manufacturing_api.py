@@ -3093,3 +3093,11 @@ from .receiving_nfb_ui1a import (
     effective_nfb_slot_brand as project_receiving_nfb_draft_slot_brand,
     nfb_ui1a_preview as preview_receiving_nfb_draft,
 )
+
+
+# #3317 未認證共同接合面；不增加正式 CornerType／加工能力。
+from .v_miter_radius_ba_mating_surface import (
+    VMiterMatingMaterialPoint,
+    VMiterRadiusBAMatingSurfaceTrial,
+    solve_v_miter_radius_ba_mating_surface_trial,
+)
