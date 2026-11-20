@@ -18,7 +18,23 @@ def test_real_tk_physical_part_live_v_preview_from_current_fold(part_key):
         app.set_v_miter_gui_check_choice()
 
         assert app.manual_corner_type_var.get() == "V_MITER_CHECK"
-        result = app._project_v_miter_gui_check_for_corner(part_key, "bottom")
+        try:
+            result = app._project_v_miter_gui_check_for_corner(part_key, "bottom")
+        except (ValueError, TypeError) as exc:
+            snapshot = app._make_original_fold_designer_snapshot()
+            spec, _ = app._fold_designer_part_spec_from_payload(part_key, snapshot)
+            render = app._query_fold_designer_render_data(part_key, snapshot)
+            bends = [
+                ((p.p1.x, p.p1.y), (p.p2.x, p.p2.y))
+                for p in render.scene.primitives
+                if p.layer == "BEND" and hasattr(p, "p1")
+            ]
+            raise AssertionError(
+                f"{part_key} source={exc}; bounds={render.material.bounds}; "
+                f"BEND={bends[:25]}; "
+                f"X={getattr(spec, 'fold_profile_x', ())}; "
+                f"Y={getattr(spec, 'fold_profile_y', ())}"
+            ) from exc
         assert result.part_key == part_key
         assert result.corner_key == "bottom_left"
         assert result.ideal.formed_contact_length_mm > 0
