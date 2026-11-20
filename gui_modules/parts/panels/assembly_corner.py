@@ -229,10 +229,17 @@ def draw_v_miter_gui_live_check(host, result):
     """Draw Engine-returned CHECK V rays and ideal 3D seam, never CNC paths."""
     canvas = host.corner_type_preview_canvas
     canvas.delete("all")
-    paths = tuple(result.check_scene.primitives)
+    paths = tuple(
+        result.full_sheet_check_scene.primitives
+        if result.full_sheet_check_scene is not None
+        else result.check_scene.primitives
+    )
     points = tuple(
-        p for item in paths
-        for p in (item.points if hasattr(item, "points") else (item.p1, item.p2))
+        p for item in paths for p in (
+            item.points if hasattr(item, "points") else
+            (item.p1, item.p2) if hasattr(item, "p1") else
+            (item.center,)
+        )
     )
     w = max(10, int(float(canvas.cget("width"))))
     h = max(10, int(float(canvas.cget("height"))))
@@ -248,17 +255,26 @@ def draw_v_miter_gui_live_check(host, result):
                 h - 10 - (point.y - miny) * scale)
 
     for item in paths:
+        fg = "#6e8799" if item.layer == "DATUM" else "#ff9f0a"
+        thick = 1 if item.layer == "DATUM" else 2
         if hasattr(item, "points"):
             canvas.create_polygon(
                 *(v for point in item.points for v in xy(point)),
-                fill="", outline="#ff9f0a", width=2, dash=(5, 3),
+                fill="", outline=fg, width=thick, dash=(5, 3),
             )
-        else:
+        elif hasattr(item, "p1"):
             canvas.create_line(*xy(item.p1), *xy(item.p2),
-                               fill="#ff9f0a", width=2, dash=(5, 3))
+                               fill=fg, width=thick, dash=(5, 3))
+        else:
+            cx, cy = xy(item.center)
+            r = item.radius * scale
+            canvas.create_oval(
+                cx-r, cy-r, cx+r, cy+r,
+                outline=fg, width=thick, dash=(5, 3),
+            )
     canvas.create_text(
         w / 2, 9,
-        text=("原料 V 扣料候選（CHECK）" if result.material_check is not None
+        text=("整片剩料／V 扣料（CHECK）" if result.full_sheet_check_scene is not None
               else "原料來源不足｜理想 V 線（CHECK）"),
                        fill=host.COLOR_TEXT, font=("Microsoft JhengHei", 8))
 
@@ -399,6 +415,8 @@ def refresh_corner_type_panel(self):
         self.manual_corner_param_frame.pack_forget()
         self.manual_corner_param_summary.pack(fill=tk.X, padx=8, pady=(3, 5))
         three = self.v_miter_check_3d_preview_canvas
+        self.v_miter_export_check_button.pack(fill=tk.X, padx=8, pady=(0, 6))
+        self.v_miter_export_check_button.configure(state=tk.DISABLED)
         if not three.winfo_ismapped():
             three.pack(padx=8, pady=(0, 7))
         try:
@@ -448,7 +466,12 @@ def refresh_corner_type_panel(self):
                 )
             )
             draw_v_miter_gui_live_check(self, live)
+            self.v_miter_export_check_button.configure(
+                state=(tk.NORMAL if live.full_sheet_check_scene is not None
+                       else tk.DISABLED),
+            )
         return
+    self.v_miter_export_check_button.pack_forget()
     self.v_miter_check_3d_preview_canvas.pack_forget()
     if params_unlocked:
         self.manual_corner_param_summary.pack_forget()
@@ -695,6 +718,13 @@ def _build_corner_parameter_controls(host, editor):
     host.v_miter_check_3d_preview_canvas = tk.Canvas(
         editor, width=150, height=105, bg=host.COLOR_CANVAS_BG,
         highlightthickness=1, highlightbackground="#34343a",
+    )
+    host.v_miter_export_check_button = tk.Button(
+        editor, text="另存整片 V 試算 DXF（CHECK，非加工）",
+        command=host.export_v_miter_whole_sheet_check_dxf,
+        bg=host.COLOR_PANEL, fg=host.COLOR_TEXT,
+        activebackground=host.COLOR_ACCENT_HOVER,
+        activeforeground="#ffffff",
     )
 
 def create_corner_type_panel(host, parent):
