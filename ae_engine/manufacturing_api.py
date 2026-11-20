@@ -2057,6 +2057,13 @@ from .v_miter_ideal_mating import (
     project_ideal_v_miter_mating_candidate,
 )
 
+# #3317: inspected complete sheet V contour; diagnostic DXF never has
+# manufacturing CUTTING/BEND/MARKING and is verified on disk before commit.
+from .v_miter_full_sheet_check import (
+    build_v_miter_whole_sheet_check_scene,
+    save_v_miter_whole_sheet_check_dxf,
+)
+
 # #3317: factory-owned pre-corner mother replacement, CHECK-only.
 from .v_miter_factory_mother_check import (
     VMiterFactoryMotherReplacementCheck,
