@@ -230,7 +230,10 @@ def draw_v_miter_gui_live_check(host, result):
     canvas = host.corner_type_preview_canvas
     canvas.delete("all")
     paths = tuple(result.check_scene.primitives)
-    points = tuple(point for line in paths for point in (line.p1, line.p2))
+    points = tuple(
+        p for item in paths
+        for p in (item.points if hasattr(item, "points") else (item.p1, item.p2))
+    )
     w = max(10, int(float(canvas.cget("width"))))
     h = max(10, int(float(canvas.cget("height"))))
     minx = min(point.x for point in points)
@@ -244,10 +247,16 @@ def draw_v_miter_gui_live_check(host, result):
         return (14 + (point.x - minx) * scale,
                 h - 10 - (point.y - miny) * scale)
 
-    for line in paths:
-        canvas.create_line(*xy(line.p1), *xy(line.p2),
-                           fill="#ff9f0a", width=2, dash=(5, 3))
-    canvas.create_text(w / 2, 9, text="2D 理想 V 線（CHECK）",
+    for item in paths:
+        if hasattr(item, "points"):
+            canvas.create_polygon(
+                *(v for point in item.points for v in xy(point)),
+                fill="", outline="#ff9f0a", width=2, dash=(5, 3),
+            )
+        else:
+            canvas.create_line(*xy(item.p1), *xy(item.p2),
+                               fill="#ff9f0a", width=2, dash=(5, 3))
+    canvas.create_text(w / 2, 9, text="實際原料 V 扣料候選（CHECK）",
                        fill=host.COLOR_TEXT, font=("Microsoft JhengHei", 8))
 
     # Presentation-only oblique projection of the actual Engine 3D seam.
@@ -410,7 +419,10 @@ def refresh_corner_type_panel(self):
                     f"{live.first_flange_height_mm:g} / "
                     f"{live.second_flange_height_mm:g} mm\\n"
                     "角度與折高取自目前 PartSpec/Fold，沒有新增折彎輸入；"
-                    "圖示是理想 2D/3D 接合線，不是實際 R/BA/T 裁切。\\n"
+                    f"原料 V 扣料候選：{live.material_check.removed_material_area_mm2:g} mm²，"
+                    "已核對單片板料面積守恆。\\n"
+                    "2D 虛線是原料候選、3D 是理想接合線；"
+                    "未驗證內 R／BA、實體 T 切面及避裂，不可當加工圖。\\n"
                     f"原 BEND 至理想交點缺段：{live.first_bend_source_gap_mm:g} / "
                     f"{live.second_bend_source_gap_mm:g} mm（僅來源診斷，"
                     "缺段不可視為已實際打標或可製造折線）。"
