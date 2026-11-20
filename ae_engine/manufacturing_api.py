@@ -2070,6 +2070,12 @@ from .v_miter_factory_mother_check import (
     project_v_miter_replaced_factory_corner_check,
 )
 
+# #3317: actual FinalScene BEND + post-V stock survival -> CHECK strokes only.
+from .v_miter_source_marking_check import (
+    VMiterSourceBendMarkingCheck,
+    project_v_miter_source_bend_marking_check,
+)
+
 # #3317: live GUI CHECK choice, source-backed Fold/FinalScene projection only.
 from .v_miter_operator_gui_check import (
     V_MITER_GUI_CHECK, V_MITER_GUI_UNCERTIFIED,
