@@ -224,6 +224,41 @@ def _profile_angle_at_bend(profile, position, origin):
     return found[0]
 
 
+def _endcap_existing_fold_angle_sources(part_spec: EndCapPartSpec, part_key: str):
+    """Reuse canonical authored Fold; if missing, Engine's *existing* Factory Fold.
+
+    A fresh Head/Tail already has physical BENDs created by the standard
+    Factory but no optional authored X/Y Fold rows. Build the same Factory
+    default from the immutable PartSpec source, never invent 90 degrees in
+    Tk or fill an invalid *present* authored profile from defaults.
+    """
+    x_profile = tuple(part_spec.fold_profile_x or ())
+    y_profile = tuple(part_spec.fold_profile_y or ())
+    if x_profile and y_profile:
+        return x_profile, y_profile
+    from .endcap_factory_fold import build_endcap_xy_fold_profiles
+    from .box_body_fold_profile import profile_to_fold_segments
+    physical = {
+        "model": part_spec.model_name or "自訂",
+        "w": part_spec.width, "d": part_spec.depth,
+        "t": part_spec.thickness, "fw": part_spec.frame_width,
+        "yl1": part_spec.fold_left, "yr1": part_spec.fold_right,
+        "ytop1": part_spec.fold_top, "ybottom1": part_spec.fold_bottom,
+    }
+    for field in ("w", "d", "t", "fw", "yl1", "yr1", "ytop1", "ybottom1"):
+        value = physical[field]
+        if type(value) not in (int, float) or not math.isfinite(value) or value <= 0:
+            raise GeometryError("V_MITER_GUI_DEFAULT_FOLD_PHYSICAL_SOURCE_REQUIRED")
+    factory_profiles = build_endcap_xy_fold_profiles(
+        physical, part_key=part_key,
+    )
+    if not x_profile:
+        x_profile = profile_to_fold_segments(factory_profiles["X"])
+    if not y_profile:
+        y_profile = profile_to_fold_segments(factory_profiles["Y"])
+    return x_profile, y_profile
+
+
 def project_operator_v_miter_live_corner_check(
     part_spec, render_data: PartRenderData, corner_key: str,
     *, relief_mode: str = "ROUND_R",
@@ -262,11 +297,12 @@ def project_operator_v_miter_live_corner_check(
         angle_x = angle_y = 90.0
     else:
         minx, miny, _, _ = material.bounds
+        source_x, source_y = _endcap_existing_fold_angle_sources(part_spec, part_key)
         angle_x = _profile_angle_at_bend(
-            part_spec.fold_profile_x, x_bend.p1.x, minx,
+            source_x, x_bend.p1.x, minx,
         )
         angle_y = _profile_angle_at_bend(
-            part_spec.fold_profile_y, y_bend.p1.y, miny,
+            source_y, y_bend.p1.y, miny,
         )
         if angle_x * angle_y <= 0:
             raise GeometryError("V_MITER_GUI_OPPOSITE_FOLD_SENSE")
