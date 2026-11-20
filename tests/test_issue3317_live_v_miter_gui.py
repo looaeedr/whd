@@ -60,7 +60,17 @@ def test_fifth_check_uses_actual_bends_and_fractional_other_fold_angle():
     assert result.manufacturing_status == "V_MITER_GUI_CHECK_ONLY_UNCERTIFIED"
     assert result.ideal.formed_contact_length_mm > 0
     assert all(row.layer == "CHECK" for row in result.check_scene.primitives)
-    assert len(result.check_scene.primitives) == 2
+    assert len(result.check_scene.primitives) == 3
+    assert result.check_scene.primitives[0].closed
+    assert result.check_scene.primitives[0].layer == "CHECK"
+    assert result.check_scene.primitives[0].points == (
+        result.material_check.removed_corner_outline
+    )
+    assert result.material_check.source_material_area_mm2 == pytest.approx(
+        result.material_check.remaining_material_area_mm2
+        + result.material_check.removed_material_area_mm2
+    )
+    assert result.material_check.manufacturing_status.endswith("UNCERTIFIED")
     assert tuple(render.scene.primitives) == original
 
 
