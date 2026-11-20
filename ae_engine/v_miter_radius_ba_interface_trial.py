@@ -26,6 +26,7 @@ from .assembly_geometry import (
     detect_world_mesh_surface_interference,
     detect_world_mesh_enclosed_volume_witness,
     diagnose_world_mesh_triangle_edge_incidence,
+    diagnose_world_mesh_self_intersections,
 )
 from .assembly_geometry_primitives import thicken_triangle_surface
 from .contracts import PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES
@@ -36,6 +37,7 @@ from .v_miter_ideal_mating import _UNIT_Z, _add, _dot, _outside_normal, _outward
 from .v_miter_true_t_collision import (
     _flange_footprint, _source_triangulation,
     _verified_v_miter_source_bend_mesh_spans,
+    _reverse_crease_physical_source_patches,
 )
 from .v_miter_relief_trial import (
     project_v_miter_relief_mating_trial, _rounded_v_notch_polygon,
@@ -213,6 +215,7 @@ def _formed_curved_skin(
     angle_rad: float, inner_r: float, allowance: float, thickness: float,
     axial_span: float, flange_height: float,
     return_flat_pairs: bool = False,
+    axial_min_mm: float = 0.0,
 ):
     """Develop flat neutral-axis u into a cylindrical mid-surface in 3D.
 
@@ -226,6 +229,10 @@ def _formed_curved_skin(
     stations.append(flange_height)
     mid_r = inner_r + thickness / 2.0
     neutral_r = allowance / angle_rad
+    if (not math.isfinite(axial_min_mm) or axial_min_mm > 0 or
+            not math.isfinite(axial_span) or axial_span <= 0):
+        raise GeometryError("V-miter curved source BEND axial domain is invalid")
+    low_axial = min(-1.0, axial_min_mm - 1.0)
     result, flat_pairs, planar_area = [], [], 0.0
     for lo, hi in zip(stations, stations[1:]):
         if hi - lo <= _EPS:
@@ -233,10 +240,10 @@ def _formed_curved_skin(
         # The true source is already clipped to 0..span. The extra margin
         # affects only the temporary clipping domain, not source material.
         domain = Polygon((
-            _flat_point(apex, axis, outside, -1, lo),
+            _flat_point(apex, axis, outside, low_axial, lo),
             _flat_point(apex, axis, outside, axial_span + 1, lo),
             _flat_point(apex, axis, outside, axial_span + 1, hi),
-            _flat_point(apex, axis, outside, -1, hi),
+            _flat_point(apex, axis, outside, low_axial, hi),
         ))
         pieces = patch.intersection(domain)
         candidates = (pieces,) if pieces.geom_type == "Polygon" else tuple(
@@ -1003,6 +1010,218 @@ def solve_v_miter_radius_ba_interface_trial(
             if local_root_taper else
             "SOURCE_R_BA_CYLINDRICAL_FOLD_ONE_SIDED_V_TRIM_TRIAL"
         ),
+    )
+
+
+@dataclass(frozen=True)
+class VMiterReverseCreaseMeasuredCurvedTTrial:
+    """Actual-source 60° positive/negative-axis measured cylindrical R/BA.
+
+    This is a pre-contact *CHECK*: the altered asymmetric V leg invalidates
+    the old 60° ideal seam. No factory max-gap, bevel, collision correction,
+    cut-face mating or CNC permission can be inferred from these meshes.
+    """
+
+    source_cut_remaining_outline: tuple[Vec2, ...]
+    first_inner_radius_mm: float
+    second_inner_radius_mm: float
+    first_bend_allowance_mm: float
+    second_bend_allowance_mm: float
+    first_neutral_axis_k: float
+    second_neutral_axis_k: float
+    reverse_actual_bend_start_axial_mm: float
+    first_actual_bend_end_axial_mm: float
+    second_actual_bend_end_axial_mm: float
+    first_component_flat_areas_mm2: tuple[float, ...]
+    first_component_real_bend_attachment_mm: tuple[float, ...]
+    first_flat_source_area_mm2: float
+    second_flat_source_area_mm2: float
+    first_formed_curved_skin_triangles: tuple
+    second_formed_curved_skin_triangles: tuple
+    first_thick_curved_solid_triangles: tuple
+    second_thick_curved_solid_triangles: tuple
+    first_solid_edges_manifold_closed: bool
+    second_solid_edges_manifold_closed: bool
+    first_solid_self_surface_check_status: str
+    second_solid_self_surface_check_status: str
+    surface_interference_pair_count: int
+    surface_intersection_segments: tuple
+    enclosed_volume_witness_count: int
+    true_t_volume_check_status: str
+    geometry_model: str = "V_MITER_60_DEG_REVERSE_SOURCE_MEASURED_R_BA_CYLINDRICAL_T_CHECK"
+    manufacturing_status: str = "V_MITER_REVERSE_CREASE_R_BA_UNCERTIFIED"
+
+
+def diagnose_v_miter_reverse_crease_measured_r_ba_trial(
+    scene: DrawingScene,
+    v_edge_bend: LinePrimitive,
+    second_bend: LinePrimitive,
+    *,
+    thickness_mm: float,
+    first_flange_height_mm: float,
+    second_flange_height_mm: float,
+    second_fold_angle_deg: float,
+    relief_mode: VMiterReliefMode | str,
+    relief_t_factor: float | None,
+    second_leg_outer_perimeter_retract_mm: float,
+    first_inner_radius_mm: float,
+    second_inner_radius_mm: float,
+    first_bend_allowance_mm: float,
+    second_bend_allowance_mm: float,
+) -> VMiterReverseCreaseMeasuredCurvedTTrial:
+    """Curve the EXACT source-backed 60° first-lip components, preserving area.
+
+    This is a measured, real R/BA/T *geometry*, not a corrected contact.
+    Reuse the SAME verified negative BEND endpoint, original CUTTING,
+    positive-area connected pieces and real BEND attachment proof as
+    the independent sharp T model. Never pass the new cut into the old
+    ideal seam, old trim algorithm or a fictitious zero-gap mating rule.
+    """
+    inputs = dict(
+        thickness_mm=thickness_mm,
+        first_flange_height_mm=first_flange_height_mm,
+        second_flange_height_mm=second_flange_height_mm,
+        second_fold_angle_deg=second_fold_angle_deg,
+        relief_mode=relief_mode,
+        relief_t_factor=relief_t_factor,
+    )
+    (
+        cut, q, apex, e1, e2, n1, n2, reverse_axial, first_span,
+        first_parts, attachments, first_height, second_patch, second_height,
+    ) = _reverse_crease_physical_source_patches(
+        scene, v_edge_bend, second_bend, params=inputs,
+        second_leg_outer_perimeter_retract_mm=second_leg_outer_perimeter_retract_mm,
+    )
+    # Input R/BA values are independent real operator measurements. Do not
+    # back-fill BA from an assumed K, sheet gauge or a previous 90° model.
+    r1, ba1, k1 = _bend_measurement(
+        first_inner_radius_mm, first_bend_allowance_mm,
+        math.pi / 2, q.thickness_mm, "first",
+    )
+    theta = math.radians(q.second_fold_angle_deg)
+    r2, ba2, k2 = _bend_measurement(
+        second_inner_radius_mm, second_bend_allowance_mm,
+        theta, q.thickness_mm, "second",
+    )
+    if min(first_height, second_height) <= _EPS:
+        raise GeometryError("V-miter reverse R/BA missing real full-height source")
+
+    # The old curved skin clip began at axial=-1mm. That silently removed
+    # the physically sourced reverse fold and made the first T mesh fake.
+    # Each component needs the real verified negative BEND endpoint, while
+    # sharing the original Engine cylindrical neutral-axis development.
+    first_rows = tuple(
+        _formed_curved_skin(
+            part, apex, e1, n1,
+            angle_rad=math.pi / 2,
+            inner_r=r1, allowance=ba1,
+            thickness=q.thickness_mm,
+            axial_span=first_span,
+            axial_min_mm=reverse_axial,
+            flange_height=q.first_flange_height_mm,
+            return_flat_pairs=True,
+        )
+        for part in first_parts
+    )
+    first_skin = tuple(face for skin, _ in first_rows for face in skin)
+    first_flat = tuple(face for _, flat in first_rows for face in flat)
+    second_skin, second_flat = _formed_curved_skin(
+        second_patch, apex, e2, n2,
+        angle_rad=theta, inner_r=r2, allowance=ba2,
+        thickness=q.thickness_mm,
+        axial_span=math.hypot(
+            second_bend.p2.x - second_bend.p1.x,
+            second_bend.p2.y - second_bend.p1.y,
+        ),
+        flange_height=q.second_flange_height_mm,
+        return_flat_pairs=True,
+    )
+    if not first_skin or not second_skin:
+        raise GeometryError("V-miter reverse R/BA curved source has no real faces")
+    # Both meshes must carry every triangle from the original flat source.
+    # The paired source triangles are checked by the existing WHD Engine
+    # area-conserving triangulator, never reconstructed from an old seam.
+    if len(first_skin) != len(first_flat) or len(second_skin) != len(second_flat):
+        raise GeometryError("V-miter reverse R/BA source/3D triangle provenance disagrees")
+    first_offsets = _measured_cylindrical_half_t_offsets(
+        first_flat, first_skin, apex=apex, outside=n1,
+        angle_rad=math.pi / 2, allowance=ba1, thickness=q.thickness_mm,
+    )
+    second_offsets = _measured_cylindrical_half_t_offsets(
+        second_flat, second_skin, apex=apex, outside=n2,
+        angle_rad=theta, allowance=ba2, thickness=q.thickness_mm,
+    )
+    first_solid = tuple(thicken_triangle_surface(
+        first_skin, q.thickness_mm, smooth_vertex_normals=True,
+        physical_vertex_offsets=first_offsets,
+    ))
+    second_solid = tuple(thicken_triangle_surface(
+        second_skin, q.thickness_mm, smooth_vertex_normals=True,
+        physical_vertex_offsets=second_offsets,
+    ))
+    if not first_solid or not second_solid:
+        raise GeometryError("V-miter reverse R/BA cannot thicken the real source")
+
+    first_topo = diagnose_world_mesh_triangle_edge_incidence(first_solid)
+    second_topo = diagnose_world_mesh_triangle_edge_incidence(second_solid)
+    first_self = diagnose_world_mesh_self_intersections(first_solid)
+    second_self = diagnose_world_mesh_self_intersections(second_solid)
+    collision = detect_world_mesh_surface_interference(first_solid, second_solid)
+    if collision.pair_count:
+        volume_witness_count = 0
+        volume_status = "V_MITER_REVERSE_TRUE_T_COLLISION_PRESENT_UNCERTIFIED"
+    elif (first_topo.edges_manifold_closed and second_topo.edges_manifold_closed
+          and first_self.permits_strict_volume_sampling
+          and second_self.permits_strict_volume_sampling):
+        # A ZERO surface-pair verdict is insufficient: a whole closed
+        # solid could sit inside another without a surface crossing.
+        volume = detect_world_mesh_enclosed_volume_witness(
+            first_solid, second_solid,
+        )
+        volume_witness_count = len(volume.strictly_inside_points)
+        volume_status = (
+            "V_MITER_REVERSE_TRUE_T_CONTAINMENT_WITNESSED_UNCERTIFIED"
+            if volume_witness_count else
+            "V_MITER_REVERSE_TRUE_T_SAMPLED_NO_POSITIVE_WITNESS_UNCERTIFIED"
+            if volume.meshes_closed else
+            "V_MITER_REVERSE_TRUE_T_UNKNOWN_OPEN_MESH_UNCERTIFIED"
+        )
+    else:
+        volume_witness_count = 0
+        volume_status = "V_MITER_REVERSE_TRUE_T_UNKNOWN_SOURCE_MESH_UNCERTIFIED"
+    return VMiterReverseCreaseMeasuredCurvedTTrial(
+        source_cut_remaining_outline=cut.candidate_remaining_outline,
+        first_inner_radius_mm=r1, second_inner_radius_mm=r2,
+        first_bend_allowance_mm=ba1, second_bend_allowance_mm=ba2,
+        first_neutral_axis_k=k1, second_neutral_axis_k=k2,
+        reverse_actual_bend_start_axial_mm=reverse_axial,
+        first_actual_bend_end_axial_mm=first_span,
+        second_actual_bend_end_axial_mm=math.hypot(
+            second_bend.p2.x - second_bend.p1.x,
+            second_bend.p2.y - second_bend.p1.y,
+        ),
+        first_component_flat_areas_mm2=tuple(float(p.area) for p in first_parts),
+        first_component_real_bend_attachment_mm=attachments,
+        first_flat_source_area_mm2=sum(float(p.area) for p in first_parts),
+        second_flat_source_area_mm2=float(second_patch.area),
+        first_formed_curved_skin_triangles=first_skin,
+        second_formed_curved_skin_triangles=second_skin,
+        first_thick_curved_solid_triangles=first_solid,
+        second_thick_curved_solid_triangles=second_solid,
+        first_solid_edges_manifold_closed=first_topo.edges_manifold_closed,
+        second_solid_edges_manifold_closed=second_topo.edges_manifold_closed,
+        first_solid_self_surface_check_status=(
+            "SELF_SURFACE_CLEAN" if first_self.permits_strict_volume_sampling
+            else "SELF_SURFACE_UNRESOLVED"
+        ),
+        second_solid_self_surface_check_status=(
+            "SELF_SURFACE_CLEAN" if second_self.permits_strict_volume_sampling
+            else "SELF_SURFACE_UNRESOLVED"
+        ),
+        surface_interference_pair_count=collision.pair_count,
+        surface_intersection_segments=collision.intersection_segments,
+        enclosed_volume_witness_count=volume_witness_count,
+        true_t_volume_check_status=volume_status,
     )
 
 
