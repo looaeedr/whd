@@ -28,6 +28,10 @@ from .v_miter_factory_mother_check import (
     project_v_miter_replaced_factory_corner_check,
 )
 from .v_miter_full_sheet_check import build_v_miter_whole_sheet_check_scene
+from .v_miter_bounded_contact import (
+    VMiterSharpThicknessWitness,
+    project_v_miter_sharp_thickness_witness,
+)
 
 V_MITER_GUI_CHECK = "V_MITER_CHECK"
 V_MITER_GUI_UNCERTIFIED = "V_MITER_GUI_CHECK_ONLY_UNCERTIFIED"
@@ -50,6 +54,8 @@ class VMiterOperatorGUICheck:
     factory_mother_check: VMiterFactoryMotherReplacementCheck | None
     material_check_failure: str | None
     full_sheet_check_scene: DrawingScene | None = None
+    sharp_t_witness: VMiterSharpThicknessWitness | None = None
+    sharp_t_failure: str | None = None
     first_bend_source_gap_mm: float = 0.0
     second_bend_source_gap_mm: float = 0.0
     manufacturing_status: str = V_MITER_GUI_UNCERTIFIED
@@ -386,6 +392,29 @@ def project_operator_v_miter_live_corner_check(
         build_v_miter_whole_sheet_check_scene(render_data, stock_check, ideal)
         if stock_check is not None else None
     )
+    # A finite T local sharp-fold cross-section is meaningful only where
+    # the original BEND actually contains the physical intersection and
+    # one closed source sheet survives. It remains strictly CHECK: the
+    # existing analytic bisector does NOT solve real R/BA, 3D cut sidewalls
+    # or a certified interference-free weld.
+    sharp_t = None
+    sharp_t_failure = None
+    if stock_check is None:
+        sharp_t_failure = "V_MITER_SHARP_T_REQUIRES_VERIFIED_SOURCE_STOCK"
+    elif max(x_gap, y_gap) > 1e-7:
+        sharp_t_failure = "V_MITER_SHARP_T_ORIGINAL_BEND_HAS_PHYSICAL_GAP"
+    else:
+        try:
+            sharp_t = project_v_miter_sharp_thickness_witness(
+                DrawingScene([first[0], second[0]]), first[0], second[0],
+                thickness_mm=t,
+                first_flange_height_mm=first[2],
+                second_flange_height_mm=second[2],
+                second_fold_angle_deg=second_angle,
+                relief_mode=mode,
+            )
+        except GeometryError as exc:
+            sharp_t_failure = str(exc)
     return VMiterOperatorGUICheck(
         part_key=part_key, corner_key=corner_key,
         first_bend_axis=first[1], second_bend_axis=second[1],
@@ -395,6 +424,8 @@ def project_operator_v_miter_live_corner_check(
         factory_mother_check=factory_mother,
         material_check_failure=stock_failure,
         full_sheet_check_scene=whole_sheet,
+        sharp_t_witness=sharp_t,
+        sharp_t_failure=sharp_t_failure,
         first_bend_source_gap_mm=x_gap if first[1] == "x" else y_gap,
         second_bend_source_gap_mm=y_gap if second[1] == "y" else x_gap,
     )
