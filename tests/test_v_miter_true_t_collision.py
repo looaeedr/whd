@@ -81,6 +81,162 @@ def test_60_degree_unbounded_source_bend_needs_material_extension_proof():
         )
 
 
+def _60_source_with_real_reverse_bend(*, mode="RELIEF_HOLE", mirror=False, t=2):
+    scene, first, second, inputs = _part(angle=60, t=t)
+    inputs = dict(inputs, relief_mode=mode)
+    if mirror:
+        scene = DrawingScene([
+            PolylinePrimitive(tuple(Vec2(-p.x, p.y) for p in scene.primitives[0].points),
+                              "CUTTING", closed=True),
+            LinePrimitive(Vec2(100, 0), Vec2(0, 0), "BEND"),
+            LinePrimitive(Vec2(0, 0), Vec2(0, 100), "BEND"),
+        ])
+        first, second = scene.primitives[1], scene.primitives[2]
+    sign = -1 if mirror else 1
+    extra = LinePrimitive(Vec2(0, 0), Vec2(sign * 20, 0), "BEND")
+    scene.primitives.append(extra)
+    return scene, first, second, extra, inputs
+
+
+def _surface_area_of_triangles(mesh):
+    total = 0.0
+    for a, b, c in mesh:
+        u = tuple(b[i] - a[i] for i in range(3))
+        v = tuple(c[i] - a[i] for i in range(3))
+        cross = (
+            u[1] * v[2] - u[2] * v[1],
+            u[2] * v[0] - u[0] * v[2],
+            u[0] * v[1] - u[1] * v[0],
+        )
+        total += math.sqrt(sum(x*x for x in cross)) / 2
+    return total
+
+
+@pytest.mark.parametrize("mode", ("ROUND_R", "RELIEF_HOLE"))
+@pytest.mark.parametrize("mirror", (False, True))
+def test_60_actual_asymmetric_cut_forms_two_original_crease_attached_true_t_pieces(
+    mode, mirror,
+):
+    scene, first, second, extra, params = _60_source_with_real_reverse_bend(
+        mode=mode, mirror=mirror,
+    )
+    before = tuple(scene.primitives)
+    result = manufacturing_api.diagnose_v_miter_reverse_crease_true_t_trial(
+        scene, first, second, **params,
+        second_leg_outer_perimeter_retract_mm=6,
+    )
+    assert result.manufacturing_status == "V_MITER_REVERSE_CREASE_TRUE_T_UNCERTIFIED"
+    assert result.geometry_model.endswith("SHARP_FOLD_TRUE_T_CHECK")
+    assert result.cut.manufacturing_status.endswith("UNCERTIFIED")
+    assert result.cut.first_real_bend_continuation_covers is True
+    assert result.first_reverse_source_end_axial_mm == pytest.approx(-20)
+    # A true fillet leaves a physical root bridge; a drilled hole cuts
+    # that root and makes a separate reverse lip. Neither shape may be
+    # forced into the other's material topology by numerical repair.
+    expected_components = 1 if mode == "ROUND_R" else 2
+    assert result.first_bend_source_component_count == expected_components
+    assert len(result.first_component_flat_areas_mm2) == expected_components
+    assert all(area > 0 for area in result.first_component_flat_areas_mm2)
+    assert all(span > 0 for span in result.first_component_real_bend_attachment_mm)
+    assert result.first_flange_flat_area_mm2 == pytest.approx(
+        sum(result.first_component_flat_areas_mm2)
+    )
+    assert result.first_full_height_source_span_mm > 0
+    assert result.second_full_height_source_span_mm > 0
+    assert result.second_flange_flat_area_mm2 > 0
+    # The formed surface retains the EXACT physical first-flange area,
+    # whether the true round-R root connects the lip or a hole separates
+    # it. No island gets dropped, hull-filled, or counted twice.
+    assert _surface_area_of_triangles(result.first_formed_skin_triangles) == pytest.approx(
+        result.first_flange_flat_area_mm2, rel=1e-6, abs=1e-5
+    )
+    assert _surface_area_of_triangles(result.second_formed_skin_triangles) == pytest.approx(
+        result.second_flange_flat_area_mm2, rel=1e-6, abs=1e-5
+    )
+    assert len(result.first_thick_solid_triangles) > len(result.first_formed_skin_triangles)
+    assert len(result.second_thick_solid_triangles) > len(result.second_formed_skin_triangles)
+    assert result.surface_interference_pair_count >= 0
+    assert all(math.isfinite(v) for tri in (
+        result.first_thick_solid_triangles + result.second_thick_solid_triangles
+    ) for point in tri for v in point)
+    # The original ideal 60° source is unchanged, and is still blocked;
+    # this independent altered-CUTTING sharp shadow is not a production
+    # source, and cannot masquerade as a measured R/BA seam solution.
+    with pytest.raises(GeometryError, match="independent source material extension"):
+        manufacturing_api.diagnose_v_miter_true_thickness_collision(
+            scene, first, second, **params,
+        )
+    assert tuple(scene.primitives) == before
+
+
+@pytest.mark.parametrize("bad_source", ("none", "short", "gap", "offset", "cross", "out_of_stock"))
+def test_60_reverse_true_t_never_invents_missing_crease_or_stock(bad_source):
+    scene, first, second, extra, params = _60_source_with_real_reverse_bend()
+    scene.primitives.remove(extra)
+    if bad_source == "short":
+        scene.primitives.append(
+            LinePrimitive(Vec2(0, 0), Vec2(5, 0), "BEND")
+        )
+    elif bad_source == "gap":
+        scene.primitives.extend([
+            LinePrimitive(Vec2(0, 0), Vec2(5, 0), "BEND"),
+            LinePrimitive(Vec2(6, 0), Vec2(20, 0), "BEND"),
+        ])
+    elif bad_source == "offset":
+        scene.primitives.append(
+            LinePrimitive(Vec2(0, .01), Vec2(20, .01), "BEND")
+        )
+    elif bad_source == "cross":
+        scene.primitives.append(
+            LinePrimitive(Vec2(6, -10), Vec2(6, 10), "BEND")
+        )
+    elif bad_source == "out_of_stock":
+        scene.primitives.append(
+            LinePrimitive(Vec2(0, 0), Vec2(30, 0), "BEND")
+        )
+    with pytest.raises(GeometryError, match="(real continuous BEND|stock-backed real negative-axis)"):
+        manufacturing_api.diagnose_v_miter_reverse_crease_true_t_trial(
+            scene, first, second, **params,
+            second_leg_outer_perimeter_retract_mm=6,
+        )
+
+
+def test_60_reverse_true_t_requires_second_flange_actual_full_height():
+    scene, first, second, extra, params = _60_source_with_real_reverse_bend()
+    ideal = manufacturing_api.project_ideal_v_miter_mating_candidate(
+        scene, first, second, **params,
+    )
+    a, b = ideal.first_flat_miter_ray[1], ideal.second_flat_miter_ray[1]
+    # A rect ending at the old second V tip lacks the independently
+    # specified full 30-mm second flange. Do not silently synthesize it.
+    scene.primitives[0] = PolylinePrimitive((
+        Vec2(-100, a.y), Vec2(b.x, a.y),
+        Vec2(b.x, 100), Vec2(-100, 100),
+    ), "CUTTING", closed=True)
+    with pytest.raises(GeometryError, match="missing requested full height"):
+        manufacturing_api.diagnose_v_miter_reverse_crease_true_t_trial(
+            scene, first, second, **params,
+            second_leg_outer_perimeter_retract_mm=6,
+        )
+
+
+@pytest.mark.parametrize("t", (1, 2))
+def test_60_reverse_true_t_recomputes_real_thickness_without_changed_original_source(t):
+    scene, first, second, extra, params = _60_source_with_real_reverse_bend(
+        t=t, mode="RELIEF_HOLE",
+    )
+    out = manufacturing_api.diagnose_v_miter_reverse_crease_true_t_trial(
+        scene, first, second, **params,
+        second_leg_outer_perimeter_retract_mm=6,
+    )
+    assert out.manufacturing_status.endswith("UNCERTIFIED")
+    assert out.cut.original_relief.relief_dimension_mm == pytest.approx(t * 1.5)
+    assert out.first_bend_source_component_count == 2
+    assert _surface_area_of_triangles(out.first_formed_skin_triangles) == pytest.approx(
+        out.first_flange_flat_area_mm2, abs=1e-5,
+    )
+
+
 def _physical_short_first_source(*, mode="RELIEF_HOLE", factor=1.5):
     scene, _, second, params = _part(angle=120)
     short = LinePrimitive(Vec2(-5, 0), Vec2(0, 0), "BEND")

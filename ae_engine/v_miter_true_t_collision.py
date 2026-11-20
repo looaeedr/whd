@@ -36,6 +36,8 @@ from .v_miter_ideal_mating import (
 )
 from .v_miter_relief_trial import (
     VMiterReliefMatingTrial, project_v_miter_relief_mating_trial,
+    VMiterReverseCreaseAsymmetricCutTrial,
+    project_v_miter_reverse_crease_asymmetric_cut_trial,
 )
 
 _EPS = 1e-7
@@ -421,4 +423,252 @@ def diagnose_v_miter_true_thickness_collision(
         second_thick_solid_triangles=solid2,
         surface_interference_pair_count=interference.pair_count,
         surface_intersection_segments=interference.intersection_segments,
+    )
+
+
+@dataclass(frozen=True)
+class VMiterReverseCreaseTrueTTrial:
+    """Real 60° source flange components and zero-R formed T skin; CHECK only.
+
+    This deliberately has NO formed mating seam, gap, bevel, calibrated
+    inside R, BA or factory-accepted contact result: moving the second
+    V cut leg invalidates the old ideal formed seam. Even zero detected
+    crossings does NOT authorize a fifth type, a real bend or a DXF.
+    """
+
+    cut: VMiterReverseCreaseAsymmetricCutTrial
+    first_reverse_source_end_axial_mm: float
+    first_bend_source_component_count: int
+    first_component_flat_areas_mm2: tuple[float, ...]
+    first_component_real_bend_attachment_mm: tuple[float, ...]
+    first_flange_flat_area_mm2: float
+    second_flange_flat_area_mm2: float
+    first_full_height_source_span_mm: float
+    second_full_height_source_span_mm: float
+    first_formed_skin_triangles: tuple[tuple[Vec3, Vec3, Vec3], ...]
+    second_formed_skin_triangles: tuple[tuple[Vec3, Vec3, Vec3], ...]
+    first_thick_solid_triangles: tuple[tuple[Vec3, Vec3, Vec3], ...]
+    second_thick_solid_triangles: tuple[tuple[Vec3, Vec3, Vec3], ...]
+    surface_interference_pair_count: int
+    surface_intersection_segments: tuple
+    geometry_model: str = "REAL_SOURCE_60_DEG_COMPONENT_RESOLVED_SHARP_FOLD_TRUE_T_CHECK"
+    manufacturing_status: str = "V_MITER_REVERSE_CREASE_TRUE_T_UNCERTIFIED"
+
+
+def diagnose_v_miter_reverse_crease_true_t_trial(
+    scene: DrawingScene,
+    v_edge_bend: LinePrimitive,
+    second_bend: LinePrimitive,
+    *,
+    thickness_mm: float,
+    first_flange_height_mm: float,
+    second_flange_height_mm: float,
+    second_fold_angle_deg: float,
+    relief_mode: VMiterReliefMode | str,
+    relief_t_factor: float | None,
+    second_leg_outer_perimeter_retract_mm: float,
+) -> VMiterReverseCreaseTrueTTrial:
+    """Form every actually connected first-flange component of a 60° V trial.
+
+    A drilled relief can separate a reverse-crease lip from the main
+    flange; a true ROUND_R fillet can retain a narrow physical root bridge
+    and leave ONE connected source polygon. The component count is an
+    actual material topology result, not a user/solver assumption.
+    Forcing two or applying convex-hull repair would INVENT/REMOVE sheet.
+    Instead:
+      * require original collinear real BENDs over the reverse reach,
+      * take a physically drawn far reverse endpoint still inside stock,
+      * clip the actual alternate CUTTING by finite first/second fold
+        domains, never the old ideal mate's original V sector,
+      * preserve EVERY positive-area connected source component and
+        prove each is attached over a real length of that actual BEND,
+      * independently bend/triangulate every source patch and thicken the
+        EXACT collected 3D skins using the existing Engine owners.
+
+    NO old seam gap/clearance claim: changing the V cut changes the
+    actual mate and needs a newly measured R/BA and finite-T cut-face
+    solution. This API cannot generate production CUTTING/BEND/MARKING.
+    """
+    from .v_miter_material_trial import _single_source_material
+
+    params = dict(
+        thickness_mm=thickness_mm,
+        first_flange_height_mm=first_flange_height_mm,
+        second_flange_height_mm=second_flange_height_mm,
+        second_fold_angle_deg=second_fold_angle_deg,
+        relief_mode=relief_mode,
+        relief_t_factor=relief_t_factor,
+    )
+    candidate = project_v_miter_reverse_crease_asymmetric_cut_trial(
+        scene, v_edge_bend, second_bend,
+        second_leg_outer_perimeter_retract_mm=second_leg_outer_perimeter_retract_mm,
+        **params,
+    )
+    if not (candidate.first_original_stock_covers_extension
+            and candidate.first_real_bend_continuation_covers
+            and candidate.first_remaining_interior_crease_length_mm > _EPS):
+        raise GeometryError(
+            "V-miter reverse true-T requires real continuous BEND and post-cut fold material"
+        )
+    bounded = diagnose_v_miter_bounded_bend_reach(
+        scene, v_edge_bend, second_bend, **params,
+    )
+    q = candidate.original_relief.source_trial.ideal.source
+    apex = q.bend_intersection
+    e1 = _outward_bend_axis(v_edge_bend, apex)
+    e2 = _outward_bend_axis(second_bend, apex)
+    n1, n2 = _outside_normal(e1, e2), _outside_normal(e2, e1)
+    remaining = Polygon(
+        ((p.x, p.y) for p in candidate.candidate_remaining_outline)
+    )
+    if (remaining.geom_type != "Polygon" or not remaining.is_valid
+            or remaining.interiors or remaining.area <= _EPS):
+        raise GeometryError("V-miter reverse true-T has no valid source CUTTING")
+
+    def axial(point) -> float:
+        return _dot((point.x - apex.x, point.y - apex.y, 0.0), e1)
+
+    # Proven original-first BEND + extra original BEND parts ONLY. The
+    # second BEND line and virtual V/check/mark lines cannot bridge gaps.
+    physical_lines = tuple(
+        LineString(((b.p1.x, b.p1.y), (b.p2.x, b.p2.y)))
+        for b in scene.primitives
+        if isinstance(b, LinePrimitive) and b.layer == "BEND"
+        and b is not second_bend
+    )
+    source_fold = unary_union(physical_lines)
+    original_stock = _single_source_material(scene)
+    potential_ends = sorted({
+        axial(point)
+        for item in scene.primitives
+        if isinstance(item, LinePrimitive) and item.layer == "BEND"
+        and item is not v_edge_bend and item is not second_bend
+        for point in (item.p1, item.p2)
+        if math.isfinite(axial(point))
+        and axial(point) < bounded.first_axial_seam_reach_mm + _EPS
+    })
+    negative_end = None
+    for end in potential_ends:
+        endpoint = (
+            apex.x + e1[0] * end,
+            apex.y + e1[1] * end,
+        )
+        demanded = LineString(((apex.x, apex.y), endpoint))
+        # The physical line may have a relief hole at the apex. Source
+        # BEND ownership remains continuous even if the metal is not.
+        if (demanded.difference(source_fold).is_empty
+                and original_stock.covers(demanded)
+                and original_stock.contains(demanded.interpolate(.5, normalized=True))
+                and demanded.intersection(remaining).difference(
+                    remaining.boundary.buffer(_EPS)
+                ).length > _EPS):
+            negative_end = float(end)
+            break
+    if negative_end is None:
+        raise GeometryError(
+            "V-miter reverse true-T has no stock-backed real negative-axis BEND endpoint"
+        )
+
+    def flat(axial_mm, outward_mm, axis, outside):
+        return (
+            apex.x + axis[0] * axial_mm + outside[0] * outward_mm,
+            apex.y + axis[1] * axial_mm + outside[1] * outward_mm,
+        )
+
+    # The actual source R may bridge two lobes into one sheet component;
+    # a drill hole may disconnect them. Never assume either topology.
+    # Keep every actual positive-area component, including a small
+    # reverse lip without the full declared flange height.
+    domain = Polygon((
+        flat(negative_end, 0, e1, n1),
+        flat(bounded.first_bend_span_mm, 0, e1, n1),
+        flat(bounded.first_bend_span_mm, q.first_flange_height_mm, e1, n1),
+        flat(negative_end, q.first_flange_height_mm, e1, n1),
+    ))
+    clipped = remaining.intersection(domain)
+    if clipped.is_empty or not math.isfinite(clipped.area):
+        raise GeometryError("V-miter reverse true-T has no first-flange material")
+    parts = (
+        (clipped,) if clipped.geom_type == "Polygon" else
+        tuple(g for g in getattr(clipped, "geoms", ()) if g.geom_type == "Polygon")
+    )
+    if (not parts or len(parts) > 16
+            or any(not part.is_valid or part.interiors or part.area <= _EPS
+                   for part in parts)
+            or abs(sum(p.area for p in parts) - clipped.area) >
+            max(1e-7, clipped.area * 1e-9)):
+        raise GeometryError(
+            "V-miter reverse true-T cannot account for every real first-flange component"
+        )
+    original_far = (
+        apex.x + e1[0] * bounded.first_bend_span_mm,
+        apex.y + e1[1] * bounded.first_bend_span_mm,
+    )
+    reverse_far = (
+        apex.x + e1[0] * negative_end,
+        apex.y + e1[1] * negative_end,
+    )
+    real_crease = LineString((original_far, reverse_far))
+    attachments = tuple(float(
+        part.boundary.intersection(real_crease).length
+    ) for part in parts)
+    if any(not math.isfinite(n) or n <= _EPS for n in attachments):
+        raise GeometryError(
+            "V-miter reverse true-T first material component is not attached to real BEND"
+        )
+    first_full_height = LineString((
+        flat(negative_end, q.first_flange_height_mm, e1, n1),
+        flat(bounded.first_bend_span_mm, q.first_flange_height_mm, e1, n1),
+    ))
+    available_first_height = sum(
+        float(part.intersection(first_full_height).length) for part in parts
+    )
+    if available_first_height <= _EPS:
+        raise GeometryError(
+            "V-miter reverse true-T first flange missing requested full height"
+        )
+    second, second_full_height = _flange_footprint(
+        remaining, apex, e2, n2,
+        source_span=bounded.second_bend_span_mm,
+        source_flange_height=q.second_flange_height_mm,
+    )
+    if sum(p.intersection(second).area for p in parts) > _EPS:
+        raise GeometryError(
+            "V-miter reverse true-T cannot assign the same original stock to two folds"
+        )
+
+    theta = math.radians(q.second_fold_angle_deg)
+    b2 = _add(_scale(n2, math.cos(theta)), _scale(_UNIT_Z, math.sin(theta)))
+    # Form each actual material component separately, whether the real
+    # source has one root-connected ROUND_R patch or separate hole patches.
+    # The Engine triangulator checks source 2D area parity on each fold.
+    first_skin = tuple(
+        tri for part in parts
+        for tri in _formed_skin(part, apex, e1, n1, _UNIT_Z)
+    )
+    second_skin = _formed_skin(second, apex, e2, n2, b2)
+    if (not first_skin or not second_skin
+            or len(first_skin) > _MAX_TRIANGLES_PER_FLANGE):
+        raise GeometryError("V-miter reverse true-T has invalid folded source triangles")
+    solid1 = tuple(thicken_triangle_surface(first_skin, q.thickness_mm))
+    solid2 = tuple(thicken_triangle_surface(second_skin, q.thickness_mm))
+    if not solid1 or not solid2:
+        raise GeometryError("V-miter reverse true-T created empty thick solid")
+    crossing = detect_world_mesh_surface_interference(solid1, solid2)
+    return VMiterReverseCreaseTrueTTrial(
+        cut=candidate,
+        first_reverse_source_end_axial_mm=negative_end,
+        first_bend_source_component_count=len(parts),
+        first_component_flat_areas_mm2=tuple(float(p.area) for p in parts),
+        first_component_real_bend_attachment_mm=attachments,
+        first_flange_flat_area_mm2=float(sum(p.area for p in parts)),
+        second_flange_flat_area_mm2=float(second.area),
+        first_full_height_source_span_mm=float(available_first_height),
+        second_full_height_source_span_mm=float(second_full_height),
+        first_formed_skin_triangles=first_skin,
+        second_formed_skin_triangles=second_skin,
+        first_thick_solid_triangles=solid1,
+        second_thick_solid_triangles=solid2,
+        surface_interference_pair_count=crossing.pair_count,
+        surface_intersection_segments=crossing.intersection_segments,
     )
