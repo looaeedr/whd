@@ -1045,6 +1045,34 @@ class Phase6ApplicationHost:
         messagebox.showinfo("V 型斜接｜CHECK 試算來源", detail)
         return detail
 
+    def set_v_miter_gui_check_choice(self):
+        """Select a fifth CHECK-only draft without changing the physical CornerType."""
+        part_key = self._current_manual_corner_part_key()
+        if not self._corner_part_type_editable(part_key):
+            return
+        target = self._normalize_manual_corner_target(part_key)
+        if part_key in {"head", "tail"} and target in {"top", "top_left", "top_right"}:
+            self.refresh_corner_type_panel()
+            return
+        updated = manufacturing_api.change_operator_v_miter_gui_choice(
+            getattr(self, "v_miter_gui_check_corners", {}),
+            part_key, target, self.manual_corner_pair_same[part_key], enabled=True,
+        )
+        self.v_miter_gui_check_corners = updated
+        self.refresh_corner_type_panel()
+        # A CHECK draft is a saved choice, not a manufacturing geometry edit.
+        self._capture_phase6_committed_snapshot()
+
+    def _project_v_miter_gui_check_for_corner(self, part_key, target):
+        """Consume actual selected PartSpec/FinalScene/Fold, never old trial values."""
+        physical = manufacturing_api.project_operator_corner_selection_target(target)
+        snapshot = self._make_original_fold_designer_snapshot()
+        spec, _context = self._fold_designer_part_spec_from_payload(part_key, snapshot)
+        render_data = self._query_fold_designer_render_data(part_key, snapshot)
+        return manufacturing_api.project_operator_v_miter_live_corner_check(
+            spec, render_data, physical,
+        )
+
     def create_corner_type_panel(self, parent):
         return _create_corner_type_panel_impl(self, parent)
 
@@ -1111,6 +1139,10 @@ class Phase6ApplicationHost:
         manufacturing_api.operator_apply_manual_corner_selection(
             self.manual_corner_state[part_key], self.manual_corner_pair_same[part_key],
             target_key, selection,
+        )
+        self.v_miter_gui_check_corners = manufacturing_api.change_operator_v_miter_gui_choice(
+            getattr(self, "v_miter_gui_check_corners", {}),
+            part_key, target_key, self.manual_corner_pair_same[part_key], enabled=False,
         )
         self.refresh_corner_type_panel()
         self._notify_fold_designer_corner_state()

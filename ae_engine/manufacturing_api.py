@@ -2056,6 +2056,16 @@ from .v_miter_ideal_mating import (
     project_ideal_v_miter_mating_candidate,
 )
 
+# #3317: live GUI CHECK choice, source-backed Fold/FinalScene projection only.
+from .v_miter_operator_gui_check import (
+    V_MITER_GUI_CHECK, V_MITER_GUI_UNCERTIFIED,
+    VMiterOperatorGUICheck,
+    normalize_operator_v_miter_gui_choices,
+    change_operator_v_miter_gui_choice,
+    require_no_operator_v_miter_gui_check_for_export,
+    project_operator_v_miter_live_corner_check,
+)
+
 # #3317: typed V-miter two-bend source facts; never a CUTTING certification.
 from .v_miter_corner_source import (
     VMiterReliefMode,

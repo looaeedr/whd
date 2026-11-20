@@ -225,6 +225,60 @@ def toggle_manual_corner_parameter_lock(self):
     state[part_key] = not bool(state.get(part_key, False))
     self.refresh_corner_type_panel()
 
+def draw_v_miter_gui_live_check(host, result):
+    """Draw Engine-returned CHECK V rays and ideal 3D seam, never CNC paths."""
+    canvas = host.corner_type_preview_canvas
+    canvas.delete("all")
+    paths = tuple(result.check_scene.primitives)
+    points = tuple(point for line in paths for point in (line.p1, line.p2))
+    w = max(10, int(float(canvas.cget("width"))))
+    h = max(10, int(float(canvas.cget("height"))))
+    minx = min(point.x for point in points)
+    maxx = max(point.x for point in points)
+    miny = min(point.y for point in points)
+    maxy = max(point.y for point in points)
+    scale = min((w - 28) / max(1e-9, maxx - minx),
+                (h - 30) / max(1e-9, maxy - miny))
+
+    def xy(point):
+        return (14 + (point.x - minx) * scale,
+                h - 10 - (point.y - miny) * scale)
+
+    for line in paths:
+        canvas.create_line(*xy(line.p1), *xy(line.p2),
+                           fill="#ff9f0a", width=2, dash=(5, 3))
+    canvas.create_text(w / 2, 9, text="2D 理想 V 線（CHECK）",
+                       fill=host.COLOR_TEXT, font=("Microsoft JhengHei", 8))
+
+    # Presentation-only oblique projection of the actual Engine 3D seam.
+    # The engine, not Tk, supplies both 3D endpoints and contact length.
+    three = host.v_miter_check_3d_preview_canvas
+    three.delete("all")
+    start, end = result.ideal.formed_seam_start, result.ideal.formed_seam_end
+    delta = tuple(end[i] - start[i] for i in range(3))
+
+    def project(point):
+        dx, dy, dz = (point[i] - start[i] for i in range(3))
+        return ((dx - dy) * 0.7, (dx + dy) * 0.3 - dz)
+
+    a, b = project(start), project(end)
+    mag = max(1.0, abs(b[0]), abs(b[1]))
+    sf = min(55.0 / mag, 1.0)
+    midx, midy = 75.0, 58.0
+    three.create_line(
+        midx + a[0] * sf, midy + a[1] * sf,
+        midx + b[0] * sf, midy + b[1] * sf,
+        fill="#ff9f0a", width=3,
+    )
+    three.create_oval(midx - 2, midy - 2, midx + 2, midy + 2,
+                      outline="#ff9f0a")
+    three.create_text(75, 10, text="3D 理想成形接合線",
+                      fill=host.COLOR_TEXT, font=("Microsoft JhengHei", 8))
+    three.create_text(75, 98,
+                      text=f"接合長 {result.ideal.formed_contact_length_mm:g} mm",
+                      fill=host.COLOR_TEXT_MUTED, font=("Microsoft JhengHei", 8))
+
+
 def refresh_corner_type_panel(self):
     if self.corner_type_panel is None:
         return
@@ -265,10 +319,17 @@ def refresh_corner_type_panel(self):
     self.manual_bottom_same_var.set(same['bottom'])
     target_key = self._normalize_manual_corner_target(part_key)
     selection = self._manual_selection_for_target(part_key, target_key)
+    physical_key = manufacturing_api.project_operator_corner_selection_target(target_key)
+    v_choice = (
+        getattr(self, "v_miter_gui_check_corners", {})
+        .get(part_key, {}).get(physical_key) == "V_MITER_CHECK"
+    )
 
     self._manual_corner_param_guard = True
     try:
-        self.manual_corner_type_var.set(selection.type_id.value)
+        self.manual_corner_type_var.set(
+            "V_MITER_CHECK" if v_choice else selection.type_id.value
+        )
         if selection.cross_mode is not None:
             self.manual_corner_cross_mode_var.set(self._CORNER_MODE_LABELS[selection.cross_mode])
         if selection.direction is not None:
@@ -312,6 +373,9 @@ def refresh_corner_type_panel(self):
     )
     for rb in self.manual_corner_type_buttons.values():
         rb.configure(state=(tk.NORMAL if target_type_editable else tk.DISABLED))
+    self.v_miter_gui_check_radio.configure(
+        state=(tk.NORMAL if target_type_editable else tk.DISABLED)
+    )
 
     flip_y = _corner_preview_flip_y_for_target(target_key)
     for type_id, canvas in self.corner_type_small_canvases.items():
@@ -319,6 +383,39 @@ def refresh_corner_type_panel(self):
             canvas, CornerTypeSelection(type_id), large=False, flip_y=flip_y
         )
         canvas.configure(highlightbackground=self.COLOR_ACCENT if type_id is selection.type_id else '#34343a')
+    if v_choice:
+        self.manual_corner_param_frame.pack_forget()
+        self.manual_corner_param_summary.pack(fill=tk.X, padx=8, pady=(3, 5))
+        three = self.v_miter_check_3d_preview_canvas
+        if not three.winfo_ismapped():
+            three.pack(padx=8, pady=(0, 7))
+        try:
+            live = self._project_v_miter_gui_check_for_corner(part_key, target_key)
+        except (TypeError, ValueError) as exc:
+            self.manual_corner_param_summary.configure(
+                text=f"V 型斜接 CHECK：{exc}\\n尚未取得真實折彎來源，禁止加工。"
+            )
+            for canvas in (self.corner_type_preview_canvas, three):
+                canvas.delete("all")
+                canvas.create_text(
+                    75, 50, text="真實折彎來源不足",
+                    fill=self.COLOR_TEXT_MUTED,
+                    font=("Microsoft JhengHei", 9),
+                )
+        else:
+            self.manual_corner_param_summary.configure(
+                text=(
+                    f"V 型斜接（未認證 CHECK）｜另一側折彎 "
+                    f"{live.second_fold_angle_deg:g}°｜折邊 "
+                    f"{live.first_flange_height_mm:g} / "
+                    f"{live.second_flange_height_mm:g} mm\\n"
+                    "角度與折高取自目前 PartSpec/Fold，沒有新增折彎輸入；"
+                    "圖示是理想 2D/3D 接合線，不是實際 R/BA/T 裁切。"
+                )
+            )
+            draw_v_miter_gui_live_check(self, live)
+        return
+    self.v_miter_check_3d_preview_canvas.pack_forget()
     if params_unlocked:
         self.manual_corner_param_summary.pack_forget()
         if not self.manual_corner_param_frame.winfo_ismapped():
@@ -454,6 +551,21 @@ def _build_corner_type_selector(host, editor):
         rb.pack(side=tk.LEFT, fill=tk.X, expand=True)
         host.manual_corner_type_buttons[type_id] = rb
 
+    # The fifth choice is selectable for a real local CHECK, but is kept
+    # outside the manufacturing CornerType radio catalog until certification.
+    trial_row = tk.Frame(type_frame, bg=host.COLOR_INPUT_BG)
+    trial_row.pack(fill=tk.X, pady=(4, 2))
+    host.v_miter_gui_check_radio = tk.Radiobutton(
+        trial_row, text="V 型斜接（試算）",
+        variable=host.manual_corner_type_var, value="V_MITER_CHECK",
+        command=host.set_v_miter_gui_check_choice,
+        bg=host.COLOR_INPUT_BG, fg=host.COLOR_TEXT,
+        activebackground=host.COLOR_INPUT_BG,
+        activeforeground=host.COLOR_TEXT,
+        selectcolor=host.COLOR_PANEL, anchor=tk.W,
+    )
+    host.v_miter_gui_check_radio.pack(side=tk.LEFT, fill=tk.X, expand=True)
+
     # A separate CHECK-only inspection action: never a fifth manufacturing
     # CornerType radio button and never an alternate exporter.
     v_row = tk.Frame(type_frame, bg=host.COLOR_INPUT_BG)
@@ -546,6 +658,10 @@ def _build_corner_parameter_controls(host, editor):
         highlightthickness=1, highlightbackground='#34343a'
     )
     host.corner_type_preview_canvas.pack(padx=8, pady=(4, 8))
+    host.v_miter_check_3d_preview_canvas = tk.Canvas(
+        editor, width=150, height=105, bg=host.COLOR_CANVAS_BG,
+        highlightthickness=1, highlightbackground="#34343a",
+    )
 
 def create_corner_type_panel(host, parent):
     panel = tk.Frame(parent, bg=host.COLOR_INPUT_BG, bd=1, relief=tk.SOLID)

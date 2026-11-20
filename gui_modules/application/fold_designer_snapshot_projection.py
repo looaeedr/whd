@@ -155,6 +155,11 @@ def _snapshot_base_state(self):
         if key in settings
     })
     snapshot["settings"] = dict(settings)
+    snapshot["v_miter_gui_check_corners"] = (
+        manufacturing_api.normalize_operator_v_miter_gui_choices(
+            getattr(self, "v_miter_gui_check_corners", {})
+        )
+    )
     snapshot["corner_state"] = self._serialize_manual_corner_state()
     snapshot["corner_pair_same"] = deepcopy(self.manual_corner_pair_same)
     baseline_models = self._baseline_model_choices()

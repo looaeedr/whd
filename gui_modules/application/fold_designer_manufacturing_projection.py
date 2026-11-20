@@ -154,6 +154,9 @@ def _require_verified_baseline_sources_for_manufacturing(self):
 
 def _export_authoritative_part(self, spec, output_path, context=None):
     """Save the exact cached FinalScene used by 2D/3D without rebuilding it."""
+    manufacturing_api.require_no_operator_v_miter_gui_check_for_export({
+        "v_miter_gui_check_corners": getattr(self, "v_miter_gui_check_corners", {}),
+    })
     self._flush_phase6_authoritative_state()
     owner = getattr(self, "workspace_controller", None)
     if owner is not None and owner.workspace_snapshot().get("receiving_quantity_box"):
