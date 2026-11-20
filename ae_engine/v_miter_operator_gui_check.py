@@ -41,7 +41,8 @@ class VMiterOperatorGUICheck:
     second_fold_angle_deg: float
     ideal: VMiterIdealMatingCandidate
     check_scene: DrawingScene
-    material_check: VMiterSourceBoundSharpCheck
+    material_check: VMiterSourceBoundSharpCheck | None
+    material_check_failure: str | None
     first_bend_source_gap_mm: float = 0.0
     second_bend_source_gap_mm: float = 0.0
     manufacturing_status: str = V_MITER_GUI_UNCERTIFIED
@@ -337,22 +338,36 @@ def project_operator_v_miter_live_corner_check(
     # A true original CUTTING perimeter is mandatory for any closed cut
     # proposal; unlike the ideal seam, this result conserves physical stock.
     # Only draw CHECK: no manufacturing CUTTING/BEND/MARKING is generated.
-    stock_check = project_v_miter_sharp_source_perimeter_check(
-        render_data.scene, ideal,
-    )
+    # A previously manufactured four-type CUTTING may have already cut
+    # away the original V apex. That finished polygon is not permission to
+    # reconstruct missing stock or claim a real V outline. Preserve the
+    # qualified ideal rays and explicitly report the blocked material source.
+    try:
+        stock_check = project_v_miter_sharp_source_perimeter_check(
+            render_data.scene, ideal,
+        )
+    except GeometryError as exc:
+        stock_check = None
+        stock_failure = str(exc)
+    else:
+        stock_failure = None
     from .sheetmetal_drawing import PolylinePrimitive
-    check = DrawingScene([
-        PolylinePrimitive(stock_check.removed_corner_outline, "CHECK",
-                          closed=True, semantic_id="v_miter_removed_stock_check"),
-        LinePrimitive(ideal.first_flat_miter_ray[0], ideal.first_flat_miter_ray[1], "CHECK", 211),
-        LinePrimitive(ideal.second_flat_miter_ray[0], ideal.second_flat_miter_ray[1], "CHECK", 211),
-    ])
+    check = DrawingScene(
+        ([
+            PolylinePrimitive(stock_check.removed_corner_outline, "CHECK",
+                              closed=True, semantic_id="v_miter_removed_stock_check"),
+        ] if stock_check is not None else []) + [
+            LinePrimitive(ideal.first_flat_miter_ray[0], ideal.first_flat_miter_ray[1], "CHECK", 211),
+            LinePrimitive(ideal.second_flat_miter_ray[0], ideal.second_flat_miter_ray[1], "CHECK", 211),
+        ]
+    )
     return VMiterOperatorGUICheck(
         part_key=part_key, corner_key=corner_key,
         first_bend_axis=first[1], second_bend_axis=second[1],
         first_flange_height_mm=first[2], second_flange_height_mm=second[2],
         second_fold_angle_deg=second_angle, ideal=ideal, check_scene=check,
         material_check=stock_check,
+        material_check_failure=stock_failure,
         first_bend_source_gap_mm=x_gap if first[1] == "x" else y_gap,
         second_bend_source_gap_mm=y_gap if second[1] == "y" else x_gap,
     )
