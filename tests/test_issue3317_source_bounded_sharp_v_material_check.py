@@ -103,7 +103,9 @@ def test_candidate_is_only_check_layer_in_dxf_roundtrip(tmp_path):
     actual = list(ezdxf.readfile(path).modelspace())
     assert len(actual) == 1 and actual[0].dxf.layer == "CHECK"
     assert actual[0].dxftype() == "LWPOLYLINE"
-    assert tuple(actual[0].get_points("xy")) == pytest.approx(
-        tuple((p.x, p.y) for p in check.remaining_outline),
-    )
+    coords = tuple(actual[0].get_points("xy"))
+    expected = tuple((p.x, p.y) for p in check.remaining_outline)
+    assert len(coords) == len(expected)
+    for point, wanted in zip(coords, expected):
+        assert point == pytest.approx(wanted)
     assert not any(e.dxf.layer in {"CUTTING", "BEND", "MARKING"} for e in actual)
