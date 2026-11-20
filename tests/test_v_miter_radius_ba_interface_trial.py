@@ -455,8 +455,12 @@ def test_60_measured_rba_curves_every_verified_real_reverse_bend_component(mode,
     assert second_cut.source_new_v_cut_length_mm == pytest.approx(
         first_cut.source_new_v_cut_length_mm
     )
-    assert first_cut.selected_flat_v_cut_length_mm >= 0
-    assert second_cut.selected_flat_v_cut_length_mm >= 0
+    # A real positive-length 3D CUTTING sidewall must be recovered on
+    # BOTH physical flanges, not a plausible empty status-only witness.
+    assert first_cut.has_source_tagged_cut_faces
+    assert second_cut.has_source_tagged_cut_faces
+    assert first_cut.selected_flat_v_cut_length_mm > 0
+    assert second_cut.selected_flat_v_cut_length_mm > 0
     assert first_cut.selected_flat_v_cut_length_mm <= first_cut.source_new_v_cut_length_mm + 1e-6
     assert second_cut.selected_flat_v_cut_length_mm <= second_cut.source_new_v_cut_length_mm + 1e-6
     assert len(first_cut.true_cut_face_triangles) == 2 * first_cut.formed_boundary_edge_count
@@ -529,6 +533,50 @@ def test_60_reverse_actual_v_cut_face_owner_receives_exact_original_stock_and_cu
     assert out.first_source_cut_face == seen[0][1]
     assert out.second_source_cut_face == seen[1][1]
     assert tuple(scene.primitives) == before
+
+
+def test_60_reverse_measured_rba_cut_face_fails_when_real_t_sidewall_is_missing(monkeypatch):
+    from ae_engine import v_miter_radius_ba_interface_trial as owner
+    from ae_engine.v_miter_source_cut_face_trial import trace_v_miter_source_true_t_cut_faces
+
+    scene, first, second, extra, args = _60_reverse_source_for_measured_rba()
+    original = tuple(scene.primitives)
+    hit = []
+
+    def tamper_cut_wall(stock, altered, flats, formed, thick, *, thickness_mm, physical_vertex_offsets):
+        real = trace_v_miter_source_true_t_cut_faces(
+            stock, altered, flats, formed, thick,
+            thickness_mm=thickness_mm,
+            physical_vertex_offsets=physical_vertex_offsets,
+        )
+        if not hit:
+            # The genuine 3D cut-wall is present in the physical mesh.
+            # Deleting one actual wall triangle must never generate a
+            # fabricated cut-face witness or a fake positive clearance.
+            assert real.true_cut_face_triangles
+            wall = real.true_cut_face_triangles[0]
+            damaged = tuple(
+                tri for tri in thick if set(tri) != set(wall)
+            )
+            assert len(damaged) == len(thick) - 1
+            hit.append(True)
+            return trace_v_miter_source_true_t_cut_faces(
+                stock, altered, flats, formed, damaged,
+                thickness_mm=thickness_mm,
+                physical_vertex_offsets=physical_vertex_offsets,
+            )
+        return real
+
+    monkeypatch.setattr(owner, "trace_v_miter_source_true_t_cut_faces", tamper_cut_wall)
+    with pytest.raises(GeometryError, match="not a physical T-solid sidewall"):
+        manufacturing_api.diagnose_v_miter_reverse_crease_measured_r_ba_trial(
+            scene, first, second, **args,
+            second_leg_outer_perimeter_retract_mm=6,
+            **{k: v for k, v in _calibrated(60).items()
+               if k != "max_permitted_edge_trim_mm"},
+        )
+    assert hit == [True]
+    assert tuple(scene.primitives) == original
 
 
 @pytest.mark.parametrize("mode", ("ROUND_R", "RELIEF_HOLE"))
