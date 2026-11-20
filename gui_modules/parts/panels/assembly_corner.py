@@ -365,10 +365,10 @@ def v_miter_check_source_summary(source_snapshot):
     }[params["relief_mode"]]
     return (
         "已保存的 V 型斜接 CHECK 來源（僅供核對，未綁定目前選取的角落）\n"
-        f"來源折彎角度：{params['second_fold_angle_deg']}°\n"
-        f"兩側折高：{params['first_flange_height_mm']} / "
-        f"{params['second_flange_height_mm']} mm\n"
-        f"避裂：{relief}，比率 {params['relief_t_factor']}T\n"
+        f"來源折彎角度：{params['second_fold_angle_deg']:g}°\n"
+        f"兩側折高：{params['first_flange_height_mm']:g} / "
+        f"{params['second_flange_height_mm']:g} mm\n"
+        f"避裂：{relief}，比率 {params['relief_t_factor']:g}T\n"
         f"Engine 狀態：{row['manufacturing_status']}\n"
         "這些是舊 CHECK 試算的已保存數值，不會覆寫板件目前折彎設定。\n"
         "未認證，不能作正式截角或加工出圖。"
