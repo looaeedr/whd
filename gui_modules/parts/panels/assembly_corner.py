@@ -410,7 +410,10 @@ def refresh_corner_type_panel(self):
                     f"{live.first_flange_height_mm:g} / "
                     f"{live.second_flange_height_mm:g} mm\\n"
                     "角度與折高取自目前 PartSpec/Fold，沒有新增折彎輸入；"
-                    "圖示是理想 2D/3D 接合線，不是實際 R/BA/T 裁切。"
+                    "圖示是理想 2D/3D 接合線，不是實際 R/BA/T 裁切。\\n"
+                    f"原 BEND 至理想交點缺段：{live.first_bend_source_gap_mm:g} / "
+                    f"{live.second_bend_source_gap_mm:g} mm（僅來源診斷，"
+                    "缺段不可視為已實際打標或可製造折線）。"
                 )
             )
             draw_v_miter_gui_live_check(self, live)
