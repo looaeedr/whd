@@ -23,6 +23,10 @@ from .v_miter_material_trial import (
     VMiterSourceBoundSharpCheck, _single_source_material,
     project_v_miter_sharp_source_perimeter_check,
 )
+from .v_miter_factory_mother_check import (
+    VMiterFactoryMotherReplacementCheck,
+    project_v_miter_replaced_factory_corner_check,
+)
 
 V_MITER_GUI_CHECK = "V_MITER_CHECK"
 V_MITER_GUI_UNCERTIFIED = "V_MITER_GUI_CHECK_ONLY_UNCERTIFIED"
@@ -42,6 +46,7 @@ class VMiterOperatorGUICheck:
     ideal: VMiterIdealMatingCandidate
     check_scene: DrawingScene
     material_check: VMiterSourceBoundSharpCheck | None
+    factory_mother_check: VMiterFactoryMotherReplacementCheck | None
     material_check_failure: str | None
     first_bend_source_gap_mm: float = 0.0
     second_bend_source_gap_mm: float = 0.0
@@ -342,13 +347,27 @@ def project_operator_v_miter_live_corner_check(
     # away the original V apex. That finished polygon is not permission to
     # reconstruct missing stock or claim a real V outline. Preserve the
     # qualified ideal rays and explicitly report the blocked material source.
+    factory_mother = None
     try:
         stock_check = project_v_miter_sharp_source_perimeter_check(
             render_data.scene, ideal,
         )
-    except GeometryError as exc:
-        stock_check = None
-        stock_failure = str(exc)
+    except GeometryError as original_failure:
+        # The four-type factory cut may already have removed the source V
+        # apex. Replace only that one old Factory corner using a strictly
+        # rebuilt and compared PartSpec mother, never an inferred rectangle.
+        try:
+            factory_mother = project_v_miter_replaced_factory_corner_check(
+                part_spec, render_data, corner_key, ideal,
+            )
+        except GeometryError as factory_failure:
+            stock_check = None
+            stock_failure = (
+                f"{original_failure}; Factory source: {factory_failure}"
+            )
+        else:
+            stock_check = factory_mother.source_check
+            stock_failure = None
     else:
         stock_failure = None
     from .sheetmetal_drawing import PolylinePrimitive
@@ -367,6 +386,7 @@ def project_operator_v_miter_live_corner_check(
         first_flange_height_mm=first[2], second_flange_height_mm=second[2],
         second_fold_angle_deg=second_angle, ideal=ideal, check_scene=check,
         material_check=stock_check,
+        factory_mother_check=factory_mother,
         material_check_failure=stock_failure,
         first_bend_source_gap_mm=x_gap if first[1] == "x" else y_gap,
         second_bend_source_gap_mm=y_gap if second[1] == "y" else x_gap,
