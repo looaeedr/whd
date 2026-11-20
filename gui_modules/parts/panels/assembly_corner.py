@@ -255,7 +255,8 @@ def draw_v_miter_gui_live_check(host, result):
                 h - 10 - (point.y - miny) * scale)
 
     for item in paths:
-        fg = "#6e8799" if item.layer == "DATUM" else "#ff9f0a"
+        fg = ("#6e8799" if item.layer == "DATUM" else
+              "#4dc7e5" if getattr(item, "color", None) == 4 else "#ff9f0a")
         thick = 1 if item.layer == "DATUM" else 2
         if hasattr(item, "points"):
             canvas.create_polygon(
@@ -263,8 +264,14 @@ def draw_v_miter_gui_live_check(host, result):
                 fill="", outline=fg, width=thick, dash=(5, 3),
             )
         elif hasattr(item, "p1"):
-            canvas.create_line(*xy(item.p1), *xy(item.p2),
-                               fill=fg, width=thick, dash=(5, 3))
+            if getattr(item, "color", None) == 4:
+                # Each cyan line is an actual source-crease stroke: 20 mm
+                # at ends, with the existing Engine 20/50 middle cadence.
+                canvas.create_line(*xy(item.p1), *xy(item.p2),
+                                   fill=fg, width=thick)
+            else:
+                canvas.create_line(*xy(item.p1), *xy(item.p2),
+                                   fill=fg, width=thick, dash=(5, 3))
         else:
             cx, cy = xy(item.center)
             r = item.radius * scale
@@ -476,6 +483,16 @@ def refresh_corner_type_panel(self):
                     f"現有板厚 T 的局部剖面來源不足："
                     f"{live.sharp_t_failure}；不補不存在的 BEND。"
                 )
+            if live.source_bend_marking_check is not None:
+                marks = live.source_bend_marking_check
+                marking_note = (
+                    f"真 BEND 剩料打標：第一側 {marks.first_source_stroke_count} 段、"
+                    f"第二側 {marks.second_source_stroke_count} 段；"
+                    "兩端 20 mm，中段 20 mm／間隔 50 mm，"
+                    "僅畫現有 BEND 有料的區段，未認證 CHECK。"
+                )
+            else:
+                marking_note = "尚無可驗證的真 BEND 打標候選，不產生假打標。"
             self.manual_corner_param_summary.configure(
                 text=(
                     f"V 型斜接（未認證 CHECK）｜另一側折彎 "
@@ -487,6 +504,7 @@ def refresh_corner_type_panel(self):
                     "2D 為 CHECK、3D 接合線及局部 T 剖面為未認證模型；"
                     "內 R／BA、實際 3D 切面及避裂未驗證，不可當加工圖。\\n"
                     f"{section_note}\\n"
+                    f"{marking_note}\\n"
                     f"原 BEND 至理想交點缺段：{live.first_bend_source_gap_mm:g} / "
                     f"{live.second_bend_source_gap_mm:g} mm（僅來源診斷，"
                     "缺段不可視為已實際打標或可製造折線）。"
