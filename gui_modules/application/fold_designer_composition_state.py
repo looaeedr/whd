@@ -760,7 +760,6 @@ def toggle_parameter_panel(self, namespace):
         # Fake panels in the legacy bridge-only tests do not expose Tk
         # child APIs, so this is installed only on real widget trees.
         from tkinter import ttk
-        import tkinter as tk
 
         panel = diagnostics if assembly_selected else center
         if panel is not None and hasattr(panel, "winfo_children"):
