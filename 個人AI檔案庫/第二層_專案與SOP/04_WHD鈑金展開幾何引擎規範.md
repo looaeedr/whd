@@ -6,6 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] 既有板件「原樣對照圖」必須來自同一實體模型（2026-11-21）— `WHD_EXISTING_PART_AS_IS_DRAWING_GATE_V1`
+
+- 此規則是**既有實體板件的非製造視圖來源約束**，不新增任何製造公式、尺寸或 DXF 放行條件。使用者要求畫出當前 WHD 專案已存在的封頭、封尾、箱身、中隔、門等板件時，先讀 current Project／Family、所選 Set／Bay（適用時）及該 resolved physical part 的 canonical 幾何；不能用文字、印象、通用形狀、過期快照或另一板件代替。
+- 只能從 **WHD 現有 2D／3D 真實畫面截圖**，或從**同一 Engine PartSpec／FinalScene 模型直接投影**交付原樣圖。封頭 `head` 與封尾 `tail` 各自讀幾何，不預設相同或鏡像。只可調整視角、縮放、裁切或外加箭頭／文字；不得改變輪廓、折邊／折線、截角或孔位，不得用手繪／生成圖片／生成 SVG 補畫。
+- 不能確認 Project／Family、physical-part ID、模型或視圖同源時，`PART_AS_IS_DRAWING_SOURCE_UNVERIFIED`：說明缺少的實體模型／來源，**不畫假的對照圖**。交的是原樣對照圖，**不必出 DXF**，也不得將其誤稱正式製造驗收；DXF 與完整 Save→Reload 只在另外提出加工／驗證需求時進入既有流程。詳細執行方式依 `AGENTS.md` 同名硬閘門及 `.agents/skills/engineering/驗證板件與DXF/SKILL.md`。
+
 ## [CURRENT] #2517 DXF 出圖見證須拒絕途中才接上的 Workspace／孔位來源（2026-11-13）
 
 - 原 `gui_modules.project.export_actions._current_authoritative_export_guard` 只在 `workspace_witness is not None` 時重新檢查工作區。因此開始出圖時 Workspace 尚未接入、原 snapshot() 讀回 None、或尚無 snapshot reader，後來確認視窗期間新載入真實 `part_features`／板件，Engine 實體出圖可能沿舊來源提交而守衛不知。這是 GUI 原始來源交易身份漂移，不等於製造幾何／DXF 算法缺陷。

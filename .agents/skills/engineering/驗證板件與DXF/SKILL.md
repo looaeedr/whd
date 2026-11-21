@@ -1,6 +1,6 @@
 ---
 name: 驗證板件與DXF
-description: 使用者要求驗目前板件、指定板件、全部板件、DXF反驗證或 Save→Reload 驗收時，對 current production state 執行 canonical geometry、2D/3D、DXF reopen、multipart physical-part 與 persistence parity；中隔另加 certified CROSS 參數、placement 與 shadow collision diagnostics。
+description: 使用者要求畫出 WHD 既有板件的原樣對照圖、驗目前板件、指定板件、全部板件、DXF反驗證或 Save→Reload 驗收時，對 current production state 執行 canonical geometry、2D/3D、DXF reopen、multipart physical-part 與 persistence parity；中隔另加 certified CROSS 參數、placement 與 shadow collision diagnostics。
 whd_doc_role: CURRENT
 whd_contract: part-dxf-acceptance
 whd_canonical: null
@@ -22,10 +22,18 @@ whd_schema: WHD_DOC_META_V1
 
 **保留 source-only CLI 未認證的拒絕，但不得拿它的拒絕阻止已具備正式 Python Engine 能力的 CADSplit 內嵌流程；不得解除 wire 保護冒充已認證外部 export。** 若沒有真實雙入口、相同 API、DXF reopen 的證據，就標未驗證，**絕不可宣稱 CADSplit 正常路徑已全部打通。** AI 庫 04 CURRENT 才是規則權威，本 Skill 只做驗證。
 
+## 既有板件「原樣對照圖」模式 — `WHD_EXISTING_PART_AS_IS_DRAWING_GATE_V1`
+
+- **觸發與範圍**：使用者說「把現在的封頭／封尾畫出來」「給我看這塊板件原本的樣子」「畫正確的現有板件」「只要原樣對照圖」時，**先走本模式，不自動升級到 DXF 驗收**。這是當前 WHD 專案**既有**實體板件的真實視圖要求，不是任意新設計或自由示意圖。
+- **取得來源**：先核對 current Project、箱型／Family、Set／Bay（適用時）、版本與所選 resolved physical-part ID，讀該件在 WHD current workspace／Engine canonical PartSpec／FinalScene 的實際幾何。封頭 `head`、封尾 `tail` **分別解析**各自輪廓、折邊、截角、孔位與方向；不得以一件代另一件，也不得未經來源確認就假設兩件相同或鏡像。
+- **合法繪圖**：只可交付 **WHD 既有 2D／3D 畫面的真實截圖**，或**直接從同一模型產生的 2D／3D 投影**。可換視角、縮放、加箭頭與純顯示標註，不可變更原輪廓、折線／折邊、截角、孔位、比例；**禁止以文字／記憶／通用模板推圖，或手繪、生成圖片／生成 SVG 冒充真實 WHD 幾何**。來源須能對回 Project／Family、physical-part ID 與當前畫面／模型。
+- **Fail closed**：任何必要模型、板件 identity 或同源畫面缺失、工具無法取得真截圖／模型投影、來源無法確認，回覆缺的是哪一項及 `PART_AS_IS_DRAWING_SOURCE_UNVERIFIED`，**不要畫一張看似合理的替代圖**；未真的取得原樣圖，不得宣稱已畫。
+- **交付**：原樣對照圖即可；DXF、CHECK DXF、Save→Reload、切割／折彎加工驗證都**不是此模式的預設交付**。若另有明確加工或成品驗收需求，才切換本 Skill 的 A–D／正式驗收，且不得用原樣圖冒充加工資格。本模式依 `AGENTS.md` 同名硬閘門與 AI 庫 04 的單一幾何來源，不新增製造計算或另一套 geometry。
+
 ## 專案技能邊界
 
 - `修改DXF` **不是本專案 Skill**，不得因名稱含 DXF 就把外部／其他專案的 DXF 修改能力加入 WHD Registry、README、Preflight 或 router。
-- 本 Skill **只負責驗證／驗收** current WHD manufacturing output：canonical geometry、2D/3D parity、DXF export→reopen、multipart 與 Save→Reload。
+- 本 Skill 的**原樣對照圖模式**只負責同源視圖展示；正式**驗證／驗收模式**才處理 current WHD manufacturing output：canonical geometry、2D/3D parity、DXF export→reopen、multipart 與 Save→Reload。
 - 本 Skill **不得取代** `修改DXF`，也不得把「驗證輸出 DXF」擴張成「任意修改 DXF 檔案」的編輯能力。
 - 若使用者另行點名外部 `修改DXF` Skill，必須回到該 Skill 所屬專案／來源判定其規則，不得自動掛入 WHD 技能樹。
 
@@ -177,7 +185,9 @@ tests/test_dm4_divider_resolved_sinks.py
 
 ## 必須回報
 
-至少回：branch / tested head / run_id / terminal status、requested/resolved physical IDs、每件 PASS/FAIL、Final Material bounds/span、hole/feature count/datum、BEND parity、DXF reopen、multipart expected/actual file count、placement/collision shadow evidence（適用時）、Save→Reload parity（需要時）、`config.ini` before/after SHA。
+**只要求原樣對照圖**：僅回報可核對的 Project／Family、resolved physical-part ID、真實 WHD 截圖或模型投影來源與已交付圖；來源不明即回報缺項／`PART_AS_IS_DRAWING_SOURCE_UNVERIFIED`。此模式不要求憑空提供 DXF、CI run ID 或製造 PASS。
+
+**正式驗證／驗收**至少回：branch / tested head / run_id / terminal status、requested/resolved physical IDs、每件 PASS/FAIL、Final Material bounds/span、hole/feature count/datum、BEND parity、DXF reopen、multipart expected/actual file count、placement/collision shadow evidence（適用時）、Save→Reload parity（需要時）、`config.ini` before/after SHA。
 
 中隔再加 certified CROSS rule/parameters、middle segment、FW planes、illegal penetration、retained contact、skin→solid areas 與 shadow collision diagnostics。
 
