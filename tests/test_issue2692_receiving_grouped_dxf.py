@@ -198,7 +198,9 @@ def test_group_commit_is_a_atomic_batch_with_dxf_readback(tmp_path, mode, expect
     assert {p.name for p in (tmp_path/"out").glob("*.dxf")} == set(expected)
     assert len(counts) >= 2
     for filename in expected:
-        entities = tuple(ezdxf.readfile(tmp_path/"out"/filename).modelspace())
+        reopened = ezdxf.readfile(tmp_path/"out"/filename)
+        assert reopened.header["$INSUNITS"] == ezdxf.units.MM
+        entities = tuple(reopened.modelspace())
         assert any(e.dxftype()=="LWPOLYLINE" and e.dxf.layer=="CUTTING"
                    for e in entities)
         assert all(e.dxf.layer=="CHECK" for e in entities
