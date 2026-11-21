@@ -43,6 +43,10 @@ from .v_miter_factory_fold_check import (
 from .v_miter_trial_defaults import (
     VMiterTrialParameterDefaults, project_v_miter_trial_parameter_defaults,
 )
+from .v_miter_factory_relief_check import (
+    VMiterFactoryBottomReliefCheck,
+    project_v_miter_factory_bottom_relief_default_check,
+)
 from .v_miter_factory_radius_ba_check import (
     VMiterFactoryRadiusBADefaultCheck,
     project_v_miter_factory_radius_ba_default_check,
@@ -86,6 +90,8 @@ class VMiterOperatorGUICheck:
     trial_defaults: VMiterTrialParameterDefaults | None = None
     factory_radius_ba_check: VMiterFactoryRadiusBADefaultCheck | None = None
     factory_radius_ba_failure: str | None = None
+    factory_bottom_relief_check: VMiterFactoryBottomReliefCheck | None = None
+    factory_bottom_relief_failure: str | None = None
 
 
 def normalize_operator_v_miter_gui_choices(raw: Mapping | None) -> dict[str, dict[str, str]]:
@@ -435,6 +441,8 @@ def project_operator_v_miter_live_corner_check(
     factory_true_t_failure = None
     factory_radius_ba = None
     factory_radius_ba_failure = None
+    factory_bottom_relief = None
+    factory_bottom_relief_failure = None
     if stock_check is not None:
         # These exact objects are the original physical BEND primitives,
         # not the temporary corner-station extensions used for ideal rays.
@@ -459,6 +467,23 @@ def project_operator_v_miter_live_corner_check(
             whole_sheet.extend(factory_precut_fold.second_proposed_segments)
             whole_sheet.extend(factory_precut_fold.first_proposed_alignment_marks)
             whole_sheet.extend(factory_precut_fold.second_proposed_alignment_marks)
+            # Apply the Engine's unverified R or circular hole to actual
+            # Factory source-clipped V sides, NOT the shorter ideal V tips.
+            # This 2D CHECK is not a certified physical 3D R/BA/Fold result.
+            try:
+                factory_bottom_relief = project_v_miter_factory_bottom_relief_default_check(
+                    part_spec, render_data, corner_key, ideal, stock_check,
+                    factory_precut_fold, real_first, real_second,
+                    trial_defaults, factory_mother,
+                )
+            except GeometryError as exc:
+                factory_bottom_relief_failure = str(exc)
+            else:
+                whole_sheet.add(PolylinePrimitive(
+                    factory_bottom_relief.corrected_remaining_outline,
+                    "CHECK", closed=True, color=1,
+                    semantic_id="v_miter_engine_factory_r_or_hole_uncertified",
+                ))
             # Reuse exactly this factory-proven V remaining stock + Fold as
             # input for the physical-T shadow. No new CNC authority and no
             # separate GUI-owned 3D sheet geometry.
@@ -488,6 +513,11 @@ def project_operator_v_miter_live_corner_check(
                     # The Factory V cut is a full source-clipped ray;
                     # this curvature trial does NOT invent a corrected
                     # 2D contour or retarget the old ideal-tip trim solver.
+    if factory_bottom_relief is None and factory_bottom_relief_failure is None:
+        factory_bottom_relief_failure = (
+            factory_precut_failure or stock_failure
+            or "V_MITER_FACTORY_RELIEF_VERIFIED_MOTHER_REQUIRED"
+        )
     if run_radius_ba_trial and factory_radius_ba is None and factory_radius_ba_failure is None:
         factory_radius_ba_failure = (
             factory_precut_failure or stock_failure
@@ -537,4 +567,6 @@ def project_operator_v_miter_live_corner_check(
         trial_defaults=trial_defaults,
         factory_radius_ba_check=factory_radius_ba,
         factory_radius_ba_failure=factory_radius_ba_failure,
+        factory_bottom_relief_check=factory_bottom_relief,
+        factory_bottom_relief_failure=factory_bottom_relief_failure,
     )

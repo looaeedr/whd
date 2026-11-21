@@ -608,6 +608,23 @@ def refresh_corner_type_panel(self):
                     "有限 T 真板料 3D 網格檢查尚不能成立："
                     f"{live.factory_true_t_failure or '原 Factory 折線／V 剩料不足'}。"
                 )
+            relief_trial = live.factory_bottom_relief_check
+            if relief_trial is not None:
+                relief_note = (
+                    f"Factory 真料 V 底部試算 "
+                    f"{'圓形避裂孔 Ø' if relief_trial.relief_mode.value == 'RELIEF_HOLE' else '圓角 R'}"
+                    f"={relief_trial.relief_dimension_mm:g} mm；"
+                    f"單片剩料 {relief_trial.corrected_remaining_area_mm2:.3f} mm²。"
+                    "2D 紅線／CHECK DXF 使用這份真來源避裂輪廓；"
+                    "3D 零R 或曲面 R/BA 仍以原尖 V 試算來源計算，"
+                    "尚未完成避裂與 3D 同源接合驗證，禁止加工。"
+                )
+            else:
+                relief_note = (
+                    "Factory V 底部避裂遭 Engine 拒絕："
+                    f"{live.factory_bottom_relief_failure or '來源不完整'}。"
+                    "不能把尖 V 當成已完成避裂。"
+                )
             preset = live.trial_defaults
             # Engine owns all numerical assumptions; Tk only formats values.
             trial_preset_note = (
@@ -652,6 +669,7 @@ def refresh_corner_type_panel(self):
                     "2D 為 CHECK、3D 接合線及局部 T 剖面為未認證模型；"
                     "實際 3D 切面及避裂未驗證，不可當加工圖。\\n"
                     f"{trial_preset_note}\\n"
+                    f"{relief_note}\\n"
                     f"{radius_note}\\n"
                     f"{section_note}\\n"
                     f"{marking_note}\\n"
@@ -821,6 +839,25 @@ def _build_corner_type_selector(host, editor):
     )
     host.v_miter_gui_check_radio.pack(side=tk.LEFT, fill=tk.X, expand=True)
 
+    # The choice is only a live operator input, not a manufacturing
+    # CornerType or a second GUI geometry formula. Recomputed by Engine.
+    host.v_miter_relief_mode_var = tk.StringVar(value="ROUND_R")
+    relief_row = tk.Frame(type_frame, bg=host.COLOR_INPUT_BG)
+    relief_row.pack(fill=tk.X, pady=(2, 2))
+    for label, choice in (
+        ("V 底部圓角 R", "ROUND_R"),
+        ("V 底部圓形避裂孔 Ø", "RELIEF_HOLE"),
+    ):
+        tk.Radiobutton(
+            relief_row, text=label,
+            variable=host.v_miter_relief_mode_var, value=choice,
+            command=host.refresh_corner_type_panel,
+            bg=host.COLOR_INPUT_BG, fg=host.COLOR_TEXT,
+            activebackground=host.COLOR_INPUT_BG,
+            activeforeground=host.COLOR_TEXT,
+            selectcolor=host.COLOR_PANEL,
+        ).pack(side=tk.LEFT, padx=(0, 8))
+
     # A separate CHECK-only inspection action: never a fifth manufacturing
     # CornerType radio button and never an alternate exporter.
     v_row = tk.Frame(type_frame, bg=host.COLOR_INPUT_BG)
@@ -918,7 +955,7 @@ def _build_corner_parameter_controls(host, editor):
         highlightthickness=1, highlightbackground="#34343a",
     )
     host.v_miter_export_check_button = tk.Button(
-        editor, text="另存基礎 V CHECK DXF（不含 R/BA，非加工）",
+        editor, text="另存 V／避裂 CHECK DXF（不含 R/BA，非加工）",
         command=host.export_v_miter_whole_sheet_check_dxf,
         bg=host.COLOR_PANEL, fg=host.COLOR_TEXT,
         activebackground=host.COLOR_ACCENT_HOVER,

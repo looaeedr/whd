@@ -1087,6 +1087,11 @@ class Phase6ApplicationHost:
         render_data = self._query_fold_designer_render_data(part_key, snapshot)
         return manufacturing_api.project_operator_v_miter_live_corner_check(
             spec, render_data, physical,
+            relief_mode=(
+                self.v_miter_relief_mode_var.get()
+                if getattr(self, "v_miter_relief_mode_var", None) is not None
+                else "ROUND_R"
+            ),
             run_radius_ba_trial=run_radius_ba_trial,
         )
 
