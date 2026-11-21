@@ -6,6 +6,13 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] Engine 合圖／同源單板 DXF 檔頭須宣告毫米（2026-11-22）— `WHD_DXF_MILLIMETER_HEADER_GATE_V1`
+
+- **觀察與範圍**：使用者在正式 X、GitHub `localX` 的**合圖**新產 DXF 重開發現一片座標 100 × 60 mm 的板件，檔頭卻宣告「公尺」。這是已重開檔案的報告，**尚未在使用者 CAM 實機量測，也沒有證明所有 DXF 出口受影響**；本批不改正式 X、不追溯覆寫既有 DXF。
+- **唯一座標語意**：Engine `DrawingScene`／實體板件 Flat UV 以 1:1 **mm** 計；`dxf_serialization.save_scene_dxf` 需在新建 DXF 時明確宣告 `$INSUNITS=4`（毫米），不得沿用 `ezdxf.new("R2010")` 的公尺預設 `6`。**不能以 ×1000 或 ÷1000 座標補救檔頭錯誤**；實際輪廓、折線、孔位、相對排版和 100 × 60 數值不變。正式寫入仍由原 Engine 共有 serializer，GUI／CADSplit 不得另造單位轉換。
+- **放行前重開檢查**：獨立 `dxf_acceptance.verify_saved_part_render_data_dxf` 必須就**實際磁碟 DXF**拒絕缺失／非毫米 `$INSUNITS`（`UNIT_MISMATCH`）；`composed_panel_dxf.save_composed_panel_dxf` 必須在 staged 完整合圖重開後拒絕非毫米（`COMPOSED_DXF_UNIT_MISMATCH`），原有幾何、認證與原子回滾守衛不變。正向覆蓋已知 100 × 60 單板與合圖、Receiving 各分組及總計，負向覆蓋偽改檔頭但未改圖元、舊檔不可被覆寫。
+- **加工安全**：修正完成前，使用這條合圖流程的 DXF 下料，先在 CAM 以 mm 解讀並量一個已知尺寸，不符就不切。軟體測試 GREEN 不等於 CAM 實測；正式 X 依當次 `/推推` 才更新，Windows 與 CAM 驗收獨立回報。
+
 ## [CURRENT] WHD 既有板件「原樣對照圖」依 Engine 同源與箱型預設／實際工件分流（2026-11-21）— `WHD_EXISTING_PART_AS_IS_DRAWING_GATE_V1`
 
 - 此規則只管**非製造的原樣視圖來源**，不變更製造公式、Factory Policy、DXF、認證或專案資料。**一般查看 WHD 原有板件，不必提供 Project**：確認所選 Family，直接由現有 WHD 公開 Engine／Family／Policy 解析相應 PartSpec／FinalScene 的真實輪廓、折邊、截角、孔位；未指定尺寸時採用**該 Family 的既有 Engine 預設**，明確在圖／圖旁標示箱型、預設數值與單位、來源及「預設示例，非實際工件」。未指定 Family 時先沿用已確認的當前選取，否則只能依 WHD fresh-start CURRENT 10 規則採金庫型並明示；查無合法預設不得猜尺寸或借另一 Family。
