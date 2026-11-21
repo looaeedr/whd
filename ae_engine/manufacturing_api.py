@@ -2070,6 +2070,13 @@ from .v_miter_factory_mother_check import (
     project_v_miter_replaced_factory_corner_check,
 )
 
+# #3317: full source-checked Factory V Fold → true-T zero-R formed mesh,
+# physical collision and source-tagged sidewalls, CHECK-only (not CNC).
+from .v_miter_factory_true_t_check import (
+    VMiterFactoryPostVTrueTCheck,
+    project_v_miter_factory_post_v_true_t_check,
+)
+
 # #3317: original typed Factory topology -> post-V prospective Fold,
 # verified against the existing FinalScene BEND and only displayed as CHECK.
 from .v_miter_factory_fold_check import (
