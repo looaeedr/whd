@@ -40,6 +40,9 @@ from .v_miter_factory_fold_check import (
     VMiterFactoryPrecutFoldCheck,
     project_v_miter_factory_precut_fold_check,
 )
+from .v_miter_trial_defaults import (
+    VMiterTrialParameterDefaults, project_v_miter_trial_parameter_defaults,
+)
 from .v_miter_factory_true_t_check import (
     VMiterFactoryPostVTrueTCheck,
     project_v_miter_factory_post_v_true_t_check,
@@ -76,6 +79,7 @@ class VMiterOperatorGUICheck:
     first_bend_source_gap_mm: float = 0.0
     second_bend_source_gap_mm: float = 0.0
     manufacturing_status: str = V_MITER_GUI_UNCERTIFIED
+    trial_defaults: VMiterTrialParameterDefaults | None = None
 
 
 def normalize_operator_v_miter_gui_choices(raw: Mapping | None) -> dict[str, dict[str, str]]:
@@ -354,6 +358,13 @@ def project_operator_v_miter_live_corner_check(
     t = part_spec.thickness
     if type(t) not in (int, float) or not math.isfinite(t) or t <= 0:
         raise GeometryError("V_MITER_GUI_THICKNESS_INVALID")
+    # Unverified Engine-owned starting R/BA and R/hole parameters, derived
+    # from the REAL thickness and authored second Fold angle. They never
+    # modify actual source CUTTING, BEND or certified Registry.
+    trial_defaults = project_v_miter_trial_parameter_defaults(
+        thickness_mm=t, second_fold_angle_deg=second_angle,
+        relief_mode=mode,
+    )
     # Temporary two-station CHECK scene: derived from original source
     # BEND coordinates and measured gaps, NEVER a production FinalScene.
     # Both source owners are originals; the stage itself cannot be exported.
@@ -490,4 +501,5 @@ def project_operator_v_miter_live_corner_check(
         factory_true_t_failure=factory_true_t_failure,
         first_bend_source_gap_mm=x_gap if first[1] == "x" else y_gap,
         second_bend_source_gap_mm=y_gap if second[1] == "y" else x_gap,
+        trial_defaults=trial_defaults,
     )
