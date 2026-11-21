@@ -35,6 +35,10 @@ from .v_miter_material_trial import VMiterSourceBoundSharpCheck
 from .v_miter_source_cut_face_trial import (
     VMiterSourceCutFaceTrial, trace_v_miter_source_true_t_cut_faces,
 )
+from .v_miter_cut_face_continuity_trial import (
+    VMiterCutFaceContinuityTrial,
+    project_v_miter_true_cut_face_continuity_trial,
+)
 from .v_miter_true_t_collision import _formed_skin, _source_triangulation
 
 _EPS = 1e-7
@@ -68,6 +72,8 @@ class VMiterFactoryPostVTrueTCheck:
     second_source_tagged_cut_faces: VMiterSourceCutFaceTrial | None = None
     first_cut_face_failure: str | None = None
     second_cut_face_failure: str | None = None
+    source_cut_face_continuity: VMiterCutFaceContinuityTrial | None = None
+    source_cut_face_continuity_failure: str | None = None
     geometry_model: str = "FACTORY_POST_V_SHARP_FOLD_TRUE_T_MESH_CHECK"
     manufacturing_status: str = "V_MITER_FACTORY_POST_V_TRUE_T_UNCERTIFIED"
 
@@ -309,6 +315,27 @@ def project_v_miter_factory_post_v_true_t_check(
     first_faces, first_failure = cut_faces(flat1, skin1, solid1)
     second_faces, second_failure = cut_faces(flat2, skin2, solid2)
 
+    # Only actual 2D V CUTTING-tagged, 3D T-solid-verified sidewalls are
+    # admissible to the existing interval-complete V face coverage solver.
+    # Full solid nearest-neighbor distance can be zero on unrelated faces:
+    # it is NOT a permitted shortcut to declare the V seam "closed".
+    continuity = None
+    continuity_failure = None
+    if not (first_faces is not None and second_faces is not None
+            and first_faces.has_source_tagged_cut_faces
+            and second_faces.has_source_tagged_cut_faces):
+        continuity_failure = "V_MITER_FACTORY_T_CUT_FACE_LINEAGE_UNPROVEN"
+    else:
+        try:
+            continuity = project_v_miter_true_cut_face_continuity_trial(
+                first_faces.true_cut_face_triangles,
+                second_faces.true_cut_face_triangles,
+                formed_seam_start=ideal.formed_seam_start,
+                formed_seam_end=ideal.formed_seam_end,
+            )
+        except GeometryError as exc:
+            continuity_failure = str(exc)
+
     return VMiterFactoryPostVTrueTCheck(
         thickness_mm=t,
         first_source_flange_area_mm2=sum(p.area for p in first_parts),
@@ -333,4 +360,6 @@ def project_v_miter_factory_post_v_true_t_check(
         second_source_tagged_cut_faces=second_faces,
         first_cut_face_failure=first_failure,
         second_cut_face_failure=second_failure,
+        source_cut_face_continuity=continuity,
+        source_cut_face_continuity_failure=continuity_failure,
     )
