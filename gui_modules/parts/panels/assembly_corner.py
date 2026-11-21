@@ -301,7 +301,10 @@ def draw_v_miter_gui_live_check(host, result):
 
     a, b = project(start), project(end)
     mesh = result.factory_true_t_check
+    curve = result.factory_radius_ba_check
     outlines = (
+        (curve.first_formed_perimeter_edges, curve.second_formed_perimeter_edges)
+        if curve is not None else
         (mesh.first_formed_perimeter_edges, mesh.second_formed_perimeter_edges)
         if mesh is not None else ((), ())
     )
@@ -342,7 +345,8 @@ def draw_v_miter_gui_live_check(host, result):
         outline="#ff9f0a",
     )
     three.create_text(
-        75, 10, text=("3D 零R／有限T 網格 CHECK" if mesh is not None
+        75, 10, text=("3D 預設 R/BA／有限T CHECK" if curve is not None
+                      else "3D 零R／有限T 網格 CHECK" if mesh is not None
                       else "3D 理想成形接合線"),
         fill=host.COLOR_TEXT, font=("Microsoft JhengHei", 8),
     )
@@ -474,11 +478,18 @@ def refresh_corner_type_panel(self):
         self.manual_corner_param_summary.pack(fill=tk.X, padx=8, pady=(3, 5))
         three = self.v_miter_check_3d_preview_canvas
         self.v_miter_export_check_button.pack(fill=tk.X, padx=8, pady=(0, 6))
+        self.v_miter_radius_ba_check_button.pack(fill=tk.X, padx=8, pady=(0, 6))
         self.v_miter_export_check_button.configure(state=tk.DISABLED)
         if not three.winfo_ismapped():
             three.pack(padx=8, pady=(0, 7))
         try:
-            live = self._project_v_miter_gui_check_for_corner(part_key, target_key)
+            live = self._project_v_miter_gui_check_for_corner(
+                part_key, target_key,
+                run_radius_ba_trial=(
+                    getattr(self, "_v_miter_radius_ba_trial_target", None)
+                    == (part_key, physical_key)
+                ),
+            )
         except (TypeError, ValueError) as exc:
             self.manual_corner_param_summary.configure(
                 text=f"V 型斜接 CHECK：{exc}\\n尚未取得真實折彎來源，禁止加工。"
@@ -610,6 +621,26 @@ def refresh_corner_type_panel(self):
                 f"={preset.relief_dimension_mm:g} mm。"
                 "只是幾何試算起點，不代表可以正式加工。"
             )
+            radius_check = live.factory_radius_ba_check
+            if radius_check is not None:
+                trial = radius_check.full_sheet.trial
+                radius_note = (
+                    "預設 R/BA 已帶入 Engine 圓柱折彎網格求解："
+                    f"修邊前相交 {trial.untrimmed_surface_interference_pairs} 組、"
+                    f"修邊後相交 {trial.trimmed_surface_interference_pairs} 組；"
+                    f"第一側試算修切 {trial.first_edge_trim_mm:.3f} mm"
+                    f"（搜尋上限 {radius_check.trim_search_cap_mm:g} mm）。"
+                    "3D 顯示曲面有限 T 網格，2D 紅線為修正剩料；"
+                    "沒有證明密合或正式加工合格。"
+                )
+            elif live.factory_radius_ba_failure is not None:
+                radius_note = (
+                    "預設 R/BA 真實曲面試算遭 Engine 拒絕："
+                    f"{live.factory_radius_ba_failure}。"
+                    "不可把零 R 的 3D 圖當成已通過補償。"
+                )
+            else:
+                radius_note = "按「計算預設 R/BA／T」才執行實際曲面試算。"
             self.manual_corner_param_summary.configure(
                 text=(
                     f"V 型斜接（未認證 CHECK）｜另一側折彎 "
@@ -621,6 +652,7 @@ def refresh_corner_type_panel(self):
                     "2D 為 CHECK、3D 接合線及局部 T 剖面為未認證模型；"
                     "實際 3D 切面及避裂未驗證，不可當加工圖。\\n"
                     f"{trial_preset_note}\\n"
+                    f"{radius_note}\\n"
                     f"{section_note}\\n"
                     f"{marking_note}\\n"
                     f"{fold_note}\\n"
@@ -637,6 +669,7 @@ def refresh_corner_type_panel(self):
             )
         return
     self.v_miter_export_check_button.pack_forget()
+    self.v_miter_radius_ba_check_button.pack_forget()
     self.v_miter_check_3d_preview_canvas.pack_forget()
     if params_unlocked:
         self.manual_corner_param_summary.pack_forget()
@@ -885,8 +918,15 @@ def _build_corner_parameter_controls(host, editor):
         highlightthickness=1, highlightbackground="#34343a",
     )
     host.v_miter_export_check_button = tk.Button(
-        editor, text="另存整片 V 試算 DXF（CHECK，非加工）",
+        editor, text="另存基礎 V CHECK DXF（不含 R/BA，非加工）",
         command=host.export_v_miter_whole_sheet_check_dxf,
+        bg=host.COLOR_PANEL, fg=host.COLOR_TEXT,
+        activebackground=host.COLOR_ACCENT_HOVER,
+        activeforeground="#ffffff",
+    )
+    host.v_miter_radius_ba_check_button = tk.Button(
+        editor, text="計算預設 R/BA／T（實體 CHECK）",
+        command=host.run_v_miter_default_radius_ba_check,
         bg=host.COLOR_PANEL, fg=host.COLOR_TEXT,
         activebackground=host.COLOR_ACCENT_HOVER,
         activeforeground="#ffffff",
