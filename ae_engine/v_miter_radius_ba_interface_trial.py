@@ -42,7 +42,7 @@ from .v_miter_true_t_collision import (
 from .v_miter_relief_trial import (
     project_v_miter_relief_mating_trial, _rounded_v_notch_polygon,
 )
-from .v_miter_material_trial import _short_outer_arc, _single_source_material
+from .v_miter_material_trial import _v_opening_outer_arc, _single_source_material
 from .v_miter_bounded_contact import diagnose_v_miter_bounded_bend_reach
 from .v_miter_seam_gap_trial import (
     VMiterSeamSectionGapTrial,
@@ -485,7 +485,9 @@ def _retarget_round_r_first_v_edge(
     if len(points) != 1:
         raise GeometryError("V-miter shifted first V ray needs one positive source endpoint")
     shifted_tip = Vec2(float(points[0].x), float(points[0].y))
-    outer_arc = _short_outer_arc(material, shifted_tip, second_tip)
+    outer_arc = _v_opening_outer_arc(
+        material, v_apex, shifted_tip, second_tip, sharp_check=False,
+    )
     new_cut, _ = _rounded_v_notch_polygon(
         v_apex, shifted_tip, second_tip, outer_arc, radius,
     )
