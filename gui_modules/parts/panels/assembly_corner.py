@@ -552,6 +552,31 @@ def refresh_corner_type_panel(self):
                 physical = live.factory_true_t_check
                 first_faces = physical.first_source_tagged_cut_faces
                 second_faces = physical.second_source_tagged_cut_faces
+                faces = physical.source_cut_face_continuity
+                if faces is not None:
+                    gap_text = (
+                        "原 V 切邊的真 T 側面區間："
+                        f"雙面 {faces.both_face_interval_count} 段、"
+                        f"缺面 {faces.missing_face_interval_count} 段；"
+                        f"取樣最大側面間隙 "
+                        f"{faces.max_sampled_cut_face_gap_mm:g} mm"
+                        if faces.max_sampled_cut_face_gap_mm is not None
+                        else (
+                            "原 V 切邊尚無兩側同時可取樣的厚度側面；"
+                            f"缺面 {faces.missing_face_interval_count} 段"
+                        )
+                    )
+                    gap_text += (
+                        f"；全區間保守上界 "
+                        f"{faces.max_gap_upper_bound_mm:g} mm"
+                        if faces.max_gap_upper_bound_mm is not None
+                        else "；全區間間隙上界未知"
+                    )
+                else:
+                    gap_text = (
+                        "真實 V 厚度側面仍無連續間隙證據："
+                        f"{physical.source_cut_face_continuity_failure}。"
+                    )
                 surface_note = (
                     f"實際 T={physical.thickness_mm:g} mm 的 Factory V 零R厚板網格："
                     f"兩折面 {len(physical.first_formed_skin_triangles)} / "
@@ -563,7 +588,9 @@ def refresh_corner_type_panel(self):
                     "來源標記 V 切面 "
                     f"{len(first_faces.true_cut_face_triangles) if first_faces is not None else '未知'} / "
                     f"{len(second_faces.true_cut_face_triangles) if second_faces is not None else '未知'}。"
-                    "未檢出相交仍非零間隙或加工合格；實際 R/BA、完整干涉與避裂尚未認證。"
+                    f"{gap_text}。"
+                    "未檢出相交或局部取樣零間隙仍非加工合格；"
+                    "實際 R/BA、完整干涉與避裂尚未認證。"
                 )
             else:
                 surface_note = (
