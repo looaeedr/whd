@@ -667,7 +667,8 @@ def test_same_saved_nfb_source_allows_only_independent_core_flat_scope(
     )
     assert tuple(files) == filenames + ("202611071258_p1~p2總計.dxf",)
     assert len(tuple(out.glob("*.dxf"))) == len(filenames) + 1
-    doc = ezdxf.readfile(next(out.glob("*.dxf")))
+    # Check the selected grouped manufacturing file, never the compact 總計 file.
+    doc = ezdxf.readfile(out / filenames[0])
     assert not doc.audit().errors
     check = [e.plain_text() for e in doc.modelspace()
              if e.dxftype() == "MTEXT" and e.dxf.layer == "CHECK"]
