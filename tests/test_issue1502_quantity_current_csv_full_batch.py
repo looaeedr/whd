@@ -230,14 +230,81 @@ def test_per_version_q_group_last_saved_dxf_failure_rolls_back(tmp_path,monkeypa
     assert not list(tmp_path.glob("*.dxf"))
 
 
-def test_original_quantity_gui_routes_to_current_csv_not_retired_supplier_dxf():
+def test_original_quantity_gui_routes_to_current_csv_not_retired_supplier_dxf(tmp_path, monkeypatch):
     import inspect
+    from ae_engine import manufacturing_api
     from gui_modules.project import export_actions
-    source=inspect.getsource(export_actions._export_selected_resolved_parts)
-    assert "export_current_csv_quantity_manufacturing" in source
-    assert "manufacturing_api.plan_quantity_export_source(" in source
-    assert "source_policy.use_current_csv_export" in source
-    assert "manufacturing_api.plan_quantity_operator_export_selection(" in source
-    assert "selection.selected_demands" in source
-    assert "selection.checked_batch" in source
+
+    source = inspect.getsource(export_actions._export_selected_resolved_parts)
+    assert "manufacturing_api.stage_quantity_operator_export(" in source
     assert "_resolved_export_intention_key(" not in source
+
+    batch = _batch()
+    raw = thaw_manufacturing_value(batch.requests[0][2].input_snapshot)
+    assert manufacturing_api.plan_quantity_export_source(raw, raw).use_current_csv_export
+    request = manufacturing_api.ManufacturingResolveRequest(
+        input_snapshot=raw, cabinet_model=raw["model"],
+    )
+
+    def resolve_fixture(actual_request, workspace, *, resolve_request):
+        assert actual_request is request and workspace == raw
+        assert resolve_request is manufacturing_api.resolve_manufacturing_request
+        return batch
+
+    monkeypatch.setattr(manufacturing_api, "resolve_operator_quantity_manufacturing_batch",
+                        resolve_fixture)
+    staged = manufacturing_api.stage_quantity_operator_export(
+        request, raw, _flags(), tmp_path, operator_snapshot=raw,
+    )
+    assert staged.output_names
+    assert staged.partial_report is None
+    assert sorted(staged.output_names) == sorted(path.name for path in tmp_path.glob("*.dxf"))
+    assert not (tmp_path / "nfb_partial_manifest.json").exists()
+    assert {2, 3, 5} <= {int(_quantity(tmp_path / name)[1:]) for name in staged.output_names}
+
+
+def test_quantity_stage_refuses_detached_batch_and_swapped_request_before_writing(tmp_path):
+    from ae_engine import manufacturing_api
+
+    batch = _batch()
+    raw = thaw_manufacturing_value(batch.requests[0][2].input_snapshot)
+    with pytest.raises(TypeError, match="QUANTITY_OPERATOR_EXPORT_REQUIRES_RESOLVE_REQUEST"):
+        manufacturing_api.stage_quantity_operator_export(
+            batch, raw, _flags(), tmp_path, operator_snapshot=raw,
+        )
+    swapped = deepcopy(raw)
+    swapped["quantity"]["versions"][0]["nfb_config"]["holes"][0]["manual_x_mm"] += 1.0
+    foreign_request = manufacturing_api.ManufacturingResolveRequest(
+        input_snapshot=swapped, cabinet_model=raw["model"],
+    )
+    with pytest.raises(ValueError, match="QUANTITY_OPERATOR_EXPORT_REQUEST_SOURCE_MISMATCH"):
+        manufacturing_api.stage_quantity_operator_export(
+            foreign_request, raw, _flags(), tmp_path, operator_snapshot=raw,
+        )
+    assert not list(tmp_path.iterdir())
+
+
+def test_quantity_stage_resolves_original_two_version_csv_request_without_adapter(tmp_path):
+    from ae_engine import manufacturing_api
+    from tests.test_issue2517_nfb_pair_request_to_finalscene_dxf_public_api import (
+        _original_request,
+    )
+
+    module_fixture = _batch()
+    source = thaw_manufacturing_value(module_fixture.requests[0][2].input_snapshot)
+    request = _original_request(source, tiers=1)
+    staged = manufacturing_api.stage_quantity_operator_export(
+        request, source, _flags(box_body=False, head=False, tail=False), tmp_path,
+        operator_snapshot=source,
+    )
+
+    assert staged.partial_report is None
+    assert set(staged.output_names) == {path.name for path in tmp_path.iterdir()}
+    assert len(staged.output_names) == 4
+    assert sorted(_quantity(tmp_path / name) for name in staged.output_names) == [
+        "Q2", "Q2", "Q3", "Q3",
+    ]
+    for name in staged.output_names:
+        drawing = ezdxf.readfile(tmp_path / name)
+        assert not drawing.audit().errors
+        assert any(row.dxf.layer == "CUTTING" for row in drawing.modelspace())

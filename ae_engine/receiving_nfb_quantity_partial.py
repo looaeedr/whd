@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
+import json
 from collections.abc import Mapping
 from pathlib import Path
 
@@ -326,3 +327,56 @@ def quantity_partial_live_manifests(selection, workspace_snapshot, selected_rows
             submitted, not submitted,
         ),)
     return result
+
+
+@dataclass(frozen=True)
+class QuantityOperatorStagedExport:
+    """Engine-authored output inventory and optional partial receipt."""
+    output_names: tuple[str, ...]
+    partial_report: dict | None = None
+
+
+def stage_quantity_operator_export(batch, workspace_snapshot, flags, staging_directory,
+                                   *, save_groups):
+    """Stage legacy Quantity DXF and physical receipt through the same Engine.
+
+    The consumer owns its private staging directory and the subsequent
+    confirmation/publication. Do not pass a final operator destination here.
+    """
+    from .quantity_manufacturing_groups import (
+        quantity_manufacturing_groups, quantity_nfb_checked_manufacturing_groups,
+    )
+
+    selection = plan_quantity_operator_export_selection(batch, workspace_snapshot, flags)
+    partial = selection.partial_selection
+    demands = selection.selected_demands
+    if not demands:
+        return QuantityOperatorStagedExport((), partial.report() if partial is not None else None)
+
+    if partial is not None:
+        live_manifests = quantity_partial_live_manifests(
+            selection.full_selection, workspace_snapshot, selection.selected_reports,
+        )
+        groups, gate = quantity_nfb_checked_manufacturing_groups(
+            selection.checked_batch,
+            live_manifest_provider=lambda vid, _request: live_manifests[vid],
+            partial=True,
+        )
+        if gate.permitted_total_pieces != partial.exported_piece_count:
+            raise ValueError("NFB live manifest and selected physical pieces disagree")
+    else:
+        groups = quantity_manufacturing_groups(batch, demands=demands)
+
+    if sum(group.quantity for group in groups) != sum(row.quantity for row in demands):
+        raise ValueError("NFB CHECK actual piece count not conserved")
+    outputs = save_groups(groups, staging_directory, overwrite=False)
+    names = tuple(Path(path).name for path in outputs.values())
+    if partial is None:
+        return QuantityOperatorStagedExport(names)
+
+    report = partial.report()
+    report["outputs"] = list(names)
+    report_name = "nfb_partial_manifest.json"
+    with Path(staging_directory, report_name).open("x", encoding="utf-8") as handle:
+        json.dump(report, handle, ensure_ascii=False, indent=2)
+    return QuantityOperatorStagedExport((*names, report_name), report)

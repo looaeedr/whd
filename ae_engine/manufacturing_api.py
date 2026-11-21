@@ -1470,9 +1470,55 @@ def save_quantity_manufacturing_groups_dxf(
 # fully initialized: the existing source-profile reader consumes those exports.
 from .receiving_nfb_quantity_partial import (
     QuantityNfbPartialSelection, QuantityOperatorExportSelection,
+    QuantityOperatorStagedExport,
+    stage_quantity_operator_export as _stage_quantity_operator_export,
     verify_quantity_nfb_inner_door, select_quantity_nfb_partial,
     quantity_partial_live_manifests, plan_quantity_operator_export_selection,
 )
+
+def stage_quantity_operator_export(
+    request, workspace_snapshot, flags, staging_directory, *, operator_snapshot,
+):
+    """Resolve and stage Quantity DXFs from a single, current workspace.
+
+    The caller supplies an existing private empty stage, then owns operator
+    consent and publication. This result never authorizes final promotion.
+    """
+    source = plan_quantity_export_source(operator_snapshot, workspace_snapshot)
+    if not isinstance(request, ManufacturingResolveRequest):
+        raise TypeError("QUANTITY_OPERATOR_EXPORT_REQUIRES_RESOLVE_REQUEST")
+    # Bind the raw authored inputs represented in the typed request to the
+    # operator snapshot. The request may add validated settings-derived
+    # dimensions that did not exist in legacy operator snapshots.
+    authored = request.input_snapshot
+    keys = ("quantity", "receiving_quantity_box", "active_mode", "model", "w", "h", "d")
+    if any(
+        key in operator_snapshot
+        and freeze_manufacturing_value(authored.get(key))
+        != freeze_manufacturing_value(operator_snapshot[key])
+        for key in keys
+    ):
+        raise ValueError("QUANTITY_OPERATOR_EXPORT_REQUEST_SOURCE_MISMATCH")
+    if ("t" in operator_snapshot
+            and normalize_operator_source_dimension(authored.get("t"), field="t")
+            != normalize_operator_source_dimension(operator_snapshot["t"], field="t")):
+        raise ValueError("QUANTITY_OPERATOR_EXPORT_REQUEST_SOURCE_MISMATCH")
+    stage = Path(staging_directory)
+    if stage.is_symlink() or not stage.is_dir() or any(stage.iterdir()):
+        raise ValueError("QUANTITY_OPERATOR_EXPORT_REQUIRES_EMPTY_STAGE")
+    batch = resolve_operator_quantity_manufacturing_batch(
+        request, workspace_snapshot, resolve_request=resolve_manufacturing_request,
+    )
+    if source.use_current_csv_export:
+        outputs = export_current_csv_quantity_manufacturing(
+            batch, stage, flags=flags, overwrite=False,
+        )
+        return QuantityOperatorStagedExport(tuple(Path(path).name for path in outputs.values()))
+    return _stage_quantity_operator_export(
+        batch, workspace_snapshot, flags, stage,
+        save_groups=save_quantity_manufacturing_groups_dxf,
+    )
+
 
 def rebase_receiving_set_parent_nfb_brand(set_row, proposed_brand):
     """Public Engine NFB brand proof transition; lazy owner import avoids a cycle."""

@@ -255,10 +255,6 @@ def _export_selected_resolved_parts(self, folder, flags):
             build_manufacturing_request, build_scene_payload_for_app,
             operator_finished_dimensions_for_app,
         )
-        from phase6_quantity_manufacturing import (
-            resolve_quantity_manufacturing, quantity_manufacturing_groups,
-            quantity_nfb_checked_manufacturing_groups,
-        )
         request = build_manufacturing_request(
             designer,
             scene_payload_builder=lambda key: build_scene_payload_for_app(designer, key),
@@ -267,71 +263,29 @@ def _export_selected_resolved_parts(self, folder, flags):
             finished_dimensions_provider=lambda key=None: operator_finished_dimensions_for_app(designer, key),
         )
         workspace_snapshot = workspace.snapshot()
-        # #2517: Engine determines whether saved/live NFB sources match and
-        # whether numeric CSV versions can use a single verified batch route.
-        # GUI owns only operator intent and the snapshot passed to the API.
-        source_policy = manufacturing_api.plan_quantity_export_source(
-            mode_source, workspace_snapshot,
+        # Engine owns the live source decision, physical output and receipt.
+        staged = manufacturing_api.stage_quantity_operator_export(
+            request, workspace_snapshot, flags, folder, operator_snapshot=mode_source,
         )
-        batch = resolve_quantity_manufacturing(request, workspace_snapshot)
-        if source_policy.use_current_csv_export:
-            outputs = manufacturing_api.export_current_csv_quantity_manufacturing(
-                batch, folder, flags=flags, overwrite=True,
-            )
-            return ([os.path.basename(path) for path in outputs.values()], [])
-        selection = manufacturing_api.plan_quantity_operator_export_selection(
-            batch, workspace_snapshot, flags,
-        )
-        nfb_selection = selection.partial_selection
-        selected_demands = selection.selected_demands
-        if not selected_demands:
-            if nfb_selection is not None:
-                self._phase6_nfb_partial_export_report = nfb_selection.report()
-                diagnostics = [
-                    f"{row['version_id']} / {row['part_id']}：受阻 {row['actual_count']} 片；"
-                    + ", ".join(
-                        f"{source['physical_hole_id']} / {source['source_brand']} / "
-                        f"{source['model_filename']} / datum {source['datum_revision']}"
-                        for source in row["source_dependencies"])
-                    + "；" + row["reason"]
-                    for row in nfb_selection.rows
-                ]
-                return ([], [f"NFB 選中板件全數受阻（共 {nfb_selection.held_piece_count} 片），未輸出檔案。",
-                             *diagnostics])
+        report = staged.partial_report
+        self._phase6_nfb_partial_export_report = report
+        if staged.output_names:
+            return (list(staged.output_names), [])
+        if report is None:
             return ([], ["canonical quantity export: no selected physical parts"])
-        if nfb_selection is not None:
-            # Source IDs, report selection and checked physical-demand batch
-            # are all projected by Engine, never reconstructed in GUI.
-            checked_batch = selection.checked_batch
-            live_manifests = manufacturing_api.quantity_partial_live_manifests(
-                selection.full_selection, workspace_snapshot,
-                selection.selected_reports,
-            )
-            groups, gate = quantity_nfb_checked_manufacturing_groups(
-                checked_batch, live_manifest_provider=lambda vid, _request: live_manifests[vid],
-                partial=True,
-            )
-            if gate.permitted_total_pieces != nfb_selection.exported_piece_count:
-                raise ValueError("NFB live manifest and selected physical pieces disagree")
-        else:
-            groups = quantity_manufacturing_groups(batch, demands=selected_demands)
-        if sum(group.quantity for group in groups) != sum(row.quantity for row in selected_demands):
-            raise ValueError("NFB CHECK actual piece count not conserved")
-        outputs = manufacturing_api.save_quantity_manufacturing_groups_dxf(
-            groups, folder, overwrite=True,
-        )
-        names = [os.path.basename(path) for path in outputs.values()]
-        if nfb_selection is not None:
-            import json
-            from pathlib import Path
-            report = nfb_selection.report()
-            report["outputs"] = names
-            report_name = "nfb_partial_manifest.json"
-            Path(folder, report_name).write_text(
-                json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
-            names.append(report_name)
-            self._phase6_nfb_partial_export_report = report
-        return (names, [])
+        diagnostics = [
+            f"{row['version_id']} / {row['part_id']}：受阻 {row['actual_count']} 片；"
+            + ", ".join(
+                f"{source['physical_hole_id']} / {source['source_brand']} / "
+                f"{source['model_filename']} / datum {source['datum_revision']}"
+                for source in row["source_dependencies"])
+            + "；" + row["reason"]
+            for row in report["rows"]
+        ]
+        return ([], [
+            f"NFB 選中板件全數受阻（共 {report['held_actual_count']} 片），未輸出檔案。",
+            *diagnostics,
+        ])
 
     # Engine plans physical topology and independent-source preview eligibility.
     receiving_live = dict(getattr(designer, "_phase6_input_snapshot", {}) or {})
