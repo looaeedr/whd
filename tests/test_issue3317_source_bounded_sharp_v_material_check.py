@@ -109,3 +109,43 @@ def test_candidate_is_only_check_layer_in_dxf_roundtrip(tmp_path):
     for point, wanted in zip(coords, expected):
         assert point == pytest.approx(wanted)
     assert not any(e.dxf.layer in {"CUTTING", "BEND", "MARKING"} for e in actual)
+
+
+def test_physical_v_opening_wins_when_opposite_outer_path_is_shorter():
+    """#3317: shorter CUTTING path can be the WRONG SIDE of a real V.
+
+    This is a diagnostic stock fixture, not a replacement Factory panel.
+    Both V ray origins and actual BEND identity are kept intact.
+    """
+    scene, ideal = _source(90)
+    first = ideal.first_flat_miter_ray[1]
+    second = ideal.second_flat_miter_ray[1]
+    # Very long exterior detour at the V's actual opening, and a short
+    # alternate route around the opposite side of the sheet.
+    left = first.x - 1.0
+    right = second.x + 800.0
+    top = second.y + 10.0
+    perimeter = PolylinePrimitive((
+        Vec2(left, first.y), first, Vec2(right, first.y),
+        Vec2(right, second.y - 10.0), second, Vec2(second.x, top),
+        Vec2(left, top),
+    ), layer="CUTTING", closed=True)
+    stock = DrawingScene([perimeter, *scene.primitives[1:]])
+    before = deepcopy(stock.primitives)
+    sharp = api.project_v_miter_sharp_source_perimeter_check(stock, ideal)
+    removed = Polygon((p.x, p.y) for p in sharp.removed_corner_outline)
+    assert any(abs(x.x - right) < 1e-7 for x in sharp.removed_corner_outline)
+    assert not any(abs(x.x - left) < 1e-7 for x in sharp.removed_corner_outline)
+    assert removed.area == pytest.approx(sharp.removed_material_area_mm2)
+    assert sharp.source_material_area_mm2 == pytest.approx(
+        sharp.removed_material_area_mm2 + sharp.remaining_material_area_mm2
+    )
+    assert tuple(stock.primitives) == tuple(before)
+    # The older zero-R source CHECK must agree about the opening side.
+    trial = api.project_v_miter_source_material_trial(
+        stock, scene.primitives[1], scene.primitives[2],
+        thickness_mm=2, first_flange_height_mm=20,
+        second_flange_height_mm=30, second_fold_angle_deg=90,
+        relief_mode="ROUND_R",
+    )
+    assert any(abs(p.x - right) < 1e-7 for p in trial.removed_corner_outline)
