@@ -428,6 +428,8 @@ def project_operator_v_miter_live_corner_check(
         else:
             whole_sheet.extend(factory_precut_fold.first_proposed_segments)
             whole_sheet.extend(factory_precut_fold.second_proposed_segments)
+            whole_sheet.extend(factory_precut_fold.first_proposed_alignment_marks)
+            whole_sheet.extend(factory_precut_fold.second_proposed_alignment_marks)
     # A finite T local sharp-fold cross-section is meaningful only where
     # the original BEND actually contains the physical intersection and
     # one closed source sheet survives. It remains strictly CHECK: the

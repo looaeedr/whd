@@ -257,7 +257,8 @@ def draw_v_miter_gui_live_check(host, result):
     for item in paths:
         fg = ("#6e8799" if item.layer == "DATUM" else
               "#4dc7e5" if getattr(item, "color", None) == 4 else
-              "#af80ee" if getattr(item, "color", None) == 5 else "#ff9f0a")
+              "#af80ee" if getattr(item, "color", None) == 5 else
+              "#9aca40" if getattr(item, "color", None) == 3 else "#ff9f0a")
         thick = 1 if item.layer == "DATUM" else 2
         if hasattr(item, "points"):
             canvas.create_polygon(
@@ -265,9 +266,10 @@ def draw_v_miter_gui_live_check(host, result):
                 fill="", outline=fg, width=thick, dash=(5, 3),
             )
         elif hasattr(item, "p1"):
-            if getattr(item, "color", None) == 4:
-                # Each cyan line is an actual source-crease stroke: 20 mm
-                # at ends, with the existing Engine 20/50 middle cadence.
+            if getattr(item, "color", None) in (3, 4):
+                # Cyan = current physical BEND short marks.
+                # Green = newly proposed V Factory Fold short marks;
+                # neither becomes MARKING until manufacturing certification.
                 canvas.create_line(*xy(item.p1), *xy(item.p2),
                                    fill=fg, width=thick)
             else:
@@ -501,7 +503,11 @@ def refresh_corner_type_panel(self):
                     f"比舊 BEND 額外保留 "
                     f"{proposed_fold.first_additional_factory_fold_mm:g} / "
                     f"{proposed_fold.second_additional_factory_fold_mm:g} mm。"
-                    "仍待確認實際 R/BA/避裂與現場製造，不是正式 BEND。"
+                    "綠色短實線依相同 20/50 Engine 規則落在新 Fold 候選，"
+                    f"第一側 {len(proposed_fold.first_proposed_alignment_marks)} 段、"
+                    f"第二側 {len(proposed_fold.second_proposed_alignment_marks)} 段；"
+                    "青色短實線是舊實體 BEND 對照。"
+                    "仍待確認實際 R/BA/避裂與現場製造，不是正式 BEND／MARKING。"
                 )
             else:
                 fold_note = (
