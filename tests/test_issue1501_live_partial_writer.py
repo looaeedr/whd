@@ -18,6 +18,23 @@ from ae_engine.receiving_nfb_partial_export_writer import (
 from ae_engine.receiving_nfb_part_readiness import NfbPhysicalScope
 
 
+def _actual_dxf_entity_tags(path):
+    """Full DXF modelspace parity, excluding non-geometric storage handles."""
+    from ezdxf.lldxf.tagwriter import TagCollector
+
+    drawing = ezdxf.readfile(path)
+    assert not drawing.audit().errors
+    entities = []
+    for entity in drawing.modelspace():
+        collector = TagCollector(dxfversion=drawing.dxfversion)
+        entity.export_dxf(collector)
+        entities.append(tuple(
+            (tag.code, repr(tag.value)) for tag in collector.tags
+            if tag.code not in (5, 330, 360)
+        ))
+    return sorted(entities, key=repr)
+
+
 def _case(tmp_path):
     snapshot=apply_family_defaults({
         "model":"受電箱","w":800.,"h":1600.,"d":350.,
@@ -298,7 +315,7 @@ def test_primary_quantity_export_writes_real_nfb_cutting_check_and_partial_manif
     from functools import partial
     from types import SimpleNamespace
     import phase6_manufacturing_adapter as adapter
-    import phase6_quantity_manufacturing as quantity
+    from ae_engine import manufacturing_api
     from gui_modules.project import export_actions
     # The GUI now calls the real Engine API; inject the original fixture there.
     from ae_engine import receiving_nfb_quantity_partial as partial_action
@@ -320,8 +337,18 @@ def test_primary_quantity_export_writes_real_nfb_cutting_check_and_partial_manif
         _part_spec_query_callback=lambda *_: None,
     )
     app = SimpleNamespace(fold_designer_app=designer)
-    monkeypatch.setattr(adapter, "build_manufacturing_request", lambda *_a, **_k: batch.requests[0][2])
-    monkeypatch.setattr(quantity, "resolve_quantity_manufacturing", lambda *_: batch)
+    request = manufacturing_api.ManufacturingResolveRequest(
+        input_snapshot=snapshot, cabinet_model=snapshot["model"],
+    )
+    monkeypatch.setattr(adapter, "build_manufacturing_request", lambda *_a, **_k: request)
+
+    def resolve_fixture(actual_request, actual_workspace, *, resolve_request):
+        assert actual_request is request and actual_workspace == snapshot
+        assert resolve_request is manufacturing_api.resolve_manufacturing_request
+        return batch
+
+    monkeypatch.setattr(manufacturing_api, "resolve_operator_quantity_manufacturing_batch",
+                        resolve_fixture)
     monkeypatch.setattr(partial_action, "verify_quantity_nfb_inner_door",
                         partial(partial_action.verify_quantity_nfb_inner_door,
                                 index_path=opts["index_path"], profile_path=profiles))
@@ -345,6 +372,47 @@ def test_primary_quantity_export_writes_real_nfb_cutting_check_and_partial_manif
                       if re.fullmatch(r"Q[0-9]+", row.plain_text()))
     assert sorted(labels) == ["Q19", "Q4", "Q6"]
     assert sum(int(q[1:]) for q in labels) == report["actual_export_count"]
+    # The same live source and operator intent must be exportable without Tk
+    # and must produce the same authoritative physical receipt and inventory.
+    headless_stage = tmp_path / "headless"
+    headless_stage.mkdir()
+    staged = manufacturing_api.stage_quantity_operator_export(
+        request, designer.designer_workspace.snapshot(),
+        {"door": True, "base_plate": True, "box_body": True}, headless_stage,
+        operator_snapshot=snapshot,
+    )
+    assert sorted(staged.output_names) == sorted(exported)
+    assert staged.partial_report == report
+    assert json.loads((headless_stage / "nfb_partial_manifest.json").read_text()) == report
+    headless_labels = []
+    for path in headless_stage.glob("*.dxf"):
+        drawing = ezdxf.readfile(path)
+        assert not drawing.audit().errors
+        headless_labels.extend(
+            row.plain_text() for row in drawing.modelspace().query("MTEXT")
+            if re.fullmatch(r"Q[0-9]+", row.plain_text())
+        )
+    assert sorted(headless_labels) == sorted(labels)
+    for name in exported:
+        if name.lower().endswith(".dxf"):
+            assert _actual_dxf_entity_tags(output / name) == _actual_dxf_entity_tags(
+                headless_stage / name
+            )
+    # The manifest is the final link of the verified physical batch. An
+    # existing receipt must survive and all newly linked DXFs roll back.
+    headless_manifest = headless_stage / "nfb_partial_manifest.json"
+    for path in headless_stage.glob("*.dxf"):
+        path.unlink()
+    existing_receipt = headless_manifest.read_bytes()
+    with pytest.raises(FileExistsError):
+        manufacturing_api.stage_quantity_operator_export(
+            request, designer.designer_workspace.snapshot(),
+            {"door": True, "base_plate": True, "box_body": True}, headless_stage,
+            operator_snapshot=snapshot,
+        )
+    assert list(headless_stage.iterdir()) == [headless_manifest]
+    assert headless_manifest.read_bytes() == existing_receipt
+
     # A harmless byte change to a still-valid editable DXF is NOT a release
     # blocker. This second export re-verifies the current source.
     source.write_bytes(source.read_bytes() + b"format-still-valid")
@@ -441,7 +509,7 @@ def test_all_held_quantity_selection_discloses_nfb_dxf_datum_and_writes_nothing(
     from functools import partial
     from types import SimpleNamespace
     import phase6_manufacturing_adapter as adapter
-    import phase6_quantity_manufacturing as quantity
+    from ae_engine import manufacturing_api
     from gui_modules.project import export_actions
     # The GUI now calls the real Engine API; inject the original fixture there.
     from ae_engine import receiving_nfb_quantity_partial as partial_action
@@ -461,8 +529,18 @@ def test_all_held_quantity_selection_discloses_nfb_dxf_datum_and_writes_nothing(
         _phase6_resolve_manufacturing_geometry=lambda: None,
         _scene_query_callback=lambda *_: None, _part_spec_query_callback=lambda *_: None,
     ))
-    monkeypatch.setattr(adapter, "build_manufacturing_request", lambda *_a, **_k: batch.requests[0][2])
-    monkeypatch.setattr(quantity, "resolve_quantity_manufacturing", lambda *_: batch)
+    request = manufacturing_api.ManufacturingResolveRequest(
+        input_snapshot=snapshot, cabinet_model=snapshot["model"],
+    )
+    monkeypatch.setattr(adapter, "build_manufacturing_request", lambda *_a, **_k: request)
+
+    def resolve_fixture(actual_request, actual_workspace, *, resolve_request):
+        assert actual_request is request and actual_workspace == snapshot
+        assert resolve_request is manufacturing_api.resolve_manufacturing_request
+        return batch
+
+    monkeypatch.setattr(manufacturing_api, "resolve_operator_quantity_manufacturing_batch",
+                        resolve_fixture)
     monkeypatch.setattr(partial_action, "verify_quantity_nfb_inner_door",
                         partial(partial_action.verify_quantity_nfb_inner_door,
                                 index_path=opts["index_path"], profile_path=profiles))
