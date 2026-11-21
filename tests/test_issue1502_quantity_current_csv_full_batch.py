@@ -284,7 +284,7 @@ def test_quantity_stage_refuses_detached_batch_and_swapped_request_before_writin
     assert not list(tmp_path.iterdir())
 
 
-def test_quantity_stage_resolves_original_two_version_csv_request_without_adapter(tmp_path):
+def test_quantity_stage_resolves_original_two_version_csv_request_without_adapter(tmp_path, monkeypatch):
     from ae_engine import manufacturing_api
     from tests.test_issue2517_nfb_pair_request_to_finalscene_dxf_public_api import (
         _original_request,
@@ -314,6 +314,37 @@ def test_quantity_stage_resolves_original_two_version_csv_request_without_adapte
         drawing = ezdxf.readfile(tmp_path / name)
         assert not drawing.audit().errors
         assert any(row.dxf.layer == "CUTTING" for row in drawing.modelspace())
+
+    # Reuse the identical real request and workspace through the actual GUI
+    # export adapter. The manufacturing resolver and DXF writers are NOT
+    # mocked: compare every modelspace entity, not just filenames and Q.
+    import phase6_manufacturing_adapter as adapter
+    from gui_modules.project import export_actions
+    from tests.test_issue1501_live_partial_writer import _actual_dxf_entity_tags
+
+    designer = SimpleNamespace(
+        _phase6_input_snapshot=source,
+        designer_workspace=SimpleNamespace(snapshot=lambda: deepcopy(source)),
+        _phase6_resolve_manufacturing_geometry=lambda: None,
+        _scene_query_callback=lambda *_: None,
+        _part_spec_query_callback=lambda *_: None,
+    )
+    monkeypatch.setattr(adapter, "build_manufacturing_request", lambda *_a, **_k: request)
+    gui_dir = tmp_path.parent / (tmp_path.name + "-gui-stage")
+    gui_dir.mkdir()
+    gui_exported, gui_errors = export_actions._export_selected_parts(
+        SimpleNamespace(fold_designer_app=designer), str(gui_dir), {},
+        _flags(box_body=False, head=False, tail=False), False,
+    )
+    assert not gui_errors
+    assert sorted(gui_exported) == sorted(staged.output_names)
+    assert sorted(_quantity(gui_dir / name) for name in gui_exported) == [
+        "Q2", "Q2", "Q3", "Q3",
+    ]
+    for name in staged.output_names:
+        assert _actual_dxf_entity_tags(gui_dir / name) == _actual_dxf_entity_tags(
+            tmp_path / name
+        )
 
     # Leave a later target (not the first linked file) in place. The new
     # first link must be rolled back rather than replacing any prior files.

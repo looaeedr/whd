@@ -18,6 +18,23 @@ from ae_engine.receiving_nfb_partial_export_writer import (
 from ae_engine.receiving_nfb_part_readiness import NfbPhysicalScope
 
 
+def _actual_dxf_entity_tags(path):
+    """Full DXF modelspace parity, excluding non-geometric storage handles."""
+    from ezdxf.lldxf.tagwriter import TagCollector
+
+    drawing = ezdxf.readfile(path)
+    assert not drawing.audit().errors
+    entities = []
+    for entity in drawing.modelspace():
+        collector = TagCollector(dxfversion=drawing.dxfversion)
+        entity.export_dxf(collector)
+        entities.append(tuple(
+            (tag.code, repr(tag.value)) for tag in collector.tags
+            if tag.code not in (5, 330, 360)
+        ))
+    return sorted(entities, key=repr)
+
+
 def _case(tmp_path):
     snapshot=apply_family_defaults({
         "model":"受電箱","w":800.,"h":1600.,"d":350.,
@@ -376,6 +393,11 @@ def test_primary_quantity_export_writes_real_nfb_cutting_check_and_partial_manif
             if re.fullmatch(r"Q[0-9]+", row.plain_text())
         )
     assert sorted(headless_labels) == sorted(labels)
+    for name in exported:
+        if name.lower().endswith(".dxf"):
+            assert _actual_dxf_entity_tags(output / name) == _actual_dxf_entity_tags(
+                headless_stage / name
+            )
     # The manifest is the final link of the verified physical batch. An
     # existing receipt must survive and all newly linked DXFs roll back.
     headless_manifest = headless_stage / "nfb_partial_manifest.json"
