@@ -110,7 +110,12 @@ def test_factory_curved_t_true_v_leg_faces_and_continuity_proof(part_key, mode, 
         )
         first = result.first_source_tagged_cut_faces
         second = result.second_source_tagged_cut_faces
-        assert first is not None, (result.first_cut_face_failure, diagnostics)
+        assert first is not None, (
+            result.first_cut_face_failure,
+            [(x["boundary"], x["near_cut"], x["near_leg"], x["both"],
+              x["near_min_cut"], x["near_min_leg"], x["closest"][0])
+             for x in diagnostics],
+        )
         assert second is not None, result.second_cut_face_failure
         assert first.has_source_tagged_cut_faces
         assert second.has_source_tagged_cut_faces
