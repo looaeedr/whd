@@ -174,7 +174,15 @@ def trace_v_miter_source_true_t_cut_faces(
             continue
         # Full segment overlap, NOT just a vertex touching the V notch.
         # Avoid the global source perimeter and artificial clipping edges.
-        if segment.intersection(new_cut).length < seg_length - tol:
+        # A curved neutral-axis bend subdivides the exact flat source
+        # V leg into strip polygons. Shapely may return slightly displaced
+        # floating-point vertices after polygon intersection; literal
+        # LineString intersection can report *zero* overlap for a genuine
+        # source cut face. Demand whole-edge containment in the original
+        # true CUTTING boundary's NUMERICAL envelope, not just endpoint
+        # touch or a nearest-edge lookup. This is Engine tolerance, never
+        # an operator-acceptable manufacturing gap.
+        if segment.difference(new_cut.buffer(tol)).length > tol:
             continue
         if eligible_legs is not None and not any(
             segment.difference(leg.buffer(tol)).length <= tol
