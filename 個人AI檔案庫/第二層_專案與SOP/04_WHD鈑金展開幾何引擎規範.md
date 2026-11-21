@@ -6,11 +6,12 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
-## [CURRENT] 既有板件「原樣對照圖」必須來自同一實體模型（2026-11-21）— `WHD_EXISTING_PART_AS_IS_DRAWING_GATE_V1`
+## [CURRENT] WHD 既有板件「原樣對照圖」依 Engine 同源與箱型預設／實際工件分流（2026-11-21）— `WHD_EXISTING_PART_AS_IS_DRAWING_GATE_V1`
 
-- 此規則是**既有實體板件的非製造視圖來源約束**，不新增任何製造公式、尺寸或 DXF 放行條件。使用者要求畫出當前 WHD 專案已存在的封頭、封尾、箱身、中隔、門等板件時，先讀 current Project／Family、所選 Set／Bay（適用時）及該 resolved physical part 的 canonical 幾何；不能用文字、印象、通用形狀、過期快照或另一板件代替。
-- 只能從 **WHD 現有 2D／3D 真實畫面截圖**，或從**同一 Engine PartSpec／FinalScene 模型直接投影**交付原樣圖。封頭 `head` 與封尾 `tail` 各自讀幾何，不預設相同或鏡像。只可調整視角、縮放、裁切或外加箭頭／文字；不得改變輪廓、折邊／折線、截角或孔位，不得用手繪／生成圖片／生成 SVG 補畫。
-- 不能確認 Project／Family、physical-part ID、模型或視圖同源時，`PART_AS_IS_DRAWING_SOURCE_UNVERIFIED`：說明缺少的實體模型／來源，**不畫假的對照圖**。交的是原樣對照圖，**不必出 DXF**，也不得將其誤稱正式製造驗收；DXF 與完整 Save→Reload 只在另外提出加工／驗證需求時進入既有流程。詳細執行方式依 `AGENTS.md` 同名硬閘門及 `.agents/skills/engineering/驗證板件與DXF/SKILL.md`。
+- 此規則只管**非製造的原樣視圖來源**，不變更製造公式、Factory Policy、DXF、認證或專案資料。**一般查看 WHD 原有板件，不必提供 Project**：確認所選 Family，直接由現有 WHD 公開 Engine／Family／Policy 解析相應 PartSpec／FinalScene 的真實輪廓、折邊、截角、孔位；未指定尺寸時採用**該 Family 的既有 Engine 預設**，明確在圖／圖旁標示箱型、預設數值與單位、來源及「預設示例，非實際工件」。未指定 Family 時先沿用已確認的當前選取，否則只能依 WHD fresh-start CURRENT 10 規則採金庫型並明示；查無合法預設不得猜尺寸或借另一 Family。
+- **只有指向某個實際工件**（例如特定已存 Project、Set／Bay、physical-part ID 或當前實體製造狀態）才要求該 Project／current production state，以實際保存的 Family、尺寸、設定及 resolved physical part 取得 canonical 幾何。已明確存在但無效／缺失的實際尺寸不得降級成示例預設來充作真實加工尺寸；未指定工件時也不得拿「沒有 Project」當拒絕顯示既有板件的理由。
+- 只可從 WHD **現有 2D／3D 真實畫面截圖**或從**同一 Engine PartSpec／FinalScene 直接投影**交圖；封頭 `head`／封尾 `tail` 各自解析自己的輪廓、折邊、截角、孔位及方向，不假設相同或鏡像。可換視角、縮放、加箭頭／文字，不能補畫或修改實體幾何；禁止文字臆測、手繪、影像生成、生成 SVG、通用板型冒充同源圖。
+- 缺 Family／既有 Engine 預設／板件模型／同源視圖時，或指定實際工件卻缺該 Project 時，標 `PART_AS_IS_DRAWING_SOURCE_UNVERIFIED` 並指出確切缺項；未真取到模型投影／截圖不得宣稱已畫。交的是標明**箱型、尺寸來源、預設示例或實際工件**的原樣對照圖，**不必出 DXF**；DXF、Save→Reload、正式加工資格另循既有流程，非製造展示預設不得替代已確認的製造輸入。執行細節依 `AGENTS.md` 同名硬閘門與 `.agents/skills/engineering/驗證板件與DXF/SKILL.md`。
 
 ## [CURRENT] #2517 DXF 出圖見證須拒絕途中才接上的 Workspace／孔位來源（2026-11-13）
 
