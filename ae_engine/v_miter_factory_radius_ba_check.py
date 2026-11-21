@@ -240,16 +240,28 @@ def project_v_miter_factory_radius_ba_default_check(
 
         first_source = real_flange_piece(domains[0])
         unchanged_second = real_flange_piece(domains[1])
-        first_corrected = _trim_one_v_edge(
+        first_corrected, first_trimmed_v_leg = _trim_one_v_edge(
             first_source, apex, source_check.first_perimeter_hit,
             float(first_edge_trim_mm),
             relief_open_length_mm=relief_check.flat_leg_tip_cutback_mm,
+            return_source_mating_leg=True,
         )
         corrected_sheet, removal = _checked_full_source_from_trim(
             remaining, first_source, first_corrected, unchanged_second,
         )
         if removal.area <= 1e-8:
             raise GeometryError("V_MITER_FACTORY_FIRST_EDGE_TRIM_REMOVES_NO_STOCK")
+        # The physical weld-side first V leg is now the actual source trim
+        # line, NOT the original sharp ray. Prove it is an actual portion of
+        # this corrected whole sheet's CUTTING boundary before admitting it
+        # to the independently source-tagged true-T cut-face tracer.
+        if corrected_sheet.boundary.intersection(
+            first_trimmed_v_leg.buffer(1e-6),
+        ).length <= 1e-6:
+            raise GeometryError(
+                "V_MITER_FACTORY_TRIMMED_SOURCE_LEG_NOT_ON_NEW_CUTTING"
+            )
+        actual_v_legs = (first_trimmed_v_leg, actual_v_legs[1])
         # This one-sheet CHECK source supersedes the original R/HOLE stock.
         # The original source and unaffected second flange stay untouched.
         remaining = corrected_sheet

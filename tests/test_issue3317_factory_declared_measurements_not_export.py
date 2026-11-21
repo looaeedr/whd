@@ -227,6 +227,13 @@ def test_factory_first_edge_trim_uses_same_measured_source_for_2d_and_3d(mode):
         )
         assert corrected.first_thick_solid_triangles
         assert corrected.second_thick_solid_triangles
+        # The source-tagged sidewall cannot be traced on the old V cut:
+        # the exact new offset line must be used for the first real flange.
+        assert corrected.first_source_tagged_cut_faces is not None, (
+            corrected.first_cut_face_failure
+        )
+        assert corrected.first_source_tagged_cut_faces.has_source_tagged_cut_faces
+        assert corrected.first_source_tagged_cut_faces.selected_flat_v_cut_length_mm > 0
         assert corrected.manufacturing_status.endswith("UNCERTIFIED")
         with pytest.raises(GeometryError, match="MEASURED_SOURCE_REQUIRED"):
             project_v_miter_factory_radius_ba_default_check(
