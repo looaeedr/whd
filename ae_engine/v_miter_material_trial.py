@@ -4,7 +4,7 @@
 Unlike infinite plane intersections, this boundary check uses the actual
 single-piece canonical closed CUTTING polygon in the SAME DrawingScene as
 the two BENDs.  The ideal V legs must end on that existing perimeter, and
-only the shorter exterior corner arc may be replaced by their two rays.
+only the source-proven outward V-sector exterior arc may be removed.
 
 This is NOT a certified operator CUTTING polygon.  The ideal zero-radius
 bend model lacks actual sheet-neutral-axis compensation, real inside R,
@@ -80,11 +80,22 @@ def _arc_from_to(ring: LineString, start: float, end: float) -> tuple[tuple[floa
     return tuple((float(x), float(y)) for x, y in tail + head[1:])
 
 
-def _short_outer_arc(
+def _v_opening_outer_arc(
     material: Polygon,
+    apex: Vec2,
     first_tip: Vec2,
     second_tip: Vec2,
+    *,
+    sharp_check: bool,
 ) -> tuple[tuple[float, float], ...]:
+    """Choose the actual common exterior V opening, never the shorter arc.
+
+    The two V legs are 3D-fold-derived rays from the SAME BEND intersection.
+    They bound the only valid removed-material sector. Both source-perimeter
+    paths are checked in either ring orientation; exactly one must lie wholly
+    within that sector. A short path on the opposite side is not a V opening.
+    This only qualifies CHECK stock, not finite-T mating or CNC CUTTING.
+    """
     ring = LineString(material.exterior.coords)
     a = Point(first_tip.x, first_tip.y)
     b = Point(second_tip.x, second_tip.y)
@@ -92,20 +103,41 @@ def _short_outer_arc(
         raise GeometryError("V-miter trial V leg endpoint is not on source CUTTING perimeter")
     if a.distance(b) <= _TOL:
         raise GeometryError("V-miter trial requires distinct perimeter endpoints")
-    start = ring.project(a)
-    end = ring.project(b)
-    perimeter = ring.length
-    forward_distance = (end - start) % perimeter
-    backward_distance = (start - end) % perimeter
-    if min(forward_distance, backward_distance) <= _TOL or abs(forward_distance - backward_distance) <= _TOL:
-        raise GeometryError("V-miter trial outer corner arc cannot be unambiguously chosen")
-    if forward_distance < backward_distance:
-        result = _arc_from_to(ring, start, end)
-    else:
-        result = tuple(reversed(_arc_from_to(ring, end, start)))
-    if len(result) < 2:
-        raise GeometryError("V-miter trial source outer arc has no length")
-    return result
+    dx1, dy1 = first_tip.x - apex.x, first_tip.y - apex.y
+    dx2, dy2 = second_tip.x - apex.x, second_tip.y - apex.y
+    n1, n2 = math.hypot(dx1, dy1), math.hypot(dx2, dy2)
+    cross = dx1 * dy2 - dy1 * dx2
+    if min(n1, n2) <= _TOL or abs(cross) <= _TOL:
+        raise GeometryError("V_MITER_OPENING_DEGENERATE_V_RAYS")
+    sense = 1.0 if cross > 0 else -1.0
+    tolerance = max(_TOL, n1 * n2 * 1e-9)
+
+    start, end = ring.project(a), ring.project(b)
+    candidates = (
+        _arc_from_to(ring, start, end),
+        tuple(reversed(_arc_from_to(ring, end, start))),
+    )
+    valid = []
+    for arc in candidates:
+        if len(arc) < 2 or LineString(arc).length <= _TOL:
+            continue
+        if all(
+            min(
+                sense * (dx1 * (y - apex.y) - dy1 * (x - apex.x)),
+                sense * ((x - apex.x) * dy2 - (y - apex.y) * dx2),
+            ) >= -tolerance
+            for x, y in arc
+        ):
+            valid.append(arc)
+    if len(valid) != 1:
+        if sharp_check:
+            raise GeometryError("V_MITER_SHARP_CHECK_OPENING_SIDE_UNVERIFIED")
+        raise GeometryError(
+            "V-miter trial exterior arc leaves the actual V cut sector "
+            "or opening side is not unique"
+        )
+    return valid[0]
+
 
 
 def project_v_miter_source_material_trial(
@@ -136,7 +168,9 @@ def project_v_miter_source_material_trial(
         raise GeometryError("V-miter trial bend intersection must be inside source material")
     first_tip = ideal.first_flat_miter_ray[1]
     second_tip = ideal.second_flat_miter_ray[1]
-    outer_arc = _short_outer_arc(material, first_tip, second_tip)
+    outer_arc = _v_opening_outer_arc(
+        material, apex, first_tip, second_tip, sharp_check=False,
+    )
 
     # Outward wedge side is determined from the two source BEND axes, not
     # guessed from a canvas quadrant or user-facing corner name.
@@ -354,7 +388,7 @@ def project_v_miter_sharp_source_perimeter_check(
     b, factor_b = _forward_source_ray_perimeter_hit(
         material, apex, ideal.second_flat_miter_ray[1]
     )
-    arc = _short_outer_arc(material, a, b)
+    arc = _v_opening_outer_arc(material, apex, a, b, sharp_check=True)
 
     first_x, first_y = a.x - apex.x, a.y - apex.y
     second_x, second_y = b.x - apex.x, b.y - apex.y
