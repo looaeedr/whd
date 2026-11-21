@@ -198,6 +198,88 @@ def change_operator_v_miter_gui_relief_mode(
     return result
 
 
+def normalize_operator_v_miter_gui_first_bend_axes(
+    raw: Mapping | None,
+    selected_choices: Mapping | None = None,
+) -> dict[str, dict[str, str]]:
+    """Saved operator first BEND choice; never infer X/Y from a 90/90 tie.
+
+    Missing is deliberately UNSPECIFIED, including for legacy projects.
+    The choice is a physical-corner input, not a certified V manufacturing token.
+    """
+    if raw is None:
+        return {}
+    if not isinstance(raw, Mapping):
+        raise GeometryError("V_MITER_GUI_FIRST_BEND_MAP_INVALID")
+    selected = (
+        normalize_operator_v_miter_gui_choices(selected_choices)
+        if selected_choices is not None else None
+    )
+    normalized = {}
+    for part, corners in raw.items():
+        if (type(part) is not str or part not in V_MITER_GUI_PART_KEYS
+                or not isinstance(corners, Mapping)):
+            raise GeometryError("V_MITER_GUI_FIRST_BEND_PART_INVALID")
+        rows = {}
+        for corner, axis in corners.items():
+            if (type(corner) is not str or corner not in V_MITER_GUI_CORNER_KEYS
+                    or type(axis) is not str or axis not in ("x", "y")):
+                raise GeometryError("V_MITER_GUI_FIRST_BEND_AXIS_INVALID")
+            if selected is not None and corner not in selected.get(part, {}):
+                raise GeometryError("V_MITER_GUI_FIRST_BEND_ORPHAN_CORNER")
+            rows[corner] = axis
+        if rows:
+            normalized[part] = rows
+    return normalized
+
+
+def project_operator_v_miter_gui_selected_first_bend_axes(
+    raw: Mapping | None, selected_choices: Mapping | None,
+) -> dict[str, dict[str, str]]:
+    """Drop a saved first-fold choice when that physical V corner is removed."""
+    normalized = normalize_operator_v_miter_gui_first_bend_axes(raw)
+    selected = normalize_operator_v_miter_gui_choices(selected_choices)
+    return {
+        part: keep for part, corners in normalized.items()
+        if (keep := {
+            corner: axis for corner, axis in corners.items()
+            if corner in selected.get(part, {})
+        })
+    }
+
+
+def change_operator_v_miter_gui_first_bend_axis(
+    raw: Mapping | None, selected_choices: Mapping | None,
+    part_key: str, target_key: str, pair_same: Mapping,
+    *, first_bend_axis: str,
+) -> dict[str, dict[str, str]]:
+    """Explicitly select X/Y as the 90-degree first V bend for the real corner."""
+    selected = normalize_operator_v_miter_gui_choices(selected_choices)
+    result = normalize_operator_v_miter_gui_first_bend_axes(raw, selected)
+    if (type(part_key) is not str or part_key not in V_MITER_GUI_PART_KEYS
+            or type(first_bend_axis) is not str
+            or first_bend_axis not in ("x", "y")
+            or not isinstance(pair_same, Mapping)):
+        raise GeometryError("V_MITER_GUI_FIRST_BEND_SELECTION_INVALID")
+    if target_key in ("top", "bottom"):
+        if pair_same.get(target_key) is not True:
+            raise GeometryError("V_MITER_GUI_FIRST_BEND_PAIR_IS_SPLIT")
+        from .corner_state_transactions import project_operator_corner_pair_members
+        targets = project_operator_corner_pair_members(target_key)
+    elif target_key in V_MITER_GUI_CORNER_KEYS:
+        targets = (target_key,)
+    else:
+        raise GeometryError("V_MITER_GUI_FIRST_BEND_TARGET_INVALID")
+    if any(selected.get(part_key, {}).get(corner) != V_MITER_GUI_CHECK
+           for corner in targets):
+        raise GeometryError("V_MITER_GUI_FIRST_BEND_SELECTED_V_REQUIRED")
+    updated = dict(result.get(part_key, {}))
+    for corner in targets:
+        updated[corner] = first_bend_axis
+    result[part_key] = updated
+    return result
+
+
 def change_operator_v_miter_gui_choice(
     raw: Mapping | None, part_key: str, target_key: str,
     pair_same: Mapping, *, enabled: bool,

@@ -2171,6 +2171,9 @@ from .v_miter_operator_gui_check import (
     normalize_operator_v_miter_gui_relief_modes,
     project_operator_v_miter_gui_selected_relief_modes,
     change_operator_v_miter_gui_relief_mode,
+    normalize_operator_v_miter_gui_first_bend_axes,
+    project_operator_v_miter_gui_selected_first_bend_axes,
+    change_operator_v_miter_gui_first_bend_axis,
     require_no_operator_v_miter_gui_check_for_export,
     project_operator_v_miter_live_corner_check,
 )

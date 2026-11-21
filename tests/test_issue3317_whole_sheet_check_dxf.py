@@ -32,6 +32,8 @@ def test_real_gui_whole_sheet_v_contour_matches_engine_and_dxf_reopen(
         app.workspace_controller.set_active_part(part_key)
         app.select_manual_corner("bottom")
         app.set_v_miter_gui_check_choice()
+        app.v_miter_first_bend_axis_var.set("x")
+        app.set_v_miter_gui_first_bend_axis()
         original = app._query_fold_designer_render_data(
             part_key, app._make_original_fold_designer_snapshot(),
         )
@@ -71,7 +73,12 @@ def test_real_gui_whole_sheet_v_contour_matches_engine_and_dxf_reopen(
             e for e in reopened
             if e.dxftype() == "LWPOLYLINE" and e.dxf.layer == "CHECK"
         ]
-        assert len(actual) == 2
+        # #3390 adds the corrected R/hole contour as a third CHECK polyline.
+        # All source CHECK polylines, not an obsolete fixed count, must reopen.
+        assert len(actual) == sum(
+            isinstance(p, PolylinePrimitive) and p.layer == "CHECK"
+            for p in scene.primitives
+        )
         candidate = tuple(actual[0].get_points("xy"))
         assert len(candidate) == len(remain[0].points)
         for (x, y), point in zip(candidate, remain[0].points):
@@ -151,6 +158,8 @@ def test_save_reopen_uses_actual_gui_button_and_never_main_dxf(monkeypatch, tmp_
         app.workspace_controller.set_active_part("door")
         app.select_manual_corner("bottom")
         app.set_v_miter_gui_check_choice()
+        app.v_miter_first_bend_axis_var.set("x")
+        app.set_v_miter_gui_first_bend_axis()
         assert app.v_miter_export_check_button.cget("state") == "normal"
         app.v_miter_export_check_button.invoke()
         assert target.exists()

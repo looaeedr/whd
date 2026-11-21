@@ -30,6 +30,8 @@ def _real_factory_v_gui(part_key="door", corner="bottom_left"):
     app.workspace_controller.set_active_part(part_key)
     app.select_manual_corner(corner)
     app.set_v_miter_gui_check_choice()
+    app.v_miter_first_bend_axis_var.set("x")
+    app.set_v_miter_gui_first_bend_axis()
     snap = app._make_original_fold_designer_snapshot()
     spec, _ = app._fold_designer_part_spec_from_payload(part_key, snap)
     render = app._query_fold_designer_render_data(part_key, snap)
@@ -86,7 +88,8 @@ def test_opt_in_real_factory_v_uses_original_part_and_default_rba(part_key):
             assert proposal.second_curved_skin_triangles
             assert proposal.first_thick_solid_triangles
             assert proposal.second_thick_solid_triangles
-            assert proposal.relief_application_status.endswith("NOT_YET_APPLIED")
+            # #3390 corrected Factory R/hole stock is the actual R/BA source.
+            assert proposal.relief_application_status.endswith("RELIEF_APPLIED_UNCERTIFIED")
             assert proposal.trim_application_status.endswith("NOT_YET_SOLVED")
             assert all(getattr(row, "semantic_id", None)
                        != "v_miter_engine_r_ba_uncertified_only"

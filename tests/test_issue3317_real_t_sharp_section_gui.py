@@ -23,6 +23,8 @@ def test_real_gui_t_witness_only_if_original_physical_bend_continuous(part_key):
         app.workspace_controller.set_active_part(part_key)
         app.select_manual_corner("bottom")
         app.set_v_miter_gui_check_choice()
+        app.v_miter_first_bend_axis_var.set("x")
+        app.set_v_miter_gui_first_bend_axis()
         result = app._project_v_miter_gui_check_for_corner(part_key, "bottom")
         assert result.material_check is not None
         assert result.full_sheet_check_scene is not None
