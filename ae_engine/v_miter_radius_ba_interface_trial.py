@@ -289,6 +289,7 @@ def _trim_one_v_edge(
     patch: Polygon, apex: Vec2, tip: Vec2, amount: float,
     *, relief_open_length_mm: float,
     transition_run_mm: float | None = None,
+    return_source_mating_leg: bool = False,
 ):
     """Keep the physical R/hole root while progressively offsetting one V edge.
 
@@ -316,6 +317,8 @@ def _trim_one_v_edge(
     if offset < 0:
         raise GeometryError("V-miter relief edge trim must not be negative")
     if offset == 0:
+        if return_source_mating_leg:
+            raise GeometryError("V_MITER_TRIM_SOURCE_LEG_REQUIRES_POSITIVE_OFFSET")
         return patch
     run = offset if transition_run_mm is None else _finite(
         transition_run_mm, "transition_run_mm", positive=True,
@@ -362,6 +365,20 @@ def _trim_one_v_edge(
         raise GeometryError("V-miter trial trim destroys the single source flange patch")
     if clipped.difference(patch).area > _EPS:
         raise GeometryError("V-miter trial trim invents stock")
+    if return_source_mating_leg:
+        # This is the very same new straight outer segment from cut_domain
+        # that removed physical source material. Its source-side existence
+        # is checked against the whole Factory sheet before cut-face tracing;
+        # the relief-root taper is deliberately EXCLUDED from seam mating.
+        if cutback + run >= length - _EPS:
+            raise GeometryError("V_MITER_TRIM_SOURCE_LEG_HAS_NO_STRAIGHT_REACH")
+        physical_leg = LineString((
+            point(cutback + run, offset),
+            point(length, offset),
+        ))
+        if physical_leg.length <= _EPS:
+            raise GeometryError("V_MITER_TRIM_SOURCE_LEG_DEGENERATE")
+        return clipped, physical_leg
     return clipped
 
 
