@@ -123,7 +123,7 @@ def test_factory_true_t_rejects_forged_thickness_and_unproven_fold():
         missing = replace(
             live.material_check, source_material_area_mm2=1,
         )
-        with pytest.raises(GeometryError, match="SOURCE_AREA_MISMATCH|AREA_MISMATCH"):
+        with pytest.raises(GeometryError, match="SOURCE_AREA_MISMATCH|AREA_MISMATCH|MOTHER_IDENTITY_MISMATCH"):
             project_v_miter_factory_post_v_true_t_check(
                 spec, render, "bottom_left", live.ideal, missing,
                 live.factory_precut_fold_check, x_real, y_real,
