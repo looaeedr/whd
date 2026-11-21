@@ -397,6 +397,7 @@ def _endcap_existing_fold_angle_sources(part_spec: EndCapPartSpec, part_key: str
 def project_operator_v_miter_live_corner_check(
     part_spec, render_data: PartRenderData, corner_key: str,
     *, relief_mode: str = "ROUND_R", run_radius_ba_trial: bool = False,
+    first_bend_axis: str | None = None,
 ) -> VMiterOperatorGUICheck:
     """Project an actual per-corner 2D/3D ideal V, strictly CHECK-only.
 
@@ -445,7 +446,23 @@ def project_operator_v_miter_live_corner_check(
             raise GeometryError("V_MITER_GUI_OPPOSITE_FOLD_SENSE")
     if not (0 < abs(angle_x) < 180 and 0 < abs(angle_y) < 180):
         raise GeometryError("V_MITER_GUI_FOLD_ANGLE_OUT_OF_RANGE")
-    if abs(abs(angle_x) - 90) <= 1e-8:
+    # Once the operator supplies a fold order, no X-first tie break is allowed.
+    # This is an Engine source-choice seam, not GUI geometry or a DXF release.
+    if first_bend_axis is not None:
+        if type(first_bend_axis) is not str or first_bend_axis not in ("x", "y"):
+            raise GeometryError("V_MITER_GUI_FIRST_BEND_AXIS_INVALID")
+        selected_angle = angle_x if first_bend_axis == "x" else angle_y
+        if abs(abs(selected_angle) - 90) > 1e-8:
+            raise GeometryError("V_MITER_GUI_SELECTED_FIRST_BEND_NOT_90_DEG")
+        if first_bend_axis == "x":
+            first, second = (x_bend, "x", x_height), (y_bend, "y", y_height)
+            second_angle = abs(angle_y)
+        else:
+            first, second = (y_bend, "y", y_height), (x_bend, "x", x_height)
+            second_angle = abs(angle_x)
+    elif abs(abs(angle_x) - 90) <= 1e-8:
+        # Legacy CHECK preview only: callers must supply the operator's
+        # explicit selection before the fifth CornerType can be certified.
         first, second = (x_bend, "x", x_height), (y_bend, "y", y_height)
         second_angle = abs(angle_y)
     elif abs(abs(angle_y) - 90) <= 1e-8:
