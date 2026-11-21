@@ -28,6 +28,9 @@ from .v_miter_relief_trial import _rounded_v_notch_polygon
 from .v_miter_trial_defaults import (
     VMiterTrialParameterDefaults, project_v_miter_trial_parameter_defaults,
 )
+from .v_miter_factory_measurements import (
+    VMiterFactoryMeasuredInputs, require_v_miter_factory_measurement_source,
+)
 
 
 @dataclass(frozen=True)
@@ -58,10 +61,10 @@ def project_v_miter_factory_bottom_relief_default_check(
     factory_fold: VMiterFactoryPrecutFoldCheck,
     first_real_bend: LinePrimitive,
     second_real_bend: LinePrimitive,
-    defaults: VMiterTrialParameterDefaults,
+    defaults: VMiterTrialParameterDefaults | VMiterFactoryMeasuredInputs,
     factory_mother: VMiterFactoryMotherReplacementCheck | None = None,
 ) -> VMiterFactoryBottomReliefCheck:
-    """Replace the *source-qualified* sharp V tip with a trial R or hole.
+    """Replace the *source-qualified* sharp V tip with supplied R or hole.
 
     The original 4-type FinalScene cannot be replaced with a guessed
     rectangle; reprove the complete original Factory mother and both
@@ -72,15 +75,21 @@ def project_v_miter_factory_bottom_relief_default_check(
             or not isinstance(ideal, VMiterIdealMatingCandidate)
             or not isinstance(source_check, VMiterSourceBoundSharpCheck)
             or not isinstance(factory_fold, VMiterFactoryPrecutFoldCheck)
-            or not isinstance(defaults, VMiterTrialParameterDefaults)):
+            or not isinstance(defaults, (VMiterTrialParameterDefaults,
+                                         VMiterFactoryMeasuredInputs))):
         raise GeometryError("V_MITER_FACTORY_RELIEF_TYPED_SOURCE_REQUIRED")
-    expected_defaults = project_v_miter_trial_parameter_defaults(
-        thickness_mm=part_spec.thickness,
-        second_fold_angle_deg=ideal.source.second_fold_angle_deg,
-        relief_mode=ideal.source.relief_mode,
-    )
-    if defaults != expected_defaults:
-        raise GeometryError("V_MITER_FACTORY_RELIEF_DEFAULTS_SOURCE_CHANGED")
+    if isinstance(defaults, VMiterFactoryMeasuredInputs):
+        require_v_miter_factory_measurement_source(
+            defaults, part_spec, corner_key, ideal,
+        )
+    else:
+        expected_defaults = project_v_miter_trial_parameter_defaults(
+            thickness_mm=part_spec.thickness,
+            second_fold_angle_deg=ideal.source.second_fold_angle_deg,
+            relief_mode=ideal.source.relief_mode,
+        )
+        if defaults != expected_defaults:
+            raise GeometryError("V_MITER_FACTORY_RELIEF_DEFAULTS_SOURCE_CHANGED")
     validated_fold = project_v_miter_factory_precut_fold_check(
         part_spec, render_data, corner_key, source_check,
         first_real_bend, second_real_bend, factory_mother,
