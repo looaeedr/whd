@@ -50,6 +50,9 @@ from .v_miter_factory_relief_check import (
 from .v_miter_trial_defaults import (
     VMiterTrialParameterDefaults, project_v_miter_trial_parameter_defaults,
 )
+from .v_miter_factory_measurements import (
+    VMiterFactoryMeasuredInputs, require_v_miter_factory_measurement_source,
+)
 
 
 @dataclass(frozen=True)
@@ -88,7 +91,7 @@ def project_v_miter_factory_radius_ba_default_check(
     second_real_bend: LinePrimitive,
     first_station_bend: LinePrimitive,
     second_station_bend: LinePrimitive,
-    defaults: VMiterTrialParameterDefaults,
+    defaults: VMiterTrialParameterDefaults | VMiterFactoryMeasuredInputs,
     factory_mother: VMiterFactoryMotherReplacementCheck | None = None,
     *,
     relief_check: VMiterFactoryBottomReliefCheck | None = None,
@@ -102,12 +105,17 @@ def project_v_miter_factory_radius_ba_default_check(
     V-edge trimming is not invented or permitted as factory machining.
     """
     if (not isinstance(part_spec, (DoorPartSpec, EndCapPartSpec))
-            or not isinstance(defaults, VMiterTrialParameterDefaults)
+            or not isinstance(defaults, (VMiterTrialParameterDefaults,
+                                         VMiterFactoryMeasuredInputs))
             or not isinstance(source_check, VMiterSourceBoundSharpCheck)
             or not isinstance(ideal, VMiterIdealMatingCandidate)
             or not isinstance(factory_fold, VMiterFactoryPrecutFoldCheck)):
         raise GeometryError("V_MITER_FACTORY_R_BA_TYPED_SOURCE_REQUIRED")
-    if defaults != project_v_miter_trial_parameter_defaults(
+    if isinstance(defaults, VMiterFactoryMeasuredInputs):
+        require_v_miter_factory_measurement_source(
+            defaults, part_spec, corner_key, ideal,
+        )
+    elif defaults != project_v_miter_trial_parameter_defaults(
         thickness_mm=part_spec.thickness,
         second_fold_angle_deg=ideal.source.second_fold_angle_deg,
         relief_mode=ideal.source.relief_mode,
@@ -251,4 +259,9 @@ def project_v_miter_factory_radius_ba_default_check(
         curved_t_volume_status=volume_status,
         formed_source_outline=tuple(selected_outline),
         relief_application_status=relief_status,
+        manufacturing_status=(
+            "V_MITER_FACTORY_R_BA_MEASURED_INPUT_UNCERTIFIED"
+            if isinstance(defaults, VMiterFactoryMeasuredInputs)
+            else "V_MITER_FACTORY_R_BA_DEFAULT_UNCERTIFIED"
+        ),
     )
