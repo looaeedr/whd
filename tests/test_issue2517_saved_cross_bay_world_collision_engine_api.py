@@ -5,6 +5,7 @@ No combination of those independent audits can detect two neighbouring
 cabinets crossing at the shared Joint plane.
 """
 from copy import deepcopy
+from dataclasses import replace
 from types import SimpleNamespace
 
 import pytest
@@ -41,9 +42,10 @@ def test_real_saved_two_sets_both_cross_bay_world_matrices_are_stable(tmp_path):
         assert after.set_id == sets[si]["stable_id"]
         assert after.bay_ids == tuple(b["stable_id"] for b in sets[si]["bays"])
         assert len(after.physical_keys_by_bay) == 2
-        # Actual source has valid inner-door 2D/DXF, but its legacy canonical
-        # Bay scene still lacks the source-owned 3D panel profile. A display
-        # audit must expose this unmeshed real sheet and refuse full clearance.
+        # This existing legacy test provider creates a correct Engine
+        # InnerDoor 2D FinalScene but drops its canonical X/Y fold profiles.
+        # An incomplete provider must be surfaced and must never certify
+        # missing 3D as a collision-free physical panel.
         assert len(after.missing_world_keys_by_bay) == 2
         assert all(any(key.endswith("::inner_door:upper:panel") for key in group)
                    for group in after.missing_world_keys_by_bay)
@@ -76,6 +78,87 @@ def test_real_saved_two_sets_both_cross_bay_world_matrices_are_stable(tmp_path):
     assert before == loaded
     assert saved.read_bytes() == original_bytes
 
+
+
+def test_real_saved_two_sets_with_engine_inner_door_fold_profiles_complete_3d(tmp_path):
+    """The real Engine already owns Door X/Y folds; no GUI guess is required.
+
+    The legacy fixture used by #3305 dropped both profiles when adding its
+    canonical InnerDoor panel. Derive them from the same source-owned
+    InnerDoorPanelPart and prove the exact saved and reloaded World 3D mesh
+    and cross-Bay collision matrix, without modifying the factory 2D/DXF.
+    """
+    from ae_engine.cabinet_types.policy import derive_inner_door_panels
+    from ae_engine.inner_door_panels import inner_door_panel_part_profiles
+    from ae_engine.receiving_layout import project_receiving_bay_legacy_aliases
+
+    saved, original_bytes, authored, loaded = _saved_two_sets(tmp_path)
+
+    def with_engine_profiles(source):
+        from tests.test_issue1502_current_csv_multi_bay_once import _provider
+        original, calls = _provider(source)
+
+        def provide(si, bi):
+            actual = original(si, bi)
+            selected = project_receiving_bay_legacy_aliases(
+                source, set_index=si, bay_index=bi,
+            )
+            panels = derive_inner_door_panels(selected)
+            profiles = inner_door_panel_part_profiles(panels)
+            assert profiles
+            physical = []
+            for part in actual.parts:
+                if part.part_key in profiles:
+                    p = profiles[part.part_key]
+                    # These original 3D profiles are independently
+                    # authoritative. Fold direction is never inferred from a
+                    # render bbox or invented from a UI angle.
+                    assert part.x_profile == part.y_profile == ()
+                    assert all(row["len"] > 0 for row in p["X"] + p["Y"])
+                    physical.append(replace(
+                        part, x_profile=tuple(p["X"]),
+                        y_profile=tuple(p["Y"]),
+                    ))
+                else:
+                    physical.append(part)
+            assert any(p.part_key in profiles for p in actual.parts)
+            return replace(actual, parts=tuple(physical))
+
+        return provide, calls
+
+    before_provider, before_calls = with_engine_profiles(authored)
+    after_provider, after_calls = with_engine_profiles(loaded)
+    snapshots = deepcopy(loaded)
+    for si in (0, 1):
+        original = api.project_receiving_set_cross_bay_collision_display_audit(
+            authored["receiving_layout"], before_provider,
+            set_index=si, thickness_mm=loaded["t"],
+        )
+        reloaded = api.project_receiving_set_cross_bay_collision_display_audit(
+            loaded["receiving_layout"], after_provider,
+            set_index=si, thickness_mm=loaded["t"],
+        )
+        assert reloaded == original
+        assert reloaded.complete
+        assert reloaded.missing_world_keys == ()
+        assert reloaded.require_complete()
+        assert all(any(key.endswith("::inner_door:upper:panel")
+                       for key in group)
+                   for group in reloaded.physical_keys_by_bay)
+        expected = (
+            len(reloaded.physical_keys_by_bay[0])
+            * len(reloaded.physical_keys_by_bay[1])
+        )
+        assert reloaded.evaluated_pair_count == expected
+        # Valid folded panels are now included in EVERY cross-Bay pairing;
+        # unresolved surface crossings remain warning/blocker evidence.
+        assert all(pair.status in {
+            "AABB_SEPARATED", "NO_NONCOPLANAR_CROSSING",
+            "UNRESOLVED_CROSSING",
+        } for pair in reloaded.pairs)
+    assert before_calls == after_calls == [(0, 0), (0, 1), (1, 0), (1, 1)]
+    assert loaded == snapshots
+    assert saved.read_bytes() == original_bytes
 
 def _simple_two_bay():
     return resize_receiving_bays(
