@@ -23,7 +23,7 @@ from ae_engine.v_miter_material_trial import _single_source_material
 
 
 @pytest.mark.parametrize("part_key", ("door", "head", "tail"))
-@pytest.mark.parametrize("corner", ("bottom_left", "top_right"))
+@pytest.mark.parametrize("corner", ("bottom_left", "bottom_right"))
 def test_real_factory_precorner_bend_from_typed_spec_not_visual_straight_line(
     part_key, corner, tmp_path,
 ):
