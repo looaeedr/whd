@@ -300,18 +300,52 @@ def draw_v_miter_gui_live_check(host, result):
         return ((dx - dy) * 0.7, (dx + dy) * 0.3 - dz)
 
     a, b = project(start), project(end)
-    mag = max(1.0, abs(b[0]), abs(b[1]))
-    sf = min(55.0 / mag, 1.0)
-    midx, midy = 75.0, 58.0
+    mesh = result.factory_true_t_check
+    outlines = (
+        (mesh.first_formed_perimeter_edges, mesh.second_formed_perimeter_edges)
+        if mesh is not None else ((), ())
+    )
+    projected_mesh = tuple(
+        (project(p), project(q))
+        for edges in outlines for p, q in edges
+    )
+    if projected_mesh:
+        # Only oblique rendering is in Tk; all physical 3D vertices and
+        # boundary ownership are supplied by the Engine. Scale uniformly.
+        flat = [v for edge in projected_mesh for v in edge] + [a, b]
+        lo_x, hi_x = min(v[0] for v in flat), max(v[0] for v in flat)
+        lo_y, hi_y = min(v[1] for v in flat), max(v[1] for v in flat)
+        sf = min(128.0 / max(1e-9, hi_x - lo_x),
+                 59.0 / max(1e-9, hi_y - lo_y))
+        midx = 75.0 - 0.5 * (lo_x + hi_x) * sf
+        midy = 53.0 - 0.5 * (lo_y + hi_y) * sf
+        for edges, color in zip(outlines, ("#4dc7e5", "#af80ee")):
+            for p, q in edges:
+                x, y = project(p), project(q)
+                three.create_line(
+                    midx + x[0] * sf, midy + x[1] * sf,
+                    midx + y[0] * sf, midy + y[1] * sf,
+                    fill=color, width=1,
+                )
+    else:
+        mag = max(1.0, abs(b[0]), abs(b[1]))
+        sf = min(55.0 / mag, 1.0)
+        midx, midy = 75.0, 58.0
     three.create_line(
         midx + a[0] * sf, midy + a[1] * sf,
         midx + b[0] * sf, midy + b[1] * sf,
-        fill="#ff9f0a", width=3,
+        fill="#ff9f0a", width=2,
     )
-    three.create_oval(midx - 2, midy - 2, midx + 2, midy + 2,
-                      outline="#ff9f0a")
-    three.create_text(75, 10, text="3D 理想成形接合線",
-                      fill=host.COLOR_TEXT, font=("Microsoft JhengHei", 8))
+    three.create_oval(
+        midx + a[0] * sf - 2, midy + a[1] * sf - 2,
+        midx + a[0] * sf + 2, midy + a[1] * sf + 2,
+        outline="#ff9f0a",
+    )
+    three.create_text(
+        75, 10, text=("3D 零R／有限T 網格 CHECK" if mesh is not None
+                      else "3D 理想成形接合線"),
+        fill=host.COLOR_TEXT, font=("Microsoft JhengHei", 8),
+    )
     if result.sharp_t_witness is not None:
         # Draw the two actual Engine 3D points of the local sharp-T bisector.
         # This is a CHECK-only thickness cross-section, not a machined bevel.
@@ -514,6 +548,25 @@ def refresh_corner_type_panel(self):
                     "原 Factory 折線補段尚無獨立可確認來源："
                     f"{live.factory_precut_fold_failure or '未取得 V 原料'}。"
                 )
+            if live.factory_true_t_check is not None:
+                physical = live.factory_true_t_check
+                first_faces = physical.first_source_tagged_cut_faces
+                second_faces = physical.second_source_tagged_cut_faces
+                surface_note = (
+                    f"實際 T={physical.thickness_mm:g} mm 的 Factory V 零R厚板網格："
+                    f"兩折面 {len(physical.first_formed_skin_triangles)} / "
+                    f"{len(physical.second_formed_skin_triangles)} 個三角形；"
+                    f"偵測到 {physical.surface_interference_pair_count} 組表面相交；"
+                    "來源標記 V 切面 "
+                    f"{len(first_faces.true_cut_face_triangles) if first_faces is not None else '未知'} / "
+                    f"{len(second_faces.true_cut_face_triangles) if second_faces is not None else '未知'}。"
+                    "未檢出相交仍非零間隙或加工合格；實際 R/BA、完整干涉與避裂尚未認證。"
+                )
+            else:
+                surface_note = (
+                    "有限 T 真板料 3D 網格檢查尚不能成立："
+                    f"{live.factory_true_t_failure or '原 Factory 折線／V 剩料不足'}。"
+                )
             self.manual_corner_param_summary.configure(
                 text=(
                     f"V 型斜接（未認證 CHECK）｜另一側折彎 "
@@ -527,6 +580,7 @@ def refresh_corner_type_panel(self):
                     f"{section_note}\\n"
                     f"{marking_note}\\n"
                     f"{fold_note}\\n"
+                    f"{surface_note}\\n"
                     f"原 BEND 至理想交點缺段：{live.first_bend_source_gap_mm:g} / "
                     f"{live.second_bend_source_gap_mm:g} mm（僅來源診斷，"
                     "缺段不可視為已實際打標或可製造折線）。"
