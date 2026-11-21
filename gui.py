@@ -1063,6 +1063,31 @@ class Phase6ApplicationHost:
         # A CHECK draft is a saved choice, not a manufacturing geometry edit.
         self._capture_phase6_committed_snapshot()
 
+    def set_v_miter_gui_relief_mode(self):
+        """Commit the current corner's R/hole CHECK choice as Engine state."""
+        part_key = self._current_manual_corner_part_key()
+        if not self._corner_part_type_editable(part_key):
+            return
+        target = self._normalize_manual_corner_target(part_key)
+        physical = manufacturing_api.project_operator_corner_selection_target(target)
+        selected = getattr(self, "v_miter_gui_check_corners", {})
+        if selected.get(part_key, {}).get(physical) != "V_MITER_CHECK":
+            self.refresh_corner_type_panel()
+            return
+        self.v_miter_gui_relief_modes = (
+            manufacturing_api.change_operator_v_miter_gui_relief_mode(
+                getattr(self, "v_miter_gui_relief_modes", {}),
+                selected, part_key, target,
+                self.manual_corner_pair_same[part_key],
+                relief_mode=self.v_miter_relief_mode_var.get(),
+            )
+        )
+        # The R/BA mesh is rebuilt on demand; switching modes must not
+        # reuse a previous geometry projection from a different source.
+        self._v_miter_radius_ba_trial_target = None
+        self.refresh_corner_type_panel()
+        self._capture_phase6_committed_snapshot()
+
     def run_v_miter_default_radius_ba_check(self):
         """Run source-verified curved R/BA/T CHECK, never manufacturing."""
         part_key = self._current_manual_corner_part_key()
@@ -1225,6 +1250,13 @@ class Phase6ApplicationHost:
             getattr(self, "v_miter_gui_check_corners", {}),
             part_key, target_key, self.manual_corner_pair_same[part_key], enabled=False,
         )
+        self.v_miter_gui_relief_modes = (
+            manufacturing_api.project_operator_v_miter_gui_selected_relief_modes(
+                getattr(self, "v_miter_gui_relief_modes", {}),
+                self.v_miter_gui_check_corners,
+            )
+        )
+        self._v_miter_radius_ba_trial_target = None
         self.refresh_corner_type_panel()
         self._notify_fold_designer_corner_state()
         self._request_phase6_update("geometry")

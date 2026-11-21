@@ -474,6 +474,15 @@ def refresh_corner_type_panel(self):
         )
         canvas.configure(highlightbackground=self.COLOR_ACCENT if type_id is selection.type_id else '#34343a')
     if v_choice:
+        stored_relief_modes = manufacturing_api.normalize_operator_v_miter_gui_relief_modes(
+            getattr(self, "v_miter_gui_relief_modes", {}),
+            getattr(self, "v_miter_gui_check_corners", {}),
+        )
+        selected_relief_mode = stored_relief_modes.get(part_key, {}).get(
+            physical_key, "ROUND_R",
+        )
+        if self.v_miter_relief_mode_var.get() != selected_relief_mode:
+            self.v_miter_relief_mode_var.set(selected_relief_mode)
         self.manual_corner_param_frame.pack_forget()
         self.manual_corner_param_summary.pack(fill=tk.X, padx=8, pady=(3, 5))
         three = self.v_miter_check_3d_preview_canvas
@@ -853,7 +862,7 @@ def _build_corner_type_selector(host, editor):
         tk.Radiobutton(
             relief_row, text=label,
             variable=host.v_miter_relief_mode_var, value=choice,
-            command=host.refresh_corner_type_panel,
+            command=host.set_v_miter_gui_relief_mode,
             bg=host.COLOR_INPUT_BG, fg=host.COLOR_TEXT,
             activebackground=host.COLOR_INPUT_BG,
             activeforeground=host.COLOR_TEXT,

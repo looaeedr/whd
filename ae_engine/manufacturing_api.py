@@ -2165,6 +2165,9 @@ from .v_miter_operator_gui_check import (
     VMiterOperatorGUICheck,
     normalize_operator_v_miter_gui_choices,
     change_operator_v_miter_gui_choice,
+    normalize_operator_v_miter_gui_relief_modes,
+    project_operator_v_miter_gui_selected_relief_modes,
+    change_operator_v_miter_gui_relief_mode,
     require_no_operator_v_miter_gui_check_for_export,
     project_operator_v_miter_live_corner_check,
 )

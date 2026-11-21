@@ -114,6 +114,90 @@ def normalize_operator_v_miter_gui_choices(raw: Mapping | None) -> dict[str, dic
     return result
 
 
+def normalize_operator_v_miter_gui_relief_modes(
+    raw: Mapping | None,
+    selected_choices: Mapping | None = None,
+) -> dict[str, dict[str, str]]:
+    """Validate persisted per-physical-corner R/hole CHECK inputs only.
+
+    Old .p6fold snapshots may omit the map: ROUND_R is the default. This is
+    never a certified CornerType/Registry rule or an output entitlement.
+    """
+    if raw is None:
+        return {}
+    if not isinstance(raw, Mapping):
+        raise GeometryError("V_MITER_GUI_RELIEF_MODES_INVALID")
+    selected = (
+        normalize_operator_v_miter_gui_choices(selected_choices)
+        if selected_choices is not None else None
+    )
+    normalized = {}
+    for part, corners in raw.items():
+        if (type(part) is not str or part not in V_MITER_GUI_PART_KEYS
+                or not isinstance(corners, Mapping)):
+            raise GeometryError("V_MITER_GUI_RELIEF_PART_INVALID")
+        rows = {}
+        for corner, mode in corners.items():
+            if (type(corner) is not str
+                    or corner not in V_MITER_GUI_CORNER_KEYS
+                    or type(mode) is not str
+                    or mode not in ("ROUND_R", "RELIEF_HOLE")):
+                raise GeometryError("V_MITER_GUI_RELIEF_MODE_INVALID")
+            if selected is not None and corner not in selected.get(part, {}):
+                raise GeometryError("V_MITER_GUI_RELIEF_ORPHAN_CORNER")
+            rows[corner] = mode
+        if rows:
+            normalized[part] = rows
+    return normalized
+
+
+def project_operator_v_miter_gui_selected_relief_modes(
+    raw: Mapping | None, selected_choices: Mapping | None,
+) -> dict[str, dict[str, str]]:
+    """Discard explicit CHECK relief inputs after their V choice is removed."""
+    normalized = normalize_operator_v_miter_gui_relief_modes(raw)
+    selected = normalize_operator_v_miter_gui_choices(selected_choices)
+    return {
+        part: keep for part, corners in normalized.items()
+        if (keep := {
+            corner: mode for corner, mode in corners.items()
+            if corner in selected.get(part, {})
+        })
+    }
+
+
+def change_operator_v_miter_gui_relief_mode(
+    raw: Mapping | None, selected_choices: Mapping | None,
+    part_key: str, target_key: str, pair_same: Mapping,
+    *, relief_mode: str,
+) -> dict[str, dict[str, str]]:
+    """Change one physical V corner or a deliberately paired V selection."""
+    selected = normalize_operator_v_miter_gui_choices(selected_choices)
+    result = normalize_operator_v_miter_gui_relief_modes(raw, selected)
+    if (type(part_key) is not str or part_key not in V_MITER_GUI_PART_KEYS
+            or type(relief_mode) is not str
+            or relief_mode not in ("ROUND_R", "RELIEF_HOLE")
+            or not isinstance(pair_same, Mapping)):
+        raise GeometryError("V_MITER_GUI_RELIEF_SELECTION_INVALID")
+    if target_key in ("top", "bottom"):
+        if pair_same.get(target_key) is not True:
+            raise GeometryError("V_MITER_GUI_RELIEF_PAIR_IS_SPLIT")
+        from .corner_state_transactions import project_operator_corner_pair_members
+        targets = project_operator_corner_pair_members(target_key)
+    elif target_key in V_MITER_GUI_CORNER_KEYS:
+        targets = (target_key,)
+    else:
+        raise GeometryError("V_MITER_GUI_RELIEF_TARGET_INVALID")
+    if any(selected.get(part_key, {}).get(corner) != V_MITER_GUI_CHECK
+           for corner in targets):
+        raise GeometryError("V_MITER_GUI_RELIEF_SELECTED_V_REQUIRED")
+    updated = dict(result.get(part_key, {}))
+    for corner in targets:
+        updated[corner] = relief_mode
+    result[part_key] = updated
+    return result
+
+
 def change_operator_v_miter_gui_choice(
     raw: Mapping | None, part_key: str, target_key: str,
     pair_same: Mapping, *, enabled: bool,

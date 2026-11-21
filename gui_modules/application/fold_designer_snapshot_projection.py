@@ -160,6 +160,14 @@ def _snapshot_base_state(self):
             getattr(self, "v_miter_gui_check_corners", {})
         )
     )
+    # Uncertified per-corner operator input only, not computed CUTTING.
+    # Old projects without this optional map keep the ROUND_R default.
+    snapshot["v_miter_gui_relief_modes"] = (
+        manufacturing_api.normalize_operator_v_miter_gui_relief_modes(
+            getattr(self, "v_miter_gui_relief_modes", {}),
+            snapshot["v_miter_gui_check_corners"],
+        )
+    )
     snapshot["corner_state"] = self._serialize_manual_corner_state()
     snapshot["corner_pair_same"] = deepcopy(self.manual_corner_pair_same)
     baseline_models = self._baseline_model_choices()
