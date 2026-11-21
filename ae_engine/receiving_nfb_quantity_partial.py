@@ -4,8 +4,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass, replace
 import json
+import os
 from collections.abc import Mapping
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 from ae_engine.cabinet_types import policy
 from ae_engine.receiving_nfb_cutting_manufacturing import read_nfb_runtime_source_profiles_csv
@@ -380,3 +382,35 @@ def stage_quantity_operator_export(batch, workspace_snapshot, flags, staging_dir
     with Path(staging_directory, report_name).open("x", encoding="utf-8") as handle:
         json.dump(report, handle, ensure_ascii=False, indent=2)
     return QuantityOperatorStagedExport((*names, report_name), report)
+
+
+def stage_quantity_with_existing_files(root, write_stage):
+    """Place a verified receipt beside unrelated files without overwriting.
+
+    This is the same-volume, no-overwrite compatibility transport for
+    existing directories, not a manufacturing authority or a substitute
+    for the normal GUI's final confirmation/publish transaction.
+    """
+    with TemporaryDirectory(prefix=".whd-quantity-stage-", dir=root) as directory:
+        child = Path(directory)
+        receipt = write_stage(child)
+        names = receipt.output_names
+        entries = tuple(child.iterdir())
+        if (len(names) != len(set(names)) or set(names) != {p.name for p in entries}
+                or any(p.is_symlink() or not p.is_file() for p in entries)):
+            raise ValueError("QUANTITY_OPERATOR_EXPORT_STAGED_INVENTORY_MISMATCH")
+
+        linked = []
+        try:
+            for name in names:
+                staged_path, destination = child / name, root / name
+                # Exclusive: no check-then-replace race, including dangling
+                # symlink destinations. Both paths are on the same volume.
+                os.link(staged_path, destination)
+                linked.append((staged_path, destination))
+        except OSError:
+            for staged_path, destination in reversed(linked):
+                if destination.exists() and destination.samefile(staged_path):
+                    destination.unlink()
+            raise
+        return receipt

@@ -290,6 +290,9 @@ def test_quantity_stage_resolves_original_two_version_csv_request_without_adapte
         _original_request,
     )
 
+    project = tmp_path / "existing.p6fold"
+    project_bytes = b'{"schema":"existing-project-unchanged"}'
+    project.write_bytes(project_bytes)
     module_fixture = _batch()
     source = thaw_manufacturing_value(module_fixture.requests[0][2].input_snapshot)
     request = _original_request(source, tiers=1)
@@ -299,7 +302,10 @@ def test_quantity_stage_resolves_original_two_version_csv_request_without_adapte
     )
 
     assert staged.partial_report is None
-    assert set(staged.output_names) == {path.name for path in tmp_path.iterdir()}
+    assert set(staged.output_names) == {
+        path.name for path in tmp_path.iterdir() if path != project
+    }
+    assert project.read_bytes() == project_bytes
     assert len(staged.output_names) == 4
     assert sorted(_quantity(tmp_path / name) for name in staged.output_names) == [
         "Q2", "Q2", "Q3", "Q3",
@@ -308,3 +314,14 @@ def test_quantity_stage_resolves_original_two_version_csv_request_without_adapte
         drawing = ezdxf.readfile(tmp_path / name)
         assert not drawing.audit().errors
         assert any(row.dxf.layer == "CUTTING" for row in drawing.modelspace())
+
+    # Leave a later target (not the first linked file) in place. The new
+    # first link must be rolled back rather than replacing any prior files.
+    (tmp_path / staged.output_names[0]).unlink()
+    before = {path.name: path.read_bytes() for path in tmp_path.iterdir()}
+    with pytest.raises(FileExistsError):
+        manufacturing_api.stage_quantity_operator_export(
+            request, source, _flags(box_body=False, head=False, tail=False), tmp_path,
+            operator_snapshot=source,
+        )
+    assert {path.name: path.read_bytes() for path in tmp_path.iterdir()} == before

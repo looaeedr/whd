@@ -376,6 +376,21 @@ def test_primary_quantity_export_writes_real_nfb_cutting_check_and_partial_manif
             if re.fullmatch(r"Q[0-9]+", row.plain_text())
         )
     assert sorted(headless_labels) == sorted(labels)
+    # The manifest is the final link of the verified physical batch. An
+    # existing receipt must survive and all newly linked DXFs roll back.
+    headless_manifest = headless_stage / "nfb_partial_manifest.json"
+    for path in headless_stage.glob("*.dxf"):
+        path.unlink()
+    existing_receipt = headless_manifest.read_bytes()
+    with pytest.raises(FileExistsError):
+        manufacturing_api.stage_quantity_operator_export(
+            request, designer.designer_workspace.snapshot(),
+            {"door": True, "base_plate": True, "box_body": True}, headless_stage,
+            operator_snapshot=snapshot,
+        )
+    assert list(headless_stage.iterdir()) == [headless_manifest]
+    assert headless_manifest.read_bytes() == existing_receipt
+
     # A harmless byte change to a still-valid editable DXF is NOT a release
     # blocker. This second export re-verifies the current source.
     source.write_bytes(source.read_bytes() + b"format-still-valid")
