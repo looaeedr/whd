@@ -2070,6 +2070,13 @@ from .v_miter_factory_mother_check import (
     project_v_miter_replaced_factory_corner_check,
 )
 
+# #3317: original typed Factory topology -> post-V prospective Fold,
+# verified against the existing FinalScene BEND and only displayed as CHECK.
+from .v_miter_factory_fold_check import (
+    VMiterFactoryPrecutFoldCheck,
+    project_v_miter_factory_precut_fold_check,
+)
+
 # #3317: actual FinalScene BEND + post-V stock survival -> CHECK strokes only.
 from .v_miter_source_marking_check import (
     VMiterSourceBendMarkingCheck,

@@ -36,6 +36,10 @@ from .v_miter_source_marking_check import (
     VMiterSourceBendMarkingCheck,
     project_v_miter_source_bend_marking_check,
 )
+from .v_miter_factory_fold_check import (
+    VMiterFactoryPrecutFoldCheck,
+    project_v_miter_factory_precut_fold_check,
+)
 
 V_MITER_GUI_CHECK = "V_MITER_CHECK"
 V_MITER_GUI_UNCERTIFIED = "V_MITER_GUI_CHECK_ONLY_UNCERTIFIED"
@@ -61,6 +65,8 @@ class VMiterOperatorGUICheck:
     sharp_t_witness: VMiterSharpThicknessWitness | None = None
     sharp_t_failure: str | None = None
     source_bend_marking_check: VMiterSourceBendMarkingCheck | None = None
+    factory_precut_fold_check: VMiterFactoryPrecutFoldCheck | None = None
+    factory_precut_fold_failure: str | None = None
     first_bend_source_gap_mm: float = 0.0
     second_bend_source_gap_mm: float = 0.0
     manufacturing_status: str = V_MITER_GUI_UNCERTIFIED
@@ -398,6 +404,8 @@ def project_operator_v_miter_live_corner_check(
         if stock_check is not None else None
     )
     marking = None
+    factory_precut_fold = None
+    factory_precut_failure = None
     if stock_check is not None:
         # These exact objects are the original physical BEND primitives,
         # not the temporary corner-station extensions used for ideal rays.
@@ -407,6 +415,19 @@ def project_operator_v_miter_live_corner_check(
             render_data.scene, real_first, real_second, stock_check,
         )
         whole_sheet.extend(marking.check_strokes)
+        # The original factory topology is independent of the old trimmed
+        # BEND line. Where it can be re-proven, draw post-V proposed crease
+        # segments as CHECK only, not a fabricated BEND or factory sign-off.
+        try:
+            factory_precut_fold = project_v_miter_factory_precut_fold_check(
+                part_spec, render_data, corner_key, stock_check,
+                real_first, real_second, factory_mother,
+            )
+        except GeometryError as exc:
+            factory_precut_failure = str(exc)
+        else:
+            whole_sheet.extend(factory_precut_fold.first_proposed_segments)
+            whole_sheet.extend(factory_precut_fold.second_proposed_segments)
     # A finite T local sharp-fold cross-section is meaningful only where
     # the original BEND actually contains the physical intersection and
     # one closed source sheet survives. It remains strictly CHECK: the
@@ -442,6 +463,8 @@ def project_operator_v_miter_live_corner_check(
         sharp_t_witness=sharp_t,
         sharp_t_failure=sharp_t_failure,
         source_bend_marking_check=marking,
+        factory_precut_fold_check=factory_precut_fold,
+        factory_precut_fold_failure=factory_precut_failure,
         first_bend_source_gap_mm=x_gap if first[1] == "x" else y_gap,
         second_bend_source_gap_mm=y_gap if second[1] == "y" else x_gap,
     )

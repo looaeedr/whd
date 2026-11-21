@@ -57,6 +57,20 @@ def _factory_original_shape(spec) -> tuple[Polygon, float, float]:
             corner_policy=corner, frame_edges=spec.frame_edges,
         )
         points = result.outline
+        # Rebuild the *uncut* manufacturing Fold using the SAME original
+        # FourSide factory, with a zero-corner reference policy. No new
+        # stand-in coordinates or GUI-created physical crease.
+        from .sheetmetal_four_side_geometry import (
+            RectCornerReliefPolicy, build_four_side_bend_segments,
+        )
+        zero_relief = RectCornerReliefPolicy(
+            bottom_left_x=0.0, bottom_right_x=0.0,
+            top_left_x=0.0, top_right_x=0.0,
+            bottom_y=0.0, top_y=0.0,
+        )
+        uncut_bends = build_four_side_bend_segments(
+            result.topology, zero_relief,
+        )
     elif isinstance(spec, EndCapPartSpec) and spec.corner_policy is not None:
         from .manufacturing_endcap_compat import resolve_endcap_request
         from .sheetmetal_part_adapters import build_unknown_endcap_result
@@ -80,12 +94,29 @@ def _factory_original_shape(spec) -> tuple[Polygon, float, float]:
             result.outline if current.is_tail else
             tuple(Vec2(p.x, float(result.height) - p.y) for p in result.outline)
         )
+        from .sheetmetal_geometry import build_endcap_topology
+        source_fold = build_endcap_topology(result.topology)
+        axes = (
+            source_fold.left_bend, source_fold.right_bend,
+            source_fold.bottom_bend, source_fold.top_chain_bend_1,
+            source_fold.top_chain_bend_2,
+        )
+        if current.is_tail:
+            uncut_bends = axes
+        else:
+            # Mirror once, as the existing formal EndCap Factory does:
+            # the Head final scene has the opposite Y orientation.
+            uncut_bends = tuple(type(row)(
+                row.name,
+                Vec2(row.p1.x, float(result.height) - row.p1.y),
+                Vec2(row.p2.x, float(result.height) - row.p2.y),
+            ) for row in axes)
     else:
         raise GeometryError("V_MITER_MOTHER_REQUIRES_EDITABLE_FOUR_SIDE_FACTORY")
     stock = Polygon([(p.x, p.y) for p in points])
     if not stock.is_valid or stock.is_empty or stock.area <= 0 or stock.interiors:
         raise GeometryError("V_MITER_MOTHER_REBUILT_ORIGINAL_INVALID")
-    return stock, float(result.width), float(result.height)
+    return stock, float(result.width), float(result.height), tuple(uncut_bends)
 
 
 def _selected_original_corner_component(
@@ -141,7 +172,7 @@ def project_v_miter_replaced_factory_corner_check(
     if not isinstance(render_data, PartRenderData):
         raise GeometryError("V_MITER_MOTHER_CANONICAL_RENDER_DATA_REQUIRED")
     original = _single_source_material(render_data.scene)
-    factory_original, width, height = _factory_original_shape(spec)
+    factory_original, width, height, _factory_uncut_bends = _factory_original_shape(spec)
     original_delta = factory_original.symmetric_difference(original).area
     if original_delta > 1e-6:
         raise GeometryError("V_MITER_MOTHER_FINALSCENE_DIFFERS_FROM_FACTORY")
