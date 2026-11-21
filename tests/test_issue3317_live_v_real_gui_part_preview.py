@@ -4,6 +4,7 @@ import tkinter as tk
 import pytest
 
 import gui
+from ae_engine import manufacturing_api
 
 
 @pytest.mark.parametrize("part_key", ("door", "head", "tail"))
@@ -35,6 +36,23 @@ def test_real_tk_physical_part_live_v_preview_from_current_fold(part_key):
                 f"X={getattr(spec, 'fold_profile_x', ())}; "
                 f"Y={getattr(spec, 'fold_profile_y', ())}"
             ) from exc
+        # #3317: an explicit 90-degree first bend must control X/Y,
+        # including two-90-degree corners; Engine may not override it.
+        snapshot = app._make_original_fold_designer_snapshot()
+        spec, _ = app._fold_designer_part_spec_from_payload(part_key, snapshot)
+        render = app._query_fold_designer_render_data(part_key, snapshot)
+        for axis in ("x", "y"):
+            selected = manufacturing_api.project_operator_v_miter_live_corner_check(
+                spec, render, "bottom_left", first_bend_axis=axis,
+            )
+            assert selected.first_bend_axis == axis
+            assert selected.second_bend_axis == ("y" if axis == "x" else "x")
+            assert selected.ideal.source.first_fold_angle_deg == 90
+        with pytest.raises(ValueError, match="V_MITER_GUI_FIRST_BEND_AXIS_INVALID"):
+            manufacturing_api.project_operator_v_miter_live_corner_check(
+                spec, render, "bottom_left", first_bend_axis="z",
+            )
+
         assert result.part_key == part_key
         assert result.corner_key == "bottom_left"
         assert result.ideal.formed_contact_length_mm > 0
