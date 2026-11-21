@@ -597,6 +597,19 @@ def refresh_corner_type_panel(self):
                     "有限 T 真板料 3D 網格檢查尚不能成立："
                     f"{live.factory_true_t_failure or '原 Factory 折線／V 剩料不足'}。"
                 )
+            preset = live.trial_defaults
+            # Engine owns all numerical assumptions; Tk only formats values.
+            trial_preset_note = (
+                "Engine 試算預設（非折床實測）："
+                f"內 R1/R2={preset.first_inner_radius_mm:g}/"
+                f"{preset.second_inner_radius_mm:g} mm、"
+                f"K={preset.neutral_axis_k:g}、"
+                f"BA1/BA2={preset.first_bend_allowance_mm:.3f}/"
+                f"{preset.second_bend_allowance_mm:.3f} mm、"
+                f"{'孔徑 Ø' if preset.relief_mode.value == 'RELIEF_HOLE' else '底部圓角 R'}"
+                f"={preset.relief_dimension_mm:g} mm。"
+                "只是幾何試算起點，不代表可以正式加工。"
+            )
             self.manual_corner_param_summary.configure(
                 text=(
                     f"V 型斜接（未認證 CHECK）｜另一側折彎 "
@@ -606,7 +619,8 @@ def refresh_corner_type_panel(self):
                     "角度與折高取自目前 PartSpec/Fold，沒有新增折彎輸入；"
                     f"{material_note}\\n"
                     "2D 為 CHECK、3D 接合線及局部 T 剖面為未認證模型；"
-                    "內 R／BA、實際 3D 切面及避裂未驗證，不可當加工圖。\\n"
+                    "實際 3D 切面及避裂未驗證，不可當加工圖。\\n"
+                    f"{trial_preset_note}\\n"
                     f"{section_note}\\n"
                     f"{marking_note}\\n"
                     f"{fold_note}\\n"
