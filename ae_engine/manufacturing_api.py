@@ -2047,6 +2047,10 @@ from .joint_diagnostic_display import (
 from .v_miter_trial_snapshot import replay_v_miter_true_thickness_collision_snapshot
 
 # #3317 measured inside R/BA/T formed-interface correction candidate; never CUTTING.
+from .v_miter_factory_radius_ba_check import (
+    VMiterFactoryRadiusBADefaultCheck,
+    project_v_miter_factory_radius_ba_default_check,
+)
 from .v_miter_trial_defaults import (
     VMiterTrialParameterDefaults, project_v_miter_trial_parameter_defaults,
 )

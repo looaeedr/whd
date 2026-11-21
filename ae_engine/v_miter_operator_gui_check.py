@@ -43,6 +43,10 @@ from .v_miter_factory_fold_check import (
 from .v_miter_trial_defaults import (
     VMiterTrialParameterDefaults, project_v_miter_trial_parameter_defaults,
 )
+from .v_miter_factory_radius_ba_check import (
+    VMiterFactoryRadiusBADefaultCheck,
+    project_v_miter_factory_radius_ba_default_check,
+)
 from .v_miter_factory_true_t_check import (
     VMiterFactoryPostVTrueTCheck,
     project_v_miter_factory_post_v_true_t_check,
@@ -80,6 +84,8 @@ class VMiterOperatorGUICheck:
     second_bend_source_gap_mm: float = 0.0
     manufacturing_status: str = V_MITER_GUI_UNCERTIFIED
     trial_defaults: VMiterTrialParameterDefaults | None = None
+    factory_radius_ba_check: VMiterFactoryRadiusBADefaultCheck | None = None
+    factory_radius_ba_failure: str | None = None
 
 
 def normalize_operator_v_miter_gui_choices(raw: Mapping | None) -> dict[str, dict[str, str]]:
@@ -300,7 +306,7 @@ def _endcap_existing_fold_angle_sources(part_spec: EndCapPartSpec, part_key: str
 
 def project_operator_v_miter_live_corner_check(
     part_spec, render_data: PartRenderData, corner_key: str,
-    *, relief_mode: str = "ROUND_R",
+    *, relief_mode: str = "ROUND_R", run_radius_ba_trial: bool = False,
 ) -> VMiterOperatorGUICheck:
     """Project an actual per-corner 2D/3D ideal V, strictly CHECK-only.
 
@@ -309,6 +315,8 @@ def project_operator_v_miter_live_corner_check(
     angles come from its *authored current* X/Y FoldProfileSegment and must
     match the same FinalScene's true BEND station.
     """
+    if type(run_radius_ba_trial) is not bool:
+        raise GeometryError("V_MITER_GUI_R_BA_TRIAL_FLAG_INVALID")
     if type(corner_key) is not str or corner_key not in V_MITER_GUI_CORNER_KEYS:
         raise GeometryError("V_MITER_GUI_CORNER_INVALID")
     from .v_miter_corner_source import VMiterReliefMode
@@ -425,6 +433,8 @@ def project_operator_v_miter_live_corner_check(
     factory_precut_failure = None
     factory_true_t = None
     factory_true_t_failure = None
+    factory_radius_ba = None
+    factory_radius_ba_failure = None
     if stock_check is not None:
         # These exact objects are the original physical BEND primitives,
         # not the temporary corner-station extensions used for ideal rays.
@@ -460,6 +470,29 @@ def project_operator_v_miter_live_corner_check(
                 )
             except GeometryError as exc:
                 factory_true_t_failure = str(exc)
+            if run_radius_ba_trial:
+                if factory_true_t is None:
+                    factory_radius_ba_failure = (
+                        factory_true_t_failure
+                        or "V_MITER_FACTORY_R_BA_REQUIRES_SOURCE_TRUE_T"
+                    )
+                else:
+                    try:
+                        factory_radius_ba = project_v_miter_factory_radius_ba_default_check(
+                            part_spec, render_data, corner_key, ideal, stock_check,
+                            factory_precut_fold, real_first, real_second,
+                            first[0], second[0], trial_defaults, factory_mother,
+                        )
+                    except GeometryError as exc:
+                        factory_radius_ba_failure = str(exc)
+                    # The Factory V cut is a full source-clipped ray;
+                    # this curvature trial does NOT invent a corrected
+                    # 2D contour or retarget the old ideal-tip trim solver.
+    if run_radius_ba_trial and factory_radius_ba is None and factory_radius_ba_failure is None:
+        factory_radius_ba_failure = (
+            factory_precut_failure or stock_failure
+            or "V_MITER_FACTORY_R_BA_VERIFIED_MOTHER_REQUIRED"
+        )
     # A finite T local sharp-fold cross-section is meaningful only where
     # the original BEND actually contains the physical intersection and
     # one closed source sheet survives. It remains strictly CHECK: the
@@ -502,4 +535,6 @@ def project_operator_v_miter_live_corner_check(
         first_bend_source_gap_mm=x_gap if first[1] == "x" else y_gap,
         second_bend_source_gap_mm=y_gap if second[1] == "y" else x_gap,
         trial_defaults=trial_defaults,
+        factory_radius_ba_check=factory_radius_ba,
+        factory_radius_ba_failure=factory_radius_ba_failure,
     )

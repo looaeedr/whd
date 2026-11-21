@@ -1063,7 +1063,23 @@ class Phase6ApplicationHost:
         # A CHECK draft is a saved choice, not a manufacturing geometry edit.
         self._capture_phase6_committed_snapshot()
 
-    def _project_v_miter_gui_check_for_corner(self, part_key, target):
+    def run_v_miter_default_radius_ba_check(self):
+        """Run source-verified curved R/BA/T CHECK, never manufacturing."""
+        part_key = self._current_manual_corner_part_key()
+        if not self._corner_part_type_editable(part_key):
+            return
+        target = self._normalize_manual_corner_target(part_key)
+        physical = manufacturing_api.project_operator_corner_selection_target(target)
+        chosen = getattr(self, "v_miter_gui_check_corners", {}).get(part_key, {})
+        if chosen.get(physical) != "V_MITER_CHECK":
+            return
+        # Ephemeral action only. The next projection rebuilds the actual
+        # current PartSpec and FinalScene before running the expensive solve.
+        self._v_miter_radius_ba_trial_target = (part_key, physical)
+        self.refresh_corner_type_panel()
+
+    def _project_v_miter_gui_check_for_corner(self, part_key, target, *,
+                                              run_radius_ba_trial=False):
         """Consume actual selected PartSpec/FinalScene/Fold, never old trial values."""
         physical = manufacturing_api.project_operator_corner_selection_target(target)
         snapshot = self._make_original_fold_designer_snapshot()
@@ -1071,6 +1087,7 @@ class Phase6ApplicationHost:
         render_data = self._query_fold_designer_render_data(part_key, snapshot)
         return manufacturing_api.project_operator_v_miter_live_corner_check(
             spec, render_data, physical,
+            run_radius_ba_trial=run_radius_ba_trial,
         )
 
     def export_v_miter_whole_sheet_check_dxf(self):
