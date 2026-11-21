@@ -616,8 +616,9 @@ def refresh_corner_type_panel(self):
                     f"={relief_trial.relief_dimension_mm:g} mm；"
                     f"單片剩料 {relief_trial.corrected_remaining_area_mm2:.3f} mm²。"
                     "2D 紅線／CHECK DXF 使用這份真來源避裂輪廓；"
-                    "3D 零R 或曲面 R/BA 仍以原尖 V 試算來源計算，"
-                    "尚未完成避裂與 3D 同源接合驗證，禁止加工。"
+                    "未執行 R/BA 試算前，3D 零R 仍是原尖 V 板料；"
+                    "按「計算預設 R/BA／T」後才以這份避裂剩料產生曲面 3D。"
+                    "完整接合面/修邊仍未驗收，禁止加工。"
                 )
             else:
                 relief_note = (
@@ -646,9 +647,10 @@ def refresh_corner_type_panel(self):
                     f"實際預設 R/BA/T 表面相交 "
                     f"{radius_check.curved_t_surface_interference_pairs} 組；"
                     f"實體檢查 {radius_check.curved_t_volume_status}。"
-                    "3D 顯示實際曲面有限 T 網格；"
-                    "原 V 底部 R/孔、修邊、接合面尚未求解，"
-                    "2D 仍是原始尖 V 的 CHECK，不能當加工圖。"
+                    "3D 曲面有限 T 網格與 2D 紅色 R/孔避裂輪廓"
+                    "已使用同一份 Factory 真剩料；"
+                    "斜邊修切及實體接合面間隙仍未求解，"
+                    "不能當正式加工圖。"
                 )
             elif live.factory_radius_ba_failure is not None:
                 radius_note = (
