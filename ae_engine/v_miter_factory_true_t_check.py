@@ -56,6 +56,8 @@ class VMiterFactoryPostVTrueTCheck:
     second_source_fold_max_axial_mm: float
     first_formed_skin_triangles: tuple
     second_formed_skin_triangles: tuple
+    first_formed_perimeter_edges: tuple
+    second_formed_perimeter_edges: tuple
     first_thick_solid_triangles: tuple
     second_thick_solid_triangles: tuple
     surface_interference_pair_count: int
@@ -142,6 +144,29 @@ def _source_flange_parts(
                 f"V_MITER_FACTORY_T_{name}_FLANGE_NOT_ATTACHED_TO_SOURCE_FOLD"
             )
     return parts, low, high
+
+
+def _formed_perimeter_edges(triangles):
+    """Only physical formed skin boundary edges, for a read-only 3D canvas."""
+    counts = {}
+    oriented = {}
+    for tri in triangles:
+        for i in range(3):
+            a, b = tri[i], tri[(i + 1) % 3]
+            key = tuple(sorted((
+                tuple(round(float(c), 7) for c in a),
+                tuple(round(float(c), 7) for c in b),
+            )))
+            counts[key] = counts.get(key, 0) + 1
+            oriented[key] = (a, b)
+    edges = tuple(oriented[k] for k, n in counts.items() if n == 1)
+    if not edges or len(edges) > 10000 or any(
+        len(a) != 3 or len(b) != 3 or
+        not all(math.isfinite(x) for x in (*a, *b))
+        for a, b in edges
+    ):
+        raise GeometryError("V_MITER_FACTORY_T_FORMED_SKIN_BOUNDARY_INVALID")
+    return edges
 
 
 def project_v_miter_factory_post_v_true_t_check(
@@ -289,6 +314,8 @@ def project_v_miter_factory_post_v_true_t_check(
         second_source_fold_max_axial_mm=hi2,
         first_formed_skin_triangles=skin1,
         second_formed_skin_triangles=skin2,
+        first_formed_perimeter_edges=_formed_perimeter_edges(skin1),
+        second_formed_perimeter_edges=_formed_perimeter_edges(skin2),
         first_thick_solid_triangles=solid1,
         second_thick_solid_triangles=solid2,
         surface_interference_pair_count=collisions.pair_count,
