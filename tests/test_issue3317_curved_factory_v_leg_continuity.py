@@ -83,6 +83,20 @@ def test_factory_curved_t_true_v_leg_faces_and_continuity_proof(part_key, mode, 
             "near_leg": len(near_leg), "both": len(both),
             "near_min_cut": min((e.distance(new) for e in boundary), default=None),
             "near_min_leg": min((e.distance(legs[0]) for e in boundary), default=None),
+            "leg_coords": tuple(
+                tuple(tuple(round(float(v), 4) for v in pt) for pt in leg.coords)
+                for leg in legs
+            ),
+            "cut_edge_coords": tuple(
+                tuple(tuple(round(float(v), 4) for v in pt) for pt in e.coords)
+                for e in near_cut[:10]
+            ),
+            "flat_bounds": (
+                round(min(p[0] for tri in flat for p in tri), 4),
+                round(min(p[1] for tri in flat for p in tri), 4),
+                round(max(p[0] for tri in flat for p in tri), 4),
+                round(max(p[1] for tri in flat for p in tri), 4),
+            ),
             "closest": sorted((
                 (round(e.distance(new), 6),
                  round(min(e.distance(leg) for leg in legs), 6),
@@ -112,9 +126,10 @@ def test_factory_curved_t_true_v_leg_faces_and_continuity_proof(part_key, mode, 
         second = result.second_source_tagged_cut_faces
         assert first is not None, (
             result.first_cut_face_failure,
-            [(x["boundary"], x["near_cut"], x["near_leg"], x["both"],
-              x["near_min_cut"], x["near_min_leg"], x["closest"][0])
-             for x in diagnostics],
+            [(
+                x["boundary"], x["near_cut"], x["near_leg"], x["both"],
+                x["leg_coords"], x["flat_bounds"], x["cut_edge_coords"][:4],
+            ) for x in diagnostics],
         )
         assert second is not None, result.second_cut_face_failure
         assert first.has_source_tagged_cut_faces
