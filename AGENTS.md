@@ -19,6 +19,15 @@ whd_schema: WHD_DOC_META_V1
 - **安裝版 WHD Worker／EXE 退役硬閘門**：2026-11-01 起，`integration_cli/cadsplit_worker.py` 只保留 source-only fail-closed wire boundary；禁止恢復 `WHD-Engine.exe` packaging、`--installation-id`、`_private_installed`、DPAPI/HMAC installer custody 或 public installed certification。舊 #2375/#2381/#2382 與 Git history 只能作 HISTORICAL evidence；若未來重新需要外部 executable/installer，必須有新的明確使用者決策、CURRENT owner 與 exact-SHA 驗收，且只能消費 WHD Engine 公開 API。
 
 
+## WHD 既有板件原樣繪圖硬閘門 `WHD_EXISTING_PART_AS_IS_DRAWING_GATE_V1`
+
+- **適用情境**：使用者要求「畫出／給我看／對照」WHD **目前專案已存在的實體板件**，包括封頭、封尾、箱身、中隔、門、底板、內門及其折邊、截角、孔位。不把「畫現有板件」誤當成自由設計／想像示意圖；與要求「設計新板件」區分。此閘門適用 AI 對話內的原樣對照圖，不需改產品程式才能生效。
+- **先讀正確來源再畫**：先確認目前 Project、箱型／Family、Set／Bay（適用時）、板件身分／版本，從同一份 WHD current workspace／Engine canonical PartSpec、resolved physical part／FinalScene 取得**指定板件的實際幾何**。只能使用 **WHD 現有 2D／3D 畫面真實截圖**，或**直接投影該板件同一份模型**製成對照圖；不得以文字敘述、記憶、通用板型、測試 fixture 或另一板件代替來源。
+- **封頭／封尾各取各的**：`head` 與 `tail` 必須各自解析並核對自己的實體幾何、折邊、截角、孔位與方向；不可假定兩者相同、鏡像或任意互換，也不可拿一張生成圖冒充兩張。
+- **只能非破壞性標示**：允許換視角、縮放、裁切畫面或疊加箭頭／說明文字，但**不得修改或補畫原始輪廓、折邊／折線、V／其他截角、孔形／孔位或相對尺寸**；不准用影像生成、手繪、SVG 自造輪廓或任何憑印象的示意圖偽裝成 WHD 真實板件。
+- **來源不明即拒畫**：缺 Project／Family、找不到指定 physical part、無法讀取模型或畫面，或不能證明圖與該板件同源時，標 `PART_AS_IS_DRAWING_SOURCE_UNVERIFIED`，說明缺少哪個模型／板件／視圖及可核對的來源；**不得補畫、猜測、借用其他箱型或使用生成圖片**。若目前無法實際取得真截圖／同源模型投影，誠實回報「尚無原樣對照圖」，不可宣稱已畫出。
+- **交付範圍**：交的是帶來源標示的**原樣對照圖**（至少可核對 Project／Family、板件 ID 和來源畫面／模型）；**不要求 DXF**，不能拿 CHECK DXF、正式加工 DXF 或文字規格代替對照圖。只有使用者另外要求製造／DXF／完整驗收時，才依原 Engine 製造資格及 `驗證板件與DXF` 流程處理；本閘門**不放行也不改寫**任何製造幾何／認證。
+
 ## 批次修改 → 本地定向測試 → 單次完整 PR CI `BATCHED_FAST_FEEDBACK_THEN_CANONICAL_CI_V1`
 
 - 同一個 Bug 或可獨立驗收的小功能，先完成**同一批**相關程式、真正的 RED 重現與最小修復，確定需要的單元、GUI、DXF/Save→Reload、製造測試；用 `tools/quick_test.py` 在**實際有權操作的工作區**跑定向 RED→GREEN，必要時做受影響模組整合驗證，通過後原則上**一次 commit／push／PR 提交候選**，再交 GitHub 跑**一輪 exact HEAD 完整必要驗收**。不得每改一個檔就先丟一次完整產品 CI；若新 SHA 是 CI 失敗修正，仍須新 SHA 的完整必要 CI，不沿用舊 GREEN。
