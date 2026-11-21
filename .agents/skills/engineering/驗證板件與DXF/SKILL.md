@@ -24,11 +24,13 @@ whd_schema: WHD_DOC_META_V1
 
 ## 既有板件「原樣對照圖」模式 — `WHD_EXISTING_PART_AS_IS_DRAWING_GATE_V1`
 
-- **觸發與範圍**：使用者說「把現在的封頭／封尾畫出來」「給我看這塊板件原本的樣子」「畫正確的現有板件」「只要原樣對照圖」時，**先走本模式，不自動升級到 DXF 驗收**。這是當前 WHD 專案**既有**實體板件的真實視圖要求，不是任意新設計或自由示意圖。
-- **取得來源**：先核對 current Project、箱型／Family、Set／Bay（適用時）、版本與所選 resolved physical-part ID，讀該件在 WHD current workspace／Engine canonical PartSpec／FinalScene 的實際幾何。封頭 `head`、封尾 `tail` **分別解析**各自輪廓、折邊、截角、孔位與方向；不得以一件代另一件，也不得未經來源確認就假設兩件相同或鏡像。
-- **合法繪圖**：只可交付 **WHD 既有 2D／3D 畫面的真實截圖**，或**直接從同一模型產生的 2D／3D 投影**。可換視角、縮放、加箭頭與純顯示標註，不可變更原輪廓、折線／折邊、截角、孔位、比例；**禁止以文字／記憶／通用模板推圖，或手繪、生成圖片／生成 SVG 冒充真實 WHD 幾何**。來源須能對回 Project／Family、physical-part ID 與當前畫面／模型。
-- **Fail closed**：任何必要模型、板件 identity 或同源畫面缺失、工具無法取得真截圖／模型投影、來源無法確認，回覆缺的是哪一項及 `PART_AS_IS_DRAWING_SOURCE_UNVERIFIED`，**不要畫一張看似合理的替代圖**；未真的取得原樣圖，不得宣稱已畫。
-- **交付**：原樣對照圖即可；DXF、CHECK DXF、Save→Reload、切割／折彎加工驗證都**不是此模式的預設交付**。若另有明確加工或成品驗收需求，才切換本 Skill 的 A–D／正式驗收，且不得用原樣圖冒充加工資格。本模式依 `AGENTS.md` 同名硬閘門與 AI 庫 04 的單一幾何來源，不新增製造計算或另一套 geometry。
+- **觸發與分流**：使用者說「把封頭／封尾畫出來」「看 WHD 原本板件」「畫正確的現有板件」「只要原樣對照圖」時，直接走本模式，**不自動升級 DXF 驗收**。先分「一般 WHD 既有板件」和「某一份專案中的實際工件」，不可把兩者一律要求有 Project。
+- **一般既有板件：用 Engine、無需 Project**：按使用者指定箱型／Family（未指定時先用已確認的當前選取；無選取才依 CURRENT 10 fresh-start 規則採金庫型，須明示），由 WHD 現有公開 Engine／Family／Policy 解析該板件 canonical PartSpec／FinalScene；沒指定尺寸便採**該 Family 真正提供的預設尺寸與折邊設定**。在圖上／圖旁標註 **Family、Engine 預設的實際數值與單位、預設來源、板件身分／角色與「預設示例，非實際工件」**。無 Engine 預設時指出缺項，不得自己填 W/H/D/T/FW、套別箱型或拿測試 fixture 當真值。
+- **指定實際工件：才需要 Project**：明確指定已存 Project／某工件／Set／Bay／physical part／當前製造實體時，讀那份 Project／current production state 的實際 Family、版本、尺寸與 resolved physical part，從其 Engine canonical 模型出圖；實際工件來源缺失或損壞時不許偷換成箱型預設。無 Project 不能畫**該件**，但不能據此阻擋未指定實際工件的普通板件示例。
+- **Head／Tail 分件**：`head` 與 `tail` 各向 Engine 取得自己的輪廓、折邊／折線、截角、孔位、方向；不猜相同／鏡像、不把一件冒充另一件。
+- **合法呈現**：只可交付 WHD 既有 2D／3D **真實截圖**，或**直接從同一 Engine 模型投影**的 2D／3D 圖。視角、縮放、箭頭、純顯示註記可調；不得改輪廓、折線／折邊、截角、孔位、相對尺寸；**禁止文字／記憶推圖、手繪、生成圖片／生成 SVG 或通用模板冒充 WHD 幾何**。
+- **Fail closed**：無法驗證 Family、相應 Engine 預設、該板件 canonical 模型或同源畫面／投影時，回覆缺項與 `PART_AS_IS_DRAWING_SOURCE_UNVERIFIED`，不得畫假圖；**只看一般板件卻沒 Project，不屬缺項**。指定實際工件才要求該份專案。未真正取得圖不能稱已畫。
+- **交付**：帶 Family、尺寸／預設來源、板件身分與「示例／實際」類型的原樣圖；DXF、CHECK DXF、Save→Reload、加工驗收**都不是預設交付**。另有正式製造需求才轉 A–D 驗收；本示例預設不構成可加工工件。
 
 ## 專案技能邊界
 
@@ -185,7 +187,7 @@ tests/test_dm4_divider_resolved_sinks.py
 
 ## 必須回報
 
-**只要求原樣對照圖**：僅回報可核對的 Project／Family、resolved physical-part ID、真實 WHD 截圖或模型投影來源與已交付圖；來源不明即回報缺項／`PART_AS_IS_DRAWING_SOURCE_UNVERIFIED`。此模式不要求憑空提供 DXF、CI run ID 或製造 PASS。
+**只要求原樣對照圖**：一般板件回報 Family、Engine 預設尺寸與單位／來源、板件身分／角色、預設示例標示及真實截圖／投影；指定實際工件才回報 Project、實際 resolved physical-part ID／尺寸與真實圖源。來源不明即列確切缺項與 `PART_AS_IS_DRAWING_SOURCE_UNVERIFIED`；不得因一般板件無 Project 而拒畫。本模式不要求 DXF、CI run ID 或製造 PASS。
 
 **正式驗證／驗收**至少回：branch / tested head / run_id / terminal status、requested/resolved physical IDs、每件 PASS/FAIL、Final Material bounds/span、hole/feature count/datum、BEND parity、DXF reopen、multipart expected/actual file count、placement/collision shadow evidence（適用時）、Save→Reload parity（需要時）、`config.ini` before/after SHA。
 
