@@ -127,7 +127,7 @@ def test_physical_v_opening_wins_when_opposite_outer_path_is_shorter():
     top = second.y + 10.0
     perimeter = PolylinePrimitive((
         Vec2(left, first.y), first, Vec2(right, first.y),
-        Vec2(right, second.y), second, Vec2(second.x, top),
+        Vec2(right, second.y - 10.0), second, Vec2(second.x, top),
         Vec2(left, top),
     ), layer="CUTTING", closed=True)
     stock = DrawingScene([perimeter, *scene.primitives[1:]])
