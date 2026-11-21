@@ -85,9 +85,16 @@ def trace_v_miter_source_true_t_cut_faces(
     t = thickness_mm
     if isinstance(t, bool) or not isinstance(t, (int, float)) or not math.isfinite(t) or t <= 0:
         raise GeometryError("V-miter source cut-face requires actual finite positive thickness")
-    if corrected_whole_material.difference(original_cutting_material).area > max(
-        1e-5, tol * original_cutting_material.area
-    ):
+    # The error budget is a coordinate LENGTH, not a fraction of the sheet
+    # AREA. An area-scaled test lets a large original blank silently admit
+    # a small but physically out-of-perimeter material tab as "source".
+    # Use only the already-owned numerical distance tolerance, never an
+    # assumed kerf, clearance, R/BA or factory allowance. No positive-area
+    # outside-source material may survive beyond that spatial envelope.
+    outside_source = corrected_whole_material.difference(
+        original_cutting_material.buffer(tol)
+    )
+    if not outside_source.is_empty:
         raise GeometryError("V-miter source cut-face cannot invent corrected stock")
 
     # Unlike corrected material's entire perimeter, this difference includes
