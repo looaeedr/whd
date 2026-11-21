@@ -55,6 +55,7 @@ def trace_v_miter_source_true_t_cut_faces(
     *,
     thickness_mm: float,
     physical_vertex_offsets=None,
+    physical_v_cut_leg_lines=None,
 ) -> VMiterSourceCutFaceTrial:
     """Select only real new V-cut boundary sidewall triangles, not all faces.
 
@@ -63,8 +64,10 @@ def trace_v_miter_source_true_t_cut_faces(
     must lie exactly on the corrected full source's *new* CUTTING boundary,
     not on original outer stock or an artificial first/second flange clip.
     Full source closure, whole-sheet area, T and the formed skin/solid identity
-    are verified before exposing evidence. Missing tagged faces are UNKNOWN,
-    not a zero-millimetre mating result.
+    are verified before exposing evidence. When provided, exactly two
+    source-proven straight V-leg boundaries exclude the ROUND_R / relief-hole
+    *root* face: a bottom relief surface cannot masquerade as an inclined
+    mating face. Missing tagged faces are UNKNOWN, not a zero gap.
     """
     tol = float(
         PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES.boundary_separation_tolerance
@@ -82,6 +85,22 @@ def trace_v_miter_source_true_t_cut_faces(
         or corrected_whole_material.interiors
     ):
         raise GeometryError("V-miter source cut-face needs original and corrected single sheets")
+    # The two leg directions must originate from the independently qualified
+    # Factory V source. This filter cannot grant geometry: all selected edges
+    # must independently pass the full new-CUTTING boundary and T-solid gates.
+    eligible_legs = None
+    if physical_v_cut_leg_lines is not None:
+        if (type(physical_v_cut_leg_lines) not in (tuple, list)
+                or len(physical_v_cut_leg_lines) != 2):
+            raise GeometryError("V_MITER_SOURCE_CUT_FACE_LEGS_INVALID")
+        eligible_legs = tuple(physical_v_cut_leg_lines)
+        for leg in eligible_legs:
+            if (not isinstance(leg, LineString) or leg.is_empty
+                    or not leg.is_valid or len(leg.coords) != 2
+                    or leg.length <= tol
+                    or any(not math.isfinite(float(value))
+                           for point in leg.coords for value in point)):
+                raise GeometryError("V_MITER_SOURCE_CUT_FACE_LEGS_INVALID")
     t = thickness_mm
     if isinstance(t, bool) or not isinstance(t, (int, float)) or not math.isfinite(t) or t <= 0:
         raise GeometryError("V-miter source cut-face requires actual finite positive thickness")
@@ -156,6 +175,13 @@ def trace_v_miter_source_true_t_cut_faces(
         # Full segment overlap, NOT just a vertex touching the V notch.
         # Avoid the global source perimeter and artificial clipping edges.
         if segment.intersection(new_cut).length < seg_length - tol:
+            continue
+        if eligible_legs is not None and not any(
+            segment.difference(leg.buffer(tol)).length <= tol
+            for leg in eligible_legs
+        ):
+            # The circular/swept relief-root wall is genuine CUTTING but
+            # not a weldable V side. Do not count it as seam-face coverage.
             continue
         offset_a = vertex_offsets[_key(a3, tol)]
         offset_b = vertex_offsets[_key(b3, tol)]
