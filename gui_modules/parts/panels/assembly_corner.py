@@ -494,6 +494,20 @@ def refresh_corner_type_panel(self):
                 )
             else:
                 marking_note = "尚無可驗證的真 BEND 打標候選，不產生假打標。"
+            if live.factory_precut_fold_check is not None:
+                proposed_fold = live.factory_precut_fold_check
+                fold_note = (
+                    "紫線＝原 Factory 截角前 Fold 經 V 扣料裁切的候選段；"
+                    f"比舊 BEND 額外保留 "
+                    f"{proposed_fold.first_additional_factory_fold_mm:g} / "
+                    f"{proposed_fold.second_additional_factory_fold_mm:g} mm。"
+                    "仍待確認實際 R/BA/避裂與現場製造，不是正式 BEND。"
+                )
+            else:
+                fold_note = (
+                    "原 Factory 折線補段尚無獨立可確認來源："
+                    f"{live.factory_precut_fold_failure or '未取得 V 原料'}。"
+                )
             self.manual_corner_param_summary.configure(
                 text=(
                     f"V 型斜接（未認證 CHECK）｜另一側折彎 "
@@ -506,6 +520,7 @@ def refresh_corner_type_panel(self):
                     "內 R／BA、實際 3D 切面及避裂未驗證，不可當加工圖。\\n"
                     f"{section_note}\\n"
                     f"{marking_note}\\n"
+                    f"{fold_note}\\n"
                     f"原 BEND 至理想交點缺段：{live.first_bend_source_gap_mm:g} / "
                     f"{live.second_bend_source_gap_mm:g} mm（僅來源診斷，"
                     "缺段不可視為已實際打標或可製造折線）。"
