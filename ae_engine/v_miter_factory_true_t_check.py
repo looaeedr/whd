@@ -54,6 +54,8 @@ class VMiterFactoryPostVTrueTCheck:
     second_source_fold_min_axial_mm: float
     first_source_fold_max_axial_mm: float
     second_source_fold_max_axial_mm: float
+    first_ideal_tip_outside_surviving_fold_mm: float
+    second_ideal_tip_outside_surviving_fold_mm: float
     first_formed_skin_triangles: tuple
     second_formed_skin_triangles: tuple
     first_formed_perimeter_edges: tuple
@@ -97,11 +99,16 @@ def _source_flange_parts(
     if not xs or not all(math.isfinite(x) for x in xs):
         raise GeometryError(f"V_MITER_FACTORY_T_{name}_FOLD_SPAN_INVALID")
     low, high = min(xs), max(xs)
-    if (high - low <= _EPS or high <= _EPS or
-            tip_axial < low - _EPS or tip_axial > high + _EPS):
+    if high - low <= _EPS or high <= _EPS:
         raise GeometryError(
             f"V_MITER_FACTORY_T_{name}_MISSING_REAL_V_FOLD_REACH"
         )
+    # The ideal miter ray is a *CUT edge*, often already removed by the
+    # new V. It need not lie on the surviving BEND! Never use its tip as a
+    # criterion for whether surviving Factory Fold material can be meshed.
+    # Preserve the distance to its envelope separately as an unverified
+    # mating-reach datum, NOT as shop material or a corrected BEND.
+    tip_gap = max(0.0, low - tip_axial, tip_axial - high)
 
     def flat(longitudinal, transverse):
         return (
@@ -143,7 +150,7 @@ def _source_flange_parts(
             raise GeometryError(
                 f"V_MITER_FACTORY_T_{name}_FLANGE_NOT_ATTACHED_TO_SOURCE_FOLD"
             )
-    return parts, low, high
+    return parts, low, high, tip_gap
 
 
 def _formed_perimeter_edges(triangles):
@@ -252,13 +259,13 @@ def project_v_miter_factory_post_v_true_t_check(
         return ((flat_tip.x - apex.x) * axis[0]
                 + (flat_tip.y - apex.y) * axis[1])
 
-    first_parts, low1, hi1 = _source_flange_parts(
+    first_parts, low1, hi1, gap1 = _source_flange_parts(
         remaining, apex, e1, n1, factory_fold.first_proposed_segments,
         ideal.source.first_flange_height_mm,
         axial(ideal.first_flat_miter_ray[1], e1),
         "FIRST",
     )
-    second_parts, low2, hi2 = _source_flange_parts(
+    second_parts, low2, hi2, gap2 = _source_flange_parts(
         remaining, apex, e2, n2, factory_fold.second_proposed_segments,
         ideal.source.second_flange_height_mm,
         axial(ideal.second_flat_miter_ray[1], e2),
@@ -312,6 +319,8 @@ def project_v_miter_factory_post_v_true_t_check(
         second_source_fold_min_axial_mm=low2,
         first_source_fold_max_axial_mm=hi1,
         second_source_fold_max_axial_mm=hi2,
+        first_ideal_tip_outside_surviving_fold_mm=gap1,
+        second_ideal_tip_outside_surviving_fold_mm=gap2,
         first_formed_skin_triangles=skin1,
         second_formed_skin_triangles=skin2,
         first_formed_perimeter_edges=_formed_perimeter_edges(skin1),
