@@ -28,7 +28,7 @@ from .assembly_geometry_primitives import thicken_triangle_surface
 from .contracts import DoorPartSpec, EndCapPartSpec
 from .manufacturing_render_data import PartRenderData
 from .sheetmetal_drawing import LinePrimitive
-from .sheetmetal_geometry_core import GeometryError
+from .sheetmetal_geometry_core import GeometryError, Vec2
 from .v_miter_ideal_mating import (
     VMiterIdealMatingCandidate, _outward_bend_axis, _outside_normal,
     _UNIT_Z, _add, _scale,
@@ -42,6 +42,7 @@ from .v_miter_factory_true_t_check import (
 )
 from .v_miter_radius_ba_interface_trial import (
     _formed_curved_skin, _measured_cylindrical_half_t_offsets,
+    _trim_one_v_edge, _checked_full_source_from_trim,
 )
 from .v_miter_factory_relief_check import (
     VMiterFactoryBottomReliefCheck,
@@ -80,6 +81,8 @@ class VMiterFactoryRadiusBADefaultCheck:
     curved_t_volume_status: str
     # The exact same 2D source contour used by every formed physical mesh.
     formed_source_outline: tuple
+    first_edge_trim_mm: float = 0.0
+    additional_source_removed_area_mm2: float = 0.0
     first_source_tagged_cut_faces: VMiterSourceCutFaceTrial | None = None
     second_source_tagged_cut_faces: VMiterSourceCutFaceTrial | None = None
     first_cut_face_failure: str | None = None
@@ -107,6 +110,7 @@ def project_v_miter_factory_radius_ba_default_check(
     factory_mother: VMiterFactoryMotherReplacementCheck | None = None,
     *,
     relief_check: VMiterFactoryBottomReliefCheck | None = None,
+    first_edge_trim_mm: float = 0.0,
 ) -> VMiterFactoryRadiusBADefaultCheck:
     """Run actual R/BA curved finite-T CHECK on Factory-proven post-V stock.
 
@@ -114,7 +118,9 @@ def project_v_miter_factory_radius_ba_default_check(
     intersection, not the shorter ideal formed seam endpoint. If present,
     the Factory R/Ø relief is independently revalidated and its exact
     remaining outline becomes the ONLY source for both physical mesh sets.
-    V-edge trimming is not invented or permitted as factory machining.
+    An explicitly supplied first-edge trim is applied to this same Factory
+    source in both 2D and R/BA/T 3D. This remains CHECK-only and can never
+    authorize an uncertified production CUTTING path.
     """
     if (not isinstance(part_spec, (DoorPartSpec, EndCapPartSpec))
             or not isinstance(defaults, (VMiterTrialParameterDefaults,
@@ -123,6 +129,14 @@ def project_v_miter_factory_radius_ba_default_check(
             or not isinstance(ideal, VMiterIdealMatingCandidate)
             or not isinstance(factory_fold, VMiterFactoryPrecutFoldCheck)):
         raise GeometryError("V_MITER_FACTORY_R_BA_TYPED_SOURCE_REQUIRED")
+    if (type(first_edge_trim_mm) not in (int, float)
+            or not math.isfinite(first_edge_trim_mm)
+            or first_edge_trim_mm < 0):
+        raise GeometryError("V_MITER_FACTORY_FIRST_EDGE_TRIM_INVALID")
+    if first_edge_trim_mm and not isinstance(defaults, VMiterFactoryMeasuredInputs):
+        raise GeometryError("V_MITER_FACTORY_TRIM_MEASURED_SOURCE_REQUIRED")
+    if first_edge_trim_mm and relief_check is None:
+        raise GeometryError("V_MITER_FACTORY_TRIM_RELIEF_SOURCE_REQUIRED")
     if isinstance(defaults, VMiterFactoryMeasuredInputs):
         require_v_miter_factory_measurement_source(
             defaults, part_spec, corner_key, ideal,
@@ -201,6 +215,48 @@ def project_v_miter_factory_radius_ba_default_check(
          defaults.second_inner_radius_mm,
          defaults.second_bend_allowance_mm),
     )
+
+    # #3317: same original Factory mother, same physical first/second BEND
+    # and same already-source-verified R/HOLE remain mandatory. A declared
+    # trim amount is *not* guessed by the engine, and no old ideal finite-tip
+    # path can silently replace the real perimeter V ray. Apply only material
+    # removal from the first flange, then re-use the resulting whole sheet
+    # for BOTH 2D output and all formed T/R/BA mesh/sidewall calculations.
+    removed_trim_area = 0.0
+    if first_edge_trim_mm:
+        def real_flange_piece(domain):
+            axis, normal, folds, height, tip, name = domain[:6]
+            tip_axial = ((tip.x - apex.x) * axis[0]
+                         + (tip.y - apex.y) * axis[1])
+            parts, _, _, _ = _source_flange_parts(
+                remaining, apex, axis, normal, folds, height,
+                tip_axial, name,
+            )
+            if len(parts) != 1:
+                raise GeometryError(
+                    "V_MITER_FACTORY_TRIM_MULTIPLE_FLANGE_COMPONENTS"
+                )
+            return parts[0]
+
+        first_source = real_flange_piece(domains[0])
+        unchanged_second = real_flange_piece(domains[1])
+        first_corrected = _trim_one_v_edge(
+            first_source, apex, source_check.first_perimeter_hit,
+            float(first_edge_trim_mm),
+            relief_open_length_mm=relief_check.flat_leg_tip_cutback_mm,
+        )
+        corrected_sheet, removal = _checked_full_source_from_trim(
+            remaining, first_source, first_corrected, unchanged_second,
+        )
+        if removal.area <= 1e-8:
+            raise GeometryError("V_MITER_FACTORY_FIRST_EDGE_TRIM_REMOVES_NO_STOCK")
+        # This one-sheet CHECK source supersedes the original R/HOLE stock.
+        # The original source and unaffected second flange stay untouched.
+        remaining = corrected_sheet
+        selected_outline = tuple(
+            Vec2(float(x), float(y)) for x, y in remaining.exterior.coords
+        )
+        removed_trim_area = float(removal.area)
 
     all_skins, all_solids, all_sharp_solids = [], [], []
     tagged_faces, cut_face_failures = [], []
@@ -338,6 +394,8 @@ def project_v_miter_factory_radius_ba_default_check(
         curved_t_surface_interference_pairs=collision.pair_count,
         curved_t_volume_status=volume_status,
         formed_source_outline=tuple(selected_outline),
+        first_edge_trim_mm=float(first_edge_trim_mm),
+        additional_source_removed_area_mm2=removed_trim_area,
         first_source_tagged_cut_faces=tagged_faces[0],
         second_source_tagged_cut_faces=tagged_faces[1],
         first_cut_face_failure=cut_face_failures[0],
@@ -345,6 +403,11 @@ def project_v_miter_factory_radius_ba_default_check(
         source_cut_face_continuity=continuity,
         source_cut_face_continuity_failure=continuity_failure,
         relief_application_status=relief_status,
+        trim_application_status=(
+            "FACTORY_R_BA_SOURCE_FIRST_EDGE_TRIM_APPLIED_UNCERTIFIED"
+            if first_edge_trim_mm else
+            "FACTORY_R_BA_V_EDGE_TRIM_NOT_YET_SOLVED"
+        ),
         manufacturing_status=(
             "V_MITER_FACTORY_R_BA_MEASURED_INPUT_UNCERTIFIED"
             if isinstance(defaults, VMiterFactoryMeasuredInputs)
