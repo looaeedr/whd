@@ -505,6 +505,16 @@ def verify_saved_part_render_data_dxf(
             False,
             (DxfAcceptanceIssue("SERIALIZATION_ERROR", f"DXF reopen failed: {exc}"),),
         )
+    # A geometrically identical sheet in meters is unsafe for millimeter CAM.
+    # Inspect the independently reopened bytes, never the serializer intent.
+    declared_units = doc.header.get("$INSUNITS", 0)
+    if declared_units != ezdxf.units.MM:
+        issues.append(DxfAcceptanceIssue(
+            "UNIT_MISMATCH",
+            "saved manufacturing DXF $INSUNITS must declare millimeters (4)",
+            ezdxf.units.MM,
+            declared_units,
+        ))
     msp = doc.modelspace()
 
     # Fail closed BEFORE layer matching float-coerces a malformed source hole.

@@ -70,6 +70,17 @@ def test_two_panels_and_multi_parts_one_dxf_full_primitive_reopen(tmp_path):
     )
     assert list(tmp_path.glob("*.dxf")) == [path]
     doc = ezdxf.readfile(path)
+    assert doc.header["$INSUNITS"] == ezdxf.units.MM
+    assert doc.units == ezdxf.units.MM
+    # The known 100 x 60 mm blank must remain 100 x 60 modelspace units.
+    closed_blanks = [e for e in doc.modelspace()
+                     if e.dxftype() == "LWPOLYLINE"
+                     and e.dxf.layer == "CUTTING" and e.closed]
+    assert any(
+        round(max(p[0] for p in e.get_points("xy")) - min(p[0] for p in e.get_points("xy")), 6) == 100
+        and round(max(p[1] for p in e.get_points("xy")) - min(p[1] for p in e.get_points("xy")), 6) == 60
+        for e in closed_blanks
+    )
     entities = tuple(doc.modelspace())
     assert {e.dxf.layer for e in entities} >= {
         "CUTTING", "BEND", "MARKING", "BLIND_HOLE", "CHECK",
@@ -93,6 +104,29 @@ def test_two_panels_and_multi_parts_one_dxf_full_primitive_reopen(tmp_path):
         previous_end = x1+dx
     assert result.sheets[0].offset[1] < p2[0].offset[1]
     assert list(tmp_path.glob(".whd-composed-stage-*")) == []
+
+
+def test_composed_wrong_unit_header_cannot_replace_existing_cutting_dxf(tmp_path, monkeypatch):
+    target = tmp_path / "reopened-units.dxf"
+    original = b"previous-job-must-stay-intact"
+    target.write_bytes(original)
+    real_save = composed_panel_dxf.save_scene_dxf
+
+    def wrong_header_in_final_stage(filepath, scene):
+        real_save(filepath, scene)
+        if str(filepath).endswith(target.name):
+            doc = ezdxf.readfile(filepath)
+            doc.units = ezdxf.units.M
+            doc.saveas(filepath)
+
+    monkeypatch.setattr(composed_panel_dxf, "save_scene_dxf", wrong_header_in_final_stage)
+    with pytest.raises(ValueError, match="COMPOSED_DXF_UNIT_MISMATCH"):
+        manufacturing_api.save_composed_panel_dxf(
+            (("P1", _geometry(("door", _flat("door")))),),
+            target, pre_commit_guard=lambda: None, overwrite=True,
+        )
+    assert target.read_bytes() == original
+    assert not list(tmp_path.glob(".whd-composed-stage-*"))
 
 
 def test_rejected_metadata_preserves_preexisting_destination(tmp_path):

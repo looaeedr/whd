@@ -503,8 +503,11 @@ def save_composed_panel_dxf(
         # Every original flat passed its own material/BEND/holes verification
         # above; now independently reopen the COMPOSED bytes and prove all of
         # each physical sheet's translated features appear exactly once.
+        reopened = ezdxf.readfile(staged)
+        if reopened.header.get("$INSUNITS", 0) != ezdxf.units.MM:
+            raise ValueError("COMPOSED_DXF_UNIT_MISMATCH")
         actual = Counter(_actual_signature(entity)
-                         for entity in ezdxf.readfile(staged).modelspace())
+                         for entity in reopened.modelspace())
         remaining = actual.copy()
         for receipt, (_, physical_id, render) in zip(sheets, originals):
             dx, dy = receipt.offset
