@@ -256,7 +256,8 @@ def draw_v_miter_gui_live_check(host, result):
 
     for item in paths:
         fg = ("#6e8799" if item.layer == "DATUM" else
-              "#4dc7e5" if getattr(item, "color", None) == 4 else "#ff9f0a")
+              "#4dc7e5" if getattr(item, "color", None) == 4 else
+              "#af80ee" if getattr(item, "color", None) == 5 else "#ff9f0a")
         thick = 1 if item.layer == "DATUM" else 2
         if hasattr(item, "points"):
             canvas.create_polygon(
