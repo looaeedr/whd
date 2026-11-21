@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
-"""#3317 source-qualified Factory V geometry -> real default R/BA/T CHECK.
+"""#3317 actual Factory V-source curved R/BA/T CHECK with generic defaults.
 
-An Engine-only bridge to the existing cylindrical bend solver. The pre-corner
-Factory source, real BEND identities and post-V T mesh must be reverified
-before the trial. Generic R/K is not a measured press-brake setting and no
-production CUTTING/BEND/MARKING is published.
+The older R/BA *trimming* solver requires the ideal finite contact ray to
+end on the CUTTING perimeter. Real Factory V-miter uses an independently
+extended, source-clipped V edge instead: substituting the ideal ray for the
+real stock exit is physically invalid. This module therefore computes
+only honest curved R/BA/T surface/interference diagnostics from the
+verified Factory post-V stock, without making up a corrected CUTTING or
+using a shop-unapproved relief/trim dimension. No manufacturing release.
 """
 from __future__ import annotations
 
@@ -13,21 +16,29 @@ import math
 
 from shapely.geometry import Polygon
 
+from .assembly_geometry import (
+    detect_world_mesh_surface_interference,
+    detect_world_mesh_enclosed_volume_witness,
+    diagnose_world_mesh_triangle_edge_incidence,
+    diagnose_world_mesh_self_intersections,
+)
+from .assembly_geometry_primitives import thicken_triangle_surface
 from .contracts import DoorPartSpec, EndCapPartSpec
 from .manufacturing_render_data import PartRenderData
-from .sheetmetal_drawing import DrawingScene, LinePrimitive, PolylinePrimitive
-from .sheetmetal_geometry_core import GeometryError, Vec2
-from .v_miter_ideal_mating import VMiterIdealMatingCandidate
-from .v_miter_material_trial import (
-    VMiterSourceBoundSharpCheck, project_v_miter_source_material_trial,
+from .sheetmetal_drawing import LinePrimitive
+from .sheetmetal_geometry_core import GeometryError
+from .v_miter_ideal_mating import (
+    VMiterIdealMatingCandidate, _outward_bend_axis, _outside_normal,
 )
+from .v_miter_material_trial import VMiterSourceBoundSharpCheck
 from .v_miter_factory_fold_check import VMiterFactoryPrecutFoldCheck
 from .v_miter_factory_mother_check import VMiterFactoryMotherReplacementCheck
 from .v_miter_factory_true_t_check import (
-    project_v_miter_factory_post_v_true_t_check, _formed_perimeter_edges,
+    project_v_miter_factory_post_v_true_t_check, _source_flange_parts,
+    _formed_perimeter_edges,
 )
 from .v_miter_radius_ba_interface_trial import (
-    VMiterRadiusBAFullSheetCheck, project_v_miter_radius_ba_full_sheet_check,
+    _formed_curved_skin, _measured_cylindrical_half_t_offsets,
 )
 from .v_miter_trial_defaults import (
     VMiterTrialParameterDefaults, project_v_miter_trial_parameter_defaults,
@@ -36,13 +47,24 @@ from .v_miter_trial_defaults import (
 
 @dataclass(frozen=True)
 class VMiterFactoryRadiusBADefaultCheck:
-    """Source-backed R/BA/T curved sheet CHECK, not machining permission."""
+    """Physical post-V source curved-T shadow. No manufacturing contour."""
 
-    full_sheet: VMiterRadiusBAFullSheetCheck
-    trim_search_cap_mm: float
+    first_inner_radius_mm: float
+    second_inner_radius_mm: float
+    first_bend_allowance_mm: float
+    second_bend_allowance_mm: float
     first_formed_perimeter_edges: tuple
     second_formed_perimeter_edges: tuple
-    geometry_model: str = "FACTORY_PROVEN_SOURCE_DEFAULT_R_BA_CURVED_T_CHECK"
+    first_curved_skin_triangles: tuple
+    second_curved_skin_triangles: tuple
+    first_thick_solid_triangles: tuple
+    second_thick_solid_triangles: tuple
+    sharp_t_surface_interference_pairs: int
+    curved_t_surface_interference_pairs: int
+    curved_t_volume_status: str
+    relief_application_status: str = "FACTORY_R_BA_RELIEF_NOT_YET_APPLIED"
+    trim_application_status: str = "FACTORY_R_BA_V_EDGE_TRIM_NOT_YET_SOLVED"
+    geometry_model: str = "FACTORY_PROVEN_POST_V_R_BA_CYLINDRICAL_T_CHECK"
     manufacturing_status: str = "V_MITER_FACTORY_R_BA_DEFAULT_UNCERTIFIED"
 
 
@@ -60,11 +82,12 @@ def project_v_miter_factory_radius_ba_default_check(
     defaults: VMiterTrialParameterDefaults,
     factory_mother: VMiterFactoryMotherReplacementCheck | None = None,
 ) -> VMiterFactoryRadiusBADefaultCheck:
-    """Solve default cylindrical R/BA against the verified physical mother.
+    """Run actual R/BA curved finite-T CHECK on Factory-proven post-V stock.
 
-    Uses a temporary source scene only. A trial-only 6T/half-first-flange
-    search cap is *not* a permissible factory machining trim. The original
-    FinalScene and all public manufactured layers are unchanged.
+    The V-side CUTTING endpoint is the *real* Factory source perimeter
+    intersection, not the shorter ideal formed seam endpoint. Flat stock
+    remains exactly the existing verified sharp V candidate. Defaults
+    affect only R/BA *formed surface*; relief/trim are NOT silently applied.
     """
     if (not isinstance(part_spec, (DoorPartSpec, EndCapPartSpec))
             or not isinstance(defaults, VMiterTrialParameterDefaults)
@@ -78,73 +101,103 @@ def project_v_miter_factory_radius_ba_default_check(
         relief_mode=ideal.source.relief_mode,
     ) or defaults.thickness_mm != ideal.source.thickness_mm:
         raise GeometryError("V_MITER_FACTORY_R_BA_DEFAULTS_SOURCE_CHANGED")
-
-    # Re-prove the actual source BEND objects, independent Factory axes,
-    # surviving material, and real post-V T geometry; not a GUI-borrowed
-    # rectangle or unproven virtual fold.
-    project_v_miter_factory_post_v_true_t_check(
+    sharp_t = project_v_miter_factory_post_v_true_t_check(
         part_spec, render_data, corner_key, ideal, source_check,
         factory_fold, first_real_bend, second_real_bend,
         first_station_bend, second_station_bend, factory_mother,
     )
     remaining = Polygon((p.x, p.y) for p in source_check.remaining_outline)
-    removed = Polygon((p.x, p.y) for p in source_check.removed_corner_outline)
-    restored = remaining.union(removed)
-    if (restored.geom_type != "Polygon" or restored.is_empty
-            or not restored.is_valid or restored.interiors
-            or abs(restored.area - source_check.source_material_area_mm2) > 1e-6
-            or remaining.intersection(removed).area > 1e-6):
-        raise GeometryError("V_MITER_FACTORY_R_BA_RESTORED_STOCK_INVALID")
-
-    # Stage only a private solver source from the proven mother and the
-    # already-verified Factory station axes. The staged CUTTING/BEND must
-    # never be forwarded to a manufacturing or DXF exporter.
-    first = LinePrimitive(first_station_bend.p1, first_station_bend.p2, "BEND")
-    second = LinePrimitive(second_station_bend.p1, second_station_bend.p2, "BEND")
-    staged = DrawingScene([
-        PolylinePrimitive(
-            tuple(Vec2(float(x), float(y)) for x, y in restored.exterior.coords),
-            "CUTTING", closed=True,
-        ), first, second,
-    ])
-    params = {
-        "thickness_mm": defaults.thickness_mm,
-        "first_flange_height_mm": ideal.source.first_flange_height_mm,
-        "second_flange_height_mm": ideal.source.second_flange_height_mm,
-        "second_fold_angle_deg": defaults.second_fold_angle_deg,
-        "relief_mode": defaults.relief_mode,
-    }
-    # Critical parity check: a legitimate curved trial must begin with the
-    # EXACT original V cut from the independently qualified Factory stock.
-    sharp = project_v_miter_source_material_trial(
-        staged, first, second,
-        relief_t_factor=defaults.relief_t_factor, **params,
+    if (remaining.geom_type != "Polygon" or remaining.is_empty
+            or not remaining.is_valid or remaining.interiors):
+        raise GeometryError("V_MITER_FACTORY_R_BA_POST_V_STOCK_INVALID")
+    apex = ideal.source.bend_intersection
+    e1 = _outward_bend_axis(first_station_bend, apex)
+    e2 = _outward_bend_axis(second_station_bend, apex)
+    n1 = _outside_normal(e1, e2)
+    n2 = _outside_normal(e2, e1)
+    source = ideal.source
+    domains = (
+        (e1, n1, factory_fold.first_proposed_segments,
+         source.first_flange_height_mm,
+         ideal.first_flat_miter_ray[1], "FIRST",
+         math.pi / 2, defaults.first_inner_radius_mm,
+         defaults.first_bend_allowance_mm),
+        (e2, n2, factory_fold.second_proposed_segments,
+         source.second_flange_height_mm,
+         ideal.second_flat_miter_ray[1], "SECOND",
+         math.radians(defaults.second_fold_angle_deg),
+         defaults.second_inner_radius_mm,
+         defaults.second_bend_allowance_mm),
     )
-    proposed = Polygon((p.x, p.y) for p in sharp.trial_remaining_outline)
-    if proposed.symmetric_difference(remaining).area > 1e-6:
-        raise GeometryError("V_MITER_FACTORY_R_BA_IDEAL_SHARP_STOCK_MISMATCH")
 
-    cap = min(6.0 * defaults.thickness_mm,
-              0.5 * ideal.source.first_flange_height_mm)
-    if not math.isfinite(cap) or cap <= 0:
-        raise GeometryError("V_MITER_FACTORY_R_BA_INVALID_TRIAL_TRIM_CAP")
-    result = project_v_miter_radius_ba_full_sheet_check(
-        staged, first, second,
-        max_permitted_edge_trim_mm=cap,
-        **params, **defaults.as_trial_inputs(),
+    all_skins, all_solids = [], []
+    for axis, normal, folds, height, tip, name, angle, radius, allowance in domains:
+        tip_axial = (
+            (tip.x - apex.x) * axis[0] +
+            (tip.y - apex.y) * axis[1]
+        )
+        parts, low, high, _ = _source_flange_parts(
+            remaining, apex, axis, normal, folds, height, tip_axial, name,
+        )
+        formed, paired_flat = [], []
+        for part in parts:
+            skin, flat = _formed_curved_skin(
+                part, apex, axis, normal,
+                angle_rad=angle, inner_r=radius, allowance=allowance,
+                thickness=defaults.thickness_mm, axial_span=high,
+                axial_min_mm=min(0.0, low),
+                flange_height=height, return_flat_pairs=True,
+            )
+            formed.extend(skin)
+            paired_flat.extend(flat)
+        skin = tuple(formed)
+        offsets = _measured_cylindrical_half_t_offsets(
+            tuple(paired_flat), skin, apex=apex, outside=normal,
+            angle_rad=angle, allowance=allowance,
+            thickness=defaults.thickness_mm,
+        )
+        solid = tuple(thicken_triangle_surface(
+            skin, defaults.thickness_mm, smooth_vertex_normals=True,
+            physical_vertex_offsets=offsets,
+        ))
+        topo = diagnose_world_mesh_triangle_edge_incidence(solid)
+        if (not topo.edges_manifold_closed or
+                not diagnose_world_mesh_self_intersections(
+                    solid,
+                ).permits_strict_volume_sampling):
+            raise GeometryError(
+                f"V_MITER_FACTORY_R_BA_{name}_VOLUME_TOPOLOGY_UNPROVEN"
+            )
+        all_skins.append(skin)
+        all_solids.append(solid)
+
+    collision = detect_world_mesh_surface_interference(
+        all_solids[0], all_solids[1],
     )
-    corrected = Polygon((p.x, p.y) for p in result.corrected_check_outline)
-    if (corrected.geom_type != "Polygon" or corrected.is_empty
-            or not corrected.is_valid or corrected.interiors
-            or not corrected.difference(restored.buffer(1e-7)).is_empty):
-        raise GeometryError("V_MITER_FACTORY_R_BA_CORRECTION_INVENTS_SOURCE_STOCK")
+    volume_status = "V_MITER_FACTORY_R_BA_SURFACE_INTERFERENCE_PRESENT_UNCERTIFIED"
+    if not collision.pair_count:
+        witness = detect_world_mesh_enclosed_volume_witness(
+            all_solids[0], all_solids[1],
+        )
+        if witness.strictly_inside_points:
+            volume_status = "V_MITER_FACTORY_R_BA_ENCLOSED_VOLUME_INTERFERENCE_UNCERTIFIED"
+        elif witness.meshes_closed:
+            volume_status = "V_MITER_FACTORY_R_BA_NO_DETECTED_VOLUME_WITNESS_UNCERTIFIED"
+        else:
+            volume_status = "V_MITER_FACTORY_R_BA_VOLUME_UNKNOWN_UNCERTIFIED"
+
     return VMiterFactoryRadiusBADefaultCheck(
-        full_sheet=result,
-        trim_search_cap_mm=cap,
-        first_formed_perimeter_edges=_formed_perimeter_edges(
-            result.trial.first_formed_skin_triangles,
-        ),
-        second_formed_perimeter_edges=_formed_perimeter_edges(
-            result.trial.second_formed_skin_triangles,
-        ),
+        first_inner_radius_mm=defaults.first_inner_radius_mm,
+        second_inner_radius_mm=defaults.second_inner_radius_mm,
+        first_bend_allowance_mm=defaults.first_bend_allowance_mm,
+        second_bend_allowance_mm=defaults.second_bend_allowance_mm,
+        first_formed_perimeter_edges=_formed_perimeter_edges(all_skins[0]),
+        second_formed_perimeter_edges=_formed_perimeter_edges(all_skins[1]),
+        first_curved_skin_triangles=all_skins[0],
+        second_curved_skin_triangles=all_skins[1],
+        first_thick_solid_triangles=all_solids[0],
+        second_thick_solid_triangles=all_solids[1],
+        sharp_t_surface_interference_pairs=sharp_t.surface_interference_pair_count,
+        curved_t_surface_interference_pairs=collision.pair_count,
+        curved_t_volume_status=volume_status,
     )

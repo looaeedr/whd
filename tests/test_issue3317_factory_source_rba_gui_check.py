@@ -7,7 +7,6 @@ from __future__ import annotations
 
 from dataclasses import replace
 import math
-from types import SimpleNamespace
 
 import pytest
 from shapely.geometry import Polygon
@@ -70,17 +69,27 @@ def test_opt_in_real_factory_v_uses_original_part_and_default_rba(part_key):
         )
         # Real factory/tolerance/mesh may reject a default trial; a genuine
         # rejection must be surfaced, not silently projected as 0 collisions.
+        if part_key == "door":
+            # A genuine installed Factory source must prove that R/BA
+            # reaches actual curved finite-T geometry, not just text labels.
+            assert calculated.factory_radius_ba_check is not None, (
+                calculated.factory_radius_ba_failure
+            )
         if calculated.factory_radius_ba_check is None:
             assert calculated.factory_radius_ba_failure
         else:
             proposal = calculated.factory_radius_ba_check
             assert proposal.manufacturing_status.endswith("UNCERTIFIED")
-            assert proposal.full_sheet.manufacturing_status.endswith("UNCERTIFIED")
-            assert proposal.full_sheet.trial.trimmed_surface_interference_pairs == 0
             assert proposal.first_formed_perimeter_edges
             assert proposal.second_formed_perimeter_edges
-            assert any(getattr(row, "semantic_id", None) ==
-                       "v_miter_engine_r_ba_uncertified_only"
+            assert proposal.first_curved_skin_triangles
+            assert proposal.second_curved_skin_triangles
+            assert proposal.first_thick_solid_triangles
+            assert proposal.second_thick_solid_triangles
+            assert proposal.relief_application_status.endswith("NOT_YET_APPLIED")
+            assert proposal.trim_application_status.endswith("NOT_YET_SOLVED")
+            assert all(getattr(row, "semantic_id", None)
+                       != "v_miter_engine_r_ba_uncertified_only"
                        for row in calculated.full_sheet_check_scene.primitives)
         assert tuple(render.scene.primitives) == source
         assert all(row.layer in {"CHECK", "DATUM"}
@@ -131,8 +140,8 @@ def test_factory_rba_bridge_rejects_forged_default_and_real_bend_provenance():
         _destroy(root, app)
 
 
-def test_factory_rba_stage_reuses_proven_source_and_calls_real_solver(monkeypatch):
-    """Prove the EXACT solver receives Factory source stock, not GUI geometry."""
+def test_factory_curved_t_stage_uses_actual_post_v_stock_without_fabricating_contour(monkeypatch):
+    """Physical curved V trial is computed from existing Factory-clipped sheets."""
     import ae_engine.v_miter_factory_radius_ba_check as owner
 
     root, app, spec, render = _real_factory_v_gui()
@@ -146,43 +155,32 @@ def test_factory_rba_stage_reuses_proven_source_and_calls_real_solver(monkeypatc
         )
         roles = (x, y) if live.first_bend_axis == "x" else (y, x)
         actuals = (real_x, real_y) if live.first_bend_axis == "x" else (real_y, real_x)
-        source = tuple(render.scene.primitives)
+        original = tuple(render.scene.primitives)
+        verified_v = Polygon((p.x, p.y) for p in live.material_check.remaining_outline)
         observed = []
+        real_curved_skin = owner._formed_curved_skin
 
-        def checked_solver(scene, first, second, **params):
-            observed.append((scene, first, second, params))
-            assert scene is not render.scene
-            assert first in scene.primitives and second in scene.primitives
-            mother = Polygon((p.x, p.y) for p in live.material_check.remaining_outline).union(
-                Polygon((p.x, p.y) for p in live.material_check.removed_corner_outline),
-            )
-            assert _single_source_material(scene).symmetric_difference(mother).area < 1e-6
-            assert params["thickness_mm"] == spec.thickness
-            assert params["first_inner_radius_mm"] == spec.thickness
-            assert params["second_bend_allowance_mm"] == pytest.approx(
-                live.trial_defaults.second_bend_allowance_mm,
-            )
-            assert params["max_permitted_edge_trim_mm"] > 0
-            points = tuple(type(roles[0].p1)(float(x), float(y))
-                           for x, y in mother.exterior.coords)
-            return SimpleNamespace(
-                corrected_check_outline=points,
-                trial=SimpleNamespace(
-                    first_formed_skin_triangles=(((0., 0., 0.), (1., 0., 0.), (0., 1., 0.)),),
-                    second_formed_skin_triangles=(((0., 0., 1.), (1., 0., 1.), (0., 1., 1.)),),
-                ),
-            )
+        def traced_curved_skin(patch, *args, **kwargs):
+            observed.append((patch, kwargs))
+            assert patch.difference(verified_v.buffer(1e-7)).is_empty
+            assert kwargs["thickness"] == spec.thickness
+            assert kwargs["allowance"] > 0
+            assert kwargs["inner_r"] == pytest.approx(spec.thickness)
+            return real_curved_skin(patch, *args, **kwargs)
 
-        monkeypatch.setattr(owner, "project_v_miter_radius_ba_full_sheet_check", checked_solver)
-        output = owner.project_v_miter_factory_radius_ba_default_check(
+        monkeypatch.setattr(owner, "_formed_curved_skin", traced_curved_skin)
+        calculated = owner.project_v_miter_factory_radius_ba_default_check(
             spec, render, "bottom_left", live.ideal, live.material_check,
             live.factory_precut_fold_check,
             *actuals, *roles,
             live.trial_defaults, live.factory_mother_check,
         )
-        assert len(observed) == 1
-        assert output.manufacturing_status.endswith("UNCERTIFIED")
-        assert tuple(render.scene.primitives) == source
+        assert len(observed) >= 2
+        assert calculated.geometry_model.startswith("FACTORY_PROVEN_POST_V_R_BA")
+        assert calculated.sharp_t_surface_interference_pairs >= 0
+        assert calculated.curved_t_surface_interference_pairs >= 0
+        assert calculated.curved_t_volume_status.endswith("UNCERTIFIED")
+        assert tuple(render.scene.primitives) == original
     finally:
         _destroy(root, app)
 

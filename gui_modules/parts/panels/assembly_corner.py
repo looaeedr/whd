@@ -623,15 +623,15 @@ def refresh_corner_type_panel(self):
             )
             radius_check = live.factory_radius_ba_check
             if radius_check is not None:
-                trial = radius_check.full_sheet.trial
                 radius_note = (
-                    "預設 R/BA 已帶入 Engine 圓柱折彎網格求解："
-                    f"修邊前相交 {trial.untrimmed_surface_interference_pairs} 組、"
-                    f"修邊後相交 {trial.trimmed_surface_interference_pairs} 組；"
-                    f"第一側試算修切 {trial.first_edge_trim_mm:.3f} mm"
-                    f"（搜尋上限 {radius_check.trim_search_cap_mm:g} mm）。"
-                    "3D 顯示曲面有限 T 網格，2D 紅線為修正剩料；"
-                    "沒有證明密合或正式加工合格。"
+                    "預設 R/BA 已帶入 Engine 真 Factory 剩料的圓柱曲面："
+                    f"零 R 表面相交 {radius_check.sharp_t_surface_interference_pairs} 組、"
+                    f"實際預設 R/BA/T 表面相交 "
+                    f"{radius_check.curved_t_surface_interference_pairs} 組；"
+                    f"實體檢查 {radius_check.curved_t_volume_status}。"
+                    "3D 顯示實際曲面有限 T 網格；"
+                    "原 V 底部 R/孔、修邊、接合面尚未求解，"
+                    "2D 仍是原始尖 V 的 CHECK，不能當加工圖。"
                 )
             elif live.factory_radius_ba_failure is not None:
                 radius_note = (

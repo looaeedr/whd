@@ -485,14 +485,9 @@ def project_operator_v_miter_live_corner_check(
                         )
                     except GeometryError as exc:
                         factory_radius_ba_failure = str(exc)
-                    else:
-                        # A separate read-only overlay; CNC CUTTING and BEND
-                        # in the original FinalScene are strictly unchanged.
-                        whole_sheet.add(PolylinePrimitive(
-                            factory_radius_ba.full_sheet.corrected_check_outline,
-                            "CHECK", closed=True, color=1,
-                            semantic_id="v_miter_engine_r_ba_uncertified_only",
-                        ))
+                    # The Factory V cut is a full source-clipped ray;
+                    # this curvature trial does NOT invent a corrected
+                    # 2D contour or retarget the old ideal-tip trim solver.
     if run_radius_ba_trial and factory_radius_ba is None and factory_radius_ba_failure is None:
         factory_radius_ba_failure = (
             factory_precut_failure or stock_failure
