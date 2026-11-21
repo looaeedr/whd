@@ -650,6 +650,35 @@ def refresh_corner_type_panel(self):
             )
             radius_check = live.factory_radius_ba_check
             if radius_check is not None:
+                faces = radius_check.source_cut_face_continuity
+                if faces is None:
+                    contact_note = (
+                        "R/BA 成形 V 斜接切面無法證明連續："
+                        f"{radius_check.source_cut_face_continuity_failure or '來源不足'}；"
+                        "接合間隙仍為未知，不得當作零間隙。"
+                    )
+                else:
+                    measured = (
+                        f"實際切面接合區間：雙側 {faces.both_face_interval_count} 段、"
+                        f"缺側 {faces.missing_face_interval_count} 段"
+                        f"（缺料長度 "
+                        f"{faces.first_missing_span_mm + faces.second_missing_span_mm + faces.both_missing_span_mm:.3f} mm）；"
+                    )
+                    bound = (
+                        f"全長連續間隙保守上界 "
+                        f"{faces.max_gap_upper_bound_mm:.3f} mm"
+                        if faces.max_gap_upper_bound_mm is not None
+                        else "全長連續間隙上界未知"
+                    )
+                    sample = (
+                        f"最大取樣間隙 {faces.max_sampled_cut_face_gap_mm:.3f} mm"
+                        if faces.max_sampled_cut_face_gap_mm is not None
+                        else "無兩側同時可取樣的真切面"
+                    )
+                    contact_note = (
+                        measured + sample + "；" + bound + "。"
+                        "這是 Engine 曲面網格的試算證據，不是工廠允差或可加工密合。"
+                    )
                 radius_note = (
                     "預設 R/BA 已帶入 Engine 真 Factory 剩料的圓柱曲面："
                     f"零 R 表面相交 {radius_check.sharp_t_surface_interference_pairs} 組、"
@@ -658,8 +687,9 @@ def refresh_corner_type_panel(self):
                     f"實體檢查 {radius_check.curved_t_volume_status}。"
                     "3D 曲面有限 T 網格與 2D 紅色 R/孔避裂輪廓"
                     "已使用同一份 Factory 真剩料；"
-                    "斜邊修切及實體接合面間隙仍未求解，"
-                    "不能當正式加工圖。"
+                    "切面已使用同一 Engine 來源做連續間隙檢查，"
+                    "斜邊修切仍未完成，不能當正式加工圖。"
+                    f"{contact_note}"
                 )
             elif live.factory_radius_ba_failure is not None:
                 radius_note = (

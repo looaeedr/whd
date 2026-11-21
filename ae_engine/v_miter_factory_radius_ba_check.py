@@ -16,7 +16,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import math
 
-from shapely.geometry import Polygon
+from shapely.geometry import LineString, Polygon
 
 from .assembly_geometry import (
     detect_world_mesh_surface_interference,
@@ -47,6 +47,12 @@ from .v_miter_factory_relief_check import (
     VMiterFactoryBottomReliefCheck,
     project_v_miter_factory_bottom_relief_default_check,
 )
+from .v_miter_source_cut_face_trial import (
+    VMiterSourceCutFaceTrial, trace_v_miter_source_true_t_cut_faces,
+)
+from .v_miter_cut_face_continuity_trial import (
+    VMiterCutFaceContinuityTrial, project_v_miter_true_cut_face_continuity_trial,
+)
 from .v_miter_trial_defaults import (
     VMiterTrialParameterDefaults, project_v_miter_trial_parameter_defaults,
 )
@@ -74,6 +80,12 @@ class VMiterFactoryRadiusBADefaultCheck:
     curved_t_volume_status: str
     # The exact same 2D source contour used by every formed physical mesh.
     formed_source_outline: tuple
+    first_source_tagged_cut_faces: VMiterSourceCutFaceTrial | None = None
+    second_source_tagged_cut_faces: VMiterSourceCutFaceTrial | None = None
+    first_cut_face_failure: str | None = None
+    second_cut_face_failure: str | None = None
+    source_cut_face_continuity: VMiterCutFaceContinuityTrial | None = None
+    source_cut_face_continuity_failure: str | None = None
     relief_application_status: str = "FACTORY_R_BA_RELIEF_NOT_YET_APPLIED"
     trim_application_status: str = "FACTORY_R_BA_V_EDGE_TRIM_NOT_YET_SOLVED"
     geometry_model: str = "FACTORY_PROVEN_POST_V_R_BA_CYLINDRICAL_T_CHECK"
@@ -145,7 +157,32 @@ def project_v_miter_factory_radius_ba_default_check(
     if (remaining.geom_type != "Polygon" or remaining.is_empty
             or not remaining.is_valid or remaining.interiors):
         raise GeometryError("V_MITER_FACTORY_R_BA_POST_V_STOCK_INVALID")
+    # This original pre-V Factory mother, not the shorter ideal contact
+    # ray or the C01/C04 already-cut FinalScene, is the only legitimate
+    # provenance datum for newly created V-side CUTTING faces.
+    source_mother = Polygon(
+        (p.x, p.y) for p in source_check.remaining_outline
+    ).union(Polygon(
+        (p.x, p.y) for p in source_check.removed_corner_outline
+    ))
+    if (source_mother.geom_type != "Polygon" or source_mother.is_empty
+            or not source_mother.is_valid or source_mother.interiors
+            or abs(source_mother.area - source_check.source_material_area_mm2) > 1e-6):
+        raise GeometryError("V_MITER_FACTORY_R_BA_CUT_FACE_MOTHER_INVALID")
+    if not remaining.difference(source_mother.buffer(1e-7)).is_empty:
+        raise GeometryError("V_MITER_FACTORY_R_BA_CUT_FACE_INVENTS_STOCK")
     apex = ideal.source.bend_intersection
+    # Only the original *actual source-perimeter* V leg directions are
+    # permitted as inclined seam faces. Any R/Ø root face must not provide
+    # false "mating" coverage in the physical continuous gap solver.
+    actual_v_legs = (
+        LineString(((apex.x, apex.y),
+                    (source_check.first_perimeter_hit.x,
+                     source_check.first_perimeter_hit.y))),
+        LineString(((apex.x, apex.y),
+                    (source_check.second_perimeter_hit.x,
+                     source_check.second_perimeter_hit.y))),
+    )
     e1 = _outward_bend_axis(first_station_bend, apex)
     e2 = _outward_bend_axis(second_station_bend, apex)
     n1 = _outside_normal(e1, e2)
@@ -166,6 +203,7 @@ def project_v_miter_factory_radius_ba_default_check(
     )
 
     all_skins, all_solids, all_sharp_solids = [], [], []
+    tagged_faces, cut_face_failures = [], []
     for axis, normal, folds, height, tip, name, angle, radius, allowance in domains:
         tip_axial = (
             (tip.x - apex.x) * axis[0] +
@@ -219,6 +257,28 @@ def project_v_miter_factory_radius_ba_default_check(
             raise GeometryError(
                 f"V_MITER_FACTORY_R_BA_{name}_SHARP_SOURCE_MISSING"
             )
+        # Trace real V-cut walls through precisely the SAME paired flat
+        # triangles, cylindrically formed skin, measured radial T/2 offsets,
+        # and physical solid. Proving only their new source CUTTING edges
+        # avoids mistaking an unrelated clip plane or bottom hole for contact.
+        try:
+            cut_faces = trace_v_miter_source_true_t_cut_faces(
+                source_mother, remaining, tuple(paired_flat), skin, solid,
+                thickness_mm=defaults.thickness_mm,
+                physical_vertex_offsets=offsets,
+                physical_v_cut_leg_lines=actual_v_legs,
+            )
+            if not cut_faces.has_source_tagged_cut_faces:
+                raise GeometryError(
+                    f"V_MITER_FACTORY_R_BA_{name}_NO_SOURCE_V_LEG_SIDEWALL"
+                )
+        except GeometryError as exc:
+            cut_faces = None
+            cut_failure = str(exc)
+        else:
+            cut_failure = None
+        tagged_faces.append(cut_faces)
+        cut_face_failures.append(cut_failure)
         all_sharp_solids.append(sharp_solid)
         all_skins.append(skin)
         all_solids.append(solid)
@@ -243,6 +303,26 @@ def project_v_miter_factory_radius_ba_default_check(
         else:
             volume_status = "V_MITER_FACTORY_R_BA_VOLUME_UNKNOWN_UNCERTIFIED"
 
+    # Enumerate the full physical formed-seam line as exact vertex-to-vertex
+    # projection intervals. No whole-solid nearest-distance or a few hand-
+    # chosen samples may claim a continuous seam or shop gap tolerance.
+    continuity = None
+    continuity_failure = None
+    if any(item is None for item in tagged_faces):
+        continuity_failure = (
+            "V_MITER_FACTORY_R_BA_SOURCE_V_LEG_SIDEWALL_INCOMPLETE: "
+            + "; ".join(x for x in cut_face_failures if x)
+        )
+    else:
+        try:
+            continuity = project_v_miter_true_cut_face_continuity_trial(
+                tagged_faces[0].true_cut_face_triangles,
+                tagged_faces[1].true_cut_face_triangles,
+                formed_seam_start=ideal.formed_seam_start,
+                formed_seam_end=ideal.formed_seam_end,
+            )
+        except GeometryError as exc:
+            continuity_failure = str(exc)
     return VMiterFactoryRadiusBADefaultCheck(
         first_inner_radius_mm=defaults.first_inner_radius_mm,
         second_inner_radius_mm=defaults.second_inner_radius_mm,
@@ -258,6 +338,12 @@ def project_v_miter_factory_radius_ba_default_check(
         curved_t_surface_interference_pairs=collision.pair_count,
         curved_t_volume_status=volume_status,
         formed_source_outline=tuple(selected_outline),
+        first_source_tagged_cut_faces=tagged_faces[0],
+        second_source_tagged_cut_faces=tagged_faces[1],
+        first_cut_face_failure=cut_face_failures[0],
+        second_cut_face_failure=cut_face_failures[1],
+        source_cut_face_continuity=continuity,
+        source_cut_face_continuity_failure=continuity_failure,
         relief_application_status=relief_status,
         manufacturing_status=(
             "V_MITER_FACTORY_R_BA_MEASURED_INPUT_UNCERTIFIED"
