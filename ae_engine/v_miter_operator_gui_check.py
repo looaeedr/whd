@@ -496,7 +496,12 @@ def project_operator_v_miter_live_corner_check(
             except GeometryError as exc:
                 factory_true_t_failure = str(exc)
             if run_radius_ba_trial:
-                if factory_true_t is None:
+                if factory_bottom_relief is None:
+                    factory_radius_ba_failure = (
+                        factory_bottom_relief_failure
+                        or "V_MITER_FACTORY_R_BA_SOURCE_RELIEF_REQUIRED"
+                    )
+                elif factory_true_t is None:
                     factory_radius_ba_failure = (
                         factory_true_t_failure
                         or "V_MITER_FACTORY_R_BA_REQUIRES_SOURCE_TRUE_T"
@@ -507,6 +512,7 @@ def project_operator_v_miter_live_corner_check(
                             part_spec, render_data, corner_key, ideal, stock_check,
                             factory_precut_fold, real_first, real_second,
                             first[0], second[0], trial_defaults, factory_mother,
+                            relief_check=factory_bottom_relief,
                         )
                     except GeometryError as exc:
                         factory_radius_ba_failure = str(exc)

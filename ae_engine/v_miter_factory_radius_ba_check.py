@@ -7,7 +7,9 @@ extended, source-clipped V edge instead: substituting the ideal ray for the
 real stock exit is physically invalid. This module therefore computes
 only honest curved R/BA/T surface/interference diagnostics from the
 verified Factory post-V stock, without making up a corrected CUTTING or
-using a shop-unapproved relief/trim dimension. No manufacturing release.
+using a shop-unapproved relief/trim dimension. Where an independently
+source-proven R/hole trial is supplied, the same 2D corrected material
+feeds both the zero-R and curved R/BA finite-T shadow. No manufacture.
 """
 from __future__ import annotations
 
@@ -29,16 +31,21 @@ from .sheetmetal_drawing import LinePrimitive
 from .sheetmetal_geometry_core import GeometryError
 from .v_miter_ideal_mating import (
     VMiterIdealMatingCandidate, _outward_bend_axis, _outside_normal,
+    _UNIT_Z, _add, _scale,
 )
 from .v_miter_material_trial import VMiterSourceBoundSharpCheck
 from .v_miter_factory_fold_check import VMiterFactoryPrecutFoldCheck
 from .v_miter_factory_mother_check import VMiterFactoryMotherReplacementCheck
 from .v_miter_factory_true_t_check import (
     project_v_miter_factory_post_v_true_t_check, _source_flange_parts,
-    _formed_perimeter_edges,
+    _formed_perimeter_edges, _formed_skin,
 )
 from .v_miter_radius_ba_interface_trial import (
     _formed_curved_skin, _measured_cylindrical_half_t_offsets,
+)
+from .v_miter_factory_relief_check import (
+    VMiterFactoryBottomReliefCheck,
+    project_v_miter_factory_bottom_relief_default_check,
 )
 from .v_miter_trial_defaults import (
     VMiterTrialParameterDefaults, project_v_miter_trial_parameter_defaults,
@@ -62,6 +69,8 @@ class VMiterFactoryRadiusBADefaultCheck:
     sharp_t_surface_interference_pairs: int
     curved_t_surface_interference_pairs: int
     curved_t_volume_status: str
+    # The exact same 2D source contour used by every formed physical mesh.
+    formed_source_outline: tuple
     relief_application_status: str = "FACTORY_R_BA_RELIEF_NOT_YET_APPLIED"
     trim_application_status: str = "FACTORY_R_BA_V_EDGE_TRIM_NOT_YET_SOLVED"
     geometry_model: str = "FACTORY_PROVEN_POST_V_R_BA_CYLINDRICAL_T_CHECK"
@@ -81,13 +90,16 @@ def project_v_miter_factory_radius_ba_default_check(
     second_station_bend: LinePrimitive,
     defaults: VMiterTrialParameterDefaults,
     factory_mother: VMiterFactoryMotherReplacementCheck | None = None,
+    *,
+    relief_check: VMiterFactoryBottomReliefCheck | None = None,
 ) -> VMiterFactoryRadiusBADefaultCheck:
     """Run actual R/BA curved finite-T CHECK on Factory-proven post-V stock.
 
     The V-side CUTTING endpoint is the *real* Factory source perimeter
-    intersection, not the shorter ideal formed seam endpoint. Flat stock
-    remains exactly the existing verified sharp V candidate. Defaults
-    affect only R/BA *formed surface*; relief/trim are NOT silently applied.
+    intersection, not the shorter ideal formed seam endpoint. If present,
+    the Factory R/Ø relief is independently revalidated and its exact
+    remaining outline becomes the ONLY source for both physical mesh sets.
+    V-edge trimming is not invented or permitted as factory machining.
     """
     if (not isinstance(part_spec, (DoorPartSpec, EndCapPartSpec))
             or not isinstance(defaults, VMiterTrialParameterDefaults)
@@ -106,7 +118,22 @@ def project_v_miter_factory_radius_ba_default_check(
         factory_fold, first_real_bend, second_real_bend,
         first_station_bend, second_station_bend, factory_mother,
     )
-    remaining = Polygon((p.x, p.y) for p in source_check.remaining_outline)
+    if relief_check is not None:
+        if not isinstance(relief_check, VMiterFactoryBottomReliefCheck):
+            raise GeometryError("V_MITER_FACTORY_R_BA_RELIEF_TYPES_INVALID")
+        proven_relief = project_v_miter_factory_bottom_relief_default_check(
+            part_spec, render_data, corner_key, ideal, source_check,
+            factory_fold, first_real_bend, second_real_bend,
+            defaults, factory_mother,
+        )
+        if proven_relief != relief_check:
+            raise GeometryError("V_MITER_FACTORY_R_BA_RELIEF_SOURCE_CHANGED")
+        selected_outline = proven_relief.corrected_remaining_outline
+        relief_status = "FACTORY_R_BA_SOURCE_RELIEF_APPLIED_UNCERTIFIED"
+    else:
+        selected_outline = source_check.remaining_outline
+        relief_status = "FACTORY_R_BA_RELIEF_NOT_YET_APPLIED"
+    remaining = Polygon((p.x, p.y) for p in selected_outline)
     if (remaining.geom_type != "Polygon" or remaining.is_empty
             or not remaining.is_valid or remaining.interiors):
         raise GeometryError("V_MITER_FACTORY_R_BA_POST_V_STOCK_INVALID")
@@ -130,7 +157,7 @@ def project_v_miter_factory_radius_ba_default_check(
          defaults.second_bend_allowance_mm),
     )
 
-    all_skins, all_solids = [], []
+    all_skins, all_solids, all_sharp_solids = [], [], []
     for axis, normal, folds, height, tip, name, angle, radius, allowance in domains:
         tip_axial = (
             (tip.x - apex.x) * axis[0] +
@@ -140,7 +167,16 @@ def project_v_miter_factory_radius_ba_default_check(
             remaining, apex, axis, normal, folds, height, tip_axial, name,
         )
         formed, paired_flat = [], []
+        sharp_formed = []
+        bent_outward = (
+            _UNIT_Z if name == "FIRST"
+            else _add(_scale(normal, math.cos(angle)),
+                      _scale(_UNIT_Z, math.sin(angle)))
+        )
         for part in parts:
+            sharp_formed.extend(_formed_skin(
+                part, apex, axis, normal, bent_outward,
+            ))
             skin, flat = _formed_curved_skin(
                 part, apex, axis, normal,
                 angle_rad=angle, inner_r=radius, allowance=allowance,
@@ -168,9 +204,22 @@ def project_v_miter_factory_radius_ba_default_check(
             raise GeometryError(
                 f"V_MITER_FACTORY_R_BA_{name}_VOLUME_TOPOLOGY_UNPROVEN"
             )
+        sharp_solid = tuple(thicken_triangle_surface(
+            tuple(sharp_formed), defaults.thickness_mm,
+        ))
+        if not sharp_solid:
+            raise GeometryError(
+                f"V_MITER_FACTORY_R_BA_{name}_SHARP_SOURCE_MISSING"
+            )
+        all_sharp_solids.append(sharp_solid)
         all_skins.append(skin)
         all_solids.append(solid)
 
+    # Crucial: both reported R=0 and R/BA collision counts use exactly
+    # the same *source* one-sheet profile (including R or relief hole).
+    zero_r_collision = detect_world_mesh_surface_interference(
+        all_sharp_solids[0], all_sharp_solids[1],
+    )
     collision = detect_world_mesh_surface_interference(
         all_solids[0], all_solids[1],
     )
@@ -197,7 +246,9 @@ def project_v_miter_factory_radius_ba_default_check(
         second_curved_skin_triangles=all_skins[1],
         first_thick_solid_triangles=all_solids[0],
         second_thick_solid_triangles=all_solids[1],
-        sharp_t_surface_interference_pairs=sharp_t.surface_interference_pair_count,
+        sharp_t_surface_interference_pairs=zero_r_collision.pair_count,
         curved_t_surface_interference_pairs=collision.pair_count,
         curved_t_volume_status=volume_status,
+        formed_source_outline=tuple(selected_outline),
+        relief_application_status=relief_status,
     )
