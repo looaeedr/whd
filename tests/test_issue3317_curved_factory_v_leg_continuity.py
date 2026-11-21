@@ -6,6 +6,7 @@ never the true bottom R/Ø relief face or a whole-solid nearest point.
 from __future__ import annotations
 
 from dataclasses import replace
+from collections import defaultdict
 from pathlib import Path
 
 import pytest
@@ -48,7 +49,50 @@ def _close(root, app):
     ("door", "ROUND_R"), ("door", "RELIEF_HOLE"),
     ("head", "ROUND_R"), ("head", "RELIEF_HOLE"),
 ))
-def test_factory_curved_t_true_v_leg_faces_and_continuity_proof(part_key, mode):
+def test_factory_curved_t_true_v_leg_faces_and_continuity_proof(part_key, mode, monkeypatch):
+    import ae_engine.v_miter_factory_radius_ba_check as owner
+    real = owner.trace_v_miter_source_true_t_cut_faces
+    diagnostics = []
+
+    def examined(source, corrected, flat, skin, solid, **kw):
+        from ae_engine.contracts import PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES
+        tol = PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES.boundary_separation_tolerance
+        new = corrected.boundary.difference(source.boundary)
+        edges = defaultdict(int)
+        for tri in flat:
+            for a, b in zip(tri, (tri[1], tri[2], tri[0])):
+                key = tuple(sorted((
+                    tuple(round(float(x), 7) for x in a),
+                    tuple(round(float(x), 7) for x in b),
+                )))
+                edges[key] += 1
+        boundary = [LineString(pair) for pair, count in edges.items()
+                    if count == 1 and pair[0] != pair[1]]
+        legs = kw["physical_v_cut_leg_lines"]
+        near_cut = [e for e in boundary
+                    if e.difference(new.buffer(tol)).length <= tol]
+        near_leg = [e for e in boundary if any(
+            e.difference(leg.buffer(tol)).length <= tol for leg in legs
+        )]
+        both = [e for e in near_cut if any(
+            e.difference(leg.buffer(tol)).length <= tol for leg in legs
+        )]
+        diagnostics.append({
+            "tol": tol, "new": round(new.length, 5),
+            "boundary": len(boundary), "near_cut": len(near_cut),
+            "near_leg": len(near_leg), "both": len(both),
+            "near_min_cut": min((e.distance(new) for e in boundary), default=None),
+            "near_min_leg": min((e.distance(legs[0]) for e in boundary), default=None),
+            "closest": sorted((
+                (round(e.distance(new), 6),
+                 round(min(e.distance(leg) for leg in legs), 6),
+                 round(e.length, 5),
+                 tuple(tuple(round(float(v), 4) for v in pt) for pt in e.coords))
+                 for e in boundary), key=lambda x:x[0]+x[1])[:4],
+        })
+        return real(source, corrected, flat, skin, solid, **kw)
+
+    monkeypatch.setattr(owner, "trace_v_miter_source_true_t_cut_faces", examined)
     root, app, spec, render = _gui(part_key)
     try:
         original = tuple(render.scene.primitives)
@@ -66,7 +110,7 @@ def test_factory_curved_t_true_v_leg_faces_and_continuity_proof(part_key, mode):
         )
         first = result.first_source_tagged_cut_faces
         second = result.second_source_tagged_cut_faces
-        assert first is not None, result.first_cut_face_failure
+        assert first is not None, (result.first_cut_face_failure, diagnostics)
         assert second is not None, result.second_cut_face_failure
         assert first.has_source_tagged_cut_faces
         assert second.has_source_tagged_cut_faces
