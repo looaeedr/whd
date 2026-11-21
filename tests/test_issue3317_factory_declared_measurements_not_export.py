@@ -178,3 +178,75 @@ def test_declared_relief_dimension_is_not_forced_to_generic_one_t(monkeypatch):
         assert relief.manufacturing_status.endswith("UNCERTIFIED")
     finally:
         _close(root, app)
+
+
+@pytest.mark.parametrize("mode", ("ROUND_R", "RELIEF_HOLE"))
+def test_factory_first_edge_trim_uses_same_measured_source_for_2d_and_3d(mode):
+    """A bounded one-sided correction is a physically sourced CHECK only.
+
+    This exercise uses SYNTHETIC TEST VALUES. No machine calibration, seam
+    clearance verdict, production CornerType or manufacturing DXF is granted.
+    """
+    from shapely.geometry import Polygon
+
+    root, app, spec, render, live = _real_door()
+    try:
+        choice = api.project_operator_v_miter_live_corner_check(
+            spec, render, "bottom_left", relief_mode=mode,
+        )
+        first_real, second_real, first_station, second_station = (
+            _sources(spec, render, choice)
+        )
+        declared = _declared(spec, choice, mode)
+        relief = project_v_miter_factory_bottom_relief_default_check(
+            spec, render, "bottom_left", choice.ideal,
+            choice.material_check, choice.factory_precut_fold_check,
+            first_real, second_real, declared, choice.factory_mother_check,
+        )
+        def project(trim, inputs=declared, source_relief=relief):
+            return project_v_miter_factory_radius_ba_default_check(
+                spec, render, "bottom_left", choice.ideal,
+                choice.material_check, choice.factory_precut_fold_check,
+                first_real, second_real, first_station, second_station,
+                inputs, choice.factory_mother_check,
+                relief_check=source_relief,
+                first_edge_trim_mm=trim,
+            )
+        untrimmed = project(0)
+        corrected = project(0.1)
+        assert untrimmed.formed_source_outline == relief.corrected_remaining_outline
+        assert corrected.first_edge_trim_mm == pytest.approx(0.1)
+        assert corrected.additional_source_removed_area_mm2 > 0
+        assert corrected.trim_application_status.endswith("APPLIED_UNCERTIFIED")
+        prior = Polygon((p.x, p.y) for p in relief.corrected_remaining_outline)
+        after = Polygon((p.x, p.y) for p in corrected.formed_source_outline)
+        assert after.is_valid and not after.interiors
+        assert after.difference(prior).area == pytest.approx(0, abs=1e-6)
+        assert prior.area - after.area == pytest.approx(
+            corrected.additional_source_removed_area_mm2, abs=1e-5,
+        )
+        assert corrected.first_thick_solid_triangles
+        assert corrected.second_thick_solid_triangles
+        assert corrected.manufacturing_status.endswith("UNCERTIFIED")
+        with pytest.raises(GeometryError, match="MEASURED_SOURCE_REQUIRED"):
+            project_v_miter_factory_radius_ba_default_check(
+                spec, render, "bottom_left", choice.ideal,
+                choice.material_check, choice.factory_precut_fold_check,
+                first_real, second_real, first_station, second_station,
+                choice.trial_defaults, choice.factory_mother_check,
+                relief_check=choice.factory_bottom_relief_check,
+                first_edge_trim_mm=0.1,
+            )
+        with pytest.raises(GeometryError, match="RELIEF_SOURCE_REQUIRED"):
+            project(0.1, source_relief=None)
+        for invalid in (-0.1, float("nan"), float("inf"), True, "0.1"):
+            with pytest.raises(GeometryError, match="FIRST_EDGE_TRIM_INVALID"):
+                project(invalid)
+        with pytest.raises(GeometryError, match="CHECK_ONLY_UNCERTIFIED"):
+            api.require_no_operator_v_miter_gui_check_for_export({
+                "v_miter_gui_check_corners": {
+                    "door": {"bottom_left": "V_MITER_CHECK"},
+                }
+            })
+    finally:
+        _close(root, app)
