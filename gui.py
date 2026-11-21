@@ -1059,6 +1059,11 @@ class Phase6ApplicationHost:
             part_key, target, self.manual_corner_pair_same[part_key], enabled=True,
         )
         self.v_miter_gui_check_corners = updated
+        self.v_miter_gui_first_bend_axes = (
+            manufacturing_api.project_operator_v_miter_gui_selected_first_bend_axes(
+                getattr(self, "v_miter_gui_first_bend_axes", {}), updated,
+            )
+        )
         self.refresh_corner_type_panel()
         # A CHECK draft is a saved choice, not a manufacturing geometry edit.
         self._capture_phase6_committed_snapshot()
@@ -1088,6 +1093,29 @@ class Phase6ApplicationHost:
         self.refresh_corner_type_panel()
         self._capture_phase6_committed_snapshot()
 
+    def set_v_miter_gui_first_bend_axis(self):
+        """Save an operator-selected first physical V bend; never auto-pick X."""
+        part_key = self._current_manual_corner_part_key()
+        if not self._corner_part_type_editable(part_key):
+            return
+        target = self._normalize_manual_corner_target(part_key)
+        physical = manufacturing_api.project_operator_corner_selection_target(target)
+        selected = getattr(self, "v_miter_gui_check_corners", {})
+        if selected.get(part_key, {}).get(physical) != "V_MITER_CHECK":
+            self.refresh_corner_type_panel()
+            return
+        self.v_miter_gui_first_bend_axes = (
+            manufacturing_api.change_operator_v_miter_gui_first_bend_axis(
+                getattr(self, "v_miter_gui_first_bend_axes", {}),
+                selected, part_key, target,
+                self.manual_corner_pair_same[part_key],
+                first_bend_axis=self.v_miter_first_bend_axis_var.get(),
+            )
+        )
+        self._v_miter_radius_ba_trial_target = None
+        self.refresh_corner_type_panel()
+        self._capture_phase6_committed_snapshot()
+
     def run_v_miter_default_radius_ba_check(self):
         """Run source-verified curved R/BA/T CHECK, never manufacturing."""
         part_key = self._current_manual_corner_part_key()
@@ -1110,6 +1138,15 @@ class Phase6ApplicationHost:
         snapshot = self._make_original_fold_designer_snapshot()
         spec, _context = self._fold_designer_part_spec_from_payload(part_key, snapshot)
         render_data = self._query_fold_designer_render_data(part_key, snapshot)
+        selected_first = manufacturing_api.normalize_operator_v_miter_gui_first_bend_axes(
+            snapshot.get("v_miter_gui_first_bend_axes"),
+            snapshot.get("v_miter_gui_check_corners"),
+        )
+        first_axis = selected_first.get(part_key, {}).get(physical)
+        if first_axis is None:
+            raise ValueError(
+                "V_MITER_GUI_FIRST_BEND_REQUIRED: 請先指定此角第一折為 X 或 Y 折線"
+            )
         return manufacturing_api.project_operator_v_miter_live_corner_check(
             spec, render_data, physical,
             relief_mode=(
@@ -1118,6 +1155,7 @@ class Phase6ApplicationHost:
                 else "ROUND_R"
             ),
             run_radius_ba_trial=run_radius_ba_trial,
+            first_bend_axis=first_axis,
         )
 
     def export_v_miter_whole_sheet_check_dxf(self):
@@ -1253,6 +1291,12 @@ class Phase6ApplicationHost:
         self.v_miter_gui_relief_modes = (
             manufacturing_api.project_operator_v_miter_gui_selected_relief_modes(
                 getattr(self, "v_miter_gui_relief_modes", {}),
+                self.v_miter_gui_check_corners,
+            )
+        )
+        self.v_miter_gui_first_bend_axes = (
+            manufacturing_api.project_operator_v_miter_gui_selected_first_bend_axes(
+                getattr(self, "v_miter_gui_first_bend_axes", {}),
                 self.v_miter_gui_check_corners,
             )
         )

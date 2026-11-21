@@ -473,6 +473,22 @@ def refresh_corner_type_panel(self):
             canvas, CornerTypeSelection(type_id), large=False, flip_y=flip_y
         )
         canvas.configure(highlightbackground=self.COLOR_ACCENT if type_id is selection.type_id else '#34343a')
+    saved_first_axes = manufacturing_api.normalize_operator_v_miter_gui_first_bend_axes(
+        getattr(self, "v_miter_gui_first_bend_axes", {}),
+        getattr(self, "v_miter_gui_check_corners", {}),
+    )
+    first_axis = saved_first_axes.get(part_key, {}).get(physical_key, "") if v_choice else ""
+    self.v_miter_first_bend_axis_var.set(first_axis)
+    if v_choice:
+        if not self.v_miter_first_bend_axis_frame.winfo_ismapped():
+            self.v_miter_first_bend_axis_frame.pack(
+                fill=tk.X, padx=8, pady=(2, 2),
+                before=self.v_miter_relief_mode_frame,
+            )
+    else:
+        self.v_miter_first_bend_axis_frame.pack_forget()
+    for rb in self.v_miter_first_bend_axis_radios:
+        rb.configure(state=(tk.NORMAL if target_type_editable else tk.DISABLED))
     if v_choice:
         stored_relief_modes = manufacturing_api.normalize_operator_v_miter_gui_relief_modes(
             getattr(self, "v_miter_gui_relief_modes", {}),
@@ -880,10 +896,33 @@ def _build_corner_type_selector(host, editor):
     )
     host.v_miter_gui_check_radio.pack(side=tk.LEFT, fill=tk.X, expand=True)
 
+    # Physical X/Y BEND identity is selected by the operator. There is
+    # intentionally no first-fold default, even when both angles are 90.
+    host.v_miter_first_bend_axis_var = tk.StringVar(value="")
+    first_row = tk.Frame(type_frame, bg=host.COLOR_INPUT_BG)
+    host.v_miter_first_bend_axis_frame = first_row
+    host.v_miter_first_bend_axis_radios = []
+    for label, axis in (
+        ("第一折：X 折線（必須 90°）", "x"),
+        ("第一折：Y 折線（必須 90°）", "y"),
+    ):
+        rb = tk.Radiobutton(
+            first_row, text=label,
+            variable=host.v_miter_first_bend_axis_var, value=axis,
+            command=host.set_v_miter_gui_first_bend_axis,
+            bg=host.COLOR_INPUT_BG, fg=host.COLOR_TEXT,
+            activebackground=host.COLOR_INPUT_BG,
+            activeforeground=host.COLOR_TEXT,
+            selectcolor=host.COLOR_PANEL,
+        )
+        rb.pack(side=tk.LEFT, padx=(0, 8))
+        host.v_miter_first_bend_axis_radios.append(rb)
+
     # The choice is only a live operator input, not a manufacturing
     # CornerType or a second GUI geometry formula. Recomputed by Engine.
     host.v_miter_relief_mode_var = tk.StringVar(value="ROUND_R")
     relief_row = tk.Frame(type_frame, bg=host.COLOR_INPUT_BG)
+    host.v_miter_relief_mode_frame = relief_row
     relief_row.pack(fill=tk.X, pady=(2, 2))
     for label, choice in (
         ("V 底部圓角 R", "ROUND_R"),

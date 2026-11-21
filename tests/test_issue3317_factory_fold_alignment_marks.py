@@ -37,6 +37,8 @@ def test_typed_factory_post_v_fold_marked_20_50_without_machine_layers(
         app.workspace_controller.set_active_part(part_key)
         app.select_manual_corner(physical_corner)
         app.set_v_miter_gui_check_choice()
+        app.v_miter_first_bend_axis_var.set("x")
+        app.set_v_miter_gui_first_bend_axis()
         snapshot = app._make_original_fold_designer_snapshot()
         original = app._query_fold_designer_render_data(part_key, snapshot)
         old_primitives = tuple(original.scene.primitives)

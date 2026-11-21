@@ -130,6 +130,8 @@ def test_true_gui_mode_switch_and_new_gui_reload_keeps_hole(tmp_path):
     app2 = None
     try:
         app.set_v_miter_gui_check_choice()
+        app.v_miter_first_bend_axis_var.set("x")
+        app.set_v_miter_gui_first_bend_axis()
         app.v_miter_relief_mode_var.set("RELIEF_HOLE")
         app.set_v_miter_gui_relief_mode()
         assert app.v_miter_gui_relief_modes["door"]["bottom_left"] == "RELIEF_HOLE"

@@ -17,6 +17,8 @@ def test_real_tk_physical_part_live_v_preview_from_current_fold(part_key):
         app.workspace_controller.set_active_part(part_key)
         app.select_manual_corner("bottom")
         app.set_v_miter_gui_check_choice()
+        app.v_miter_first_bend_axis_var.set("x")
+        app.set_v_miter_gui_first_bend_axis()
 
         assert app.manual_corner_type_var.get() == "V_MITER_CHECK"
         try:

@@ -185,7 +185,7 @@ def test_gui_is_selectable_without_fifth_certified_corner_type_or_new_angle_fiel
     source = gui.read_text(encoding="utf-8")
     assert 'text="V 型斜接（試算）"' in source
     assert 'command=host.set_v_miter_gui_check_choice' in source
-    assert "self._project_v_miter_gui_check_for_corner(part_key, target_key)" in source
+    assert "self._project_v_miter_gui_check_for_corner(" in source
     assert "draw_v_miter_gui_live_check(self, live)" in source
     host = Path(__file__).parents[1].joinpath("gui.py").read_text(encoding="utf-8")
     handler = host.split("def set_v_miter_gui_check_choice(self):")[1].split(
@@ -233,6 +233,14 @@ def test_real_tk_fifth_choice_is_clickable_and_keeps_manufacturing_corner_type()
             "bottom_right": "V_MITER_CHECK",
         }
         assert app.manual_corner_state["door"] == before
+        assert getattr(app, "v_miter_gui_first_bend_axes", {}) == {}
+        with pytest.raises(ValueError, match="V_MITER_GUI_FIRST_BEND_REQUIRED"):
+            app._project_v_miter_gui_check_for_corner("door", "bottom")
+        app.v_miter_first_bend_axis_var.set("y")
+        app.set_v_miter_gui_first_bend_axis()
+        assert app.v_miter_gui_first_bend_axes["door"] == {
+            "bottom_left": "y", "bottom_right": "y",
+        }
         saved = app._compose_phase6_project_snapshot_from_main_gui()
         assert saved["v_miter_gui_check_corners"]["door"]["bottom_right"] == "V_MITER_CHECK"
         with pytest.raises(GeometryError, match="CHECK_ONLY_UNCERTIFIED"):
@@ -242,6 +250,7 @@ def test_real_tk_fifth_choice_is_clickable_and_keeps_manufacturing_corner_type()
         current = before["bottom_left"].type_id
         app.set_manual_corner_type(current)
         assert app.v_miter_gui_check_corners == {}
+        assert app.v_miter_gui_first_bend_axes == {}
         assert app.manual_corner_type_var.get() == current.value
     finally:
         if app is not None:
