@@ -2055,6 +2055,9 @@ from .v_miter_factory_radius_ba_check import (
     VMiterFactoryRadiusBADefaultCheck,
     project_v_miter_factory_radius_ba_default_check,
 )
+from .v_miter_factory_measurements import (
+    VMiterFactoryMeasuredInputs, require_v_miter_factory_measurement_source,
+)
 from .v_miter_trial_defaults import (
     VMiterTrialParameterDefaults, project_v_miter_trial_parameter_defaults,
 )

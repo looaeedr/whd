@@ -7,6 +7,7 @@ from copy import deepcopy
 from dataclasses import dataclass, replace
 from pathlib import Path
 import tkinter as tk
+from tkinter import ttk
 from ae_engine import manufacturing_api
 from ae_engine.sheetmetal_geometry import CornerTypeId
 from phase6_fold_profiles import formed_box_body_fw_widths
@@ -106,13 +107,50 @@ def toggle_fullscreen(self):
     return app._phase6_fullscreen
 
 def build_settings_center(self, namespace):
-    """Build Settings/diagnostics around the renderer without changing owners."""
+    """Mount the existing Settings and diagnostics owners in a separate window."""
     app = self.app
     renderer_widget = app.renderer.canvas.get_tk_widget()
     renderer_widget.pack_forget()
+
+    window = tk.Toplevel(app.root)
+    window.withdraw()
+    window.title("3D 參數設定")
+    screen_w = window.winfo_screenwidth()
+    screen_h = window.winfo_screenheight()
+    width = max(520, min(1100, screen_w - 80))
+    height = max(360, min(720, screen_h - 100))
+    window.geometry(f"{width}x{height}")
+    window.minsize(min(600, width), min(420, height))
+    window.protocol(
+        "WM_DELETE_WINDOW",
+        lambda: self.toggle_parameter_panel(namespace),
+    )
+    window.bind(
+        "<Escape>",
+        lambda _event: (
+            self.toggle_parameter_panel(namespace)
+            if getattr(app, "_phase6_parameters_unlocked", False)
+            else None
+        ),
+    )
+    app.parameter_settings_window = window
+
+    toolbar = ttk.Frame(window, padding=(10, 8))
+    toolbar.pack(fill=tk.X)
+    ttk.Label(
+        toolbar, text="板件與組合參數",
+        font=("Microsoft JhengHei", 11, "bold"),
+    ).pack(side=tk.LEFT)
+    app.parameter_settings_close_button = ttk.Button(
+        toolbar, text="關閉參數",
+        command=lambda: self.toggle_parameter_panel(namespace),
+        style="Secondary.TButton",
+    )
+    app.parameter_settings_close_button.pack(side=tk.RIGHT)
+
     panel = self.settings_panel(namespace)
-    panel.build_settings_center(app.right)
-    self.registry_panel(namespace).build_assembly_diagnostics(app.right)
+    panel.build_settings_center(window)
+    self.registry_panel(namespace).build_assembly_diagnostics(window)
     renderer_widget.pack(fill=tk.BOTH, expand=True)
     self.sync_settings_panel_compat()
 

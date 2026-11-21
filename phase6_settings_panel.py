@@ -463,7 +463,7 @@ class Phase6SettingsPanel(Phase6SettingsPanelOwnedRenderMixin):
 
     def build_settings_center(self, parent):
         self.settings_center = ttk.LabelFrame(parent, text="板件設定", padding=6)
-        self.settings_center.pack(side=tk.TOP, fill=tk.X, pady=(0, 6))
+        self.settings_center.pack(side=tk.TOP, fill=tk.BOTH, expand=True, pady=(0, 6))
         header = ttk.Frame(self.settings_center)
         header.pack(fill=tk.X, pady=(0, 4))
         self.settings_title_var = tk.StringVar(master=self.settings_center, value="板件設定")
@@ -482,7 +482,7 @@ class Phase6SettingsPanel(Phase6SettingsPanelOwnedRenderMixin):
         # Header/Footer stay fixed. Only the variable settings body owns scroll,
         # so Medium text + unlocked parameters cannot consume the 3D viewport.
         self.settings_scroll_host = ttk.Frame(self.settings_center)
-        self.settings_scroll_host.pack(fill=tk.X)
+        self.settings_scroll_host.pack(fill=tk.BOTH, expand=True)
         self.settings_scroll_canvas = tk.Canvas(
             self.settings_scroll_host,
             height=220,
@@ -496,7 +496,7 @@ class Phase6SettingsPanel(Phase6SettingsPanelOwnedRenderMixin):
         )
         self.settings_scroll_canvas.configure(yscrollcommand=self.settings_scrollbar.set)
         self.settings_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-        self.settings_scroll_canvas.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        self.settings_scroll_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
         self.settings_fields = ttk.Frame(self.settings_scroll_canvas)
         self._settings_scroll_window = self.settings_scroll_canvas.create_window(
