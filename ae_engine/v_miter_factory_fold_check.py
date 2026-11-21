@@ -27,6 +27,7 @@ from .v_miter_factory_mother_check import (
 from .v_miter_material_trial import (
     VMiterSourceBoundSharpCheck, _single_source_material,
 )
+from .v_miter_bend_marking import project_v_miter_bend_markings
 
 _GEOMETRY_TOL = 1e-7
 
@@ -43,6 +44,8 @@ class VMiterFactoryPrecutFoldCheck:
     second_additional_factory_fold_mm: float
     first_proposed_segments: tuple[LinePrimitive, ...]
     second_proposed_segments: tuple[LinePrimitive, ...]
+    first_proposed_alignment_marks: tuple[LinePrimitive, ...]
+    second_proposed_alignment_marks: tuple[LinePrimitive, ...]
     geometry_model: str = "FACTORY_PRE_CORNER_FOLD_CLIPPED_TO_V_SOURCE_CHECK"
     manufacturing_status: str = "V_MITER_FACTORY_PRECORNER_FOLD_UNCERTIFIED"
 
@@ -183,6 +186,35 @@ def project_v_miter_factory_precut_fold_check(
 
     first = find_proven_precut_axis(first_real_bend)
     second = find_proven_precut_axis(second_real_bend)
+
+    def align_proposed_fold(segments: tuple[LinePrimitive, ...]):
+        """Re-use the SAME Engine 20/50 marking rule on the *new* V Fold.
+
+        A proposed Fold is an independently source-checked Factory axis,
+        NOT an existing physical BEND. Expose only diagnostic CHECK strokes:
+        never manufacture a CNC MARKING or silently copy the old short marks
+        that would miss newly recovered metal.
+        """
+        marks = []
+        for segment in segments:
+            proposed_bend = LinePrimitive(segment.p1, segment.p2, "BEND")
+            for stroke in project_v_miter_bend_markings(
+                proposed_bend, stroke_mm=20.0, clear_gap_mm=50.0,
+            ):
+                line = LineString((
+                    (stroke.p1.x, stroke.p1.y),
+                    (stroke.p2.x, stroke.p2.y),
+                ))
+                if (line.difference(remaining.buffer(_GEOMETRY_TOL)).length
+                        > _GEOMETRY_TOL):
+                    raise GeometryError("V_MITER_FACTORY_FOLD_MARKS_OUTSIDE_V_SOURCE")
+                marks.append(LinePrimitive(
+                    stroke.p1, stroke.p2, "CHECK", color=3,
+                ))
+        return tuple(marks)
+
+    first_marks = align_proposed_fold(first[3])
+    second_marks = align_proposed_fold(second[3])
     return VMiterFactoryPrecutFoldCheck(
         first_original_bend_mm=first[0],
         second_original_bend_mm=second[0],
@@ -192,4 +224,6 @@ def project_v_miter_factory_precut_fold_check(
         second_additional_factory_fold_mm=second[2],
         first_proposed_segments=first[3],
         second_proposed_segments=second[3],
+        first_proposed_alignment_marks=first_marks,
+        second_proposed_alignment_marks=second_marks,
     )
