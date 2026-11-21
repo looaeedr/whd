@@ -185,7 +185,12 @@ def trace_v_miter_source_true_t_cut_faces(
         if segment.difference(new_cut.buffer(tol)).length > tol:
             continue
         if eligible_legs is not None and not any(
-            segment.difference(leg.buffer(tol)).length <= tol
+            # The same edge has passed the strict original new-CUTTING
+            # numerical envelope. Strip intersection can then shift a
+            # second time by one tolerance when tested against the ideal
+            # source ray; allow TWO such round-off budgets only, not an
+            # operator-specified fit or clearance allowance.
+            segment.difference(leg.buffer(2.0 * tol)).length <= tol
             for leg in eligible_legs
         ):
             # The circular/swept relief-root wall is genuine CUTTING but
