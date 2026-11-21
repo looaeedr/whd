@@ -52,7 +52,7 @@ def test_parameter_unlock_uses_independent_window_and_reopens_after_close():
         assert window.winfo_ismapped()
         assert center.winfo_manager() == "pack"
         assert center.winfo_viewable()
-        assert designer.settings_scroll_canvas.winfo_height() > 220
+        assert designer.settings_panel.settings_scroll_canvas.winfo_height() > 220
         assert canvas.master is original_parent
         assert canvas.winfo_manager() == "pack"
 
