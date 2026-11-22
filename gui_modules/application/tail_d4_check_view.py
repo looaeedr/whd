@@ -191,4 +191,10 @@ def show_tail_d4_check_window(
     canvas.draw()
     win._tail_d4_check_figure=figure
     win._tail_d4_check_canvas=canvas
+    # Inspectable exact Engine sources for native GUI regression, never
+    # manufacturing or project state; destroyed with the CHECK window.
+    win._tail_d4_check_flat=flat
+    win._tail_d4_check_shell=check
+    win._tail_d4_check_body_world=body_world
+    win._tail_d4_check_placed_world=placed_world
     return win
