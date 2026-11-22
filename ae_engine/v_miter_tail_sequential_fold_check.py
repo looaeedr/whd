@@ -308,7 +308,7 @@ def project_tail_same_sheet_sequential_fold_check(
             if source_uv_key not in unique_uv:
                 unique_uv.add(source_uv_key)
                 x,y=map(float,uv)
-                fold_x=(bottom-_EPS<=y<=float(lg.span_end)+_EPS and
+                fold_x=(float(lg.span_start)-_EPS<=y<=float(lg.span_end)+_EPS and
                         (x<left-_EPS or x>right+_EPS))
                 fold_y=(minx-_EPS<=x<=maxx+_EPS and y<bottom-_EPS)
                 x_only+=int(fold_x and not fold_y)
