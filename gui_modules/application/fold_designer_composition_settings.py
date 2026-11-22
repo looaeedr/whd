@@ -537,7 +537,8 @@ def show_tail_d4_check(self, namespace):
             local,placement="bottom",box_body_world=body_world,
         )
         assembly_check=manufacturing_api.inspect_operator_tail_d4_assembly_world(
-            body_world,placed,
+            body_world,placed,tail_faces=check.shell_faces,
+            source_uv=check.source_uv,openings=flat.opening_source_points_xy,
         )
         def save_view_dxf(path):
             # Rebuild from current source without committing GUI update intents.
