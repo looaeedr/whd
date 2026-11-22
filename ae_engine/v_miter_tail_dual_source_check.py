@@ -174,9 +174,14 @@ def project_tail_dual_v_same_source_check(
     # The only permissible changes are the two exact original corner
     # rectangles; all hole and upper-chain geometry retain source identity.
     left, right = corner_data["bottom_left"], corner_data["bottom_right"]
+    # The exact modified footprint is the verified original Factory
+    # two cut components UNION the two newly Engine-derived V wedges.
+    # Original corner reliefs may cross the nominal BEND station by
+    # their source-defined clearance, e.g. 0.5mm: a guessed box must not
+    # incorrectly flag that real component as an unrelated contour.
     allowed = unary_union((
-        box(minx, miny, left[0].x, left[0].y + left[4]),
-        box(right[0].x, miny, maxx, right[0].y + right[4]),
+        old_corner["bottom_left"], old_corner["bottom_right"],
+        left[3], right[3],
     ))
     if original.symmetric_difference(corrected).difference(
         allowed.buffer(_TOL)
