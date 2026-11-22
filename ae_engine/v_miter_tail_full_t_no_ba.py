@@ -18,7 +18,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 import math
 
-from shapely.geometry import LineString, Point
+from shapely.geometry import LineString, Point, Polygon
 
 from .sheetmetal_geometry_core import GeometryError
 from .manufacturing_render_data import material_polygon_from_final_scene
@@ -112,10 +112,9 @@ def project_tail_v90_full_t_no_ba(flat, *, first_axis: str):
     if (stock.geom_type!="Polygon" or not stock.is_valid or stock.is_empty
             or original_stock.geom_type!="Polygon" or not original_stock.is_valid
             or len(stock.interiors)!=len(original_stock.interiors)
-            or not set(round(p.area,7) for p in
-                       (Polygon(r) for r in stock.interiors)) ==
-                   set(round(p.area,7) for p in
-                       (Polygon(r) for r in original_stock.interiors))
+            or any(not any(Polygon(a).symmetric_difference(Polygon(b)).area<=_EPS
+                           for b in original_stock.interiors)
+                   for a in stock.interiors)
             or stock.difference(flat.result_material).area > _EPS):
         raise GeometryError("V_MITER_LOWER_ORIGINAL_HOLES_NOT_PRESERVED")
     outer_only=flat.result_material
