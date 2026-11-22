@@ -140,3 +140,40 @@ def deliver_tail_d4_check_only(
         path=folder/f"vault_tail_W{part.width:g}_D{part.depth:g}_T{part.thickness:g}_D4_{axis}_{_NOT_CNC}.dxf"
         files.append(save_tail_d4_check_dxf(flat,path,first_axis=axis))
     return tuple(files),flat,checks
+
+
+def build_tail_d4_check_preview_render(flat, *, first_axis):
+    """Read-only 2D/3D PartRenderData for the existing native Tail V renderer.
+
+    This preview's 2D source and all 3D T-solid triangles come from the
+    SAME verified FinalScene and UV identity. It is explicitly NOT the
+    ordinary V90 production preview request, and never touches a normal
+    output gate, PartSpec or stored project selection.
+    """
+    if first_axis not in ("x","y"):
+        raise GeometryError("TAIL_D4_CHECK_PREVIEW_OPERATOR_AXIS_REQUIRED")
+    check=project_tail_d4_source_keyed_t_check(flat,first_axis=first_axis)
+    if check.manufacturing_approved or check.bad_incidence_edges or check.bad_winding_edges:
+        raise GeometryError("TAIL_D4_CHECK_PREVIEW_UNVERIFIED_SHELL")
+    vertices=check.inner_xyz+check.outer_xyz
+    shell=tuple(tuple(vertices[i] for i in face) for face in check.shell_faces)
+    source=material_polygon_from_final_scene(flat.result_scene)
+    if not shell or len(source.interiors)!=check.source_hole_count:
+        raise GeometryError("TAIL_D4_CHECK_PREVIEW_SOURCE_MISMATCH")
+    return PartRenderData(
+        scene=flat.result_scene,
+        material=source,
+        fold_guides=fold_guides_from_final_scene(flat.result_scene),
+        metadata={
+            "source":"WHD_AUTHORITATIVE_FACTORY_OR_PROJECT_D4_CHECK",
+            "tail_lower_v_choice":"v90",
+            "tail_lower_v_preview_only":True,
+            "tail_lower_v_d4_check_only":True,
+            "tail_lower_v_no_ba":True,
+            "tail_lower_v_operator_first_axis":first_axis,
+            "tail_lower_v_full_t_mesh":shell,
+            "tail_lower_v_physical_t":float(flat.source_spec.thickness),
+            "manufacturing_approved":False,
+            "tail_lower_v_d4_status":"D4_CHECK_NOT_CNC_R2_MODEL_UNRESOLVED",
+        },
+    )
