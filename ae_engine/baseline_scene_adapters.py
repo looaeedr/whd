@@ -196,7 +196,7 @@ def get_stretched_end_cap_data(
     depth_comp_t=3.0, target_fold_left=None, target_fold_right=None,
     target_fold_top=None, target_fold_bottom=None, *,
     baseline_part_path, baseline_expected_path, source_loader,
-    get_end_cap_contour_points, relief_config,
+    get_end_cap_contour_points, relief_config, vault_fixed_policy=None,
 ):
     """
     載入基準檔 DXF，進行拉伸，過濾孔洞，並回傳幾何資料與反推得到的參數
@@ -396,7 +396,38 @@ def get_stretched_end_cap_data(
 
         # 進行控制點映射
         if ent.dxftype() == 'LWPOLYLINE':
-            pts = [(map_x(pt[0] - min_x), map_y(pt[1] - min_y)) for pt in ent.get_points()]
+            source_points = [(pt[0] - min_x, pt[1] - min_y)
+                             for pt in ent.get_points()]
+            pts = [(map_x(x), map_y(y)) for x, y in source_points]
+            if vault_fixed_policy is not None and layer == 'CUTTING' and ent.closed:
+                # Vault's certified ground-lug square is anchored at the flat
+                # sheet LEFT/BOTTOM edges, not at a nearby fold. Identify the
+                # baseline hole by its existing policy, then use the actual
+                # advanced-settings policy for its output location and size.
+                from .sheetmetal_features import DEFAULT_VAULT_ENDCAP_FEATURE_POLICY
+                fixed = DEFAULT_VAULT_ENDCAP_FEATURE_POLICY
+                corner_x = float(fixed.square_hole_origin.x)
+                corner_y = float(fixed.square_hole_origin.y)
+                end_x = corner_x + float(fixed.square_hole_size.x)
+                end_y = corner_y + float(fixed.square_hole_size.y)
+                corners = ((corner_x, corner_y), (end_x, corner_y),
+                           (end_x, end_y), (corner_x, end_y))
+                if (len(source_points) == 4 and
+                        len({(round(x, 7), round(y, 7)) for x, y in source_points}) == 4 and
+                        all(any(abs(x - rx) < 1e-7 and abs(y - ry) < 1e-7
+                                for rx, ry in corners)
+                            for x, y in source_points)):
+                    origin = vault_fixed_policy.square_hole_origin
+                    size = vault_fixed_policy.square_hole_size
+                    pts = [
+                        (
+                            float(origin.x) +
+                            (x - corner_x) / float(fixed.square_hole_size.x) * float(size.x),
+                            float(origin.y) +
+                            (y - corner_y) / float(fixed.square_hole_size.y) * float(size.y),
+                        )
+                        for x, y in source_points
+                    ]
             scene.add_polyline(pts, layer=layer, closed=ent.closed)
         elif ent.dxftype() == 'LINE':
             p1 = (map_x(ent.dxf.start.x - min_x), map_y(ent.dxf.start.y - min_y))
