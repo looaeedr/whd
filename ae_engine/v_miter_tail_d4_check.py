@@ -372,19 +372,25 @@ def save_tail_d4_check_mesh_and_local_svg(check, flat, destination):
                 'fill="none" stroke="#075985" stroke-width="1.4"/>'
             )
         # Display actual BEND line primitives only, never a made-up crease.
+        from shapely.geometry import box
+        window=box(x0-25.,22.,x0+25.,74.)
         for item in flat.result_scene.primitives:
             if not isinstance(item,LinePrimitive) or item.layer!="BEND":
                 continue
-            source=(item.p1,item.p2)
-            if not all(abs(v.x-x0)<25 and 22<v.y<74 for v in source):
-                continue
-            p=flatp((source[0].x,source[0].y))
-            q=flatp((source[1].x,source[1].y))
-            chunks.append(
-                f'<path d="M{fmt(p[0])} {fmt(p[1])} '
-                f'L{fmt(q[0])} {fmt(q[1])}" '
-                'fill="none" stroke="#a16207" stroke-width="1.1"/>'
-            )
+            source=LineString(((item.p1.x,item.p1.y),
+                               (item.p2.x,item.p2.y)))
+            crop=source.intersection(window)
+            pieces=([crop] if crop.geom_type=="LineString" else
+                    [g for g in getattr(crop,"geoms",())
+                     if g.geom_type=="LineString"])
+            for piece in pieces:
+                if piece.length<=_EPS: continue
+                p=flatp(piece.coords[0]);q=flatp(piece.coords[-1])
+                chunks.append(
+                    f'<path d="M{fmt(p[0])} {fmt(p[1])} '
+                    f'L{fmt(q[0])} {fmt(q[1])}" '
+                    'fill="none" stroke="#a16207" stroke-width="1.1"/>'
+                )
         chunks.append(
             f'<text x="{fmt(xbase)}" y="315" font-size="14">'
             f'{name} — formed source-keyed T2 shell boundary (oblique)</text>'
