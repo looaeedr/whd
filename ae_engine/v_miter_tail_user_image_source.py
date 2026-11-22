@@ -107,8 +107,11 @@ def project_tail_illustrated_side_v90_flat(
     if factory.symmetric_difference(original).area>tol:
         raise GeometryError("TAIL_IMAGE_V90_FACTORY_OUTER_CHANGED")
     mother=box(0,0,width,height)
+    # Classify original corner voids on the independently equivalent
+    # Factory, not raw CUTTING: sub-ULP edge drift must not bridge corners.
+    # Preserve raw CUTTING, BEND and holes as the actual result source.
     old_cuts=tuple(_selected_original_corner_component(
-        original,mother,key
+        factory,mother,key
     ) for key in ("bottom_left","bottom_right"))
     restored=original.union(unary_union(old_cuts))
     if restored.geom_type!="Polygon" or not restored.is_valid:
