@@ -114,6 +114,13 @@ def test_actual_whd_gui_d4_check_window_four_factory_holes_and_native_world(
         assert actual.tail_triangle_count==len(placed)==2860
         assert actual.crossing_pair_count==951
         assert len(actual.crossing_segments)==947
+        assert actual.crossing_tail_uv_bounds is not None
+        assert actual.crossing_world_bounds is not None
+        assert len(actual.crossing_target_face_indices)>0
+        assert max(actual.crossing_target_face_indices)<len(placed)
+        assert sum(count for _,count in actual.crossing_regions)==len(
+            actual.crossing_target_face_indices
+        )
         assert not actual.manufacturing_approved
         # Reuse the SAME actual GUI Body and native approved 2D for Y-first;
         # do not substitute a 36/312-face separate Body mesh.
@@ -139,6 +146,15 @@ def test_actual_whd_gui_d4_check_window_four_factory_holes_and_native_world(
         assert actual.volume_verdict.startswith("VOLUME_INTERFERENCE_")
         figure=win._tail_d4_check_figure
         assert len(figure.axes)==5
+        # WHD world Y is vertical; changing only the camera must leave the
+        # original world triangles and all 2D primitives untouched.
+        assembly_ax,left_ax,right_ax=figure.axes[1],figure.axes[3],figure.axes[4]
+        assert assembly_ax._vertical_axis==1
+        assert (assembly_ax.elev,assembly_ax.azim)==(18,-32)
+        assert left_ax._vertical_axis==right_ax._vertical_axis==1
+        assert (left_ax.elev,left_ax.azim)==(20,54)
+        assert (right_ax.elev,right_ax.azim)==(20,-54)
+        assert any("Tail UV" in text.get_text() for text in figure.texts)
         section=figure.axes[2]
         assert section.lines, "native upper two folds source section missing"
         assert figure.axes[3].collections and figure.axes[4].collections
