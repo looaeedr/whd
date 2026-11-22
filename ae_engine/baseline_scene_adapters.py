@@ -378,7 +378,15 @@ def get_stretched_end_cap_data(
     )
     bend_segments = structural_result.bends if structural_result is not None else build_endcap_bend_segments(new_geometry, relief_config)
     for segment in bend_segments:
-        scene.add_line(segment.p1, segment.p2, layer='BEND')
+        # Preserve the exact Engine BEND stations, but materialize coordinates
+        # as canonical finite Python floats before crossing the native GUI
+        # physical-source type gate. This is type normalization only: it does
+        # not create/extend a fold or alter any CUTTING datum.
+        scene.add_line(
+            (float(segment.p1.x), float(segment.p1.y)),
+            (float(segment.p2.x), float(segment.p2.y)),
+            layer='BEND',
+        )
 
     # 5.2 載入並映射基準檔內的其他圖元 (排除舊的外框與折彎線)
     for ent in msp:
