@@ -257,14 +257,21 @@ class Phase6BendingUI(original.BendingUI):
         target_idx = plan.target_index
         owner = getattr(self.update_cb, "__self__", None)
         symmetry_allowed = _phase6_box_symmetry_allowed(owner) if owner is not None else True
-        # Symmetry belongs to the physical Box Body editor only. The Vault
-        # Head/Tail one-axis source has independent ybottom1/ytop1 lengths;
-        # mirroring a Tail lower-fold edit into its upper fold corrupts the
-        # real source before the V preflight even runs.
+        # #3317 is confined to the active Tail editor: its lower and upper
+        # Fold source rows are independent, so changing ybottom1 cannot
+        # mirror into ytop1. Preserve existing Head/other-part UI behavior.
+        # The workbench owns active selection; Engine still owns which row
+        # can be mirrored and all physical Fold calculations.
+        is_tail_editor = (
+            getattr(self.state, "phase6_fold_ui_vault_key", None) == "封尾"
+            or str(getattr(
+                getattr(owner, "designer_workspace", None), "active_part", ""
+            ) or "") == "tail"
+        )
         symmetric = (
             symmetry_allowed
             and bool(getattr(self.state, "symmetric", False))
-            and getattr(self.state, "phase6_fold_ui_vault_key", None) == "箱身"
+            and not is_tail_editor
         )
         if symmetric and target_idx is not None and target_idx >= len(self.controls):
             raise ValueError("FOLD_EDITOR_MIRROR_CONTROL_INVALID")
