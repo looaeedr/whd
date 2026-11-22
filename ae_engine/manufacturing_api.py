@@ -921,6 +921,8 @@ def save_part_render_data_dxf(
     """Serialize an already-built authoritative FinalScene to DXF."""
     _manufacturing_export.require_dxf_overwrite_boolean(overwrite)
     metadata = getattr(render_data, "metadata", None) or {}
+    # A CHECK-only V preview is never a production cutting plan.
+    reject_tail_lower_v_preview_for_dxf(render_data)
     blocked = metadata.get("baseline_fit_error")
     if blocked:
         raise ValueError(str(blocked))
