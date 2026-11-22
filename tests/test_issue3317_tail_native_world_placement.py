@@ -185,3 +185,69 @@ def test_d4_same_factory_source_is_one_2d_and_3d_preview_not_manufacturing(first
     )
     with pytest.raises(ValueError,match="尚未核准加工 DXF"):
         api.reject_tail_lower_v_preview_for_dxf(preview)
+
+
+def test_actual_final_scene_renderer_places_approved_d4_t2_against_factory_body():
+    """Exercise WHD's actual final scene renderer, not only a placement helper."""
+    from types import SimpleNamespace
+    from matplotlib.figure import Figure
+    from matplotlib.backends.backend_agg import FigureCanvasAgg
+    from phase6_final_scene_renderer import Phase6FinalSceneRenderer
+    from phase6_final_scene_contracts import (
+        AssemblyScenePart,AssemblySceneRenderData,FinalSceneViewRequest,
+    )
+    from ae_engine.contracts import BoxBodyPartSpec
+    from ae_engine.manufacturing_api import build_box_body_structure_render_data
+    from ae_engine.box_body_structure_state import default_box_body_structure_state
+    from phase6_fold_profiles import (
+        build_box_body_profile,profile_to_fold_segments,
+    )
+    from ae_engine.v_miter_tail_d4_delivery import (
+        default_vault_tail_d4_spec,build_tail_d4_check_preview_render,
+    )
+    values={
+        "model":"金庫型","w":620.,"h":600.,"d":185.,"t":2.,
+        "fw":25.,"zl1":15.,"zl2":15.,"zr1":15.,"zr2":15.,
+        "yl1":15.,"yr1":15.,"ytop1":16.,"ybottom1":48.,
+    }
+    physical_body=build_box_body_structure_render_data(BoxBodyPartSpec(
+        width=620.,height=600.,depth=185.,thickness=2.,frame_width=25.,
+        model_name="金庫型",zl1=15.,zl2=15.,zr1=15.,zr2=15.,
+        fold_profile=profile_to_fold_segments(build_box_body_profile(values)),
+        structure_state=default_box_body_structure_state(),
+        head_ybottom1=15.,tail_ybottom1=48.,
+    ))
+    flat,_=build_tail_d4_check_from_original(default_vault_tail_d4_spec())
+    preview=build_tail_d4_check_preview_render(flat,first_axis="x")
+    body=AssemblyScenePart(
+        part_key="box_body",render_data=physical_body,
+        x_profile=(),y_profile=(),placement="box_body",
+    )
+    tail=AssemblyScenePart(
+        part_key="tail",render_data=preview,
+        x_profile=(),y_profile=(),placement="bottom",
+    )
+    request=FinalSceneViewRequest(
+        render_data=AssemblySceneRenderData(assembly_parts=(body,tail)),
+        x_profile=(),y_profile=(),part_key="assembly",
+        finished_dimensions=(620.,600.,185.),thickness=2.,
+    )
+    fig=Figure(figsize=(9,7))
+    ax=fig.add_subplot(111,projection="3d")
+    stub=SimpleNamespace(ax3d=ax,canvas=FigureCanvasAgg(fig))
+    actual=Phase6FinalSceneRenderer(stub).render(request)
+    local=api.tail_lower_v_preview_mesh(preview)
+    assert actual and len(actual)>len(local)
+    rendered_body=tuple(actual[:-len(local)])
+    rendered_tail=tuple(actual[-len(local):])
+    assert triangle_bounds(rendered_body)[1][0]==pytest.approx(-298.,abs=1e-7)
+    expected=api.place_prethickened_endcap_world_skins(
+        local,placement="bottom",box_body_world=rendered_body,
+    )
+    assert rendered_tail==expected
+    assert _signed_volume(rendered_tail)==pytest.approx(
+        _signed_volume(local),abs=1e-4,
+    )
+    assert any(abs(v[1]+298.)<1e-6
+               for tri in rendered_tail for v in tri)
+    fig.clear()
