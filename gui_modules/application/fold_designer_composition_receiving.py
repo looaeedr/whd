@@ -1125,6 +1125,7 @@ def settings_panel(self, namespace):
         tail_lower_v_selected=lambda part_key, choice_var: self.select_tail_lower_v_choice(
             namespace, choice_var
         ),
+        tail_d4_check_requested=lambda: self.show_tail_d4_check(namespace),
         tail_lower_v_first_bends_selected=lambda left_var, right_var: self.select_tail_lower_v_first_bends(
             namespace, left_var, right_var,
         ),
