@@ -1,0 +1,174 @@
+{
+  "apexes": [
+    [
+      15,
+      48
+    ],
+    [
+      407,
+      48
+    ]
+  ],
+  "corners": [
+    {
+      "actual_folded_joint_axis_xyz": [
+        [
+          12,
+          45,
+          3
+        ],
+        [
+          12,
+          45,
+          13.821681770725576
+        ]
+      ],
+      "collision_surface_triangle_pairs": 4,
+      "corner": "bottom_left",
+      "cut_face_failure_bottom": null,
+      "cut_face_failure_side": null,
+      "far_end_flat_minus_formed_reach_mm": 1.1783182292744243,
+      "formed_seam_reach_mm": 13.821681770725576,
+      "gap_lower_bound_mm": null,
+      "gap_max_sample_mm": 12.866518899574624,
+      "gap_upper_bound_mm": null,
+      "interference_z_range_mm": [
+        -1,
+        1
+      ],
+      "intervals": [],
+      "model_status": "MODEL_NOT_VERIFIED",
+      "sampled_true_face_gap_stations_mm": [
+        [
+          3.455420442681394,
+          "MEASURED",
+          9.340062179650456
+        ],
+        [
+          6.910840885362788,
+          "MEASURED",
+          12.866518899574624
+        ],
+        [
+          10.366261328044182,
+          "MEASURED",
+          16.526798079277143
+        ],
+        [
+          13.130597682189297,
+          "MEASURED",
+          19.50089318528007
+        ]
+      ],
+      "seam_failure": null,
+      "seam_span_mm": 10.821681770725576,
+      "source_gap_floor_at_straight_end_mm": 17,
+      "source_gap_floor_at_straight_start_mm": 6.178318229274425,
+      "topological_clearance_lower_bound_mm": 2,
+      "topology_contact_failure": "V_MITER_SIDE_OPENING_90_BENDS_NO_CONTACT: upper V-cut belongs to SIDE flange at Y>=BEND_Y, but folded BOTTOM flange's physical T surface is at Y<=BEND_Y-R. Cannot close its entire seam without changing the specified cut topology or BEND.",
+      "volume_status": "SURFACE_INTERFERENCE"
+    },
+    {
+      "actual_folded_joint_axis_xyz": [
+        [
+          410,
+          45,
+          3
+        ],
+        [
+          410,
+          45,
+          13.821681770725576
+        ]
+      ],
+      "collision_surface_triangle_pairs": 4,
+      "corner": "bottom_right",
+      "cut_face_failure_bottom": null,
+      "cut_face_failure_side": null,
+      "far_end_flat_minus_formed_reach_mm": 1.1783182292744243,
+      "formed_seam_reach_mm": 13.821681770725576,
+      "gap_lower_bound_mm": null,
+      "gap_max_sample_mm": 12.866518899574618,
+      "gap_upper_bound_mm": null,
+      "interference_z_range_mm": [
+        -1,
+        1
+      ],
+      "intervals": [],
+      "model_status": "MODEL_NOT_VERIFIED",
+      "sampled_true_face_gap_stations_mm": [
+        [
+          3.455420442681394,
+          "MEASURED",
+          9.340062179650458
+        ],
+        [
+          6.910840885362788,
+          "MEASURED",
+          12.866518899574618
+        ],
+        [
+          10.366261328044182,
+          "MEASURED",
+          16.52679807927713
+        ],
+        [
+          13.130597682189297,
+          "MEASURED",
+          19.500893185280084
+        ]
+      ],
+      "seam_failure": null,
+      "seam_span_mm": 10.821681770725576,
+      "source_gap_floor_at_straight_end_mm": 17,
+      "source_gap_floor_at_straight_start_mm": 6.178318229274425,
+      "topological_clearance_lower_bound_mm": 2,
+      "topology_contact_failure": "V_MITER_SIDE_OPENING_90_BENDS_NO_CONTACT: upper V-cut belongs to SIDE flange at Y>=BEND_Y, but folded BOTTOM flange's physical T surface is at Y<=BEND_Y-R. Cannot close its entire seam without changing the specified cut topology or BEND.",
+      "volume_status": "SURFACE_INTERFERENCE"
+    }
+  ],
+  "corrected_bounds": [
+    0,
+    0,
+    422,
+    333
+  ],
+  "left_v": [
+    [
+      0,
+      33
+    ],
+    [
+      0,
+      63
+    ]
+  ],
+  "original_bounds": [
+    0,
+    0,
+    422,
+    333
+  ],
+  "original_flange_mm": [
+    15,
+    15,
+    48
+  ],
+  "right_v": [
+    [
+      422,
+      33
+    ],
+    [
+      422,
+      63
+    ]
+  ],
+  "unchanged_primitive_count": 6,
+  "status": "MODEL_NOT_VERIFIED",
+  "units": "mm",
+  "scope": "WHD same-source Tail V on both external sides; 15/15/48mm, 90/90, RBA T=2",
+  "no_shop_or_CAM_dependency": true,
+  "production_export_unmodified": true,
+  "issue": 3317
+}
