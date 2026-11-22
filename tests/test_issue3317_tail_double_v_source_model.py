@@ -62,6 +62,12 @@ def test_tail_real_same_blank_dual_90_v_and_folded_contact():
             assert corner.topology_contact_failure is not None
             assert "NO_CONTACT" in corner.topology_contact_failure
             assert corner.topological_clearance_lower_bound_mm == pytest.approx(2.0)
+            assert corner.contact_gap_floor_at_straight_start_mm == pytest.approx(
+                6.178318229274424, abs=1e-6
+            )
+            assert corner.contact_gap_floor_at_straight_end_mm == pytest.approx(
+                17.0, abs=1e-6
+            )
             start, end = corner.actual_joint_axis_xyz
             assert start[1] == pytest.approx(45.0)
             assert end[1] == pytest.approx(45.0)
@@ -100,6 +106,10 @@ def test_tail_real_same_blank_dual_90_v_and_folded_contact():
                 "actual_folded_joint_axis_xyz":row.actual_joint_axis_xyz,
                 "topology_contact_failure":row.topology_contact_failure,
                 "topological_clearance_lower_bound_mm":row.topological_clearance_lower_bound_mm,
+                "source_gap_floor_at_straight_start_mm":
+                    row.contact_gap_floor_at_straight_start_mm,
+                "source_gap_floor_at_straight_end_mm":
+                    row.contact_gap_floor_at_straight_end_mm,
                 "sampled_true_face_gap_stations_mm":row.sampled_seam_gap_stations_mm,
                 "seam_span_mm":continuity.seam_length_mm if continuity else None,
                 "gap_max_sample_mm":continuity.max_sampled_cut_face_gap_mm if continuity else None,

@@ -180,6 +180,10 @@ def _model_report(check):
             "actual_formed_joint_axis_xyz":row.actual_joint_axis_xyz,
             "topology_contact_failure":row.topology_contact_failure,
             "topological_clearance_lower_bound_mm":row.topological_clearance_lower_bound_mm,
+            "source_geometric_gap_floor_at_straight_start_mm":
+                row.contact_gap_floor_at_straight_start_mm,
+            "source_geometric_gap_floor_at_straight_end_mm":
+                row.contact_gap_floor_at_straight_end_mm,
             "true_cut_face_gap_by_z_mm": [
                 {"z":x, "status":status, "gap":gap}
                 for x,status,gap in row.sampled_seam_gap_stations_mm
