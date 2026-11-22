@@ -193,7 +193,7 @@ def _snapshot_base_state(self):
     )
     # Optional #3317 selection survives the host GUI Save -> Reload route.
     # Legacy projects contain no key; never add an "original" default.
-    from ae_engine.operator_tail_lower_v import TAIL_LOWER_V_SNAPSHOT_KEY
+    TAIL_LOWER_V_SNAPSHOT_KEY = manufacturing_api.TAIL_LOWER_V_SNAPSHOT_KEY
     if TAIL_LOWER_V_SNAPSHOT_KEY in stored:
         choice=manufacturing_api.normalize_operator_tail_lower_v_choice(
             stored[TAIL_LOWER_V_SNAPSHOT_KEY]
