@@ -143,6 +143,39 @@ def resolve_assembled_endcap_world_skins(
     )
 
 
+
+def place_prethickened_endcap_world_skins(
+    local_solid_triangles, *, placement, box_body_world,
+    offset=(0.0, 0.0, 0.0), preserve_core_origin=False,
+):
+    """Place already-T-thick CHECK EndCap by the native Box Body mating plane.
+
+    Unlike mid-surfaces, local z=0 is the INSIDE skin and local z=-T is
+    its existing OUTSIDE skin. Never translate by T/2, thicken again,
+    recenter thickness, reflect Tail Y, or move the independent offset.
+    This fold-order CHECK is not manufacturing or mating certification.
+
+    The native world map swaps local y/z (determinant -1). Reverse EACH
+    triangle exactly once to preserve the original closed shell winding.
+    """
+    preserve_core_origin=normalize_operator_settings_boolean(preserve_core_origin)
+    if str(placement).lower() not in ("top","head","bottom","tail"):
+        raise ValueError("TAIL_V_PRETHICKENED_NATIVE_PLACEMENT_REQUIRED")
+    if not box_body_world:
+        raise ValueError("TAIL_V_PRETHICKENED_BOX_BODY_WORLD_REQUIRED")
+    local=tuple(tuple(tri[:3]) for tri in (local_solid_triangles or ()))
+    if not local:
+        raise ValueError("TAIL_V_PRETHICKENED_SOURCE_MESH_REQUIRED")
+    # Existing EndCap Engine owns XY datum, in-plane orientation and offset.
+    # sheet_thickness=0 is deliberate: a T-solid is ALREADY an outside skin
+    # at z=-T, not a zero-thickness mid-surface needing -T/2.
+    placed=place_endcap_against_box_body(
+        local,placement,box_body_world,offset,
+        sheet_thickness=0.0,preserve_core_origin=preserve_core_origin,
+    )
+    return tuple((tri[0],tri[2],tri[1]) for tri in placed)
+
+
 def resolve_receiving_settings_assembly_world_meshes(
     assembly_parts, *, finished_dimensions, thickness,
     preserve_endcap_core_origin=False,
@@ -171,14 +204,27 @@ def resolve_receiving_settings_assembly_world_meshes(
             local = [triangle for _piece, mesh in meshes for triangle in mesh]
         else:
             meshes = ()
-            local = folded_mesh_from_polygon(
-                data.material, tuple(dict(x) for x in part.x_profile),
-                tuple(dict(y) for y in part.y_profile),
-                fold_guides=tuple(getattr(data, "fold_guides", ()) or ()),
+            from .operator_tail_lower_v import tail_lower_v_preview_mesh
+            pre_thick=(
+                tail_lower_v_preview_mesh(data)
+                if str(getattr(part,"part_key",""))=="tail" else None
+            )
+            local=(
+                pre_thick if pre_thick is not None
+                else folded_mesh_from_polygon(
+                    data.material, tuple(dict(x) for x in part.x_profile),
+                    tuple(dict(y) for y in part.y_profile),
+                    fold_guides=tuple(getattr(data, "fold_guides", ()) or ()),
+                )
             )
         placement = str(getattr(part, "placement", "offset") or "offset")
         offset = getattr(part, "offset", (0, 0, 0))
-        if placement in {"top", "head", "bottom", "tail"} and box_body_world:
+        if pre_thick is not None and placement in {"top", "head", "bottom", "tail"}:
+            placed=place_prethickened_endcap_world_skins(
+                local,placement=placement,box_body_world=box_body_world,
+                offset=offset,preserve_core_origin=preserve_endcap_core_origin,
+            )
+        elif placement in {"top", "head", "bottom", "tail"} and box_body_world:
             placed = resolve_assembled_endcap_world_skins(
                 local, placement=placement, box_body_world=box_body_world,
                 thickness=thickness, offset=offset,
