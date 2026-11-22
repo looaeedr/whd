@@ -282,7 +282,14 @@ def test_tail_3317_no_ba_nominal_pair_reads_whd_existing_profiles(axis):
             7.5 if c.corner=="bottom_left" else 514.5,55.5))
         assert c.lower_source_mid_xy==pytest.approx((
             7.5 if c.corner=="bottom_left" else 514.5,40.5))
-        assert c.current_two_midpoint_distance_mm>=0
+        # Compare nominal SHARP finite-guide readback to the user's stated
+        # pairing target. This 15 mm differential is an out-of-guide
+        # kinematic MODEL DISCREPANCY, never an actual physical seam gap.
+        assert c.upper_current_whd_sharp_xyz==pytest.approx((side_x,55.5,7.5))
+        assert c.lower_current_whd_sharp_xyz==pytest.approx((side_x,40.5,7.5))
+        assert c.upper_target_error_mm==pytest.approx(0.)
+        assert c.lower_target_error_mm==pytest.approx(15.)
+        assert c.current_two_midpoint_distance_mm==pytest.approx(15.)
         assert all(math.isfinite(v) for v in (
             *c.upper_current_whd_sharp_xyz,
             *c.lower_current_whd_sharp_xyz,
