@@ -439,7 +439,7 @@ def project_tail_v90_full_t_no_ba(flat, *, first_axis: str):
         true_t_v_seam_contact=tuple(cut_contacts),
         actual_upper_fold_sample_xyz=formed((
             (st.left_x+st.right_x)/2.,
-            (st.upper_crease+st.ymax)/2.,
+            st.ymax-min(5.,(st.ymax-st.upper_crease)/2.),
         )),
         nominal_outside_mm=qualified.nominal_outside_mm,
         thickness_mm=thickness,
