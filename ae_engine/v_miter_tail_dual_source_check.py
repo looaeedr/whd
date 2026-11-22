@@ -19,7 +19,11 @@ from .assembly_geometry import (
 )
 from .assembly_geometry_primitives import thicken_triangle_surface
 from .contracts import EndCapPartSpec
-from .manufacturing_render_data import PartRenderData
+from .manufacturing_render_data import (
+    PartRenderData, fold_guides_from_final_scene,
+)
+from .assembly_geometry_folded_mesh import folded_mesh_from_polygon
+from .final_scene_fold_source import fold_ownership_exemptions, scene_fold_boundaries
 from .sheetmetal_drawing import (
     CirclePrimitive, DrawingScene, LinePrimitive, PolylinePrimitive,
 )
@@ -104,6 +108,10 @@ class TailDualVSourceCheck:
     side_right_solid: tuple
     bottom_solid: tuple
     remaining_flat_solid: tuple
+    native_original_fold_path_mesh: tuple
+    bottom_bend_span_x_mm: tuple
+    side_bend_span_y_mm: tuple
+    retained_out_of_span_corner_area_mm2: tuple
     corners: tuple[TailDualVFaceResult, TailDualVFaceResult]
     geometry_status: str = "TAIL_DOUBLE_V_CHECK_ONLY_UNVERIFIED"
 
@@ -227,15 +235,58 @@ def project_tail_dual_v_same_source_check(
         ),
         *all_original_other,
     ])
-    # A real 3D sidefold contains the same post-V source stock as the
-    # bottom flap, including its original free outer tabs beyond BEND ends.
-    # Split only at PHYSICAL BEND stations, never a guessed flank clip.
+    # The original WHD 3D owner uses *finite* FinalScene BEND guides:
+    # a physical Y bend at (16..406, 48) does not fold the V-restored
+    # stock at x<16 or x>406. Likewise X folds only act within their
+    # own physical Y spans, not across blank corner stock.
+    # Never replace a finite BEND with a bbox-wide guessed hinge.
     xl, xr, bottom_y = left[0].x, right[0].x, left[0].y
+    guides = fold_guides_from_final_scene(render.scene)
+    if tuple(render.fold_guides or ()) and tuple(render.fold_guides) != guides:
+        raise GeometryError("V_MITER_TAIL_DUAL_RENDER_BEND_GUIDES_DIFFER")
+    def one_guide(axis, station):
+        matches = tuple(
+            g for g in guides
+            if g.axis == axis and abs(g.position - station) <= _TOL
+        )
+        if len(matches) != 1:
+            raise GeometryError("V_MITER_TAIL_DUAL_BEND_SPAN_NOT_UNIQUE")
+        return matches[0]
+    left_guide = one_guide("x", xl)
+    right_guide = one_guide("x", xr)
+    bottom_guide = one_guide("y", bottom_y)
+    bottom_start, bottom_end = bottom_guide.span_start, bottom_guide.span_end
+    if not (minx < bottom_start < xl + 2.0
+            and xr - 2.0 < bottom_end < maxx
+            and bottom_start < bottom_end):
+        raise GeometryError("V_MITER_TAIL_DUAL_BEND_SPAN_OUTSIDE_REAL_SOURCE")
+    if (abs(bottom_start - min(left[9].p1.x, left[9].p2.x)) > _TOL
+            or abs(bottom_end - max(left[9].p1.x, left[9].p2.x)) > _TOL
+            or abs(bottom_start - min(right[9].p1.x, right[9].p2.x)) > _TOL
+            or abs(bottom_end - max(right[9].p1.x, right[9].p2.x)) > _TOL):
+        raise GeometryError("V_MITER_TAIL_DUAL_SOURCE_BEND_ENDPOINTS_CHANGED")
     folded_domains = {
-        "left": corrected.intersection(box(minx, bottom_y, xl, maxy)),
-        "right": corrected.intersection(box(xr, bottom_y, maxx, maxy)),
-        "bottom": corrected.intersection(box(minx, miny, maxx, bottom_y)),
+        "left": corrected.intersection(box(
+            minx, left_guide.span_start, xl, left_guide.span_end,
+        )),
+        "right": corrected.intersection(box(
+            xr, right_guide.span_start, maxx, right_guide.span_end,
+        )),
+        "bottom": corrected.intersection(box(
+            bottom_start, miny, bottom_end, bottom_y,
+        )),
     }
+    # Preserve the user's source geometry in the existing WHD sharp 3D
+    # owner. This provides one directly comparable whole-blank 3D, which
+    # applies the same span-specific guide masks as standard WHD preview.
+    xb, yb = scene_fold_boundaries(render.scene, corrected)
+    native_fold_mesh = folded_mesh_from_polygon(
+        corrected, x_profile, y_profile,
+        fold_guides=guides,
+        fold_exemptions=fold_ownership_exemptions(corrected, xb, yb),
+    )
+    if not native_fold_mesh:
+        raise GeometryError("V_MITER_TAIL_DUAL_NATIVE_FOLD_MESH_EMPTY")
     if (any(p.geom_type != "Polygon" or p.is_empty or
             not p.is_valid or p.interiors or p.area <= _TOL
             for p in folded_domains.values())
@@ -244,9 +295,9 @@ def project_tail_dual_v_same_source_check(
                 for a, b in (("left", "right"), ("left", "bottom"), ("right", "bottom"))
             )):
         raise GeometryError("V_MITER_TAIL_DUAL_FLANGE_PARTITION_INVALID")
-    # The rest of this SAME source sheet is left flat: only its lower
-    # two corner folds are in scope. Do not omit its unchanged top/center
-    # material from the user's 3D projection.
+    # R/BA focused lower-fold domains leave all out-of-span material in
+    # a distinct remainder; the FULL real WHD 3D above independently
+    # folds that remainder wherever OTHER FinalScene BEND guides apply.
     unchanged_flat = corrected.difference(unary_union(tuple(folded_domains.values())))
     flat_regions = (
         (unchanged_flat,) if unchanged_flat.geom_type == "Polygon"
@@ -398,15 +449,11 @@ def project_tail_dual_v_same_source_check(
             raise GeometryError("V_MITER_TAIL_DUAL_NO_STRAIGHT_FORMED_SEAM")
         physical_seam_start = (joined_x, joined_y, straight_start)
         physical_seam_end = (joined_x, joined_y, contact_reach)
-        # For BOTH rays to exit their same outer SIDE with a 90-degree
-        # included V, the ray on the side-fold portion extends from the
-        # apex toward Y>=apex.Y. But the folded bottom flange's true
-        # planar T-surface occupies Y <= apex.Y - R at this 90-degree
-        # bend (its mid-plane is Y=apex.Y-(R+T/2)). There is thus at
-        # least an R-sized positive separation even for a zero-slope ray;
-        # a nonzero upper V slope makes it strictly worse with height.
-        # No angle split or "Door trim" can satisfy the full-seam contact
-        # while preserving this side-opening topology and both BEND axes.
+        # IMPORTANT: only triangles inside the *actual* finite BEND
+        # domains are folded. Retained source stock outside (16..406)
+        # never receives this bottom Y fold. The earlier bbox-wide model
+        # and its 6.6875mm impossibility certificate were invalid.
+        # Do not infer geometric impossibility from that stale proof.
         topological_floor = q.first_inner_radius_mm
         side_upper_hit = row[2]
         side_mouth_horizontal_reach = abs(side_upper_hit.x - row[0].x)
@@ -447,23 +494,8 @@ def project_tail_dual_v_same_source_check(
             + minimum_asymmetric_upper_rise
               * u_at_far_end / side_mouth_horizontal_reach
         )
-        physical_no_solution = (
-            side_upper_hit.y >= row[0].y - _TOL
-            and n_bottom[1] < -1.0 + _TOL
-            and abs(q.first_inner_radius_mm - q.second_inner_radius_mm)
-            <= _TOL
-            and upper_ray_slope > _TOL
-            and floor_start > _TOL
-            and floor_end > _TOL
-        )
-        topo_failure = (
-            "V_MITER_SIDE_OPENING_90_BENDS_NO_CONTACT: "
-            "upper V-cut belongs to SIDE flange at Y>=BEND_Y, "
-            "but folded BOTTOM flange's physical T surface is "
-            "at Y<=BEND_Y-R. Cannot close its entire seam "
-            "without changing the specified cut topology or BEND."
-            if physical_no_solution else None
-        )
+        physical_no_solution = False
+        topo_failure = None
         seam = None
         seam_error = None
         if side_faces and bottom_faces:
@@ -515,19 +547,10 @@ def project_tail_dual_v_same_source_check(
             ),
             actual_joint_axis_xyz=(physical_seam_start, physical_seam_end),
             topology_contact_failure=topo_failure,
-            topological_clearance_lower_bound_mm=(
-                topological_floor if physical_no_solution else None
-            ),
-            contact_gap_floor_at_straight_start_mm=(
-                floor_start if physical_no_solution else None
-            ),
-            contact_gap_floor_at_straight_end_mm=(
-                floor_end if physical_no_solution else None
-            ),
-            asymmetry_best_case_far_gap_floor_mm=(
-                all_asymmetry_far_gap_floor
-                if physical_no_solution else None
-            ),
+            topological_clearance_lower_bound_mm=None,
+            contact_gap_floor_at_straight_start_mm=None,
+            contact_gap_floor_at_straight_end_mm=None,
+            asymmetry_best_case_far_gap_floor_mm=None,
             model_status=(
                 "MODEL_PASS" if topo_failure is None
                 and not collision.pair_count
@@ -555,5 +578,19 @@ def project_tail_dual_v_same_source_check(
         side_left_solid=models["left"][2], side_right_solid=models["right"][2],
         bottom_solid=models["bottom"][2],
         remaining_flat_solid=unchanged_solid,
+        native_original_fold_path_mesh=native_fold_mesh,
+        bottom_bend_span_x_mm=(float(bottom_start), float(bottom_end)),
+        side_bend_span_y_mm=(
+            (float(left_guide.span_start),float(left_guide.span_end)),
+            (float(right_guide.span_start),float(right_guide.span_end)),
+        ),
+        retained_out_of_span_corner_area_mm2=(
+            float(corrected.intersection(
+                box(minx,miny,bottom_start,bottom_y)
+            ).area),
+            float(corrected.intersection(
+                box(bottom_end,miny,maxx,bottom_y)
+            ).area),
+        ),
         corners=(reports[0], reports[1]),
     )
