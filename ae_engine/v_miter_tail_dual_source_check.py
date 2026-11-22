@@ -274,6 +274,11 @@ def project_tail_dual_v_same_source_check(
             or abs(bottom_start - min(right[9].p1.x, right[9].p2.x)) > _TOL
             or abs(bottom_end - max(right[9].p1.x, right[9].p2.x)) > _TOL):
         raise GeometryError("V_MITER_TAIL_DUAL_SOURCE_BEND_ENDPOINTS_CHANGED")
+    # The opt-in transition is bounded by the REAL untouched source
+    # outer edges x=0/422 and the two REAL lower BEND endpoints x=16/406.
+    # Its start/end angle is 0/90 degrees, so no 3D tear can appear
+    # across the same uncut stock while the center guide stays 90.
+    tip_continuity = (("y", float(bottom_y), minx, maxx),)
     folded_domains = {
         "left": corrected.intersection(box(
             minx, left_guide.span_start, xl, left_guide.span_end,
@@ -293,6 +298,7 @@ def project_tail_dual_v_same_source_check(
         corrected, x_profile, y_profile,
         fold_guides=guides,
         fold_exemptions=fold_ownership_exemptions(corrected, xb, yb),
+        fold_tip_continuity=tip_continuity,
     )
     if not native_fold_mesh:
         raise GeometryError("V_MITER_TAIL_DUAL_NATIVE_FOLD_MESH_EMPTY")
@@ -318,9 +324,11 @@ def project_tail_dual_v_same_source_check(
             for x, y2 in (before, after):
                 ux, zx = _profile_map_with_guides(
                     x, y2, x_profile, axis="x", fold_guides=guides,
+                    fold_tip_continuity=tip_continuity,
                 )
                 uy, zy = _profile_map_with_guides(
                     y2, x, y_profile, axis="y", fold_guides=guides,
+                    fold_tip_continuity=tip_continuity,
                 )
                 pts3d.append((ux, uy, zx + zy))
             dx = math.dist(pts3d[0], pts3d[1])
