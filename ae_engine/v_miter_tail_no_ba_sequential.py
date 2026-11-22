@@ -24,6 +24,88 @@ _HALF_PI=math.pi/2
 _TOL=1e-7
 
 
+@dataclass(frozen=True)
+class LowerDualVStations:
+    """Only source-derived physical fold stations, no nominal size whitelist."""
+    xmin: float
+    xmax: float
+    ymin: float
+    ymax: float
+    left_x: float
+    right_x: float
+    bottom_y: float
+    bottom_guide_start: float
+    bottom_guide_end: float
+    left_side_end: float
+    right_side_end: float
+    upper_start: float
+    upper_crease: float
+
+    @classmethod
+    def regression_522x233(cls):
+        # Backward-compatible tests that exercise _stages(uv,axis) directly.
+        # Real preview always calls from_flat and NEVER this fixed sample.
+        return cls(0.,522.,0.,233.,15.,507.,48.,16.,506.,
+                   190.,190.,192.,217.)
+
+
+def stations_from_real_flat(flat) -> LowerDualVStations:
+    """Derive true finite BEND, upper profile and source boundaries.
+
+    Reject a geometrically impossible corner for the reason it is impossible,
+    not because the job's W/D/T or part name differs from the 522 example.
+    """
+    from .manufacturing_render_data import fold_guides_from_final_scene
+    from .endcap_factory_fold import build_endcap_xy_fold_profiles
+    from .assembly_geometry_folded_mesh import _profile_geometry
+    from .sheetmetal_geometry_core import GeometryError
+
+    xmin,ymin,xmax,ymax=map(float,flat.result_material.bounds)
+    points={row[0]:row for row in flat.opening_source_points_xy}
+    if set(points)!={"bottom_left","bottom_right"}:
+        raise GeometryError("V_MITER_LOWER_TWO_SOURCE_CORNER_OPENINGS_REQUIRED")
+    lx,ly=points["bottom_left"][2]
+    rx,ry=points["bottom_right"][2]
+    if (not xmin<lx<rx<xmax or abs(ly-ry)>_TOL
+            or not ymin<ly<ymax):
+        raise GeometryError("V_MITER_LOWER_BEND_INTERSECTION_TOPOLOGY_INVALID")
+    extensions={round(row[0],7):row for row in flat.side_bend_source_extensions}
+    try:
+        lend=extensions[round(lx,7)][3]
+        rend=extensions[round(rx,7)][3]
+    except KeyError as exc:
+        raise GeometryError("V_MITER_LOWER_SIDE_BEND_SOURCE_MISSING") from exc
+    guides=fold_guides_from_final_scene(flat.result_scene)
+    horizontal=[
+        g for g in guides if g.axis=="y" and abs(g.position-ly)<_TOL
+        and g.span_start <= lx+_TOL and g.span_end >= rx-_TOL
+    ]
+    if len(horizontal)!=1:
+        raise GeometryError("V_MITER_LOWER_FINITE_BOTTOM_BEND_GUIDE_INVALID")
+    segment=horizontal[0]
+    spec=flat.source_spec
+    snapshot=dict(model=spec.model_name,w=spec.width,d=spec.depth,
+                  t=spec.thickness,fw=spec.frame_width,yl1=spec.fold_left,
+                  yr1=spec.fold_right,ytop1=spec.fold_top,
+                  ybottom1=spec.fold_bottom)
+    y_profile=build_endcap_xy_fold_profiles(snapshot,part_key="tail")["Y"]
+    breaks,_=_profile_geometry(y_profile)
+    if (len(breaks)!=5 or abs(breaks[0]-ymin)>_TOL
+            or abs(breaks[1]-ly)>_TOL
+            or abs(breaks[-1]-ymax)>_TOL
+            or breaks[2] <= ly+_TOL or breaks[3]<=breaks[2]+_TOL):
+        raise GeometryError("V_MITER_LOWER_UNCHANGED_UPPER_FOLD_TOPOLOGY_INVALID")
+    # A 90-degree sharp root requires actual perpendicular source rays.
+    if any(row.get("angle") is not None and abs(abs(float(row["angle"]))-90.)>_TOL
+           for row in y_profile):
+        raise GeometryError("V_MITER_LOWER_SHARP_ROOT_FOLD_ANGLE_NOT_90")
+    return LowerDualVStations(
+        xmin,xmax,ymin,ymax,float(lx),float(rx),float(ly),
+        float(segment.span_start),float(segment.span_end),
+        float(lend),float(rend),float(breaks[2]),float(breaks[3]),
+    )
+
+
 def _rotate(v, axis, theta):
     """Rigid Rodrigues operation: direction is carried with prior fold."""
     s,c=math.sin(theta),math.cos(theta)
@@ -40,35 +122,36 @@ def _about(p, origin, axis, theta):
     return tuple(float(origin[i]+v[i]) for i in range(3))
 
 
-def _action(flat_uv, fold):
+def _action(flat_uv, fold, stations=None):
+    st=stations or LowerDualVStations.regression_522x233()
     x,y=map(float,flat_uv)
-    if fold=="y" and y<48.-_TOL:
+    if fold=="y" and y<st.bottom_y-_TOL:
         # Actual horizontal BEND is ONLY x=16..506, y=48.
         # Stock beyond its endpoints is connected to the same lower lip,
         # carried with the lip; this is NOT an invented longer BEND.
-        return ((x,48.,0.),(1.,0.,0.),-_HALF_PI)
-    if fold=="x" and y<=190.+_TOL and x<15.-_TOL:
-        return ((15.,y,0.),(0.,1.,0.),_HALF_PI)
-    if fold=="x" and y<=190.+_TOL and x>507.+_TOL:
-        return ((507.,y,0.),(0.,1.,0.),-_HALF_PI)
+        return ((x,st.bottom_y,0.),(1.,0.,0.),-_HALF_PI)
+    if fold=="x" and y<=st.left_side_end+_TOL and x<st.left_x-_TOL:
+        return ((st.left_x,y,0.),(0.,1.,0.),_HALF_PI)
+    if fold=="x" and y<=st.right_side_end+_TOL and x>st.right_x+_TOL:
+        return ((st.right_x,y,0.),(0.,1.,0.),-_HALF_PI)
     if fold not in ("x","y"):
         raise GeometryError("TAIL_V90_SHARP_UNKNOWN_AXIS")
     return None
 
 
-def _stages(uv,first_axis):
+def _stages(uv,first_axis,stations=None):
     if first_axis not in ("x","y"):
         raise GeometryError("TAIL_V90_SHARP_OPERATOR_ORDER_REQUIRED")
     p=(float(uv[0]),float(uv[1]),0.)
     n=(0.,0.,1.)
-    first=_action(uv,first_axis)
+    first=_action(uv,first_axis,stations)
     if first is not None:
         origin,axis,theta=first
         p1=_about(p,origin,axis,theta)
         n1=_rotate(n,axis,theta)
     else:
         p1,n1=p,n
-    second=_action(uv,"y" if first_axis=="x" else "x")
+    second=_action(uv,"y" if first_axis=="x" else "x",stations)
     if second is None:
         return p1,p1,n1,n1,None
     origin,axis,theta=second
@@ -87,10 +170,18 @@ def _stages(uv,first_axis):
     return p1,p2,n1,n2,(origin,axis,theta)
 
 
-def _single_sheet_triangles(stock):
-    """Triangulate SAME source stock; lines subdivide tessellation, not BEND."""
-    xs=(0.,15.,16.,40.,482.,506.,507.,522.)
-    ys=(0.,33.,48.,63.,190.,192.,217.,233.)
+def _single_sheet_triangles(stock,stations=None):
+    """Triangulate actual CUTTING at derived physical crease/endpoint stations."""
+    st=stations or LowerDualVStations.regression_522x233()
+    left_delta=st.left_x-st.xmin
+    right_delta=st.xmax-st.right_x
+    xs=tuple(sorted(set((st.xmin,st.left_x,st.bottom_guide_start,
+                         st.bottom_guide_end,st.right_x,st.xmax))))
+    ys=tuple(sorted(set((st.ymin,st.bottom_y-left_delta,
+                         st.bottom_y-right_delta,st.bottom_y,
+                         st.bottom_y+left_delta,st.bottom_y+right_delta,
+                         st.left_side_end,st.right_side_end,
+                         st.upper_start,st.upper_crease,st.ymax))))
     out=[]
     area=0.
     for xl,xr in zip(xs,xs[1:]):
@@ -143,19 +234,20 @@ def project_tail_v90_no_ba_sequential_check(flat, *, first_axis: str):
     if first_axis not in ("x","y"):
         raise GeometryError("TAIL_V90_SHARP_OPERATOR_ORDER_REQUIRED")
     stock=flat.result_material
-    source,area=_single_sheet_triangles(stock)
+    st=stations_from_real_flat(flat)
+    source,area=_single_sheet_triangles(stock,st)
     first=[];final=[]
     for tri in source:
         t1=[];t2=[]
         for uv in tri:
-            a,b,_,_,_=_stages(uv,first_axis)
+            a,b,_,_,_=_stages(uv,first_axis,st)
             t1.append(a);t2.append(b)
         first.append(tuple(t1));final.append(tuple(t2))
     tracks=[];axes=[];walls=[]
     for corner,lower,apex,upper in flat.opening_source_points_xy:
         for tag,end in (("lower",lower),("upper",upper)):
             mid=tuple((apex[i]+end[i])/2. for i in range(2))
-            a,b,_,n2,hinge=_stages(mid,first_axis)
+            a,b,_,n2,hinge=_stages(mid,first_axis,st)
             tracks.append((corner,tag,mid,a,b,n2))
             if tag=="lower":
                 if hinge is None:
@@ -169,8 +261,8 @@ def project_tail_v90_no_ba_sequential_check(flat, *, first_axis: str):
             f=station/32.
             uv_lo=tuple(apex[i]+f*(lower[i]-apex[i]) for i in (0,1))
             uv_hi=tuple(apex[i]+f*(upper[i]-apex[i]) for i in (0,1))
-            _,low,_,nl,_=_stages(uv_lo,first_axis)
-            _,high,_,nh,_=_stages(uv_hi,first_axis)
+            _,low,_,nl,_=_stages(uv_lo,first_axis,st)
+            _,high,_,nh,_=_stages(uv_hi,first_axis,st)
             for sign in (-1.,1.):
                 p=tuple(low[i]+sign*nl[i]*witness.physical_sheet_thickness_mm/2.
                         for i in range(3))
