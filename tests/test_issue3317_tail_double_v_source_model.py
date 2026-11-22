@@ -79,6 +79,8 @@ def test_tail_real_same_blank_dual_90_v_and_folded_contact():
                 "cut_face_failure_side":row.side_cut_failure,
                 "cut_face_failure_bottom":row.bottom_cut_failure,
                 "seam_failure":row.seam_failure,
+                "interference_z_range_mm":row.interference_z_range_mm,
+                "sampled_true_face_gap_stations_mm":row.sampled_seam_gap_stations_mm,
                 "seam_span_mm":continuity.seam_length_mm if continuity else None,
                 "gap_max_sample_mm":continuity.max_sampled_cut_face_gap_mm if continuity else None,
                 "gap_upper_bound_mm":continuity.max_gap_upper_bound_mm if continuity else None,
