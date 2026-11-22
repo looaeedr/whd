@@ -78,6 +78,8 @@ class TailDualVFaceResult:
     sampled_seam_gap_stations_mm: tuple = ()
     interference_z_range_mm: tuple | None = None
     actual_joint_axis_xyz: tuple = ()
+    native_uncut_fold_endpoint_jump_max_mm: float | None = None
+    native_uncut_fold_endpoint_status: str = "UNCHECKED"
     # A physical impossibility is a model FAIL, not an invitation to trim
     # an arbitrary Door edge or call geometric diagnostics "passed".
     topology_contact_failure: str | None = None
@@ -589,6 +591,13 @@ def project_tail_dual_v_same_source_check(
                 seam_error = str(exc)
         else:
             seam_error = "V_MITER_TAIL_DUAL_SOURCE_CUT_FACE_MISSING"
+        endpoint_records = dict(boundary_jumps)[corner]
+        endpoint_jump_max = max(gap for _y, gap in endpoint_records)
+        endpoint_status = (
+            "UNCUT_SHEET_FOLD_MAPPING_DISCONTINUITY"
+            if endpoint_jump_max > 1e-3
+            else "NO_DETECTED_NATIVE_SPAN_DISCONTINUITY"
+        )
         sampled_stations = ()
         if side_faces and bottom_faces:
             fractions = (0.25, 0.50, 0.75, 0.95)
@@ -626,13 +635,17 @@ def project_tail_dual_v_same_source_check(
                 if interference_z else None
             ),
             actual_joint_axis_xyz=(physical_seam_start, physical_seam_end),
+            native_uncut_fold_endpoint_jump_max_mm=float(endpoint_jump_max),
+            native_uncut_fold_endpoint_status=endpoint_status,
             topology_contact_failure=topo_failure,
             topological_clearance_lower_bound_mm=None,
             contact_gap_floor_at_straight_start_mm=None,
             contact_gap_floor_at_straight_end_mm=None,
             asymmetry_best_case_far_gap_floor_mm=None,
             model_status=(
-                "MODEL_PASS" if topo_failure is None
+                "MODEL_PASS" if (
+                    endpoint_status == "NO_DETECTED_NATIVE_SPAN_DISCONTINUITY"
+                ) and topo_failure is None
                 and not collision.pair_count
                 and volume_status == "NO_DETECTED_VOLUME_WITNESS"
                 and seam is not None and not seam.missing_face_interval_count
