@@ -41,8 +41,9 @@ def project_independent_part_view_mesh(
         from .operator_tail_lower_v import tail_lower_v_preview_mesh
         preview=tail_lower_v_preview_mesh(render_data)
         if preview is not None:
-            if float(thickness)!=2.0:
-                raise ValueError("下方 V 型只支援已驗證 T=2 mm")
+            physical_t=(getattr(render_data,"metadata",{}) or {}).get("tail_lower_v_physical_t")
+            if physical_t is None or abs(float(thickness)-float(physical_t))>1e-7:
+                raise ValueError("V_MITER_LOWER_PREVIEW_PHYSICAL_T_SOURCE_MISMATCH")
             return IndependentPartViewMesh(tuple(preview),x_profile,y_profile,guides)
     metadata = getattr(render_data, "metadata", None) or {}
     if (str(part_key).startswith("base_plate:fixing_plate:")
