@@ -536,6 +536,78 @@ def _png_actual_mesh(check):
     return buffer.getvalue()
 
 
+
+def _png_sequential_same_sheet_stages(check):
+    """Real one-source meshes after FIRST and SECOND bends, both corners.
+
+    Cropping is a camera-only source-region selection for readable views.
+    There is no substitute part geometry, fabricated crease, or mesh edit.
+    """
+    from matplotlib.figure import Figure
+    from matplotlib.backends.backend_agg import FigureCanvasAgg
+    from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+
+    if len(check.sequential_same_sheet_stage_models)!=1:
+        raise ValueError("WHD stage preview requires one operator first-axis")
+    first_axis,seq=check.sequential_same_sheet_stage_models[0]
+    fig=Figure(figsize=(12,8),dpi=120)
+    FigureCanvasAgg(fig)
+    for side_i,(corner,apex,source_opening) in enumerate((
+        ("bottom_left",check.left_apex,check.left_outer_v_hits),
+        ("bottom_right",check.right_apex,check.right_outer_v_hits),
+    )):
+        is_left=side_i==0
+        x_edge=float(source_opening[0].x)
+        ax_x_min=(x_edge-3.0 if is_left else float(apex.x)-19.0)
+        ax_x_max=(float(apex.x)+19.0 if is_left else x_edge+3.0)
+        y_min=float(source_opening[0].y)-7.0
+        y_max=float(source_opening[1].y)+14.0
+        for step_i,(stage,skin) in enumerate((
+            ("AFTER FIRST",seq.first_formed_skin_triangles),
+            ("AFTER SECOND",seq.second_formed_skin_triangles),
+        )):
+            visible=tuple(
+                tri3 for tri2,tri3 in zip(seq.flat_source_triangles,skin)
+                if any(ax_x_min <= p[0]<=ax_x_max
+                       and y_min<=p[1]<=y_max for p in tri2)
+            )
+            if not visible:
+                raise ValueError("WHD stage preview missing real source triangles")
+            ax=fig.add_subplot(2,2,step_i*2+side_i+1,projection="3d")
+            faces=tuple(
+                tuple(tuple(_finite(v) for v in p) for p in tri)
+                for tri in visible
+            )
+            ax.add_collection3d(
+                Poly3DCollection(faces,linewidths=.07,alpha=.85)
+            )
+            allxyz=tuple(p for tri in faces for p in tri)
+            xs,ys,zs=([p[i] for p in allxyz] for i in range(3))
+            ax.set_xlim(min(xs)-1,max(xs)+1)
+            ax.set_ylim(min(ys)-1,max(ys)+1)
+            ax.set_zlim(min(zs)-1,max(zs)+1)
+            ax.set_box_aspect(
+                (max(xs)-min(xs)+2,max(ys)-min(ys)+2,max(zs)-min(zs)+2),
+                zoom=.78,
+            )
+            ax.view_init(elev=28,azim=-65 if is_left else -116)
+            ax.set_xlabel("X (mm)")
+            ax.set_ylabel("Y (mm)")
+            ax.set_zlabel("Z (mm)")
+            ax.set_title(
+                f"{corner} / {stage} / FIRST {first_axis.upper()}",
+                fontsize=11,
+            )
+    fig.suptitle(
+        "WHD Tail - one original Factory sheet, first and second RBA/T bends (CHECK)",
+        fontsize=13,
+    )
+    out=io.BytesIO()
+    fig.savefig(out,format="png",bbox_inches="tight")
+    fig.clear()
+    return out.getvalue()
+
+
 def _model_report(check):
     original=check.original_other_primitives
     holes=[]
@@ -765,7 +837,7 @@ def _model_report(check):
                   "status":"ROOT_SELF_SURFACE_CHECK_ONLY_NO_VOLUME_CERTIFICATION"}
                  for corner,d1,d2,n1,n2
                  in seq.root_true_t_self_intersection_by_corner
-             ]}}
+             ]}
             for axis,seq in check.sequential_same_sheet_stage_models
         ],
         "restored_corner_stock_ownership_mm2": [
@@ -803,6 +875,7 @@ def build_tail_dual_v_source_preview_zip(check) -> bytes:
         seq.second_thick_solid_triangles,label="SECOND_SOURCE_T_SHEET",
     )
     png=_png_actual_mesh(check)
+    staged_png=_png_sequential_same_sheet_stages(check)
     report=json.dumps(_model_report(check),ensure_ascii=False,indent=2,
                       sort_keys=True).encode("utf-8")
     stream=io.BytesIO()
@@ -817,5 +890,6 @@ def build_tail_dual_v_source_preview_zip(check) -> bytes:
         out.writestr("WHD_tail_dual_V_same_sheet_stage1_stage2_V_tracks.svg",
                      stage_tracks)
         out.writestr("WHD_tail_dual_V_folded_preview.png",png)
+        out.writestr("WHD_tail_dual_V_same_sheet_FIRST_SECOND_3D.png",staged_png)
         out.writestr("WHD_tail_dual_V_model_diagnosis.json",report)
     return stream.getvalue()
