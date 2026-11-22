@@ -90,17 +90,35 @@ def test_tail_unconfirmed_symmetric_v_must_not_enter_3d_or_machining():
 
 
 def _image_sample_vault_tail():
-    """User's 2026-11-22 illustrated W500/D150/T2/FW25/15/16/48."""
-    from ae_engine import manufacturing_api as api
-    from ae_engine.contracts import EndCapPartSpec, ManufacturingContext
+    """Use the EXISTING Vault intrinsic EndCap Factory on the image dimensions.
+
+    The separate Vault *stretched baseline* public renderer currently reports
+    a 200-mm-height external mapped contour for this 233-mm intrinsic
+    Factory example. Do not silently mix the two as a supposedly identical
+    production FinalScene. This CHECK deliberately exercises the actual
+    Factory geometry that the corrected illustration specifies, with every
+    Factory hole, mark and finite BEND intact.
+    """
+    from ae_engine.contracts import EndCapPartSpec
+    from ae_engine import ae_endcap as original_factory
+    from ae_engine.manufacturing_render_data import (
+        PartRenderData,material_polygon_from_final_scene,
+        fold_guides_from_final_scene,
+    )
     spec=EndCapPartSpec(
         width=500,depth=150,thickness=2,frame_width=25,height=600,
         model_name="金庫型",is_tail=True,
         fold_left=15,fold_right=15,fold_top=16,fold_bottom=48,
         box_fold_left=15,box_fold_right=15,
     )
-    return spec,api.build_operator_part_render_data(
-        spec,ManufacturingContext(draw_stock=False),
+    scene=original_factory._build_end_cap_scene(
+        w=500,d=150,t=2,fw=25,yl1=15,yr1=15,
+        ytop1=16,ybottom1=48,is_tail=True,model_name="金庫型",
+    )
+    return spec,PartRenderData(
+        scene=scene,material=material_polygon_from_final_scene(scene),
+        fold_guides=fold_guides_from_final_scene(scene),
+        metadata={"source":"DIRECT_WHD_INTRINSIC_ENDCAP_FACTORY_CHECK"},
     )
 
 
