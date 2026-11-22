@@ -81,7 +81,23 @@ def project_tail_illustrated_side_v90_flat(
                 .symmetric_difference(factory).area)<=tol
     )
     if (abs(width-522)>tol or abs(height-233)>tol or len(outer)!=1):
-        raise GeometryError("TAIL_IMAGE_V90_FACTORY_SOURCE_DIFFERENT")
+        # Fail closed with actual Factory and FinalScene observations.
+        # A baseline-mapped Vault outline must not be silently replaced
+        # with an unrelated guessed rectangle.
+        candidates=tuple(
+            (p.layer,p.closed,len(p.points),
+             tuple(round(v,5) for v in
+                   Polygon([(q.x,q.y) for q in p.points]).bounds),
+             round(Polygon([(q.x,q.y) for q in p.points]).area,5))
+            for p in render.scene.primitives
+            if isinstance(p,PolylinePrimitive) and len(p.points)>=3
+        )
+        raise GeometryError(
+            "TAIL_IMAGE_V90_FACTORY_SOURCE_DIFFERENT:"
+            f" expected_522x233 actual={width}x{height}"
+            f" factory_bounds={factory.bounds} factory_area={factory.area}"
+            f" outer_matches={len(outer)} candidates={candidates}"
+        )
     original=Polygon([(p.x,p.y) for p in outer[0].points])
     if factory.symmetric_difference(original).area>tol:
         raise GeometryError("TAIL_IMAGE_V90_FACTORY_OUTER_CHANGED")
