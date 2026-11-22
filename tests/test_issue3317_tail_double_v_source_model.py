@@ -93,13 +93,18 @@ def test_tail_real_same_blank_dual_90_v_and_folded_contact():
             new_outline, xp, yp,
             fold_guides=render.fold_guides,
             fold_exemptions=fold_ownership_exemptions(new_outline, xb, yb),
+            fold_tip_continuity=((
+                "y", 48.0,
+                float(new_outline.bounds[0]),
+                float(new_outline.bounds[2]),
+            ),),
         )
         assert check.native_original_fold_path_mesh == original_path
         for corner in check.corners:
             assert corner.native_uncut_fold_endpoint_jump_max_mm is not None
-            assert corner.native_uncut_fold_endpoint_jump_max_mm > 1e-3
+            assert corner.native_uncut_fold_endpoint_jump_max_mm < 1e-3
             assert corner.native_uncut_fold_endpoint_status == (
-                "UNCUT_SHEET_FOLD_MAPPING_DISCONTINUITY"
+                "NO_DETECTED_NATIVE_SPAN_DISCONTINUITY"
             )
             assert corner.model_status != "MODEL_PASS"
         evidence = {
