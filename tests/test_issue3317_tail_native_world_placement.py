@@ -149,6 +149,18 @@ def test_real_vault_box_body_w620_h600_d185_t2_d4_native_bottom_world():
             local,placement="bottom",box_body_world=body_world,
         )
         assert len(world)==len(local)
+        # Inspect the EXACT world triangles shown in native Ø4 CHECK, not
+        # a restored-relief delta or a remeshed 312-face surrogate.
+        physical=api.inspect_operator_tail_d4_assembly_world(body_world,world)
+        assert physical.body_triangle_count==len(body_world)==308
+        assert physical.tail_triangle_count==len(world)==2860
+        assert physical.crossing_pair_count==951
+        assert len(physical.crossing_segments)==947
+        assert physical.crossing_points
+        assert not physical.manufacturing_approved
+        assert physical.volume_verdict.startswith("VOLUME_INTERFERENCE_")
+        if not physical.body_edges_manifold_closed:
+            assert physical.volume_verdict=="VOLUME_INTERFERENCE_UNVERIFIABLE_BODY_OPEN"
         # Geometry has been translated/rotated, never re-thickened.
         assert _signed_volume(world)==pytest.approx(
             _signed_volume(local),abs=1e-4,
