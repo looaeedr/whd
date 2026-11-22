@@ -96,6 +96,7 @@ def folded_outside_envelope(triangles, thickness):
     # instead, so no sheet thickness or material length is added twice.
     physical_points = []
     half_t = t / 2.0
+    valid_faces = 0
     for a, b, c in tris:
         u = tuple(b[i] - a[i] for i in range(3))
         v = tuple(c[i] - a[i] for i in range(3))
@@ -106,14 +107,20 @@ def folded_outside_envelope(triangles, thickness):
         )
         mag = math.sqrt(sum(value * value for value in n))
         if not math.isfinite(mag) or mag <= 1e-12:
-            if half_t:
-                raise ValueError("FOLDED_ENVELOPE_INVALID_WORLD_MESH")
-            offsets = (0.0, 0.0, 0.0)
-        else:
-            offsets = tuple(half_t * value / mag for value in n)
+            # Real FinalScene folding may emit zero-area tessellation
+            # triangles at an exact crease (e.g. Receiving Door).
+            # These contain NO material face and must neither crash the
+            # valid remaining shell nor enlarge its physical bounds.
+            # Unlike an invalid XYZ/arity, a zero-area helper is not a
+            # lost physical face. If every face is degenerate, reject.
+            continue
+        valid_faces += 1
+        offsets = tuple(half_t * value / mag for value in n)
         for point in (a, b, c):
             physical_points.append(tuple(point[i] - offsets[i] for i in range(3)))
             physical_points.append(tuple(point[i] + offsets[i] for i in range(3)))
+    if not valid_faces:
+        raise ValueError("FOLDED_ENVELOPE_INVALID_WORLD_MESH")
     bounds = tuple(
         (min(pt[axis] for pt in physical_points),
          max(pt[axis] for pt in physical_points))
