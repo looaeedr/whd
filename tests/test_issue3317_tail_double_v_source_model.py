@@ -310,3 +310,64 @@ def test_tail_3317_no_ba_old_root_alias_trial_is_explicitly_withdrawn():
     with pytest.raises(GeometryError,match="NO_BA_USER_RULE"):
         project_tail_illustrated_side_v90_nominal_and_stages(flat,first_axis="x")
 
+
+
+@pytest.mark.parametrize("order",("y","x"))
+def test_tail_3317_sharp_no_ba_sequential_true_wall(order):
+    """Same original V edges; Y-then-X must reach operator's exact sharp datum."""
+    from ae_engine.v_miter_tail_user_image_source import (
+        project_tail_illustrated_side_v90_flat,
+    )
+    from ae_engine.v_miter_tail_no_ba_sequential import (
+        project_tail_v90_no_ba_sequential_check,
+    )
+    spec,render=_image_sample_vault_tail()
+    originals=tuple(render.scene.primitives)
+    flat=project_tail_illustrated_side_v90_flat(spec,render)
+    result=project_tail_v90_no_ba_sequential_check(flat,first_axis=order)
+    assert tuple(render.scene.primitives)==originals
+    assert result.manufacturing_approved is False
+    assert result.root_status=="TRUE_T_ROOT_STILL_UNCERTIFIED"
+    assert result.thickness_mm==2.
+    assert dict(result.nominal_outside_mm)=={
+        "main_face_w":496.,"main_face_d":148.,
+        "side_left":17.,"side_right":17.,"bottom":50.,
+    }
+    assert result.original_source_area_mm2==pytest.approx(
+        result.triangulated_source_area_mm2
+    )
+    assert len(result.original_source_triangles)==len(result.first_stage_triangles)
+    assert len(result.first_stage_triangles)==len(result.second_stage_triangles)
+    track={(name,tag):(flat_mid,stage1,stage2,n)
+           for name,tag,flat_mid,stage1,stage2,n in result.midpoint_tracks}
+    assert track["bottom_left","upper"][0]==pytest.approx((7.5,55.5))
+    assert track["bottom_left","lower"][0]==pytest.approx((7.5,40.5))
+    assert track["bottom_left","upper"][2]==pytest.approx((15.,55.5,7.5))
+    if order=="y":
+        assert track["bottom_left","lower"][1]==pytest.approx((7.5,48.,7.5))
+        assert track["bottom_left","lower"][2]==pytest.approx((15.,55.5,7.5))
+        assert track["bottom_right","lower"][2]==pytest.approx((507.,55.5,7.5))
+        assert all(abs(axis[2])==pytest.approx(1.)
+                   for _,axis in result.carried_second_axes)
+        assert all(wall_max<=1e-6 for _,_,wall_max in result.paired_T_wall)
+    else:
+        # Opposite fold order is genuinely distinct, not a renamed label.
+        assert math.dist(track["bottom_left","upper"][2],
+                         track["bottom_left","lower"][2])>1.
+        assert all(wall_max>1. for _,_,wall_max in result.paired_T_wall)
+
+
+def test_tail_3317_sharp_no_ba_finite_bend_source_rejects_old_y49():
+    from dataclasses import replace
+    from ae_engine.v_miter_tail_user_image_source import (
+        project_tail_illustrated_side_v90_flat,
+    )
+    from ae_engine.v_miter_tail_no_ba_sequential import (
+        project_tail_v90_no_ba_sequential_check,
+    )
+    spec,render=_image_sample_vault_tail()
+    flat=project_tail_illustrated_side_v90_flat(spec,render)
+    with pytest.raises(GeometryError,match="CORRECTED_FINITE_BEND_REQUIRED"):
+        project_tail_v90_no_ba_sequential_check(
+            replace(flat,result_scene=render.scene),first_axis="y",
+        )
