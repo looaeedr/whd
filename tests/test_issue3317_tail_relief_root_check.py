@@ -212,15 +212,34 @@ def test_d4_true_cutting_crease_crossing_source_keyed_t_skins_are_not_inferred()
                 # Test whether the normal-offset approach is continuous;
                 # when it is not, record actual near-crease source UVs,
                 # which skin, stage and gap. Do not call it penetration.
-                if fine[1] > 2e-5:
+                # A sharp finite crease makes the two unconnected
+                # ONE-SIDED outer-normal limits differ by T*sqrt(2).
+                # This is not a physical gap: a source-keyed T corner
+                # connector is needed at that EXACT CUTTING/BEND UV.
+                expected_outer_discontinuity = (
+                    (owner == "x" and
+                     (first_axis == "x" or stage == 1))
+                    or (owner == "y" and
+                        (first_axis == "y" or stage == 1))
+                )
+                if expected_outer_discontinuity:
+                    assert abs(fine[1] - 2.*math.sqrt(2.)) < 1e-3, (
+                        side, owner, crossing, first_axis, stage,
+                        "ONE_SIDED_T_OUTER_NORMAL_OFFSET", fine[1],
+                    )
                     t_offset_discontinuities.append((
                         side,owner,first_axis,stage,crossing,
                         fine[1],fine[2][0][0],fine[2][1][0],
                         fine[2][0][3],fine[2][1][3],
                     ))
+                else:
+                    assert fine[1] <= 2.00001e-5, (
+                        side,owner,crossing,first_axis,stage,
+                        "UNEXPECTED_OUTER_SKIN_SEAM",fine[1],
+                    )
                 assert fine[0] < readings[0][0] + 1e-8
-    assert t_offset_discontinuities, (
-        "NO_ONE_SIDED_T_NORMAL_DISCONTINUITY_OBSERVED: "
+    assert len(t_offset_discontinuities) == 18, (
+        "ONE_SIDED_T_NORMAL_DISCONTINUITY_LOCATION_CHANGED: "
         "then verify the complete sourced hole-wall shell instead"
     )
     print("ISSUE3317_D4_T_SKIN_ONE_SIDED_CHECK", {
