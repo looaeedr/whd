@@ -76,11 +76,10 @@ def test_tail_unconfirmed_symmetric_v_must_not_enter_3d_or_machining():
             )
         # Keep real V acceptance RED; this is not a license to merge or
         # automatically draw unknown user asymmetrical cut lines.
-        pytest.fail(
-            "V_MITER_TAIL_CONFIRMED_ASYMMETRIC_TWO_RAYS_NOT_YET_SOURCED_"
-            "REVIEW_FACTORY_OLD_GUESS_FLAT_OVERLAY_BEFORE_3D",
-            pytrace=False,
-        )
+        # Absence of a typed 2D source continues to be rejected,
+        # regardless of a familiar-looking V sketch.
+        assert all(c.confirmed_source_cut_legs_xy is None
+                   for c in audit.corner_rows)
     finally:
         if app is not None:
             designer=getattr(app,"fold_designer_app",None)
@@ -88,3 +87,132 @@ def test_tail_unconfirmed_symmetric_v_must_not_enter_3d_or_machining():
                 try: designer.root.destroy()
                 except Exception: pass
         root.destroy()
+
+
+def _image_sample_vault_tail():
+    """User's 2026-11-22 illustrated W500/D150/T2/FW25/15/16/48."""
+    from ae_engine import manufacturing_api as api
+    from ae_engine.contracts import EndCapPartSpec, ManufacturingContext
+    spec=EndCapPartSpec(
+        width=500,depth=150,thickness=2,frame_width=25,height=600,
+        model_name="金庫型",is_tail=True,
+        fold_left=15,fold_right=15,fold_top=16,fold_bottom=48,
+        box_fold_left=15,box_fold_right=15,
+    )
+    return spec,api.build_operator_part_render_data(
+        spec,ManufacturingContext(draw_stock=False),
+    )
+
+
+def test_user_illustrated_tail_2d_factory_cutting_bend_holes_and_dxf_reopen(tmp_path):
+    """The actually selected user's V, not a second handwritten DXF outline."""
+    import ezdxf
+    from shapely.geometry import Polygon
+    from ae_engine.dxf_serialization import save_scene_dxf
+    from ae_engine.sheetmetal_drawing import PolylinePrimitive
+    from ae_engine.v_miter_tail_user_image_source import (
+        project_tail_illustrated_side_v90_flat,
+    )
+
+    spec,render=_image_sample_vault_tail()
+    snapshot=tuple(render.scene.primitives)
+    flat=project_tail_illustrated_side_v90_flat(spec,render)
+    assert render.scene.primitives==list(snapshot)
+    assert flat.status.endswith("FOLDED_FIT_NOT_VERIFIED")
+    assert flat.manufacturing_approved is False
+    assert flat.result_material.bounds == pytest.approx((0,0,522,233))
+    assert len(flat.opening_source_points_xy)==2
+    for key,lower,tip,upper in flat.opening_source_points_xy:
+        wanted_x=0 if key=="bottom_left" else 522
+        wanted_tip_x=15 if key=="bottom_left" else 507
+        assert lower == pytest.approx((wanted_x,33))
+        assert tip == pytest.approx((wanted_tip_x,48))
+        assert upper == pytest.approx((wanted_x,63))
+    assert len(flat.result_scene.primitives)==len(snapshot)
+    assert all(p is q for p,q in zip(
+        flat.result_scene.primitives[1:],snapshot[1:],
+    ))
+    original_cutting=tuple(
+        p for p in snapshot if p.layer=="CUTTING"
+    )
+    new_cutting=tuple(
+        p for p in flat.result_scene.primitives if p.layer=="CUTTING"
+    )
+    assert len(new_cutting)==len(original_cutting)
+    original_other=tuple(
+        p for p in original_cutting
+        if not (isinstance(p,PolylinePrimitive)
+                and p.closed
+                and Polygon([(q.x,q.y) for q in p.points]).symmetric_difference(
+                    flat.original_factory_material,
+                ).area < 1e-6)
+    )
+    assert all(p in new_cutting for p in original_other)
+    assert all(p in flat.result_scene.primitives for p in snapshot[1:])
+    path=tmp_path/"tail_user_illustrated_90_same_side_2D_CHECK_NOT_CNC.dxf"
+    save_scene_dxf(path,flat.result_scene)
+    reopened=ezdxf.readfile(path)
+    assert reopened.header["$INSUNITS"]==4
+    poly=tuple(reopened.modelspace().query('LWPOLYLINE[layer=="CUTTING"]'))
+    outline=tuple(e for e in poly if e.closed and len(e.get_points("xy"))>12)
+    assert len(outline)==1
+    got=Polygon(tuple(e[:2] for e in outline[0].get_points("xy")))
+    assert got.symmetric_difference(flat.result_material).area<1e-6
+    assert all(
+        sum(1 for e in reopened.modelspace() if e.dxf.layer==layer)
+        ==sum(1 for p in flat.result_scene.primitives if p.layer==layer)
+        for layer in ("CUTTING","BEND","MARKING")
+    )
+
+
+@pytest.mark.parametrize("first_axis",("x","y"))
+def test_user_image_v90_same_sheet_3d_left_right_fit_stays_red_if_open(first_axis):
+    """Do real first/second T fold only AFTER confirmed image/source parity.
+
+    The 2D image is now sourced, but 3D full seam fit must not be
+    silently approved by simply rebuilding the historical V triangle.
+    """
+    from ae_engine.v_miter_tail_user_image_source import (
+        project_tail_illustrated_side_v90_flat,
+    )
+    from tools.render_tail_dual_v_model import build_tail_dual_v_source_preview_zip
+    from zipfile import ZipFile
+    from io import BytesIO
+
+    spec,render=_image_sample_vault_tail()
+    flat=project_tail_illustrated_side_v90_flat(spec,render)
+    check=project_tail_dual_v_same_source_check(
+        spec,render,
+        first_bend_axes={
+            "bottom_left":first_axis,"bottom_right":first_axis,
+        },
+        illustrated_v90_source=flat,
+    )
+    assert check.original_factory_scene is render.scene
+    assert check.corrected_outline
+    assert len(check.corners)==2
+    assert all(c.first_bend_axis==first_axis for c in check.corners)
+    assert len(check.sequential_same_sheet_stage_models)==1
+    _,sequence=check.sequential_same_sheet_stage_models[0]
+    assert sequence.stage1_shell_topology.edges_manifold_closed
+    assert sequence.stage2_shell_topology.edges_manifold_closed
+    assert sequence.root_process_status.endswith("KINEMATIC_ONLY")
+    assert all(len(c.sequential_final_seam_sections)==4 for c in check.corners)
+    evidence=build_tail_dual_v_source_preview_zip(check)
+    with ZipFile(BytesIO(evidence)) as z:
+        diag=json.loads(z.read("WHD_tail_dual_V_model_diagnosis.json"))
+        assert len(diag["corners"])==2
+        assert diag["formal_dxf_export"]=="NOT_ALLOWED"
+        assert {
+            "WHD_tail_dual_V_same_source_2D.svg",
+            "WHD_tail_dual_V_same_sheet_AFTER_FIRST_T.obj",
+            "WHD_tail_dual_V_same_sheet_AFTER_SECOND_T.obj",
+            "WHD_tail_dual_V_true_T_left_right_sections.svg",
+        } <= set(z.namelist())
+    print("WHD_3317_USER_IMAGE_V90_3D_DIAG="+json.dumps(
+        {"axis":first_axis,"data":diag},sort_keys=True,ensure_ascii=False,
+    ),flush=True)
+    # Correct 2D does not remove the required RED gate for unseated seams.
+    assert all(c.model_status=="MODEL_PASS" for c in check.corners), (
+        "USER_IMAGE_V90_2D_SOURCE_VERIFIED_3D_SEAM_NOT_YET_MATING"
+    )
