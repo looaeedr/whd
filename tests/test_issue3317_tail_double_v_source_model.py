@@ -7,11 +7,13 @@ from __future__ import annotations
 
 import json
 import math
+import base64
 
 import pytest
 from shapely.geometry import Polygon
 
 from ae_engine.v_miter_tail_dual_source_check import project_tail_dual_v_same_source_check
+from tools.render_tail_dual_v_model import build_tail_dual_v_source_preview_zip
 
 
 def test_tail_real_same_blank_dual_90_v_and_folded_contact():
@@ -89,6 +91,15 @@ def test_tail_real_same_blank_dual_90_v_and_folded_contact():
                 ] if continuity else [],
             })
         report=json.dumps(evidence,ensure_ascii=False,sort_keys=True)
+        # Actual source flat SVG, true folded OBJ/PNG and numerical diagnosis
+        # are built from precisely the Engine CHECK model above. The zip is
+        # emitted in bounded CI log chunks for exact-source retrieval.
+        payload=build_tail_dual_v_source_preview_zip(check)
+        assert len(payload) > 1000
+        encoded=base64.b64encode(payload).decode("ascii")
+        for i in range(0,len(encoded),4096):
+            print("WHD_3317_MODEL_ZIP_BASE64_PART="
+                  + str(i//4096).zfill(4) + ":" + encoded[i:i+4096],flush=True)
         assert all(row.model_status == "MODEL_PASS" for row in check.corners), (
             "WHD_TAIL_DUAL_V_FOLDED_MODEL_NOT_YET_PASS=" + report
         )
