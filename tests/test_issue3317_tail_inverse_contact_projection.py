@@ -49,6 +49,26 @@ def test_straight_90_fold_inverse_reuses_real_rba_and_source_apex():
     assert bottom_residual > 0
 
 
+def test_one_sided_source_tip_extension_preserves_original_other_end():
+    from ae_engine.assembly_geometry_folded_mesh import _fold_tip_weights
+    from ae_engine.manufacturing_render_data import FoldGuide
+    source_profile = ({"len": 15.0}, {"len": 200.0})
+    actual_guide = (FoldGuide("x", 15.0, 49.0, 290.0),)
+    assert _fold_tip_weights(source_profile,"x",48.75,actual_guide) == (False,)
+    assert _fold_tip_weights(
+        source_profile,"x",48.75,actual_guide,
+        (("x",15.0,48.0,290.0),),
+    ) == (True,)
+    assert _fold_tip_weights(
+        source_profile,"x",47.0,actual_guide,
+        (("x",15.0,48.0,290.0),),
+    ) == (False,)
+    assert _fold_tip_weights(
+        source_profile,"x",291.0,actual_guide,
+        (("x",15.0,48.0,290.0),),
+    ) == (False,)
+
+
 def test_inverse_rejects_missing_straight_section_or_ray():
     from ae_engine.sheetmetal_geometry_core import GeometryError
     with pytest.raises(GeometryError, match="NOT_ON_STRAIGHT"):

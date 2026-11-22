@@ -126,6 +126,12 @@ class TailDualVFaceResult:
     distal_ideal_shortfall_mm: float
     # Direct true 3D cut-face stations, not whole-solid nearest distance.
     sampled_seam_gap_stations_mm: tuple = ()
+    # Formed true-T cut-face witnesses, not nearest whole-flange skins:
+    # (fraction, gap, side cut XYZ, bottom cut XYZ, status).
+    sampled_cut_face_nearest_xyz: tuple = ()
+    # Source CUTTING proof for the two actually mating candidate faces:
+    # side uses upper V leg, bottom uses lower V leg.
+    source_cut_leg_owner_lengths_mm: tuple = ()
     # Actual finite-R/BA 90-degree contact inverses: z, side UV, bottom UV,
     # each distance from its current SOURCE V leg and unrepresented side BEND.
     inverse_straight_contact_flat_trace_mm: tuple = ()
@@ -137,6 +143,8 @@ class TailDualVFaceResult:
     actual_joint_axis_xyz: tuple = ()
     native_uncut_fold_endpoint_jump_max_mm: float | None = None
     native_uncut_fold_endpoint_status: str = "UNCHECKED"
+    native_side_tip_endpoint_jump_max_mm: float | None = None
+    native_side_tip_endpoint_status: str = "UNCHECKED"
     # A physical impossibility is a model FAIL, not an invitation to trim
     # an arbitrary Door edge or call geometric diagnostics "passed".
     topology_contact_failure: str | None = None
@@ -178,6 +186,7 @@ class TailDualVSourceCheck:
     # Displacement of two arbitrarily close points on the SAME uncut
     # material either side of finite bottom BEND endpoint in native 3D.
     native_bottom_span_boundary_jump_samples_mm: tuple
+    native_side_span_boundary_jump_samples_mm: tuple
     corners: tuple[TailDualVFaceResult, TailDualVFaceResult]
     geometry_status: str = "TAIL_DOUBLE_V_CHECK_ONLY_UNVERIFIED"
 
@@ -331,16 +340,41 @@ def project_tail_dual_v_same_source_check(
             or abs(bottom_start - min(right[9].p1.x, right[9].p2.x)) > _TOL
             or abs(bottom_end - max(right[9].p1.x, right[9].p2.x)) > _TOL):
         raise GeometryError("V_MITER_TAIL_DUAL_SOURCE_BEND_ENDPOINTS_CHANGED")
-    # The attached lower V-cut source corner is not another bend.
-    # It MOVES with the connected bottom flange, while the only actual
-    # BEND remains x=16..406. Original CUTTING is kept unchanged.
-    tip_continuity = (("y", float(bottom_y), minx, maxx),)
+    # The source V removes its opening to the LEFT/RIGHT outer edge.
+    # Its *upper* leg leaves a real material tongue between Y=48 and the
+    # side BEND's first drawn point Y=49. On each side check that a 2D
+    # cross-tip witness is genuinely retained stock, not a guessed BEND.
+    # If the tongue were cut away, no continuation may be introduced.
+    side_tips = ()
+    for corner_key, guide, sx in (
+        ("bottom_left", left_guide, xl),
+        ("bottom_right", right_guide, xr),
+    ):
+        if not (bottom_y < guide.span_start < guide.span_end):
+            raise GeometryError("V_MITER_TAIL_SIDE_BEND_TIP_SOURCE_INVALID")
+        tongue_span = float(guide.span_start - bottom_y)
+        if tongue_span <= _TOL:
+            raise GeometryError("V_MITER_TAIL_SIDE_TIP_HAS_NO_SOURCE_EXTENSION")
+        test_y = float((bottom_y + guide.span_start) / 2.0)
+        test_x = float(sx + (tongue_span / 4.0 if corner_key.endswith("right")
+                              else -tongue_span / 4.0))
+        if not all(corrected.covers(Point(x, y)) for x, y in (
+            (test_x, test_y), (test_x, guide.span_start - 1e-4),
+            (test_x, guide.span_start + 1e-4),
+        )):
+            raise GeometryError("V_MITER_TAIL_SIDE_TIP_NOT_SOURCE_CONNECTED")
+        side_tips += (("x", float(sx), float(bottom_y),
+                       float(guide.span_end)),)
+    # Continue ONLY connected corner stock. Never extend physical BEND
+    # segments or carry the side return through the lower Y<48 flange.
+    # The X tips extend *one* lower end only; their upper end remains exact.
+    tip_continuity = (("y", float(bottom_y), minx, maxx), *side_tips)
     folded_domains = {
         "left": corrected.intersection(box(
-            minx, left_guide.span_start, xl, left_guide.span_end,
+            minx, bottom_y, xl, left_guide.span_end,
         )),
         "right": corrected.intersection(box(
-            xr, right_guide.span_start, maxx, right_guide.span_end,
+            xr, bottom_y, maxx, right_guide.span_end,
         )),
         # Full connected stock including both wedge-side bottom cut legs.
         # Only x=16..406 has a full 90-degree fold; the two continuous
@@ -397,6 +431,39 @@ def project_tail_dual_v_same_source_check(
                 "V_MITER_TAIL_DUAL_NATIVE_BEND_END_CONTINUITY_UNRESOLVED"
             )
         boundary_jumps.append((which, tuple(records)))
+
+    # Independently check the original side-BEND lower tips. The tiny
+    # connected source tongue must not jump from "flat" to "folded" at
+    # the uncut Y=49 boundary. This checks same-sheet geometry, not seam fit.
+    side_boundary_jumps = []
+    for which, guide, sx in (
+        ("bottom_left", left_guide, xl),
+        ("bottom_right", right_guide, xr),
+    ):
+        span = float(guide.span_start - bottom_y)
+        points = []
+        for frac in (0.10, 0.25, 0.50, 0.75):
+            x = float(sx + (span*frac if which.endswith("right")
+                            else -span*frac))
+            a = (x, float(guide.span_start - sampling_delta))
+            b = (x, float(guide.span_start + sampling_delta))
+            if not all(corrected.covers(Point(*p)) for p in (a,b)):
+                continue
+            def formed_xy(source):
+                xx, yy = source
+                ux, zx = _profile_map_with_guides(
+                    xx, yy, x_profile, axis="x", fold_guides=guides,
+                    fold_tip_continuity=tip_continuity,
+                )
+                uy, zy = _profile_map_with_guides(
+                    yy, xx, y_profile, axis="y", fold_guides=guides,
+                    fold_tip_continuity=tip_continuity,
+                )
+                return (ux, uy, zx+zy)
+            points.append((x, float(math.dist(formed_xy(a), formed_xy(b)))))
+        if len(points) < 3:
+            raise GeometryError("V_MITER_TAIL_SIDE_TIP_CONTINUITY_UNRESOLVED")
+        side_boundary_jumps.append((which, tuple(points)))
 
     # Ownership of the *restored* original corner stock is computed from
     # the existing fold spans, NOT from the V's visual 2D appearance.
@@ -563,6 +630,23 @@ def project_tail_dual_v_same_source_check(
                 else "NO_DETECTED_VOLUME_WITNESS" if witness.meshes_closed
                 else "VOLUME_UNRESOLVED"
             )
+        # A source CUTTING wedge has TWO distinct legs. The edge in the
+        # y>48 side lip is the UPPER (outward-to-high-Y) V cut, while the
+        # y<48 bottom lip owns its LOWER (outward-to-low-Y) cut. Qualify
+        # these against actual material-domain boundaries before any
+        # 3D nearest-face query; a flange clipping wall is not a V face.
+        low_leg, high_leg = V_lines[corner]
+        actual_side_boundary = folded_domains[side].boundary.buffer(_TOL)
+        actual_bottom_boundary = folded_domains["bottom"].boundary.buffer(_TOL)
+        cut_ownership = (
+            float(high_leg.intersection(actual_side_boundary).length),
+            float(low_leg.intersection(actual_side_boundary).length),
+            float(low_leg.intersection(actual_bottom_boundary).length),
+            float(high_leg.intersection(actual_bottom_boundary).length),
+        )
+        if (min(cut_ownership[0], cut_ownership[2]) < _TOL
+                or max(cut_ownership[1], cut_ownership[3]) > 10*_TOL):
+            raise GeometryError("V_MITER_TAIL_TRUE_CUT_FACE_SOURCE_OWNER_AMBIGUOUS")
         side_faces, bottom_faces = (), ()
         side_error = bottom_error = None
         for side_name, mesh in ((side, models[side]), ("bottom", models["bottom"])):
@@ -630,6 +714,13 @@ def project_tail_dual_v_same_source_check(
             seam_error = "V_MITER_TAIL_DUAL_SOURCE_CUT_FACE_MISSING"
         endpoint_records = dict(boundary_jumps)[corner]
         endpoint_jump_max = max(gap for _y, gap in endpoint_records)
+        side_tip_records = dict(side_boundary_jumps)[corner]
+        side_tip_jump_max = max(gap for _x, gap in side_tip_records)
+        side_tip_status = (
+            "UNCUT_SIDE_TIP_FOLD_MAPPING_DISCONTINUITY"
+            if side_tip_jump_max > 1e-3
+            else "NO_DETECTED_SIDE_TIP_DISCONTINUITY"
+        )
         endpoint_status = (
             "UNCUT_SHEET_FOLD_MAPPING_DISCONTINUITY"
             if endpoint_jump_max > 1e-3
@@ -688,6 +779,7 @@ def project_tail_dual_v_same_source_check(
             else "INVERSE_SOURCE_RAYS_NOT_COMPATIBLE"
         )
         sampled_stations = ()
+        cut_face_witnesses = ()
         if side_faces and bottom_faces:
             fractions = (0.25, 0.50, 0.75, 0.95)
             sampled = project_v_miter_true_t_seam_section_gap_trial(
@@ -699,6 +791,12 @@ def project_tail_dual_v_same_source_check(
             sampled_stations = tuple(
                 (float(frac * contact_reach), section.status,
                  section.measured_gap_mm)
+                for frac, section in zip(fractions, sampled.sections)
+            )
+            cut_face_witnesses = tuple(
+                (float(frac), section.measured_gap_mm,
+                 section.nearest_first_xyz, section.nearest_second_xyz,
+                 section.status)
                 for frac, section in zip(fractions, sampled.sections)
             )
         interference_z = tuple(
@@ -719,6 +817,8 @@ def project_tail_dual_v_same_source_check(
             actual_formed_reach_mm=contact_reach,
             distal_ideal_shortfall_mm=max(0.0, min(row[4], row[5])-contact_reach),
             sampled_seam_gap_stations_mm=sampled_stations,
+            sampled_cut_face_nearest_xyz=cut_face_witnesses,
+            source_cut_leg_owner_lengths_mm=cut_ownership,
             inverse_straight_contact_flat_trace_mm=inverse_trace,
             inverse_unconstrained_outer_hits_mm=(*side_fit, *bottom_fit),
             inverse_source_fit_status=inverse_fit_status,
@@ -729,6 +829,8 @@ def project_tail_dual_v_same_source_check(
             actual_joint_axis_xyz=(physical_seam_start, physical_seam_end),
             native_uncut_fold_endpoint_jump_max_mm=float(endpoint_jump_max),
             native_uncut_fold_endpoint_status=endpoint_status,
+            native_side_tip_endpoint_jump_max_mm=float(side_tip_jump_max),
+            native_side_tip_endpoint_status=side_tip_status,
             topology_contact_failure=topo_failure,
             topological_clearance_lower_bound_mm=None,
             contact_gap_floor_at_straight_start_mm=None,
@@ -737,6 +839,7 @@ def project_tail_dual_v_same_source_check(
             model_status=(
                 "MODEL_PASS" if (
                     endpoint_status == "NO_DETECTED_NATIVE_SPAN_DISCONTINUITY"
+                    and side_tip_status == "NO_DETECTED_SIDE_TIP_DISCONTINUITY"
                 ) and topo_failure is None
                 and not collision.pair_count
                 and volume_status == "NO_DETECTED_VOLUME_WITNESS"
@@ -783,5 +886,6 @@ def project_tail_dual_v_same_source_check(
         ),
         restored_stock_ownership_mm2=tuple(restored_stock_ownership),
         native_bottom_span_boundary_jump_samples_mm=tuple(boundary_jumps),
+        native_side_span_boundary_jump_samples_mm=tuple(side_boundary_jumps),
         corners=(reports[0], reports[1]),
     )

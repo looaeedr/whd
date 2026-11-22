@@ -70,6 +70,11 @@ def test_tail_real_same_blank_dual_90_v_and_folded_contact():
             )
             assert total == pytest.approx(side_fold+bottom_fold+neither,abs=1e-7)
         assert len(check.native_bottom_span_boundary_jump_samples_mm) == 2
+        assert len(check.native_side_span_boundary_jump_samples_mm) == 2
+        for which, samples in check.native_side_span_boundary_jump_samples_mm:
+            assert which in ("bottom_left", "bottom_right")
+            assert len(samples) >= 3
+            assert all(gap < 1e-3 for _x, gap in samples)
         for side,samples in check.native_bottom_span_boundary_jump_samples_mm:
             assert side in ("bottom_left","bottom_right")
             assert len(samples) >= 3
@@ -95,11 +100,13 @@ def test_tail_real_same_blank_dual_90_v_and_folded_contact():
             new_outline, xp, yp,
             fold_guides=render.fold_guides,
             fold_exemptions=fold_ownership_exemptions(new_outline, xb, yb),
-            fold_tip_continuity=((
-                "y", 48.0,
-                float(new_outline.bounds[0]),
-                float(new_outline.bounds[2]),
-            ),),
+            fold_tip_continuity=(
+                ("y", 48.0,
+                 float(new_outline.bounds[0]),
+                 float(new_outline.bounds[2])),
+                ("x", 15.0, 48.0, 290.0),
+                ("x", 407.0, 48.0, 290.0),
+            ),
         )
         assert check.native_original_fold_path_mesh == original_path
         assert check.bottom_bend_span_x_mm == pytest.approx((16,406))
@@ -112,6 +119,17 @@ def test_tail_real_same_blank_dual_90_v_and_folded_contact():
             assert corner.native_uncut_fold_endpoint_status == (
                 "NO_DETECTED_NATIVE_SPAN_DISCONTINUITY"
             )
+            assert corner.native_side_tip_endpoint_jump_max_mm < 1e-3
+            assert corner.native_side_tip_endpoint_status == (
+                "NO_DETECTED_SIDE_TIP_DISCONTINUITY"
+            )
+            assert len(corner.source_cut_leg_owner_lengths_mm) == 4
+            side_upper, side_lower, bottom_lower, bottom_upper = (
+                corner.source_cut_leg_owner_lengths_mm
+            )
+            assert side_upper > 0 and bottom_lower > 0
+            assert side_lower < 1e-5 and bottom_upper < 1e-5
+            assert len(corner.sampled_cut_face_nearest_xyz) == 4
             assert corner.model_status != "MODEL_PASS"
             assert len(corner.inverse_straight_contact_flat_trace_mm) == 4
             assert corner.inverse_source_fit_status in (
@@ -136,6 +154,8 @@ def test_tail_real_same_blank_dual_90_v_and_folded_contact():
             "restored_corner_ownership_mm2":check.restored_stock_ownership_mm2,
             "native_finite_BEND_endpoint_3D_jump_mm":
                 check.native_bottom_span_boundary_jump_samples_mm,
+            "native_side_BEND_tip_3D_jump_mm":
+                check.native_side_span_boundary_jump_samples_mm,
             "native_original_3D_triangle_count":
                 len(check.native_original_fold_path_mesh),
             "corners": [],
@@ -155,6 +175,14 @@ def test_tail_real_same_blank_dual_90_v_and_folded_contact():
                     row.native_uncut_fold_endpoint_jump_max_mm,
                 "native_uncut_fold_endpoint_status":
                     row.native_uncut_fold_endpoint_status,
+                "native_side_tip_endpoint_jump_max_mm":
+                    row.native_side_tip_endpoint_jump_max_mm,
+                "native_side_tip_endpoint_status":
+                    row.native_side_tip_endpoint_status,
+                "source_cut_leg_owner_lengths_mm":
+                    row.source_cut_leg_owner_lengths_mm,
+                "sampled_cut_face_nearest_xyz":
+                    row.sampled_cut_face_nearest_xyz,
                 "model_status":row.model_status,
                 "formed_seam_reach_mm":row.actual_formed_reach_mm,
                 "far_end_flat_minus_formed_reach_mm":row.distal_ideal_shortfall_mm,

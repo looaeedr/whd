@@ -363,7 +363,10 @@ def _fold_tip_weights(
         guide = matching[0]
         left, right = float(guide.span_start), float(guide.span_end)
         a, b = float(outer_min), float(outer_max)
-        if not (a < left < right < b):
+        # A source-connected tip may extend only ONE end of an actual BEND.
+        # Preserve the other end exactly; requiring extension at both ends
+        # would falsely fold unrelated top-corner stock in the Tail.
+        if not (a <= left < right <= b and (a < left or right < b)):
             raise ValueError("WHD_FOLD_TIP_OUTSIDE_CONNECTED_MATERIAL")
         # This optional contract is only invoked after source topology
         # proves that the outside corner is the same attached lower lip.
