@@ -67,7 +67,17 @@ def test_actual_whd_gui_d4_check_window_four_factory_holes_and_native_world(
         assert state["tail_lower_v_choice_widget"].winfo_exists()
         button=state.get("tail_d4_check_widget")
         assert button is not None and button.winfo_exists()
-        before=dict(designer._phase6_input_snapshot)
+        # The preceding native Y Fold Editor Save queued an ordinary
+        # assembly_relief source reconciliation (old 15 -> new 48).
+        # Complete THAT prior edit before measuring a CHECK-only click.
+        # Otherwise Tk after jobs would falsely attribute its legitimate
+        # writeback to the read-only Ø4 window.
+        designer._phase6_update_scheduler.flush_now()
+        root.update_idletasks()
+        root.update()
+        from copy import deepcopy
+        before=deepcopy(designer._phase6_input_snapshot)
+        assert before["assembly_relief"]["source"]["ybottom1"] == pytest.approx(48.)
         button.invoke()
         root.update_idletasks()
         root.update()
