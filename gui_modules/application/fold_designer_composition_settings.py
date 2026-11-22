@@ -418,6 +418,24 @@ def select_tail_lower_v_choice(self, namespace, choice_var):
         next_snapshot=manufacturing_api.commit_operator_tail_lower_v_choice(
             app._phase6_input_snapshot,requested,tail_scene_values=values,
         )
+        if requested=="v90":
+            # The two existing app callbacks deliver the exact current
+            # immutable Factory PartSpec and FinalScene. Engine then verifies
+            # real CUTTING/BEND, holes, thick root and 2D/3D contact BEFORE
+            # any operator choice mutates saved state.
+            part_source=getattr(app,"_part_spec_query_callback",None)
+            render_source=getattr(app,"_scene_query_callback",None)
+            if not callable(part_source) or not callable(render_source):
+                raise ValueError("V 型缺少同一板件的 Engine PartSpec／FinalScene 來源")
+            original_values=dict(values)
+            original_values["_use_committed_relief"]=False
+            spec_context=part_source("tail",dict(original_values))
+            if not isinstance(spec_context,tuple) or len(spec_context)!=2:
+                raise ValueError("V 型封尾 PartSpec 來源不完整")
+            preview_input=render_source("tail",dict(original_values))
+            manufacturing_api.project_operator_tail_lower_v_preview_render(
+                spec_context[0],preview_input,choice=requested,
+            )
     except (ValueError,TypeError) as exc:
         choice_var.set("V 型" if current=="v90" else "原樣")
         status=getattr(app,"settings_status_var",None)
