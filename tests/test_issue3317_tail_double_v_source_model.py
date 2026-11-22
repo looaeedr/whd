@@ -410,3 +410,45 @@ def test_tail_corrected_nominal_and_stages_reject_old_y49_and_unselected_axis():
         project_tail_illustrated_side_v90_nominal_and_stages(
             invalid,first_axis="x",
         )
+
+
+@pytest.mark.parametrize("axis",("x","y"))
+def test_tail_3317_real_source_root_alias_and_second_axis_transport_audit(axis):
+    """Catch erroneous world-welding without calling it volume interference."""
+    import json
+    from ae_engine.v_miter_tail_user_image_source import (
+        project_tail_illustrated_side_v90_flat,
+        project_tail_illustrated_side_v90_nominal_and_stages,
+    )
+    from ae_engine.v_miter_tail_root_audit import (
+        diagnose_tail_double_v_source_root,
+    )
+    spec,render=_image_sample_vault_tail()
+    flat=project_tail_illustrated_side_v90_flat(spec,render)
+    skins=project_tail_illustrated_side_v90_nominal_and_stages(
+        flat,first_axis=axis,
+    )
+    audit=diagnose_tail_double_v_source_root(flat,skins)
+    assert audit.manufacturing_approved is False
+    assert audit.full_endcap_outside_status.startswith("UNVERIFIED")
+    assert audit.first_axis==axis
+    assert len(audit.second_bend_axis_witnesses)==2
+    assert all(
+        abs(sum(v*v for v in carried)-1)<1e-7
+        for _,_,carried in audit.second_bend_axis_witnesses
+    )
+    assert all(math.isfinite(v) and v>0 for v in audit.trial_t_outer_extent_xyz_mm)
+    assert audit.source_nonmanifold_edge_count>=0
+    # Preserve the printed exact counts for X/Y, do not hide a T-shell RED
+    # behind the expected geometric witness.
+    print("WHD_3317_SOURCE_ROOT_AUDIT="+json.dumps({
+        "axis":axis,
+        "source_nonmanifold_edges":audit.source_nonmanifold_edge_count,
+        "source_unpaired_interior":audit.interior_unpaired_source_edges,
+        "world_alias_first":audit.first_world_alias_edge_count,
+        "world_alias_final":audit.final_world_alias_edge_count,
+        "world_zero_faces":audit.final_zero_area_face_count,
+        "world_reversed_faces":audit.final_reversed_face_count,
+        "second_axis":audit.second_bend_axis_witnesses,
+        "trial_t_outer_xyz":audit.trial_t_outer_extent_xyz_mm,
+    },sort_keys=True),flush=True)
