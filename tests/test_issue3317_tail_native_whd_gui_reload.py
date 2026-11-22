@@ -113,6 +113,11 @@ def test_actual_whd_main_gui_lower_v_preserves_existing_rect_clearance_roundtrip
         editor.nb.select(editor.tabs.index("Y"))
         root.update_idletasks()
         root.update()
+        # Use the native tab-changed/render path so the controls belong to
+        # the Tail Y profile rather than the previous page's X/head rows.
+        editor.on_tab(None)
+        editor.render()
+        assert editor.state.active_bend == "Y"
         rows = editor.get_active_dict()["Y"]
         bottom_idx = next(i for i, seg in enumerate(rows)
                           if seg.get("phase6_key") == "ybottom1")
@@ -125,11 +130,28 @@ def test_actual_whd_main_gui_lower_v_preserves_existing_rect_clearance_roundtrip
             str(displayed[bottom_idx]["len"])
         )
         editor.save()
+        saved_y = editor.get_active_dict()["Y"]
+        assert saved_y[bottom_idx]["len"] == pytest.approx(48.0)
+        assert next(seg["len"] for seg in saved_y
+                    if seg.get("phase6_key") == "ytop1") == pytest.approx(16.0)
         designer._save_current_part(notify=False)
         root.update_idletasks()
         root.update()
         chooser, selected = _real_tail_selector(designer)
         assert selected.get() == "原樣"
+        # Physical spec and CUTTING must BOTH reflect this operator edit.
+        from phase6_manufacturing_adapter import build_scene_payload_for_app
+        from ae_engine.manufacturing_render_data import material_polygon_from_final_scene
+        source_payload = dict(build_scene_payload_for_app(designer, "tail"))
+        source_payload["_use_committed_relief"] = False
+        live_spec, _ = designer._part_spec_query_callback("tail", source_payload)
+        assert live_spec.fold_bottom == pytest.approx(48.)
+        assert live_spec.fold_top == pytest.approx(16.)
+        live_raw = designer._scene_query_callback("tail", source_payload)
+        assert live_raw.material.bounds[3] == pytest.approx(268.)
+        assert live_raw.material.symmetric_difference(
+            material_polygon_from_final_scene(live_raw.scene)
+        ).area < 1e-6
         original = _real_resolved_tail(designer)
         original_holes = _material_holes(original)
         assert len(original_holes) >= 1
