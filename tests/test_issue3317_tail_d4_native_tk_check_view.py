@@ -8,7 +8,9 @@ import base64
 from io import BytesIO
 import os
 import tkinter as tk
+from tkinter import ttk
 
+import ezdxf
 import pytest
 
 import gui
@@ -17,7 +19,7 @@ from ae_engine.assembly_geometry import triangle_bounds
 
 
 def test_actual_whd_gui_d4_check_window_four_factory_holes_and_native_world(
-    record_property,
+    record_property, tmp_path, monkeypatch,
 ):
     if os.name!="nt" and not os.environ.get("DISPLAY"):
         pytest.skip("requires real Tk/Xvfb GUI")
@@ -107,6 +109,13 @@ def test_actual_whd_gui_d4_check_window_four_factory_holes_and_native_world(
         assert len(placed)==len(check.shell_faces)
         assert triangle_bounds(body)[1][0]==pytest.approx(-298.,abs=1e-7)
         assert designer._phase6_input_snapshot==before
+        actual=win._tail_d4_assembly_check
+        assert actual.body_triangle_count==len(body)==308
+        assert actual.tail_triangle_count==len(placed)==2860
+        assert actual.crossing_pair_count>0
+        assert len(actual.crossing_segments)>0
+        assert not actual.manufacturing_approved
+        assert actual.volume_verdict.startswith("VOLUME_INTERFERENCE_")
         figure=win._tail_d4_check_figure
         assert len(figure.axes)==5
         section=figure.axes[2]
@@ -119,6 +128,45 @@ def test_actual_whd_gui_d4_check_window_four_factory_holes_and_native_world(
         root.update_idletasks()
         root.update()
 
+        # Click the REAL window toolbar action, not the exporter directly.
+        # Timestamp/handle differences between DXF files are not geometry.
+        file_path=tmp_path / "native_tail_d4_x_CHECK_NOT_CNC.dxf"
+        monkeypatch.setattr(
+            "gui_modules.application.tail_d4_check_view.filedialog.asksaveasfilename",
+            lambda **_kw: str(file_path),
+        )
+        messages=[]
+        monkeypatch.setattr(
+            "gui_modules.application.tail_d4_check_view.messagebox.showinfo",
+            lambda *args, **kwargs: messages.append(("info",args)),
+        )
+        monkeypatch.setattr(
+            "gui_modules.application.tail_d4_check_view.messagebox.showerror",
+            lambda *args, **kwargs: messages.append(("error",args)),
+        )
+        toolbar=next(w for w in win.winfo_children() if isinstance(w,ttk.Frame))
+        save_button=next(
+            w for w in toolbar.winfo_children()
+            if isinstance(w,ttk.Button) and "另存看圖 DXF" in w.cget("text")
+        )
+        save_button.invoke()
+        assert messages and messages[-1][0]=="info",messages
+        assert file_path.exists()
+        reopened=ezdxf.readfile(file_path)
+        assert reopened.dxfversion=="AC1015"  # R2000
+        assert reopened.header["$INSUNITS"]==4  # actual millimeters
+        assert not reopened.audit().has_errors
+        entities=tuple(reopened.modelspace())
+        assert len(entities)==11  # outer + four circles + five datum + warning
+        assert len([e for e in entities if e.dxf.layer=="CHECK"
+                    and e.dxftype()=="CIRCLE"])==4
+        assert len([e for e in entities if e.dxf.layer=="DATUM"
+                    and e.dxftype()=="LINE"])==5
+        assert len([e for e in entities if e.dxf.layer=="CHECK"
+                    and e.dxftype()=="LWPOLYLINE" and e.closed])==1
+        assert not any(e.dxf.layer in ("CUTTING","BEND","MARKING")
+                       for e in entities)
+        assert designer._phase6_input_snapshot==before
         # The screenshot is captured from the real live Tk window. On a
         # runner without ImageGrab support use the same Figure embedded in
         # the Tk canvas and label that fallback precisely.
@@ -139,6 +187,11 @@ def test_actual_whd_gui_d4_check_window_four_factory_holes_and_native_world(
             capture_type+":"+base64.b64encode(raw.getvalue()).decode("ascii"),
         )
         assert len(raw.getvalue())>3000
+        win.destroy()
+        win=None
+        root.update_idletasks()
+        root.update()
+        assert designer._phase6_input_snapshot==before
     finally:
         if win is not None:
             try:win.destroy()
