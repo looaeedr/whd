@@ -112,7 +112,24 @@ def test_actual_whd_main_gui_lower_v_preserves_existing_rect_clearance_roundtrip
         chooser._phase6_menu.invoke(1)
         root.update_idletasks()
         root.update()
-        assert selected.get() == "V 型", designer.settings_status_var.get()
+        if selected.get() != "V 型":
+            from phase6_manufacturing_adapter import build_scene_payload_for_app
+            from ae_engine.v_miter_factory_mother_check import _factory_original_shape
+            from shapely.geometry import box
+            payload = dict(build_scene_payload_for_app(designer, "tail"))
+            payload["_use_committed_relief"] = False
+            spec, _ctx = designer._part_spec_query_callback("tail", dict(payload))
+            render = designer._scene_query_callback("tail", dict(payload))
+            factory, width, height, _bends = _factory_original_shape(spec)
+            removed = box(0., 0., width, height).difference(factory)
+            components = ((removed,) if removed.geom_type == "Polygon"
+                          else tuple(getattr(removed, "geoms", ())))
+            pytest.fail(
+                f"Native V refused: {designer.settings_status_var.get()}"
+                f"; spec={spec!r}; raw_bounds={render.material.bounds};"
+                f" removed_components={tuple((v.bounds,round(v.area,5)) for v in components)}"
+            )
+        assert selected.get() == "V 型"
         assert designer._phase6_input_snapshot[api.TAIL_LOWER_V_SNAPSHOT_KEY] == "v90"
         with_v = _real_resolved_tail(designer)
         _assert_same_holes(original, with_v)
