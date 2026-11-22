@@ -107,28 +107,31 @@ def test_inverse_rejects_missing_straight_section_or_ray():
 
 
 
-def test_tail_original_uv_bend_ownership_is_mutually_exclusive_and_order_invariant():
-    """#3317: X/Y first choice changes intermediates but cannot change final V.
+def test_tail_corrected_full_side_bend_overlapping_uv_depends_on_fold_order():
+    """The user's Y=0 side BEND makes the original lower corners TWO-fold.
 
-    Uses the original Tail 15/15/48, 2mm T/2mm R/4.178318mm BA
-    from the existing Factory candidate check; no guessed cuts/creases.
+    This supersedes the old Y=49 disjoint source-partition assumption:
+    first-stage AND final-stage coordinates must reflect the selected order.
+    Source parameters match the 522x233 illustrated Factory check and the
+    existing T2/R2/BA physical CHECK, not a manufacturing certification.
     """
     from ae_engine.v_miter_tail_sequential_fold_check import (
         _advance_same_source_uv,
     )
-    original=(15.,407.,48.,0.,422.,290.,4.178318229274424,3.)
-    # Both actually retained candidate V wall source midpoints, apex,
-    # out-of-span bottom stock. Every UV receives at most one RBA bend.
-    uv_points=((7.5,55.5),(7.5,40.5),(414.5,55.5),
-               (414.5,40.5),(15.,48.),(407.,48.),
-               (1.,15.),(421.,15.))
-    changed_first=0
-    for uv in uv_points:
-        sx,fx,_,_=_advance_same_source_uv(uv,"x",original)
-        sy,fy,_,_=_advance_same_source_uv(uv,"y",original)
-        assert fx==pytest.approx(fy,abs=1e-9), (
-            uv,"Exclusive original UV cannot depend on first bend choice"
-        )
+    params=(15.,507.,48.,0.,522.,190.,4.178318229274424,3.)
+    retained=((7.5,55.5),(7.5,40.5),(514.5,55.5),
+              (514.5,40.5),(15.,48.),(507.,48.),
+              (1.,15.),(521.,15.),(100.,100.),(100.,40.))
+    first_different=0
+    final_different=0
+    for uv in retained:
+        sx,fx,_,_=_advance_same_source_uv(uv,"x",params)
+        sy,fy,_,_=_advance_same_source_uv(uv,"y",params)
         if math.dist(sx,sy)>1e-6:
-            changed_first+=1
-    assert changed_first >=4
+            first_different+=1
+        if math.dist(fx,fy)>1e-6:
+            final_different+=1
+        if uv==(100.,100.):
+            assert fx==pytest.approx(fy,abs=1e-9)
+    assert first_different>=4
+    assert final_different>=2, "Both bends must actually move lower side stock"
