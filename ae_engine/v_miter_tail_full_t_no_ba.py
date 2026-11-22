@@ -192,9 +192,17 @@ def project_tail_v90_full_t_no_ba(flat, *, first_axis: str):
     if nonmanifold or missing:
         raise GeometryError("TAIL_V90_T2_FULL_SOURCE_EDGE_NOT_CONTIGUOUS")
     for a,b in boundary:
-        # With source CCW, the wall winding points toward the missing
-        # material. Hole boundaries therefore receive INTERNAL sidewalls.
-        shell.extend(((a,b+k,b),(a,a+k,b+k)))
+        # With source CCW the wall winding points toward missing
+        # material (including the ORIGINAL through-holes). Two opposite
+        # V-cut wall edges have reversed source directions but COINCIDENT
+        # formed endpoints. Canonicalize only the triangulation diagonal
+        # of their actual physical quadrilateral, not their geometry:
+        # otherwise the two nonplanar T2 quads use opposite diagonals and
+        # falsely claim a surface gap/penetration despite equal vertices.
+        if inside[a] <= inside[b]:
+            shell.extend(((a,b+k,b),(a,a+k,b+k)))
+        else:
+            shell.extend(((b,a,a+k),(b,a+k,b+k)))
 
     edge_faces=defaultdict(list)
     for a,b,c in shell:
