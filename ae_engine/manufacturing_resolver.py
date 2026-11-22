@@ -320,9 +320,12 @@ def resolve(request):
         project_operator_tail_lower_v_preview_render,
     )
     choice=normalize_operator_tail_lower_v_choice(snapshot.get(TAIL_LOWER_V_SNAPSHOT_KEY))
-    if choice=="v90":
-        if "tail" not in available:
-            raise ValueError("下方左右 V 型只支援已選取的金庫型封尾；目前無封尾來源")
+    # A saved Tail operation is dormant when Tail is not in this request's
+    # canonical active parts. Keep the persisted choice/first-bend identity
+    # intact; validate it against the real Tail source when Tail is restored.
+    if choice=="v90" and "tail" in available:
+        if not any(part.part_key == "tail" for part in parts):
+            raise ValueError("下方左右 V 型缺少本次有效封尾來源；不支援")
         projected=[]
         for part in parts:
             if part.part_key!="tail":
