@@ -406,3 +406,51 @@ def test_d4_only_true_retained_v_wall_pairs_are_exempt():
     with pytest.raises(GeometryError,
         match="^TAIL_D4_CHECK_INVALID_COLLISION_FACE_REFERENCE"):
         _actual_interference_source_face_pair(filtered,(1,3))
+
+
+@pytest.mark.parametrize("kind", ("top_edge_same_bounds", "d4_arc_non_hinge"))
+@pytest.mark.parametrize("axis", ("x", "y"))
+def test_d4_rejects_unauthorized_outer_change_even_with_same_bbox_and_holes(
+    kind, axis,
+):
+    """No outside edits or subtle non-hinge edits may borrow D4 provenance."""
+    from shapely.geometry import box
+    from shapely.ops import unary_union
+    from ae_engine.v_miter_tail_d4_check import (
+        project_tail_d4_source_keyed_t_check,
+    )
+    flat=_d4_revised_factory_source()
+    expected=flat.result_material
+    before=tuple(flat.result_scene.primitives)
+    outer=next(p for p in before if getattr(p,"semantic_id",None)=="OUTER_BOUNDARY")
+    if kind=="top_edge_same_bounds":
+        # CUTTING removes 0.125 mm2 at the original upper edge, while all
+        # bounds, authored holes, V legs and six Ø4 hinge hits are unchanged.
+        changed=expected.difference(box(320.,267.75,320.5,268.))
+        assert expected.bounds==changed.bounds
+        assert expected.difference(changed).area == pytest.approx(.125,abs=1e-8)
+    else:
+        # Remove a tiny piece near an ACTUAL polygonal Ø4 arc point,
+        # away from its three BEND hinge crossings.
+        apex=flat.opening_source_points_xy[0][2]
+        from math import pi,cos,sin
+        point=(apex[0]+2.*cos(pi/4.),apex[1]+2.*sin(pi/4.))
+        # This point lies on the already removed circular opening: move
+        # outward into retained stock on the opposite arc quadrant.
+        from shapely.geometry import Point as ShPoint
+        changed=expected.difference(ShPoint(*point).buffer(.06,resolution=16))
+        assert changed.symmetric_difference(expected).area>0
+    assert changed.geom_type=="Polygon" and changed.is_valid
+    new_outer=PolylinePrimitive(
+        points=tuple(Vec2(float(x),float(y))
+                     for x,y in changed.exterior.coords[:-1]),
+        layer="CUTTING",closed=True,semantic_id="OUTER_BOUNDARY",
+    )
+    revised=replace(flat,
+        result_scene=DrawingScene(tuple(new_outer if p is outer else p
+                                        for p in before)),
+        result_material=changed,
+    )
+    with pytest.raises(GeometryError,
+            match=r"^TAIL_D4_CHECK_OUTER_UNRELATED_DELTA"):
+        project_tail_d4_source_keyed_t_check(revised,first_axis=axis)
