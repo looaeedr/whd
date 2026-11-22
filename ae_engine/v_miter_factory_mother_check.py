@@ -219,7 +219,10 @@ def project_v_miter_replaced_factory_corner_check(
     mother = box(0.0, 0.0, width, height)
     if mother.is_empty or mother.area <= 0 or original.difference(mother).area > 1e-6:
         raise GeometryError("V_MITER_MOTHER_FACTORY_BLANK_NOT_SOURCE_SUPERSET")
-    cut = _selected_original_corner_component(original, mother, corner_key)
+    # Classification uses the equivalent rebuilt Factory only: a 1-ULP
+    # difference in raw CUTTING must not connect opposite corner voids.
+    # The original FinalScene remains the output material/source below.
+    cut = _selected_original_corner_component(factory_original, mother, corner_key)
     restored = original.union(cut)
     if (
         restored.geom_type != "Polygon" or not restored.is_valid or
