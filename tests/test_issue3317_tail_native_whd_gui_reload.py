@@ -387,9 +387,15 @@ def test_actual_whd_main_gui_lower_v_preserves_existing_rect_clearance_roundtrip
             assert set(reopened.designer_workspace.available_parts) == {
                 "box_body", "head"
             }
-            assert set(reopened._phase6_input_snapshot["existing_parts"]) == {
+            # The canonical workspace (not a potentially stale input mirror)
+            # must survive a second native Save As without resurrecting Tail.
+            main.project_save_as_button.invoke()
+            reopened_saved = read_project(destination)["snapshot"]
+            assert set(reopened_saved["existing_parts"]) == {
                 "box_body", "head"
             }
+            assert reopened_saved[api.TAIL_LOWER_V_SNAPSHOT_KEY] == "v90"
+            assert reopened_saved[api.TAIL_LOWER_V_FIRST_BENDS_KEY] == saved_first
             assert reopened._phase6_input_snapshot[
                 api.TAIL_LOWER_V_SNAPSHOT_KEY
             ] == "v90"
