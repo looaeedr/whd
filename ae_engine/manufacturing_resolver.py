@@ -323,7 +323,7 @@ def resolve(request):
     # A saved Tail operation is dormant when Tail is not in this request's
     # canonical active parts. Keep the persisted choice/first-bend identity
     # intact; validate it against the real Tail source when Tail is restored.
-    if choice=="v90" and "tail" in available:
+    if choice=="v90" and "tail" in available and _cabinet_family(request) == "金庫型":
         if not any(part.part_key == "tail" for part in parts):
             raise ValueError("下方左右 V 型缺少本次有效封尾來源；不支援")
         projected=[]
