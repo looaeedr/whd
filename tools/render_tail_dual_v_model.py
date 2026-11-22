@@ -176,6 +176,11 @@ def _model_report(check):
             "volume_status":row.model_volume_status,
             "actual_formed_seam_reach_mm":row.actual_formed_reach_mm,
             "distal_zero_r_vs_rba_shortfall_mm":row.distal_ideal_shortfall_mm,
+            "interference_z_range_mm":row.interference_z_range_mm,
+            "true_cut_face_gap_by_z_mm": [
+                {"z":x, "status":status, "gap":gap}
+                for x,status,gap in row.sampled_seam_gap_stations_mm
+            ],
             "max_sampled_cut_face_gap_mm":(
                 c.max_sampled_cut_face_gap_mm if c is not None else None
             ),
