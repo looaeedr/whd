@@ -171,7 +171,7 @@ def show_tail_d4_check_window(
     for first,last in assembly_check.crossing_segments:
         assembly_ax.plot(
             (first[0],last[0]),(first[1],last[1]),(first[2],last[2]),
-            color="#dc2626",linewidth=1.2,
+            color="#d97706",linewidth=.9,
         )
     _native_world_y_up(assembly_ax,elev=18,azim=-32)
     assembly_ax.set_title(
@@ -228,12 +228,36 @@ def show_tail_d4_check_window(
         if not assembly_check.body_edges_manifold_closed
         else "體積干涉未由表面穿越證實"
     )
+    # Amber lines are confirmed surface crossings, NOT certified volume
+    # penetration. Coplanar mates and isolated single-point touches are not
+    # counted by this detector; no unmeasured material is inferred.
+    regions=dict(assembly_check.crossing_regions)
+    uv=assembly_check.crossing_tail_uv_bounds
+    world=assembly_check.crossing_world_bounds
+    if uv is not None and world is not None:
+        location=(
+            "命中 Tail UV x %.2f..%.2f / y %.2f..%.2f mm；"
+            "world Y %.2f..%.2f mm；"
+            "左槽 %d／右槽 %d／其他 %d 個命中面"
+        ) % (
+            uv[0][0],uv[0][1],uv[1][0],uv[1][1],
+            world[1][0],world[1][1],
+            regions.get("bottom_left",0),regions.get("bottom_right",0),
+            regions.get("other",0),
+        )
+    else:
+        location="目前未找到可回溯的 Tail UV 命中面"
     figure.suptitle(
-        "WHD #3317 Ø4 CHECK_NOT_CNC — 原始料四個真孔；"
+        "WHD #3317 Ø4 CHECK_NOT_CNC — Y 向上；"
         +volume_message+"；切面密合仍未驗收",fontsize=11,
     )
-    figure.tight_layout(rect=(0,0,1,.97))
+    # Inspection-only annotation; no changes to actual physical triangles.
+    figure.text(
+        .50,.012,location+"；橘線=非共面表面穿越，非體積證明",
+        ha="center",fontsize=9,
+    )
     win._tail_d4_cjk_font=_use_available_cjk_font(figure)
+    figure.tight_layout(rect=(0,.035,1,.95))
     canvas=FigureCanvasTkAgg(figure,master=win)
     canvas.get_tk_widget().pack(fill=tk.BOTH,expand=True)
     canvas.draw()
