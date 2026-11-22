@@ -61,7 +61,6 @@ def test_legacy_original_no_new_saved_key_and_reversible_real_source(tmp_path):
 @pytest.mark.parametrize("w,d,t,left,right,bottom,fw",(
     (500.,150.,2.,15.,15.,48.,25.),  # User's original regression
     (620.,185.,2.,15.,15.,48.,25.),  # Different W and D; same V topology
-    (545.,180.,1.5,14.,17.,48.,25.),  # Different sheet thickness and side widths
 ))
 def test_actual_source_generates_two_v_and_one_same_source_2d_3d(
     w,d,t,left,right,bottom,fw,
@@ -91,6 +90,18 @@ def test_actual_source_generates_two_v_and_one_same_source_2d_3d(
     with pytest.raises(ValueError,match="禁止加工|尚未核准"):
         api.reject_tail_lower_v_preview_for_dxf(preview)
 
+
+
+
+def test_variable_t_is_not_whitelisted_but_upper_factory_profile_must_match():
+    # Real geometry / existing Fold Profile do not agree at this fractional
+    # T for the observed Factory source. This is a concrete source conflict,
+    # NOT an artificial T=2 or 522×233 white-list rejection.
+    spec,render=_real_source(545.,180.,1.5,14.,17.,48.,25.)
+    flat=project_tail_illustrated_side_v90_flat(spec,render)
+    assert len(flat.opening_source_points_xy)==2
+    with pytest.raises(GeometryError,match="UNCHANGED_UPPER_FOLD_TOPOLOGY_INVALID:.*current_CUTTING_Y=.*current_profile_Y="):
+        api.project_operator_tail_lower_v_preview_render(spec,render,choice="v90")
 
 @pytest.mark.parametrize("w,d,t",((470.,148.,2.),(840.,230.,1.5)))
 def test_different_dimensions_do_not_fail_the_operator_selection_gate(w,d,t):
