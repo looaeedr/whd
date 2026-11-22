@@ -55,7 +55,7 @@ def project_tail_illustrated_side_v90_flat(
     corrected physical side BEND lower endpoints (Y=49 -> real bottom Y=0).
     Never extend an unrelated BEND or alter the production Factory.
     """
-    if (not isinstance(spec,EndCapPartSpec) or not spec.is_tail
+    if (not isinstance(spec,EndCapPartSpec)
             or not isinstance(render,PartRenderData)
             or not isinstance(render.scene,DrawingScene)):
         raise GeometryError("TAIL_IMAGE_V90_REAL_FACTORY_TAIL_REQUIRED")
