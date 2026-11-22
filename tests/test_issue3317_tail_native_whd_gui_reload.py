@@ -345,6 +345,54 @@ def test_actual_whd_main_gui_lower_v_preserves_existing_rect_clearance_roundtrip
             "tail", reloaded_v, x_profile=(), y_profile=(), thickness=2.,
         ).triangles == api.tail_lower_v_preview_mesh(reloaded_v)
 
+        if operator_first_axis == "x":
+            # Reproduce the real GUI Workspace selection: retained project
+            # Tail V/X-X is dormant while only Body/Head are canonical.
+            before_exclusion = reopened._phase6_resolve_manufacturing_geometry()
+            unchanged = {
+                key: before_exclusion.part(key).render_data.material
+                for key in ("box_body", "head")
+            }
+            reopened.activate_part("head")
+            assert reopened.designer_workspace.remove_part("tail")
+            from phase6_manufacturing_adapter import build_manufacturing_request
+            dormant_request = build_manufacturing_request(reopened)
+            assert set(dormant_request.canonical_part_keys) == {"box_body", "head"}
+            assert api.TAIL_LOWER_V_SNAPSHOT_KEY in dict(
+                reopened._phase6_input_snapshot
+            )
+            dormant = reopened._phase6_resolve_manufacturing_geometry()
+            assert dormant.part("tail") is None
+            for key in ("box_body", "head"):
+                assert dormant.part(key).render_data.material.symmetric_difference(
+                    unchanged[key]
+                ).area < 1e-5
+            main.project_save_as_button.invoke()
+            dormant_saved = read_project(destination)["snapshot"]
+            assert dormant_saved[api.TAIL_LOWER_V_SNAPSHOT_KEY] == "v90"
+            assert dormant_saved[api.TAIL_LOWER_V_FIRST_BENDS_KEY][
+                "bottom_left"
+            ]["first"] == "x"
+            main.project_open_button.invoke()
+            root.update_idletasks()
+            root.update()
+            reopened = main.fold_designer_app or main.open_original_fold_designer()
+            assert "tail" not in reopened.designer_workspace.available_parts
+            assert reopened._phase6_input_snapshot[
+                api.TAIL_LOWER_V_SNAPSHOT_KEY
+            ] == "v90"
+            assert reopened.designer_workspace.add_part("tail")
+            chooser2, selected2 = _real_tail_selector(reopened)
+            restored_v = _real_resolved_tail(reopened)
+            assert selected2.get() == "V 型"
+            assert restored_v.metadata["tail_lower_v_operator_first_axis"] == "x"
+            assert restored_v.material.symmetric_difference(
+                reloaded_v.material
+            ).area < 1e-5
+            assert api.tail_lower_v_first_stage_mesh(restored_v)
+            with pytest.raises(ValueError, match="禁止加工|尚未核准"):
+                api.reject_tail_lower_v_preview_for_dxf(restored_v)
+
         chooser2._phase6_menu.invoke(0)
         root.update_idletasks()
         root.update()
