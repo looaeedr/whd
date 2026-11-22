@@ -108,18 +108,60 @@ def project_tail_v90_full_t_no_ba(flat, *, first_axis: str):
         raise GeometryError("V_MITER_LOWER_PHYSICAL_T_REQUIRED")
     stock=material_polygon_from_final_scene(flat.result_scene)
     original_stock=material_polygon_from_final_scene(flat.original_scene)
+    # The *authored CUTTING primitives* are hole provenance, not whichever
+    # interior rings happened to be inside the OLD four-corner trimmed sheet.
+    # An unchanged hole can be hidden by the old cut and become fully
+    # visible in the newly restored V mother without moving a single hole.
+    # Matching interior rings of two different stock polygons falsely
+    # rejected this exact source despite identical original hole entities.
+    original_primitives=tuple(flat.original_scene.primitives)
+    formed_primitives=tuple(flat.result_scene.primitives)
+    original_cutting=tuple(
+        p for p in original_primitives if getattr(p,"layer",None)=="CUTTING"
+    )
+    restored_cutting=tuple(
+        p for p in formed_primitives if getattr(p,"layer",None)=="CUTTING"
+    )
+    from .sheetmetal_drawing import CirclePrimitive, PolylinePrimitive
+    source_outer=tuple(
+        p for p in original_cutting
+        if isinstance(p,PolylinePrimitive) and p.closed
+        and abs(Polygon([(v.x,v.y) for v in p.points]).symmetric_difference(
+            flat.original_factory_material).area)<=_EPS
+    )
+    final_outer=tuple(
+        p for p in restored_cutting
+        if isinstance(p,PolylinePrimitive) and p.closed
+        and abs(Polygon([(v.x,v.y) for v in p.points]).symmetric_difference(
+            flat.result_material).area)<=_EPS
+    )
+    if len(source_outer)!=1 or len(final_outer)!=1:
+        raise GeometryError("TAIL_V90_T2_FULL_HOLES_OR_SOURCE_MISSING:OUTER_ID")
+    original_hole_features=tuple(p for p in original_cutting if p is not source_outer[0])
+    final_hole_features=tuple(p for p in restored_cutting if p is not final_outer[0])
     if (stock.geom_type!="Polygon" or not stock.is_valid or stock.is_empty
             or original_stock.geom_type!="Polygon" or not original_stock.is_valid
-            # A Factory relief can hide an already-authored CUTTING hole
-            # outside its old material. Restoring that mother under V can
-            # legitimately expose this SAME unchanged hole (the 522x233
-            # sample exposes the old 4-mm square this way). Only forbid
-            # loss/change of a previously visible hole.
-            or any(not any(Polygon(a).symmetric_difference(Polygon(b)).area<=_EPS
-                           for b in stock.interiors)
-                   for a in original_stock.interiors)
-            or stock.difference(flat.result_material).area > _EPS):
-        raise GeometryError("V_MITER_LOWER_ORIGINAL_HOLES_NOT_PRESERVED")
+            or len(original_hole_features)!=len(final_hole_features)
+            or any(p is not q for p,q in zip(
+                original_hole_features,final_hole_features))
+            or stock.difference(flat.result_material).area>_EPS):
+        raise GeometryError("TAIL_V90_T2_FULL_HOLES_OR_SOURCE_MISSING:RAW_CUTTING_CHANGED")
+    # Every source hole in this V blank MUST be a real physical cutout in
+    # the final material; merely drawing an unchanged circle in FinalScene
+    # is insufficient if a geometry bug silently fills its interior.
+    for hole in original_hole_features:
+        if isinstance(hole,CirclePrimitive):
+            cut=Point(hole.center.x,hole.center.y).buffer(
+                float(hole.radius),quad_segs=32,
+            )
+        elif isinstance(hole,PolylinePrimitive) and hole.closed:
+            cut=Polygon([(v.x,v.y) for v in hole.points])
+        else:
+            continue
+        if (cut.is_empty or not cut.is_valid
+                or (flat.result_material.intersection(cut).area>_EPS
+                    and stock.intersection(cut).area>_EPS)):
+            raise GeometryError("TAIL_V90_T2_FULL_HOLES_OR_SOURCE_MISSING:CUTOUT_FILLED")
     outer_only=flat.result_material
     if (not outer_only.covers(stock) or
             stock.difference(outer_only).area>_EPS or
