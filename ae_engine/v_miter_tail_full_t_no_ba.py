@@ -107,7 +107,6 @@ def project_tail_v90_full_t_no_ba(flat, *, first_axis: str):
     if thickness<=0. or not math.isfinite(thickness):
         raise GeometryError("V_MITER_LOWER_PHYSICAL_T_REQUIRED")
     stock=material_polygon_from_final_scene(flat.result_scene)
-    from .manufacturing_render_data import material_polygon_from_final_scene
     original_stock=material_polygon_from_final_scene(flat.original_scene)
     if (stock.geom_type!="Polygon" or not stock.is_valid or stock.is_empty
             or original_stock.geom_type!="Polygon" or not original_stock.is_valid
