@@ -26,8 +26,10 @@ def test_finalscene_mesh_outside_dimensions_match_engine_and_gui():
     source = _formed_face()
     before = deepcopy(source)
     canonical = owner(source, 2.0)
-    assert canonical == ((10.0, 20.0, 4.0), (
-        (0.0, 10.0), (0.0, 20.0), (-2.0, 2.0),
+    # The input is the physical MID-surface: T=2 means two +/-1 mm skins.
+    # The old 4-mm expectation compensated T on BOTH sides a second time.
+    assert canonical == ((10.0, 20.0, 2.0), (
+        (0.0, 10.0), (0.0, 20.0), (-1.0, 1.0),
     ))
     assert api.project_operator_folded_outside_envelope(source, 2.0) == canonical
     assert gui(source, 2.0) == canonical
@@ -38,6 +40,60 @@ def test_finalscene_mesh_outside_dimensions_match_engine_and_gui():
         "door", triangles=source, thickness=2.0,
     ) == canonical[0][:2]
     assert source == before
+
+
+def test_folded_outside_envelope_matches_real_engine_t_solid_not_blank_or_double_t():
+    """A real 90-degree L has different skin normals at its outside extrema."""
+    from ae_engine.assembly_geometry_primitives import (
+        thicken_triangle_surface, triangle_bounds,
+    )
+
+    # A single connected L mid-surface, first leg in XY, second in YZ.
+    # Material lengths are 10 and 10, but the formed outside X/Z spans
+    # include one outward physical T/2 where material actually exists.
+    folded_mid = (
+        ((0., 0., 0.), (10., 0., 0.), (0., 20., 0.)),
+        ((0., 0., 0.), (0., 20., 0.), (0., 0., 10.)),
+    )
+    source_copy = deepcopy(folded_mid)
+    dims, bounds = owner(folded_mid, 2.0)
+    # The old global-normal AABB also added T to the remote extremum,
+    # inventing extra width beyond the real 3D skin.
+    assert dims == pytest.approx((11., 20., 11.))
+    assert bounds == pytest.approx(((-1., 10.), (0., 20.), (-1., 10.)))
+    # Independent physical-world witness: the Engine's actual two skins
+    # and shared-edge sidewalls, not a second implementation of Fold/BA.
+    thickened = thicken_triangle_surface(folded_mid, 2.0)
+    solid_bounds = triangle_bounds(thickened)
+    assert solid_bounds == pytest.approx(bounds)
+    # A pre-thickened physical shell is already outside: no extra T.
+    assert owner(thickened, 0.0) == (dims, bounds)
+    assert folded_mid == source_copy
+    assert api.project_operator_folded_outside_envelope(folded_mid, 2.0) == (dims, bounds)
+    assert gui(folded_mid, 2.0) == (dims, bounds)
+
+
+def test_forming_90_degree_L_outside_readback_does_not_depend_on_flat_length():
+    from ae_engine.assembly_geometry_folded_mesh import folded_mesh_from_polygon
+    from shapely.geometry import box
+
+    # Real Engine Fold Profile mid mesh: 20-mm flat X includes a 5-mm
+    # upright leg; formed outside is measured AFTER the fold, not by
+    # treating the unfolded blank's 20 mm as an outside dimension.
+    x_profile = (
+        {"length": 5.0, "angle": 90.0, "core": False},
+        {"length": 15.0, "angle": None, "core": True},
+    )
+    y_profile = ({"length": 30.0, "angle": None, "core": True},)
+    mid = folded_mesh_from_polygon(box(0, 0, 20, 30), x_profile, y_profile)
+    assert mid
+    formed = owner(mid, 2.0)
+    assert formed is not None
+    dims, bounds = formed
+    # Neither the raw 20-mm blank width nor 20+2T is a valid readback.
+    assert dims[0] < 20.0
+    assert dims[2] > 2.0
+    assert all(lo < hi for lo, hi in bounds)
 
 
 def test_empty_finalscene_mesh_remains_absent_not_zero_size():
