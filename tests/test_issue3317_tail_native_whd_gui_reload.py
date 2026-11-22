@@ -60,9 +60,17 @@ def _assert_same_holes(before, after):
     return originals
 
 
-@pytest.mark.parametrize("operator_first_axis",(None,"x","y"))
+@pytest.mark.parametrize(
+    "operator_first_axis,family_switch",
+    (
+        pytest.param(None, False, id="original-no-first-bend"),
+        pytest.param("x", False, id="original-first-x"),
+        pytest.param("y", False, id="original-first-y"),
+        pytest.param("x", True, id="vault-receiving-return-source-rejected"),
+    ),
+)
 def test_actual_whd_main_gui_lower_v_preserves_existing_rect_clearance_roundtrip(
-    tmp_path, monkeypatch, operator_first_axis,
+    tmp_path, monkeypatch, operator_first_axis, family_switch,
 ):
     if os.name != "nt" and not os.environ.get("DISPLAY"):
         pytest.skip("native WHD GUI requires a real Tk/Xvfb display")
@@ -425,6 +433,10 @@ def test_actual_whd_main_gui_lower_v_preserves_existing_rect_clearance_roundtrip
                 )
             assert not (tmp_path / "active-v-forbidden.dxf").exists()
 
+        if family_switch:
+            # Independent fourth case: do NOT skip the original X-case
+            # V -> original assertions when Vault reentry rejects a stale source.
+            assert operator_first_axis == "x"
             # Exercise the REAL baseline-model Tk menu, not a rewritten
             # snapshot or a mocked provider. The old Vault V/X-X is dormant
             # in the Receiving family even though canonical Tail stays active.
@@ -483,44 +495,38 @@ def test_actual_whd_main_gui_lower_v_preserves_existing_rect_clearance_roundtrip
             family_menu = reopened.baseline_model_combo._phase6_menu
             choose_family("金庫型")
             assert reopened.baseline_model_var.get() == "金庫型"
-            try:
-                returned_v = _real_resolved_tail(reopened)
-            except (ValueError, TypeError) as exc:
-                assert any(word in str(exc) for word in (
-                    "SOURCE", "BEND", "CUTTING", "FACTORY", "輪廓",
-                ))
-                # The changed physical source must refuse rather than
-                # silently discarding the saved V or X/X operator choice.
-                assert reopened._phase6_input_snapshot[
-                    api.TAIL_LOWER_V_SNAPSHOT_KEY
-                ] == "v90"
-                assert reopened._phase6_input_snapshot[
-                    api.TAIL_LOWER_V_FIRST_BENDS_KEY
-                ] == saved_first
-                return
-            assert returned_v.metadata["tail_lower_v_preview_only"] is True
-            with pytest.raises(ValueError, match="禁止加工|尚未核准"):
-                api.save_part_render_data_dxf(
-                    returned_v, tmp_path / "returned-v-forbidden.dxf",
-                )
-            chooser2, selected2 = _real_tail_selector(reopened)
+            from ae_engine.sheetmetal_geometry_core import GeometryError
+            with pytest.raises(GeometryError) as rejected:
+                _real_resolved_tail(reopened)
+            assert str(rejected.value) == (
+                "V_MITER_LOWER_CUTTING_CONFLICTS_WITH_ORIGINAL_HOLE"
+            )
+            # The exact source conflict leaves the operator's V/X-X
+            # identity untouched; do not fabricate an approved Tail.
+            assert reopened._phase6_input_snapshot[
+                api.TAIL_LOWER_V_SNAPSHOT_KEY
+            ] == "v90"
+            assert reopened._phase6_input_snapshot[
+                api.TAIL_LOWER_V_FIRST_BENDS_KEY
+            ] == saved_first
 
-        chooser2._phase6_menu.invoke(0)
-        root.update_idletasks()
+        if not family_switch:
+            chooser2._phase6_menu.invoke(0)
+            root.update_idletasks()
         root.update()
-        assert selected2.get() == "原樣"
-        assert api.TAIL_LOWER_V_SNAPSHOT_KEY not in reopened._phase6_input_snapshot
-        assert api.TAIL_LOWER_V_FIRST_BENDS_KEY not in reopened._phase6_input_snapshot
-        restored = _real_resolved_tail(reopened)
-        _assert_same_holes(original, restored)
-        assert restored.material.symmetric_difference(original.material).area < 1e-5
-        assert api.tail_lower_v_preview_mesh(restored) is None
-        original_again = reopened.settings_panel.render_context("tail")
-        for corner in ("bottom_left", "bottom_right"):
-            assert original_again["extension_state"][
-                "tail_lower_v_first_" + corner + "_widget"
-            ]._phase6_menu.entrycget(1, "label") == source_lines[
-                corner
-            ]["x"]["label"]
+            assert selected2.get() == "原樣"
+            assert api.TAIL_LOWER_V_SNAPSHOT_KEY not in reopened._phase6_input_snapshot
+            assert api.TAIL_LOWER_V_FIRST_BENDS_KEY not in reopened._phase6_input_snapshot
+            restored = _real_resolved_tail(reopened)
+            _assert_same_holes(original, restored)
+            assert restored.material.symmetric_difference(original.material).area < 1e-5
+            assert api.tail_lower_v_preview_mesh(restored) is None
+            original_again = reopened.settings_panel.render_context("tail")
+            for corner in ("bottom_left", "bottom_right"):
+                assert original_again["extension_state"][
+                    "tail_lower_v_first_" + corner + "_widget"
+                ]._phase6_menu.entrycget(1, "label") == source_lines[
+                    corner
+                ]["x"]["label"]
     finally:
         root.destroy()
