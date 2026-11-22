@@ -123,3 +123,108 @@ def test_vault_w620_d185_t2_relief_root_preserves_source_but_sharp_full_t_refuse
         with pytest.raises(GeometryError,
                            match="^TAIL_SHARP_NO_BA_V_NOT_ACTUAL_CUTTING$"):
             project_tail_v90_full_t_no_ba(revised, first_axis=first_axis)
+
+
+def test_d4_true_cutting_crease_crossing_source_keyed_t_skins_are_not_inferred():
+    """Measure BOTH staged same-source limits and both material skins at Ø4.
+
+    A discontinuous offset of normals of two *different* UV points is not a
+    physical crack/penetration verdict. The two true T faces must obtain a
+    common source-owned crease-edge connector before a closed mesh is claimed.
+    """
+    from ae_engine.v_miter_tail_no_ba_sequential import (
+        _stages, stations_from_real_flat,
+    )
+    flat = _real_factory_with_fifth_original_cutting()
+    st = stations_from_real_flat(flat)
+    removed = []
+    roots = []
+    for corner, lower, apex, upper in flat.opening_source_points_xy:
+        removed.append(
+            Polygon((lower, apex, upper)).union(
+                Point(*apex).buffer(2., resolution=48)
+            )
+        )
+        roots.append((corner, tuple(apex)))
+    candidate = flat.original_factory_restored_mother.difference(
+        unary_union(removed)
+    )
+    boundary = candidate.boundary
+    bends = tuple(fold_guides_from_final_scene(flat.result_scene))
+    assert any(g.axis == "y" and abs(g.position - 48.) < 1e-8
+               and g.span_start < 17 < g.span_end for g in bends)
+    assert any(g.axis == "x" and abs(g.position - 15.) < 1e-8
+               and g.span_start < 46 < 50 < g.span_end for g in bends)
+
+    max_mid = 0.
+    t_offset_discontinuities = []
+    # Exact circle/outer-wedge CUTTING intersections with actual BEND,
+    # no invented crease or midline and no source-point aliasing.
+    cases = (
+        ("left", (15.,48.), "x", -math.pi/2),
+        ("left", (15.,48.), "x", math.pi/2),
+        ("left", (15.,48.), "y", 0.),
+        ("right", (627.,48.), "x", -math.pi/2),
+        ("right", (627.,48.), "x", math.pi/2),
+        ("right", (627.,48.), "y", math.pi),
+    )
+    for side, center, owner, angle in cases:
+        crossing = (
+            center[0] + 2*math.cos(angle),
+            center[1] + 2*math.sin(angle),
+        )
+        assert Point(*crossing).distance(boundary) < 2e-7, (
+            side, owner, crossing, "not the actual CUTTING boundary",
+        )
+        for first_axis in ("x", "y"):
+            for stage in (0, 1):
+                readings = []
+                for delta in (1e-4, 1e-5):
+                    pair = []
+                    for sign in (-1,1):
+                        a=angle+sign*delta/2.
+                        target=Point(center[0]+2*math.cos(a),
+                                     center[1]+2*math.sin(a))
+                        u=boundary.interpolate(boundary.project(target))
+                        uv=(u.x,u.y)
+                        assert u.distance(boundary) < 1e-10
+                        first, second, normal_first, normal_final, _ = _stages(
+                            uv,first_axis,st,
+                        )
+                        mid=(first,second)[stage]
+                        normal=(normal_first,normal_final)[stage]
+                        # WHD full-T uses the inner source face as the zero
+                        # skin and actual T=2 on the outside. This is only
+                        # the ONE-SIDED offset witness, never a fabricated
+                        # outside connector spanning a real crease.
+                        inner=mid
+                        outer=tuple(mid[k]-2.*normal[k] for k in range(3))
+                        pair.append((uv,inner,outer,normal))
+                    mid_jump=math.dist(pair[0][1],pair[1][1])
+                    outer_jump=math.dist(pair[0][2],pair[1][2])
+                    max_mid=max(max_mid,mid_jump)
+                    readings.append((mid_jump,outer_jump,pair))
+                fine=readings[-1]
+                assert fine[0] < 2e-5, (
+                    side,owner,crossing,first_axis,stage,
+                    "SOURCE_MIDSURFACE_TEAR",fine,
+                )
+                # Test whether the normal-offset approach is continuous;
+                # when it is not, record actual near-crease source UVs,
+                # which skin, stage and gap. Do not call it penetration.
+                if fine[1] > 2e-5:
+                    t_offset_discontinuities.append((
+                        side,owner,first_axis,stage,crossing,
+                        fine[1],fine[2][0][0],fine[2][1][0],
+                        fine[2][0][3],fine[2][1][3],
+                    ))
+                assert fine[0] < readings[0][0] + 1e-8
+    assert t_offset_discontinuities, (
+        "NO_ONE_SIDED_T_NORMAL_DISCONTINUITY_OBSERVED: "
+        "then verify the complete sourced hole-wall shell instead"
+    )
+    print("ISSUE3317_D4_T_SKIN_ONE_SIDED_CHECK", {
+        "max_mid_jump_mm": max_mid,
+        "uncertified_one_sided_outer_offsets": t_offset_discontinuities,
+        "status": "T_CREASE_CONNECTOR_NOT_PROVEN_NO_MESH_CLAIM",
+    })
