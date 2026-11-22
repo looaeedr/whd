@@ -81,6 +81,11 @@ class VMiterFactoryRadiusBADefaultCheck:
     curved_t_volume_status: str
     # The exact same 2D source contour used by every formed physical mesh.
     formed_source_outline: tuple
+    # The physically attainable formed seam is shorter than the zero-R
+    # ideal where BA consumes more flat stock than the neutral R/T offset.
+    # It is a DISTAL reach delta, never a root relief.
+    physical_formed_seam_reach_mm: float = 0.0
+    distal_ideal_seam_shortfall_mm: float = 0.0
     first_edge_trim_mm: float = 0.0
     additional_source_removed_area_mm2: float = 0.0
     first_source_tagged_cut_faces: VMiterSourceCutFaceTrial | None = None
@@ -376,6 +381,32 @@ def project_v_miter_factory_radius_ba_default_check(
     # chosen samples may claim a continuous seam or shop gap tolerance.
     continuity = None
     continuity_failure = None
+    physical_seam_reach = ideal.formed_contact_length_mm
+    # Two 90-degree folds: the paired cylindrical neutral surfaces finish
+    # their respective arc at Z=R+T/2. Every additional flat millimeter
+    # after BA adds exactly one millimeter of formed Z. The old ideal
+    # Z=flat flange height incorrectly counted the resulting FAR END
+    # (BA-(R+T/2)) shortfall as absent cut-face stock.
+    # Other second angles keep their existing independently qualified
+    # ideal station until a non-90 inverse contact model exists.
+    if abs(float(defaults.second_fold_angle_deg) - 90.0) <= 1e-8:
+        mid_r1 = defaults.first_inner_radius_mm + defaults.thickness_mm / 2.0
+        mid_r2 = defaults.second_inner_radius_mm + defaults.thickness_mm / 2.0
+        physical_seam_reach = min(
+            source.first_flange_height_mm - defaults.first_bend_allowance_mm + mid_r1,
+            source.second_flange_height_mm - defaults.second_bend_allowance_mm + mid_r2,
+            ideal.formed_contact_length_mm,
+        )
+        if physical_seam_reach <= 0:
+            raise GeometryError("V_MITER_FACTORY_PHYSICAL_FOLDED_REACH_NONPOSITIVE")
+    source_seam_start = ideal.formed_seam_start
+    ratio = physical_seam_reach / ideal.formed_contact_length_mm
+    source_seam_end = tuple(
+        source_seam_start[i] + ratio * (
+            ideal.formed_seam_end[i] - source_seam_start[i]
+        ) for i in range(3)
+    )
+    distal_shortfall = max(0.0, ideal.formed_contact_length_mm - physical_seam_reach)
     if any(item is None for item in tagged_faces):
         continuity_failure = (
             "V_MITER_FACTORY_R_BA_SOURCE_V_LEG_SIDEWALL_INCOMPLETE: "
@@ -386,8 +417,8 @@ def project_v_miter_factory_radius_ba_default_check(
             continuity = project_v_miter_true_cut_face_continuity_trial(
                 tagged_faces[0].true_cut_face_triangles,
                 tagged_faces[1].true_cut_face_triangles,
-                formed_seam_start=ideal.formed_seam_start,
-                formed_seam_end=ideal.formed_seam_end,
+                formed_seam_start=source_seam_start,
+                formed_seam_end=source_seam_end,
             )
         except GeometryError as exc:
             continuity_failure = str(exc)
@@ -406,6 +437,8 @@ def project_v_miter_factory_radius_ba_default_check(
         curved_t_surface_interference_pairs=collision.pair_count,
         curved_t_volume_status=volume_status,
         formed_source_outline=tuple(selected_outline),
+        physical_formed_seam_reach_mm=physical_seam_reach,
+        distal_ideal_seam_shortfall_mm=distal_shortfall,
         first_edge_trim_mm=float(first_edge_trim_mm),
         additional_source_removed_area_mm2=removed_trim_area,
         first_source_tagged_cut_faces=tagged_faces[0],
