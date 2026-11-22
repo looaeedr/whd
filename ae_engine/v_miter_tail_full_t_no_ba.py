@@ -333,10 +333,18 @@ def project_tail_v90_full_t_no_ba(flat, *, first_axis: str):
     # All actual hole walls, both outside skins, and the true root stay in
     # the diagnostic. No old R/BA or in-plane midpoint gap is used.
     from .assembly_geometry import diagnose_world_mesh_self_intersections
-    observed=diagnose_world_mesh_self_intersections(tuple(
+    checked_world_faces=tuple(
         tuple(vertices[v] for v in face) for j,face in enumerate(shell)
         if j not in duplicate_contact_faces_to_ignore
-    ))
+    )
+    # The common general-purpose 12,000-pair diagnostic budget was proven
+    # insufficient for this four-hole full blank (it returned UNKNOWN even
+    # with zero crossings). Give THIS bounded exact-source verification
+    # the exhaustive finite pair capacity; do not loosen spatial tolerance.
+    pair_capacity=len(checked_world_faces)*(len(checked_world_faces)-1)//2
+    observed=diagnose_world_mesh_self_intersections(
+        checked_world_faces,max_nonadjacent_pairs=pair_capacity,
+    )
     if (observed.numerical_budget_exhausted
             or observed.crossing_pair_count
             or observed.coplanar_overlap_pair_count):
