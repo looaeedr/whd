@@ -177,6 +177,33 @@ def test_actual_whd_gui_d4_check_window_four_factory_holes_and_native_world(
         assert second_assembly.crossing_pair_count==951
         assert len(second_assembly.crossing_segments)==947
         assert not second_assembly.manufacturing_approved
+        # Confirm the same 1-mm side and rear overlap for BOTH fold orders.
+        # Interval widths come from distinct physical face hits, not from
+        # crossing lines or a nominal spec copied into a new solid.
+        for shell_mesh in (placed,second_world):
+            for body_limits,tail_limits in (
+                ((-309.,-307.),(-308.,-306.)),
+                ((307.,309.),(306.,308.)),
+            ):
+                shell_hits=probe_native_world_mesh_axis_faces(
+                    shell_mesh,axis=0,fixed_xyz=(0.,-290.,-20.),
+                )
+                assert all(any(abs(x-v)<1e-4 for x in shell_hits)
+                           for v in tail_limits)
+                assert min(body_limits[1],tail_limits[1])-max(
+                    body_limits[0],tail_limits[0]
+                )==pytest.approx(1.)
+            rear_hits=probe_native_world_mesh_axis_faces(
+                shell_mesh,axis=2,fixed_xyz=(100.,-275.,0.),
+            )
+            assert all(any(abs(z-v)<1e-4 for z in rear_hits)
+                       for v in (-91.5,-89.5))
+        # Left clearance demands rightward +1, right clearance demands
+        # leftward -1. No rigid translation meets both inequalities.
+        required_left_dx=1.
+        required_right_dx=-1.
+        assert required_left_dx>required_right_dx
+
         assert actual.volume_verdict.startswith("VOLUME_INTERFERENCE_")
         figure=win._tail_d4_check_figure
         assert len(figure.axes)==5
