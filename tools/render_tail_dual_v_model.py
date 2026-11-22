@@ -148,6 +148,27 @@ def _svg_flat(check):
         sample=corner.inverse_straight_contact_flat_trace_mm[0]
         annotation(_finite(sample[1][0])+2, _finite(sample[1][1])-3,
                    "RBA inverse: NOT SIDE-FOLDED STOCK")
+        # Root arcs are NOT manufacturing cut lines. The trace is
+        # backprojected from the hypothetical COMMON formed RBA arc; an
+        # interior crossing diagnoses an impossible simple V notch
+        # before invoking any source CUTTING operation.
+        side_root,bottom_root=corner.inverse_root_arc_source_traces_xy
+        for trace,color in ((side_root,"#862c99"),(bottom_root,"#1e8b87")):
+            line="M "+" L ".join(
+                f"{_finite(x):.6f},{_finite(y):.6f}" for x,y in trace
+            )
+            rows.append(
+                f'<path d="{line}" fill="none" stroke="{color}" '
+                'stroke-width="0.8" stroke-dasharray="2,1.5"/>'
+            )
+        for cross_x,cross_y in corner.inverse_root_nonapex_crossings_xy:
+            rows.append(
+                f'<circle cx="{_finite(cross_x):.6f}" '
+                f'cy="{_finite(cross_y):.6f}" r="2.0" '
+                'fill="none" stroke="#cf203a" stroke-width="0.9"/>'
+            )
+            annotation(_finite(cross_x)+1.8,_finite(cross_y)-6,
+                       "RBA root inverse CROSSES: CHECK, not CUTTING")
     transform=f"translate(0,{ymin+ymax:.6f}) scale(1,-1)"
     header=(f'<svg xmlns="http://www.w3.org/2000/svg" '
             f'viewBox="{xmin-16:.3f} {ymin-16:.3f} {width+32:.3f} {height+32:.3f}" '
@@ -321,8 +342,10 @@ def _svg_same_source_2d_and_true_t_sections(check):
         "Change candidate: verify tip/crease-end material ownership and ordered "
         "R/BA deformation, OR a different genuinely mating seam. "
         "Keep original 15/15/48, side openings, apexes, holes, BEND.",
-        "Every actual cut wall is CHECK only. Four root surface pair hits at "
-        "one edge do not establish physical penetration. No machining DXF.",
+        "Root R/BA inverse dashed curves intersect inside original mother stock;",
+        "a simple fixed-apex source notch cannot follow both. Check tip/relief",
+        "and real first-fold sequence before choosing changed cuts; no DXF.",
+        "Four root triangle pairs share a line: NOT proven penetration.",
     )
     header=(
         '<svg xmlns="http://www.w3.org/2000/svg" '
@@ -351,12 +374,11 @@ def _svg_same_source_2d_and_true_t_sections(check):
     note_view=['<line x1="970" y1="613" x2="1885" y2="613" '
                'stroke="#b0b0b0" stroke-width="1"/>']
     for i,line in enumerate(notes):
-        # Long lines are deliberately wrapped at the semantic message
-        # boundary; never truncate the source-geometry warning.
+        # Keep six source-grounded lines within the section panel.
         text_line=escape(line)
         note_view.append(
-            f'<text x="980" y="{650+i*48}" '
-            f'font-family="sans-serif" font-size="15" fill="#333">'
+            f'<text x="980" y="{645+i*32}" '
+            f'font-family="sans-serif" font-size="14" fill="#333">'
             f'{text_line}</text>'
         )
     return (header+flat_view+section_view+"".join(note_view)+"</svg>").encode("utf-8")
@@ -502,6 +524,13 @@ def _model_report(check):
                 row.inverse_flat_source_coverage_mm,
             "hypothetical_RBA_inverse_not_cutting_xyz":
                 row.inverse_straight_contact_flat_trace_mm,
+            "hypothetical_RBA_root_source_inverses":{
+                "side_upper_root_xy":row.inverse_root_arc_source_traces_xy[0],
+                "bottom_lower_root_xy":row.inverse_root_arc_source_traces_xy[1],
+                "nonapex_crossings_xy":row.inverse_root_nonapex_crossings_xy,
+                "status":row.inverse_root_candidate_status,
+                "cutting_permission":"NONE",
+            },
             "minimum_side_BEND_start_to_hypothetical_y_station_mm":
                 max((r[-1] for r in row.inverse_straight_contact_flat_trace_mm),
                     default=None),

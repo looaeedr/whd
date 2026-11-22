@@ -157,9 +157,19 @@ def test_tail_real_same_blank_dual_90_v_and_folded_contact(first_axis):
             assert side_lower < 1e-5 and bottom_upper < 1e-5
             assert len(corner.sampled_cut_face_nearest_xyz) == 4
             assert corner.model_interference_pairs == 4
-            assert corner.root_intersection_topology in (
-                "COLLINEAR_SHARED_ROOT_EDGE_CANDIDATE_NOT_PENETRATION",
-                "ROOT_SURFACE_INTERSECTION_NOT_YET_CLASSIFIED_AS_PENETRATION",
+            assert corner.root_intersection_topology == (
+                "COLLINEAR_SHARED_ROOT_EDGE_CANDIDATE_NOT_PENETRATION"
+            )
+            assert corner.inverse_root_candidate_status == (
+                "ROOT_NEUTRAL_INVERSE_CURVES_CROSS_OUTSIDE_APEX_CHECK_ONLY"
+            )
+            assert len(corner.inverse_root_nonapex_crossings_xy) == 1
+            cross_x,cross_y=corner.inverse_root_nonapex_crossings_xy[0]
+            want_x=12.7675 if corner.corner=="bottom_left" else 409.2325
+            assert cross_x == pytest.approx(want_x,abs=.02)
+            assert cross_y == pytest.approx(45.7675,abs=.02)
+            assert all(
+                row.inverse_root_arc_source_traces_xy for row in check.corners
             )
             side_y, bottom_y, floor_y, reference_y = (
                 corner.straight_section_y_domain_witness_mm
@@ -231,6 +241,8 @@ def test_tail_real_same_blank_dual_90_v_and_folded_contact(first_axis):
                 "bottom_cut_face_z_mm":z_range(row.bottom_cut_faces),
                 "collision_surface_triangle_pairs":row.model_interference_pairs,
                 "root_intersection_topology":row.root_intersection_topology,
+                "hypothetical_RBA_root_inverse_crossings":
+                    row.inverse_root_nonapex_crossings_xy,
                 "straight_section_y_domain_witness_mm":
                     row.straight_section_y_domain_witness_mm,
                 "volume_status":row.model_volume_status,
@@ -311,6 +323,7 @@ def test_tail_real_same_blank_dual_90_v_and_folded_contact(first_axis):
             ).decode("utf-8")
             assert "Side-lip source begins Y=48.000" in combined
             assert "Y gap floor 2.000 mm" in combined
+            assert "Root R/BA inverse dashed curves intersect" in combined
             assert "bottom_left" in combined and "bottom_right" in combined
             assert "CHECK" in combined
             traced=json.loads(archive.read(
