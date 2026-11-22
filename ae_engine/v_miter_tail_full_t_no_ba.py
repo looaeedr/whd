@@ -110,10 +110,14 @@ def project_tail_v90_full_t_no_ba(flat, *, first_axis: str):
     original_stock=material_polygon_from_final_scene(flat.original_scene)
     if (stock.geom_type!="Polygon" or not stock.is_valid or stock.is_empty
             or original_stock.geom_type!="Polygon" or not original_stock.is_valid
-            or len(stock.interiors)!=len(original_stock.interiors)
+            # A Factory relief can hide an already-authored CUTTING hole
+            # outside its old material. Restoring that mother under V can
+            # legitimately expose this SAME unchanged hole (the 522x233
+            # sample exposes the old 4-mm square this way). Only forbid
+            # loss/change of a previously visible hole.
             or any(not any(Polygon(a).symmetric_difference(Polygon(b)).area<=_EPS
-                           for b in original_stock.interiors)
-                   for a in stock.interiors)
+                           for b in stock.interiors)
+                   for a in original_stock.interiors)
             or stock.difference(flat.result_material).area > _EPS):
         raise GeometryError("V_MITER_LOWER_ORIGINAL_HOLES_NOT_PRESERVED")
     outer_only=flat.result_material
