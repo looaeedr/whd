@@ -94,6 +94,7 @@ def project_tail_illustrated_side_v90_flat(
             if isinstance(p,PolylinePrimitive) and len(p.points)>=3
         )
         raise GeometryError(
+            "TAIL_IMAGE_V90_FACTORY_SOURCE_DIFFERENT:"
             "V_MITER_LOWER_FACTORY_CUTTING_NOT_UNIQUE:"
             f" actual={width}x{height}"
             f" factory_bounds={factory.bounds} factory_area={factory.area}"
