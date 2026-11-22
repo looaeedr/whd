@@ -60,12 +60,14 @@ def test_folded_outside_envelope_matches_real_engine_t_solid_not_blank_or_double
     # The old global-normal AABB also added T to the remote extremum,
     # inventing extra width beyond the real 3D skin.
     assert dims == pytest.approx((11., 20., 11.))
-    assert bounds == pytest.approx(((-1., 10.), (0., 20.), (-1., 10.)))
+    for observed, expected in zip(bounds, ((-1., 10.), (0., 20.), (-1., 10.))):
+        assert observed == pytest.approx(expected)
     # Independent physical-world witness: the Engine's actual two skins
     # and shared-edge sidewalls, not a second implementation of Fold/BA.
     thickened = thicken_triangle_surface(folded_mid, 2.0)
     solid_bounds = triangle_bounds(thickened)
-    assert solid_bounds == pytest.approx(bounds)
+    for observed, expected in zip(solid_bounds, bounds):
+        assert observed == pytest.approx(expected)
     # A pre-thickened physical shell is already outside: no extra T.
     assert owner(thickened, 0.0) == (dims, bounds)
     assert folded_mid == source_copy
