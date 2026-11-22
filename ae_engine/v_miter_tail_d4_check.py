@@ -298,3 +298,124 @@ def project_tail_d4_source_keyed_t_check(flat, *, first_axis):
         bad_incidence_edges=bad_incidence,bad_winding_edges=bad_winding,
         local_interference_by_corner=tuple(observed),
     )
+
+
+def save_tail_d4_check_mesh_and_local_svg(check, flat, destination):
+    """Write the ALREADY verified source-indexed CHECK shell and local views.
+
+    Neither OBJ nor SVG is a formal manufacturing format. Every drawn stroke
+    comes from true CUTTING/BEND or from the actual indexed T mesh: no
+    synthetic joining face, circle interpolation or CAD allowance is added.
+    """
+    from pathlib import Path
+    from .sheetmetal_drawing import LinePrimitive
+
+    if not isinstance(check,TailD4RootCheck):
+        _error("TAIL_D4_CHECK_RENDER_REQUIRES_VERIFIED_MESH")
+    folder=Path(destination)
+    folder.mkdir(parents=True,exist_ok=True)
+    prefix=f"tail_d4_{check.first_axis}_CHECK_NOT_CNC"
+    obj=folder/(prefix+".obj")
+    svg=folder/(prefix+"_local.svg")
+    vertices=check.inner_xyz+check.outer_xyz
+    obj_rows=[
+        "# WHD #3317 source-indexed D4 T2 CHECK, NOT CNC",
+        f"# operator first fold {check.first_axis}",
+        "# All vertices share the original source UV; no extra CAP faces",
+    ]
+    obj_rows.extend(
+        "v "+ " ".join(f"{float(t):.10f}" for t in point)
+        for point in vertices
+    )
+    obj_rows.extend(
+        "f "+ " ".join(str(i+1) for i in tri)
+        for tri in check.shell_faces
+    )
+    obj.write_text("\n".join(obj_rows)+"\n",encoding="utf-8")
+
+    # Two exact-source views for each lower corner. The upper row is the
+    # TRUE flat CUTTING/BEND crop, the lower row is the CHECK shell's inner,
+    # outer and real boundary-wall edges in an explicit oblique projection.
+    # Only source-boundary edges appear; an absent arc wall stays absent.
+    def fmt(v):return f"{float(v):.3f}"
+    chunks=[
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 540">',
+        '<rect width="1080" height="540" fill="#fff"/>',
+        '<text x="16" y="24" font-size="17" fill="#222">'
+        'WHD #3317 D4 true source T2 CHECK / NOT CNC</text>',
+    ]
+    for ci,(name,_low,apex,_upper) in enumerate(flat.opening_source_points_xy):
+        x0=float(apex[0])
+        xbase=(36 if ci==0 else 565)
+        ybase=34
+        sign=(1 if ci==0 else -1)
+        def flatp(uv):
+            return (xbase+230+sign*float(uv[0]-x0)*5,
+                    ybase+144-(float(uv[1])-48.)*4)
+        def proj(p):
+            # Oblique view is a projection of ACTUAL formed XYZ vertices.
+            return (xbase+230+sign*(p[0]-x0)*3.2+(p[1]-48.)*1.65,
+                    ybase+386+(p[1]-48.)*.72-p[2]*3.2)
+        chunks.append(
+            f'<text x="{fmt(xbase)}" y="52" font-size="14">'
+            f'{name} — flat source CUTTING / BEND</text>'
+        )
+        for a,b,_ in check.source_boundary_edges:
+            uv1=check.source_uv[a];uv2=check.source_uv[b]
+            if not all(abs(uv[0]-x0)<25 and 22<uv[1]<74
+                       for uv in (uv1,uv2)):
+                continue
+            p=flatp(uv1);q=flatp(uv2)
+            chunks.append(
+                f'<path d="M{fmt(p[0])} {fmt(p[1])} '
+                f'L{fmt(q[0])} {fmt(q[1])}" '
+                'fill="none" stroke="#075985" stroke-width="1.4"/>'
+            )
+        # Display actual BEND line primitives only, never a made-up crease.
+        for item in flat.result_scene.primitives:
+            if not isinstance(item,LinePrimitive) or item.layer!="BEND":
+                continue
+            source=(item.p1,item.p2)
+            if not all(abs(v.x-x0)<25 and 22<v.y<74 for v in source):
+                continue
+            p=flatp((source[0].x,source[0].y))
+            q=flatp((source[1].x,source[1].y))
+            chunks.append(
+                f'<path d="M{fmt(p[0])} {fmt(p[1])} '
+                f'L{fmt(q[0])} {fmt(q[1])}" '
+                'fill="none" stroke="#a16207" stroke-width="1.1"/>'
+            )
+        chunks.append(
+            f'<text x="{fmt(xbase)}" y="315" font-size="14">'
+            f'{name} — formed source-keyed T2 shell boundary (oblique)</text>'
+        )
+        k=len(check.inner_xyz)
+        for a,b,_ in check.source_boundary_edges:
+            uv1=check.source_uv[a];uv2=check.source_uv[b]
+            if not all(abs(uv[0]-x0)<25 and 22<uv[1]<74
+                       for uv in (uv1,uv2)):
+                continue
+            for vertices2,stroke in (
+                (check.inner_xyz,"#075985"),(check.outer_xyz,"#be185d"),
+            ):
+                p=proj(vertices2[a]);q=proj(vertices2[b])
+                chunks.append(
+                    f'<path d="M{fmt(p[0])} {fmt(p[1])} '
+                    f'L{fmt(q[0])} {fmt(q[1])}" '
+                    f'fill="none" stroke="{stroke}" stroke-width="1"/>'
+                )
+            for v in (a,b):
+                p=proj(check.inner_xyz[v]);q=proj(check.outer_xyz[v])
+                chunks.append(
+                    f'<path d="M{fmt(p[0])} {fmt(p[1])} '
+                    f'L{fmt(q[0])} {fmt(q[1])}" '
+                    'fill="none" stroke="#64748b" stroke-width=".55"/>'
+                )
+    chunks.append(
+        '<text x="16" y="521" font-size="12" fill="#555">'
+        'Blue = original source inside/CUTTING, magenta = actual indexed T outside; '
+        'gold = actual finite BEND. Sharp no-BA/R CHECK only.</text>'
+    )
+    chunks.append('</svg>')
+    svg.write_text("\n".join(chunks)+"\n",encoding="utf-8")
+    return obj,svg
