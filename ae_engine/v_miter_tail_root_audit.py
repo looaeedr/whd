@@ -25,6 +25,7 @@ class TailDoubleVRootAudit:
     source_boundary_edge_count: int
     source_nonmanifold_edge_count: int
     interior_unpaired_source_edges: int
+    lower_source_vertices_outside_physical_bottom_guide: int
     first_world_alias_edge_count: int
     final_world_alias_edge_count: int
     first_zero_area_face_count: int
@@ -134,6 +135,14 @@ def diagnose_tail_double_v_source_root(flat, stages) -> TailDoubleVRootAudit:
     world_aliases=tuple(
         [(k,v) for k,v in final_world.items() if len(v)>1]
     )
+    # Y bottom BEND is PHYSICALLY only X=16..506. Its extension into
+    # x<16 and x>506 in the kinematic CHECK is a hypothesized carried
+    # root, not a new BEND and not certified by source CUTTING.
+    out_of_guide={
+        key(uv)
+        for tri in src for uv in tri
+        if uv[1]<48.-tol and (uv[0]<16.-tol or uv[0]>506.+tol)
+    }
     axis_witness=[]
     parameters=(15.,507.,48.,0.,522.,190.,
                 stages.first_ba_trial_mm,
@@ -166,6 +175,7 @@ def diagnose_tail_double_v_source_root(flat, stages) -> TailDoubleVRootAudit:
         source_boundary_edge_count=sum(len(rows)==1 for rows in source_edges.values()),
         source_nonmanifold_edge_count=int(source_nonmanifold),
         interior_unpaired_source_edges=int(unpaired_interior),
+        lower_source_vertices_outside_physical_bottom_guide=len(out_of_guide),
         first_world_alias_edge_count=sum(len(v)>1 for v in first_world.values()),
         final_world_alias_edge_count=len(world_aliases),
         first_zero_area_face_count=folded_zero_counts[0],

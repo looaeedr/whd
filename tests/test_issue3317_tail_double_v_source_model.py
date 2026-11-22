@@ -291,7 +291,11 @@ def test_user_image_v90_same_sheet_3d_left_right_fit_stays_red_if_open(first_axi
             complete.max_gap_upper_bound_mm,
             complete.missing_face_interval_count)
             for corner,section,complete in verdict),
-    },sort_keys=True),flush=True)
+    },sort_keys=True)
+    print("WHD_3317_SOURCE_ROOT_AUDIT="+audit_report,flush=True)
+    # Focused CI uses pytest capture for passing tests; retain an explicit
+    # source-attributed diagnostic in its warnings summary on this RED root.
+    warnings.warn("WHD_3317_SOURCE_ROOT_AUDIT="+audit_report,UserWarning)
     assert all(
         section.missing_section_count==0
         and section.max_measured_gap_mm is not None
@@ -417,6 +421,7 @@ def test_tail_3317_real_source_root_alias_and_second_axis_transport_audit(axis):
     """Catch erroneous world-welding without calling it volume interference."""
     import json
     import math
+    import warnings
     from ae_engine.v_miter_tail_user_image_source import (
         project_tail_illustrated_side_v90_flat,
         project_tail_illustrated_side_v90_nominal_and_stages,
@@ -440,12 +445,16 @@ def test_tail_3317_real_source_root_alias_and_second_axis_transport_audit(axis):
     )
     assert all(math.isfinite(v) and v>0 for v in audit.trial_t_outer_extent_xyz_mm)
     assert audit.source_nonmanifold_edge_count>=0
+    assert audit.lower_source_vertices_outside_physical_bottom_guide>0
+    assert all(math.dist(baseline,carried)>0.1 for _,baseline,carried
+               in audit.second_bend_axis_witnesses)
     # Preserve the printed exact counts for X/Y, do not hide a T-shell RED
     # behind the expected geometric witness.
-    print("WHD_3317_SOURCE_ROOT_AUDIT="+json.dumps({
+    audit_report=json.dumps({
         "axis":axis,
         "source_nonmanifold_edges":audit.source_nonmanifold_edge_count,
         "source_unpaired_interior":audit.interior_unpaired_source_edges,
+        "uncertified_outside_bottom_guide":audit.lower_source_vertices_outside_physical_bottom_guide,
         "world_alias_first":audit.first_world_alias_edge_count,
         "world_alias_final":audit.final_world_alias_edge_count,
         "world_zero_faces":audit.final_zero_area_face_count,
