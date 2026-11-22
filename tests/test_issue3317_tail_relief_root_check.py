@@ -632,3 +632,89 @@ def test_r2_retained_interior_stock_across_y48_has_unresolved_rigid_domain_jump(
     # material transition has been proven for this R2 strip.
     # This check is a NEGATIVE witness only; do not weld/assign/remove stock.
     assert first_axis in ("x","y")
+
+
+@pytest.mark.parametrize("axis",("x","y"))
+def test_d4_delivery_real_factory_without_fixture_writes_ascii_mm_dxf(
+    tmp_path,axis,
+):
+    """Fixture's USER_ADDED_CHECK_CUTTING is never a source for delivery."""
+    import ezdxf
+    from ae_engine.ae_endcap import _build_end_cap_scene
+    from ae_engine.v_miter_tail_d4_delivery import (
+        default_vault_tail_d4_spec,build_tail_d4_check_from_original,
+        deliver_tail_d4_check_only,
+    )
+    from ae_engine.sheetmetal_drawing import CirclePrimitive
+
+    spec=default_vault_tail_d4_spec()
+    original=_build_end_cap_scene(
+        w=620,d=185,t=2,fw=25,yl1=15,yr1=15,
+        ytop1=16,ybottom1=48,is_tail=True,model_name="金庫型",
+    )
+    authored=tuple(p for p in original.primitives if p.layer=="CUTTING"
+                   and getattr(p,"semantic_id",None)!="OUTER_BOUNDARY")
+    assert authored
+    assert all(getattr(p,"semantic_id",None)!="USER_ADDED_CHECK_CUTTING"
+               for p in authored)
+    flat,meshes=build_tail_d4_check_from_original(spec)
+    actual=tuple(p for p in flat.result_scene.primitives
+                 if p.layer=="CUTTING"
+                 and getattr(p,"semantic_id",None)!="OUTER_BOUNDARY")
+    assert len(actual)==len(authored)
+    assert all(getattr(p,"semantic_id",None)!="USER_ADDED_CHECK_CUTTING"
+               for p in actual)
+    assert len(meshes["x"].shell_faces)==len(meshes["y"].shell_faces)
+    from ae_engine.v_miter_tail_d4_check_dxf import save_tail_d4_check_dxf
+    path=tmp_path/f"factory_d4_{axis}_CHECK_NOT_CNC.dxf"
+    save_tail_d4_check_dxf(flat,path,first_axis=axis)
+    with path.open("rb") as fd:
+        header=fd.read(130)
+    assert b"SECTION" in header
+    assert not header.startswith(b"AutoCAD Binary DXF")
+    text=path.read_text(encoding="utf-8")
+    assert "AC1015" in text
+    doc=ezdxf.readfile(path)
+    assert doc.header["$INSUNITS"]==4
+    assert not doc.audit().has_errors
+    entities=tuple(doc.modelspace())
+    assert len(tuple(e for e in entities if e.dxftype()=="CIRCLE"))==sum(
+        isinstance(p,CirclePrimitive) for p in authored)
+    assert len(tuple(e for e in entities if e.dxftype()=="LWPOLYLINE"))==(
+        1+sum(isinstance(p,PolylinePrimitive) for p in authored)
+    )
+    assert not {"CUTTING","BEND","MARKING"}.intersection(doc.layers.entries)
+    assert all(e.dxf.layer in ("CHECK","DATUM") for e in entities)
+    assert all("USER_ADDED_CHECK_CUTTING" not in e.dxf.layer
+               for e in entities)
+
+
+def test_d4_delivery_fixture_hole_remains_only_negative_guard():
+    """Protect genuine authored holes; don't blacklist location (200,115)."""
+    from ae_engine.v_miter_tail_d4_delivery import (
+        default_vault_tail_d4_spec,build_tail_d4_check_from_original,
+    )
+    from ae_engine.ae_endcap import _build_end_cap_scene
+    from ae_engine.manufacturing_render_data import PartRenderData
+    from ae_engine.sheetmetal_drawing import CirclePrimitive
+    from ae_engine.manufacturing_render_data import (
+        material_polygon_from_final_scene,fold_guides_from_final_scene,
+    )
+    spec=default_vault_tail_d4_spec()
+    original=_build_end_cap_scene(
+        w=620,d=185,t=2,fw=25,yl1=15,yr1=15,ytop1=16,
+        ybottom1=48,is_tail=True,model_name="金庫型",
+    )
+    # A real project may legitimately have a circle near the old test
+    # fixture location: it MUST be preserved by primitive identity.
+    legitimate=CirclePrimitive(center=Vec2(204.,120.),
+                               radius=1.5,layer="CUTTING",
+                               source_type="USER_ADDED",source_id="real-job-1")
+    scene=DrawingScene((*original.primitives,legitimate))
+    render=PartRenderData(
+        scene=scene,material=material_polygon_from_final_scene(scene),
+        fold_guides=fold_guides_from_final_scene(scene),
+    )
+    flat,_=build_tail_d4_check_from_original(
+        spec,original_render_data=render)
+    assert any(p is legitimate for p in flat.result_scene.primitives)
