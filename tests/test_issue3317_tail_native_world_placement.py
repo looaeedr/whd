@@ -97,3 +97,69 @@ def test_real_factory_d4_assembled_tail_t2_has_native_winding_and_zero_half_t(ax
         for i in range(len(local))
     )
     assert all(math.isfinite(v) for tri in placed for p in tri for v in p)
+
+
+def test_real_vault_box_body_w620_h600_d185_t2_d4_native_bottom_world():
+    """Factory Box Body -> actual world skin -> native placed Ø4 true-T Tail.
+
+    The box-body reference here comes from WHD's OWN resolved physical
+    Factory structure, NOT a supplied synthetic lower-Y sheet.
+    """
+    from ae_engine.contracts import BoxBodyPartSpec
+    from ae_engine.manufacturing_api import build_box_body_structure_render_data
+    from ae_engine.box_body_structure_state import default_box_body_structure_state
+    from phase6_fold_profiles import (
+        build_box_body_profile, profile_to_fold_segments,
+    )
+    from phase6_final_scene_view import AssemblyScenePart
+    from ae_engine.v_miter_tail_d4_delivery import default_vault_tail_d4_spec
+
+    values={
+        "model":"金庫型","w":620.,"h":600.,"d":185.,"t":2.,
+        "fw":25.,"zl1":15.,"zl2":15.,"zr1":15.,"zr2":15.,
+        "yl1":15.,"yr1":15.,"ytop1":16.,"ybottom1":48.,
+    }
+    structure=build_box_body_structure_render_data(BoxBodyPartSpec(
+        width=620.,height=600.,depth=185.,thickness=2.,frame_width=25.,
+        model_name="金庫型",zl1=15.,zl2=15.,zr1=15.,zr2=15.,
+        fold_profile=profile_to_fold_segments(build_box_body_profile(values)),
+        structure_state=default_box_body_structure_state(),
+        head_ybottom1=48.,tail_ybottom1=48.,
+    ))
+    body=AssemblyScenePart(
+        part_key="box_body",render_data=structure,
+        x_profile=(),y_profile=(),placement="box_body",
+    )
+    source_world=api.build_joint_world_geometry(
+        (body,),(620.,600.,185.),2.,
+    )["world_triangles_by_part"]
+    body_world=tuple(source_world["box_body"])
+    assert body_world
+    bounds=triangle_bounds(body_world)
+    assert bounds[1][0]==pytest.approx(-298.,abs=1e-7)
+
+    flat,checks=build_tail_d4_check_from_original(
+        default_vault_tail_d4_spec()
+    )
+    for first in ("x","y"):
+        check=checks[first]
+        vertices=check.inner_xyz+check.outer_xyz
+        local=tuple(tuple(vertices[i] for i in face) for face in check.shell_faces)
+        world=api.place_prethickened_endcap_world_skins(
+            local,placement="bottom",box_body_world=body_world,
+        )
+        assert len(world)==len(local)
+        # Geometry has been translated/rotated, never re-thickened.
+        assert _signed_volume(world)==pytest.approx(
+            _signed_volume(local),abs=1e-4,
+        )
+        native=place_endcap_against_box_body(
+            local,"bottom",body_world,sheet_thickness=0.,
+        )
+        assert world==tuple((a,c,b) for a,b,c in native)
+        # Geometry source is the original 4-hole Factory and 5 real BENDs.
+        original_cut=tuple(p for p in flat.result_scene.primitives
+                           if p.layer=="CUTTING")
+        native_bends=tuple(p for p in flat.result_scene.primitives
+                           if p.layer=="BEND")
+        assert len(original_cut)==5 and len(native_bends)==5
