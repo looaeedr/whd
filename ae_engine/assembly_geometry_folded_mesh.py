@@ -327,10 +327,11 @@ def _fold_tip_weights(
     """Keep one uncut source sheet continuous at a finite BEND endpoint.
 
     Opt-in only. Every (axis, station, material_min, material_max) is an
-    actual FinalScene guide and *original outer CUTTING* limit. Inside the
-    BEND span the full original angle is preserved. Beyond its endpoints
-    only connected source stock deforms continuously toward the free edge.
-    No fabricated BEND extension, cut, flange height or hole edits.
+    actual FinalScene guide and original outer CUTTING limit. Stock beyond
+    a finite BEND tip which is still CONNECTED to the folded lip rides as
+    a rigid continuation of that lip; it is not independently folded on
+    a fabricated BEND and cannot be left behind in the flat plane.
+    This map does not edit CUTTING, BEND, material length or holes.
     """
     weights = list(_fold_mask_for_cross_coordinate(
         profile, axis, cross_position, fold_guides,
@@ -364,13 +365,13 @@ def _fold_tip_weights(
         a, b = float(outer_min), float(outer_max)
         if not (a < left < right < b):
             raise ValueError("WHD_FOLD_TIP_OUTSIDE_CONNECTED_MATERIAL")
-        if cross < left:
-            weight = max(0.0, min(1.0, (cross - a) / (left - a)))
-        elif cross > right:
-            weight = max(0.0, min(1.0, (b - cross) / (b - right)))
-        else:
-            weight = 1.0
-        weights[matching_boundary[0]] = weight
+        # This optional contract is only invoked after source topology
+        # proves that the outside corner is the same attached lower lip.
+        # Full rotation is carried continuously across the material.
+        # The true guide's finite span is unchanged in FinalScene.
+        weights[matching_boundary[0]] = (
+            1.0 if a - 1e-6 <= cross <= b + 1e-6 else 0.0
+        )
     return tuple(weights)
 
 
@@ -554,9 +555,9 @@ def folded_mesh_from_polygon(
             for value in (float(guide.span_start), float(guide.span_end)):
                 if 0.0 < value < total_y:
                     y_cuts.add(value)
-    # Transition skins need interior vertices to represent a *continuous*
-    # bend of the same physical stock, not one triangle spanning a 16mm
-    # cross-coordinate rotation. This is geometric tessellation only:
+    # Split the attached source stock at the real finite BEND endpoints
+    # and its pre-existing outer limits. Extra subdivision affects only
+    # mesh tessellation, never the source CUTTING/BEND geometry:
     # the original CUTTING and BEND primitives are unchanged.
     for axis, station, outer_min, outer_max in tuple(fold_tip_continuity or ()):
         dest = x_cuts if str(axis) == "y" else y_cuts

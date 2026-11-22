@@ -276,10 +276,9 @@ def project_tail_dual_v_same_source_check(
             or abs(bottom_start - min(right[9].p1.x, right[9].p2.x)) > _TOL
             or abs(bottom_end - max(right[9].p1.x, right[9].p2.x)) > _TOL):
         raise GeometryError("V_MITER_TAIL_DUAL_SOURCE_BEND_ENDPOINTS_CHANGED")
-    # The opt-in transition is bounded by the REAL untouched source
-    # outer edges x=0/422 and the two REAL lower BEND endpoints x=16/406.
-    # Its start/end angle is 0/90 degrees, so no 3D tear can appear
-    # across the same uncut stock while the center guide stays 90.
+    # The attached lower V-cut source corner is not another bend.
+    # It MOVES with the connected bottom flange, while the only actual
+    # BEND remains x=16..406. Original CUTTING is kept unchanged.
     tip_continuity = (("y", float(bottom_y), minx, maxx),)
     folded_domains = {
         "left": corrected.intersection(box(
@@ -438,42 +437,15 @@ def project_tail_dual_v_same_source_check(
             axial_min_mm=min(axial_min, min(bounds), 0.0),
             flange_height=reach, return_flat_pairs=True,
         )
-        if connected_bottom_tip:
-            # The exact same original 2D material drives the RBA skin and
-            # its finite-BEND blend. Rather than detaching the connected
-            # corner stock, pull each source point toward the physically
-            # formed bottom flange as x approaches the ORIGINAL BEND
-            # endpoint. Full-RBA result stays exact for x=16..406.
-            joined = []
-            for tri2, tri3 in zip(flat, skin):
-                new_tri = []
-                for (fx, fy), (tx, ty, tz) in zip(tri2, tri3):
-                    if fx < bottom_start:
-                        w = (fx - minx) / (bottom_start - minx)
-                    elif fx > bottom_end:
-                        w = (maxx - fx) / (maxx - bottom_end)
-                    else:
-                        w = 1.0
-                    w = max(0.0, min(1.0, w))
-                    new_tri.append((
-                        float(fx + w * (tx - fx)),
-                        float(fy + w * (ty - fy)),
-                        float(w * tz),
-                    ))
-                joined.append(tuple(new_tri))
-            skin = tuple(joined)
-            offsets = smoothed_surface_vertex_offsets(
-                skin, q.thickness_mm,
-                tolerance=float(
-                    PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES.boundary_separation_tolerance
-                ),
-            )
-        else:
-            offsets = _measured_cylindrical_half_t_offsets(
-                flat, skin, apex=origin, outside=outside,
-                angle_rad=math.pi / 2, allowance=q.first_bend_allowance_mm,
-                thickness=q.thickness_mm,
-            )
+        # Same R/BA/T owner for center and physically connected outer
+        # corner. The free source cut legs are rigid extensions of the
+        # bottom lip, not a guessed 0-to-90 local bending angle. In
+        # particular the lower source V wall MUST keep its full height.
+        offsets = _measured_cylindrical_half_t_offsets(
+            flat, skin, apex=origin, outside=outside,
+            angle_rad=math.pi / 2, allowance=q.first_bend_allowance_mm,
+            thickness=q.thickness_mm,
+        )
         solid = tuple(thicken_triangle_surface(
             skin, q.thickness_mm, smooth_vertex_normals=True,
             physical_vertex_offsets=offsets,
