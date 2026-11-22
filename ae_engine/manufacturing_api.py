@@ -3191,3 +3191,12 @@ from .receiving_nfb_ui1a import (
     effective_nfb_slot_brand as project_receiving_nfb_draft_slot_brand,
     nfb_ui1a_preview as preview_receiving_nfb_draft,
 )
+
+
+# #3317 standalone CHECK only. Stock is limited to the two declared BEND
+# spans from the apex; this is not the Factory Fold's recovered stock.
+from .v_miter_radius_ba_mating_surface import (
+    VMiterMatingMaterialPoint,
+    VMiterRadiusBAMatingSurfaceTrial,
+    solve_v_miter_radius_ba_mating_surface_trial,
+)
