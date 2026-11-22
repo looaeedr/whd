@@ -28,6 +28,7 @@ from .v_miter_factory_mother_check import (
     _factory_original_shape, _selected_original_corner_component,
 )
 from .v_miter_material_trial import _single_source_material
+from .v_miter_true_t_collision import _source_triangulation
 from .v_miter_operator_gui_check import (
     _physical_corner_bends, _endcap_existing_fold_angle_sources,
     _profile_angle_at_bend,
@@ -85,6 +86,7 @@ class TailDualVSourceCheck:
     side_left_solid: tuple
     side_right_solid: tuple
     bottom_solid: tuple
+    remaining_flat_solid: tuple
     corners: tuple[TailDualVFaceResult, TailDualVFaceResult]
     geometry_status: str = "TAIL_DOUBLE_V_CHECK_ONLY_UNVERIFIED"
 
@@ -225,6 +227,30 @@ def project_tail_dual_v_same_source_check(
                 for a, b in (("left", "right"), ("left", "bottom"), ("right", "bottom"))
             )):
         raise GeometryError("V_MITER_TAIL_DUAL_FLANGE_PARTITION_INVALID")
+    # The rest of this SAME source sheet is left flat: only its lower
+    # two corner folds are in scope. Do not omit its unchanged top/center
+    # material from the user's 3D projection.
+    unchanged_flat = corrected.difference(unary_union(tuple(folded_domains.values())))
+    flat_regions = (
+        (unchanged_flat,) if unchanged_flat.geom_type == "Polygon"
+        else tuple(p for p in getattr(unchanged_flat, "geoms", ())
+                   if p.geom_type == "Polygon" and p.area > _TOL)
+    )
+    if (not flat_regions or any(not p.is_valid or p.interiors
+                                for p in flat_regions)
+            or abs(sum(p.area for p in flat_regions) +
+                   sum(p.area for p in folded_domains.values()) -
+                   corrected.area) > _TOL):
+        raise GeometryError("V_MITER_TAIL_DUAL_FULL_SHEET_3D_PARTITION_INCOMPLETE")
+    unformed_skin = tuple(
+        tuple((float(x), float(y), 0.0) for x, y in triangle)
+        for piece in flat_regions for triangle in _source_triangulation(piece)
+    )
+    unchanged_solid = tuple(thicken_triangle_surface(
+        unformed_skin, spec.thickness,
+    ))
+    if not unchanged_solid:
+        raise GeometryError("V_MITER_TAIL_DUAL_UNCHANGED_FLAT_BODY_MISSING")
     q = project_v_miter_trial_parameter_defaults(
         thickness_mm=spec.thickness,
         second_fold_angle_deg=90.0, relief_mode="ROUND_R",
@@ -387,5 +413,6 @@ def project_tail_dual_v_same_source_check(
         original_other_primitives=all_original_other,
         side_left_solid=models["left"][2], side_right_solid=models["right"][2],
         bottom_solid=models["bottom"][2],
+        remaining_flat_solid=unchanged_solid,
         corners=(reports[0], reports[1]),
     )
