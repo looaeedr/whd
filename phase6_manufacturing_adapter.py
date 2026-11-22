@@ -633,6 +633,44 @@ def _cache_service_for_app(app: Any) -> ManufacturingCacheService:
     return service
 
 
+def preview_tail_first_bend_candidate_for_app(app: Any, candidate_snapshot):
+    """Validate a prospective first fold with FULL native resolved relief.
+
+    The live selected V already contains post-Factory cutting, so it must
+    NEVER be supplied as `resolved_render_data` to another V projection.
+    Instead rerun the canonical immutable Engine request using a detached
+    copy of the prospective operator selection. Do not modify GUI state.
+    """
+    key=manufacturing_api.TAIL_LOWER_V_FIRST_BENDS_KEY
+    if (not isinstance(candidate_snapshot, Mapping)
+            or key not in candidate_snapshot):
+        raise ValueError("V_MITER_FIRST_BEND_CANDIDATE_REQUIRED")
+    request=build_manufacturing_request(
+        app,
+        scene_payload_builder=lambda key: build_scene_payload_for_app(app,key),
+        render_data_provider=getattr(app,"_scene_query_callback",None),
+        part_spec_provider=getattr(app,"_part_spec_query_callback",None),
+        finished_dimensions_provider=lambda key=None:
+            operator_finished_dimensions_for_app(app,key),
+    )
+    source=dict(request.input_snapshot)
+    source[key]=deepcopy(
+        candidate_snapshot[key]
+    )
+    request=replace(request,input_snapshot=source)
+    request=replace(
+        request,source_fingerprint=manufacturing_request_fingerprint(request),
+    )
+    result=manufacturing_api.resolve_manufacturing_request(request)
+    tail=result.geometry.part("tail")
+    if tail is None or tail.render_data is None:
+        raise ValueError("V_MITER_FIRST_BEND_RESOLVED_TAIL_REQUIRED")
+    if (tail.render_data.metadata.get("tail_lower_v_first_fold_basis")
+            != "OPERATOR_SELECTED_PHYSICAL_BEND"):
+        raise ValueError("V_MITER_FIRST_BEND_CANDIDATE_NOT_PROJECTED")
+    return tail.render_data
+
+
 def resolve_for_app(app: Any) -> Any:
     """Single compatibility entry from app/Tk world into manufacturing."""
     render_provider = getattr(app, "_scene_query_callback", None)

@@ -546,17 +546,13 @@ def select_tail_lower_v_first_bends(self, namespace, left_var, right_var):
         next_source=manufacturing_api.commit_operator_tail_lower_v_first_bends(
             app._phase6_input_snapshot,axis,spec=spec,render_data=raw,
         )
-        solved=resolver()
-        tail=solved.part("tail") if solved is not None else None
-        if tail is None or getattr(tail,"render_data",None) is None:
-            raise ValueError("V_MITER_FIRST_BEND_RESOLVED_TAIL_REQUIRED")
-        manufacturing_api.project_operator_tail_lower_v_preview_render(
-            spec,raw,choice="v90",
-            resolved_render_data=tail.render_data,
-            first_bends=next_source[
-                manufacturing_api.TAIL_LOWER_V_FIRST_BENDS_KEY
-            ],
+        from phase6_manufacturing_adapter import (
+            preview_tail_first_bend_candidate_for_app,
         )
+        # Full candidate uses one immutable native manufacturing request:
+        # recompute resolved non-V relief BEFORE the V projection. Never
+        # mistake the current V preview for pre-V resolved source.
+        preview_tail_first_bend_candidate_for_app(app,next_source)
     except (ValueError,TypeError) as exc:
         if status is not None:
             status.set(str(exc))
