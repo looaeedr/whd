@@ -441,6 +441,128 @@ def settings_context_extension_projection(self, namespace, context):
         },
     }
 
+def show_tail_d4_check(self, namespace):
+    """Source-qualified Ø4 inspection from CURRENT native project/Factory.
+
+    Independent read-only CHECK window, not the standard V90 input nor any
+    formal manufacturing/DXF/BA/R route. All source reconciliation is Engine.
+    """
+    app=self.app
+    try:
+        scheduler=getattr(app,"_phase6_update_scheduler",None)
+        if scheduler is not None:
+            scheduler.flush_now()
+        from phase6_manufacturing_adapter import (
+            build_scene_payload_for_app,
+            build_manufacturing_request,
+            operator_finished_dimensions_for_app,
+        )
+        from phase6_manufacturing_contracts import manufacturing_request_fingerprint
+        from phase6_final_scene_view import AssemblyScenePart
+        from ae_engine.v_miter_tail_d4_delivery import (
+            build_tail_d4_check_from_original,
+        )
+        from ae_engine.v_miter_tail_d4_check_dxf import save_tail_d4_check_dxf
+        from gui_modules.application.tail_d4_check_view import (
+            show_tail_d4_check_window,
+        )
+
+        def source():
+            spec_query=getattr(app,"_part_spec_query_callback",None)
+            render_query=getattr(app,"_scene_query_callback",None)
+            if not callable(spec_query) or not callable(render_query):
+                raise ValueError("TAIL_D4_CHECK_GUI_NATIVE_SOURCE_UNAVAILABLE")
+            values=dict(build_scene_payload_for_app(app,"tail"))
+            values["_use_committed_relief"]=False
+            spec_ctx=spec_query("tail",dict(values))
+            if not isinstance(spec_ctx,tuple) or not spec_ctx or spec_ctx[0] is None:
+                raise ValueError("TAIL_D4_CHECK_GUI_TAIL_SPEC_REQUIRED")
+            spec=spec_ctx[0]
+            raw=render_query("tail",dict(values))
+            # Detached EXACT source request without the V preview override.
+            # Otherwise the resolver would return the already-V FinalScene
+            # as if it were independent original/overlay CUTTING.
+            request=build_manufacturing_request(
+                app,
+                scene_payload_builder=lambda key: build_scene_payload_for_app(app,key),
+                render_data_provider=render_query,
+                part_spec_provider=spec_query,
+                finished_dimensions_provider=lambda key=None:
+                    operator_finished_dimensions_for_app(app,key),
+            )
+            snapshot=dict(request.input_snapshot)
+            snapshot.pop(manufacturing_api.TAIL_LOWER_V_SNAPSHOT_KEY,None)
+            snapshot.pop(manufacturing_api.TAIL_LOWER_V_FIRST_BENDS_KEY,None)
+            plain=replace(request,input_snapshot=snapshot)
+            plain=replace(
+                plain,source_fingerprint=manufacturing_request_fingerprint(plain),
+            )
+            original=manufacturing_api.resolve_manufacturing_request(plain).geometry
+            raw_tail=original.part("tail")
+            body=original.part("box_body")
+            if (raw_tail is None or raw_tail.render_data is None
+                    or body is None or body.render_data is None):
+                raise ValueError("TAIL_D4_CHECK_GUI_BODY_AND_TAIL_REQUIRED")
+            flat,checks=build_tail_d4_check_from_original(
+                spec,original_render_data=raw,
+                resolved_render_data=raw_tail.render_data,
+            )
+            current=dict(getattr(app,"_phase6_input_snapshot",{}) or {})
+            status=manufacturing_api.project_operator_tail_lower_v_first_bend_status(
+                current,
+            )
+            left=status.get("bottom_left")
+            right=status.get("bottom_right")
+            # Two real choices already exist in native Settings; when not
+            # committed, display X/X CHECK explicitly, without saving it.
+            axis=left if left==right and left in ("x","y") else "x"
+            dimensions=tuple(
+                float(v) for v in operator_finished_dimensions_for_app(app)
+            )
+            part=AssemblyScenePart(
+                part_key="box_body",render_data=body.render_data,
+                x_profile=body.x_profile,y_profile=body.y_profile,
+                placement="box_body",
+            )
+            physical=manufacturing_api.build_joint_world_geometry(
+                (part,),dimensions,float(spec.thickness),
+            )["world_triangles_by_part"]
+            body_world=tuple(physical.get("box_body",()) or ())
+            if not body_world:
+                raise ValueError("TAIL_D4_CHECK_GUI_REAL_BODY_WORLD_REQUIRED")
+            return flat,checks,axis,body_world
+
+        flat,checks,axis,body_world=source()
+        check=checks[axis]
+        vertices=check.inner_xyz+check.outer_xyz
+        local=tuple(tuple(vertices[i] for i in face)
+                    for face in check.shell_faces)
+        placed=manufacturing_api.place_prethickened_endcap_world_skins(
+            local,placement="bottom",box_body_world=body_world,
+        )
+        def save_view_dxf(path):
+            if scheduler is not None:
+                scheduler.flush_now()
+            latest,_checks,now_axis,_body=source()
+            if (latest.result_scene.primitives!=flat.result_scene.primitives
+                    or now_axis!=axis):
+                raise ValueError(
+                    "TAIL_D4_CHECK_GUI_SOURCE_CHANGED_REOPEN_PREVIEW"
+                )
+            return save_tail_d4_check_dxf(
+                latest,path,first_axis=axis,overwrite=False,
+            )
+        return show_tail_d4_check_window(
+            app.root,flat=flat,check=check,body_world=body_world,
+            placed_world=placed,first_axis=axis,save_dxf=save_view_dxf,
+        )
+    except (ValueError,TypeError,OSError) as exc:
+        status=getattr(app,"settings_status_var",None)
+        if status is not None:
+            status.set("Ø4 CHECK 無法安全產生："+str(exc))
+        return None
+
+
 def select_tail_lower_v_choice(self, namespace, choice_var):
     """UI wires one Engine-validated optional source into live Save/3D."""
     app=self.app
