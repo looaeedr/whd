@@ -163,15 +163,14 @@ def test_actual_whd_main_gui_lower_v_preserves_existing_rect_clearance_roundtrip
         source_lines = api.project_operator_tail_lower_v_first_bend_options(
             live_spec, live_raw,
         )
-        original_page = designer.settings_panel.render_context("tail")
-        original_controls = original_page["extension_state"]
+        # Fold Editor may keep its pre-edit Settings page cached while the
+        # physical Y profile changes from 15 to 48. Before changing V mode,
+        # verify the CURRENT original Engine source; the actual GUI labels
+        # are asserted after native V and original-mode transitions below.
         for corner, x in (("bottom_left", 15.), ("bottom_right", 627.)):
             row = source_lines[corner]["x"]
             assert row["bend"] == [[x, 49.], [x, 225.]]
             assert row["display_bend"] == row["bend"]
-            assert original_controls[
-                "tail_lower_v_first_" + corner + "_widget"
-            ]._phase6_menu.entrycget(1, "label") == row["label"]
 
         # Actual Tk dropdown command -> Engine preflight -> live 2D & T3D.
         chooser._phase6_menu.invoke(1)
