@@ -88,12 +88,15 @@ def _svg_flat(check):
             f'<g transform="{transform}">{"".join(rows)}</g></svg>').encode("utf-8")
 
 
-def _actual_obj(check):
+def _actual_obj(check, *, native=True):
     mesh_groups=(
-        ("source_flat_unchanged", check.remaining_flat_solid),
-        ("left_side_bent", check.side_left_solid),
-        ("right_side_bent", check.side_right_solid),
-        ("bottom_bent_full_span", check.bottom_solid),
+        (("original_WHD_3D_finite_BEND_span", check.native_original_fold_path_mesh),)
+        if native else (
+            ("RBA_other_source_parts", check.remaining_flat_solid),
+            ("RBA_left_physical_BEND_only", check.side_left_solid),
+            ("RBA_right_physical_BEND_only", check.side_right_solid),
+            ("RBA_bottom_16_to_406_only", check.bottom_solid),
+        )
     )
     buf=io.StringIO()
     buf.write("# WHD #3317 SAME Factory sheet; 2D/3D Engine source CHECK only\n")
@@ -119,10 +122,10 @@ def _png_actual_mesh(check):
     fig=Figure(figsize=(11,7),dpi=140)
     FigureCanvasAgg(fig)
     ax=fig.add_subplot(111,projection="3d")
-    meshes=(
-        check.remaining_flat_solid, check.side_left_solid,
-        check.side_right_solid, check.bottom_solid,
-    )
+    # Render precisely the original WHD 3D fold path. The separate
+    # focused RBA mesh is evidence for T/R/BA geometry and NOT used as
+    # a substitute for the canonical finite-guide fold preview.
+    meshes=(check.native_original_fold_path_mesh,)
     all_points=[]
     for mesh in meshes:
         polygons=[
@@ -236,6 +239,12 @@ def _model_report(check):
         },
         "source_holes_unchanged":holes,
         "source_other_primitive_count":len(original),
+        "original_WHD_3D_finite_BEND_span_triangle_count":
+            len(check.native_original_fold_path_mesh),
+        "physical_bottom_BEND_span_x_mm":check.bottom_bend_span_x_mm,
+        "physical_left_and_right_side_BEND_span_y_mm":check.side_bend_span_y_mm,
+        "retained_stock_outside_bottom_BEND_area_mm2":
+            check.retained_out_of_span_corner_area_mm2,
         "corners":corners,
         "formal_dxf_export":"NOT_ALLOWED",
     }
@@ -244,7 +253,8 @@ def _model_report(check):
 def build_tail_dual_v_source_preview_zip(check) -> bytes:
     """Return actual-model evidence; never produces manufacturing files."""
     flat=_svg_flat(check)
-    obj=_actual_obj(check)
+    obj=_actual_obj(check,native=True)
+    physical_obj=_actual_obj(check,native=False)
     png=_png_actual_mesh(check)
     report=json.dumps(_model_report(check),ensure_ascii=False,indent=2,
                       sort_keys=True).encode("utf-8")
@@ -252,6 +262,7 @@ def build_tail_dual_v_source_preview_zip(check) -> bytes:
     with ZipFile(stream,"w",compression=ZIP_DEFLATED,compresslevel=9) as out:
         out.writestr("WHD_tail_dual_V_same_source_2D.svg",flat)
         out.writestr("WHD_tail_dual_V_actual_folded_model.obj",obj)
+        out.writestr("WHD_tail_dual_V_RBA_focused_fold_check.obj",physical_obj)
         out.writestr("WHD_tail_dual_V_folded_preview.png",png)
         out.writestr("WHD_tail_dual_V_model_diagnosis.json",report)
     return stream.getvalue()
