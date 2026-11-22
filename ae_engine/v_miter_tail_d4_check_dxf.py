@@ -178,7 +178,9 @@ def save_tail_d4_check_dxf(flat, output_path, *, first_axis,
     fd,temp=tempfile.mkstemp(prefix=".tail_d4_check_",suffix=".dxf",dir=path.parent)
     os.close(fd)
     try:
-        doc=ezdxf.new("R2010",units=ezdxf.units.MM)
+        # AC1015 / R2000 writes a standard TEXT (ASCII) DXF with explicit mm.
+        # This is a compatibility export, NOT evidence of opening in AutoCAD.
+        doc=ezdxf.new("R2000",units=ezdxf.units.MM)
         doc.layers.new(name="CHECK",dxfattribs={"color":2})
         doc.layers.new(name="DATUM",dxfattribs={"color":6})
         msp=doc.modelspace()
