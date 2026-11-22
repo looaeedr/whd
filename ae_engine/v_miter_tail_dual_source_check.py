@@ -311,6 +311,15 @@ def project_tail_dual_v_same_source_check(
             or illustrated_v90_source.manufacturing_approved):
         raise GeometryError("V_MITER_TAIL_ILLUSTRATED_2D_SOURCE_MISMATCH")
     authenticated=project_tail_illustrated_side_v90_flat(spec,render)
+    # The operator corrected both real side BEND lower endpoints to Y=0.
+    # The old disjoint three-flange witness still uses Y=49 guides and
+    # must NEVER masquerade as a folded result for the revised source.
+    # Use project_tail_illustrated_side_v90_staged_check instead.
+    if authenticated.side_bend_source_extensions:
+        raise GeometryError(
+            "V_MITER_TAIL_STALE_DISJOINT_BEND_MODEL_REJECTED_"
+            "USE_BOTTOM_REACHING_SAME_SHEET_STAGED_CHECK"
+        )
     if (illustrated_v90_source.result_material.symmetric_difference(
             authenticated.result_material
         ).area > _TOL):
