@@ -209,6 +209,10 @@ def _model_report(check):
             "surface_intersection_triangle_pairs":row.model_interference_pairs,
             "surface_intersection_segments_xyz":row.model_interference_segments,
             "volume_status":row.model_volume_status,
+            "native_uncut_fold_endpoint_jump_max_mm":
+                row.native_uncut_fold_endpoint_jump_max_mm,
+            "native_uncut_fold_endpoint_status":
+                row.native_uncut_fold_endpoint_status,
             "actual_formed_seam_reach_mm":row.actual_formed_reach_mm,
             "distal_zero_r_vs_rba_shortfall_mm":row.distal_ideal_shortfall_mm,
             "interference_z_range_mm":row.interference_z_range_mm,

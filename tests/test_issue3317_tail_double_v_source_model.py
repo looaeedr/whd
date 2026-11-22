@@ -96,6 +96,11 @@ def test_tail_real_same_blank_dual_90_v_and_folded_contact():
         )
         assert check.native_original_fold_path_mesh == original_path
         for corner in check.corners:
+            assert corner.native_uncut_fold_endpoint_jump_max_mm is not None
+            assert corner.native_uncut_fold_endpoint_jump_max_mm > 1e-3
+            assert corner.native_uncut_fold_endpoint_status == (
+                "UNCUT_SHEET_FOLD_MAPPING_DISCONTINUITY"
+            )
             assert corner.model_status != "MODEL_PASS"
         evidence = {
             "original_flange_mm":[check.side_flange_left_mm,
@@ -125,6 +130,10 @@ def test_tail_real_same_blank_dual_90_v_and_folded_contact():
                 "corner":row.corner,
                 "collision_surface_triangle_pairs":row.model_interference_pairs,
                 "volume_status":row.model_volume_status,
+                "native_uncut_fold_endpoint_jump_max_mm":
+                    row.native_uncut_fold_endpoint_jump_max_mm,
+                "native_uncut_fold_endpoint_status":
+                    row.native_uncut_fold_endpoint_status,
                 "model_status":row.model_status,
                 "formed_seam_reach_mm":row.actual_formed_reach_mm,
                 "far_end_flat_minus_formed_reach_mm":row.distal_ideal_shortfall_mm,
