@@ -34,7 +34,6 @@ def _baseline_without_tail_override(spec):
 @pytest.mark.parametrize("name,spec", (
     ("untouched_vault_tail", _spec()),
     ("vault_head_explicit_48", _spec(is_tail=False, bottom=48.)),
-    ("receiving_tail_explicit_48", _spec(model="受電箱", bottom=48.)),
 ))
 def test_non_target_stretched_endcaps_keep_original_raw_cutting_and_holes(name, spec):
     scene = api.build_part_scene(spec)
@@ -76,3 +75,17 @@ def test_only_authored_vault_tail_48_resolves_to_268_with_fixed_square():
         ) == pytest.approx(expected_bbox)
     ]
     assert len(squares) == 1
+
+
+def test_receiving_tail_does_not_enter_vault_tail_stretched_override(monkeypatch):
+    # Receiving has no direct 封頭尾.dxf at this repository path. Compare the
+    # real canonical Engine result and ensure the Vault-only baseline adapter
+    # is not invoked. Never synthesize a nonexistent Receiving baseline.
+    spec = _spec(model="受電箱", bottom=48.)
+    def no_stretched(*_args, **_kwargs):
+        pytest.fail("RECEIVING_MUST_NOT_USE_VAULT_STRETCHED_ENDCAP")
+    with monkeypatch.context() as mp:
+        mp.setattr(ae, "_build_stretched_end_cap_scene", no_stretched)
+        scene = api.build_part_scene(spec)
+    actual = material_polygon_from_final_scene(scene)
+    assert actual.is_valid and actual.area > 0
