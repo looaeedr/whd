@@ -43,8 +43,16 @@ def _svg_flat(check):
         d = "M " + " L ".join(f"{x:.6f},{y:.6f}" for x,y in points) + " Z"
         return (f'<path d="{d}" stroke="{stroke}" stroke-width="0.8" '
                 f'fill="none" {dash}/>')
-    rows = [contour(orig, "#AAAAAA", dash='stroke-dasharray="3,2"'),
-            contour(outline, "#252525")]
+    # Explicitly show the precise same-source corner material NOT folded
+    # by the original finite bottom BEND. Never paint a guessed rectangle:
+    # these filled paths are sourced from Engine polygons themselves.
+    rows = []
+    for source_region in check.out_of_bottom_span_corner_contours_xy:
+        region=tuple(_src_point(p) for p in source_region)
+        d="M "+" L ".join(f"{x:.6f},{y:.6f}" for x,y in region)+" Z"
+        rows.append(f'<path d="{d}" fill="#f5cc72" fill-opacity="0.32" stroke="none"/>')
+    rows.extend([contour(orig, "#AAAAAA", dash='stroke-dasharray="3,2"'),
+                 contour(outline, "#252525")])
     for primitive in check.original_other_primitives:
         col = (
             "#275C94" if getattr(primitive, "layer", "") == "BEND"
@@ -72,6 +80,30 @@ def _svg_flat(check):
                         f'font-size="{primitive.char_height}" fill="{col}">{escape(primitive.text)}</text>')
         else:
             raise TypeError("Unknown WHD Factory source primitive")
+    (bend_start,bend_end)=check.bottom_bend_span_x_mm
+    bend_y=check.left_apex.y
+    # Mark the original WHD BEND with its REAL finite endpoints.
+    rows.append(
+        f'<line x1="{bend_start:.6f}" y1="{bend_y:.6f}" '
+        f'x2="{bend_end:.6f}" y2="{bend_y:.6f}" '
+        f'stroke="#0859bd" stroke-width="1.5"/>'
+    )
+    for pos in (bend_start,bend_end):
+        rows.append(f'<circle cx="{pos:.6f}" cy="{bend_y:.6f}" r="1.8" '
+                    f'fill="white" stroke="#0859bd" stroke-width="1"/>')
+    def annotation(x,y,string):
+        # SVG source Y is flipped only in the common transform: flip text
+        # back locally so real-millimeter labels remain readable.
+        rows.append(
+            f'<text transform="translate({x:.6f},{y:.6f}) scale(1,-1)" '
+            f'font-size="6.1" fill="#222">{escape(string)}</text>'
+        )
+    annotation(bend_start+4,bend_y+8,
+               f"BOTTOM BEND: X={bend_start:g} to {bend_end:g} mm")
+    annotation(bend_start+1,bend_y-9,"START")
+    annotation(bend_end-17,bend_y-9,"END")
+    annotation(bend_start-15,bend_y-22,"NO Y FOLD")
+    annotation(bend_end+2,bend_y-22,"NO Y FOLD")
     for apex, hits in ((check.left_apex, check.left_outer_v_hits),
                        (check.right_apex, check.right_outer_v_hits)):
         x,y=_src_point(apex)
@@ -245,6 +277,22 @@ def _model_report(check):
         "physical_left_and_right_side_BEND_span_y_mm":check.side_bend_span_y_mm,
         "retained_stock_outside_bottom_BEND_area_mm2":
             check.retained_out_of_span_corner_area_mm2,
+        "out_of_bottom_BEND_original_stock_polygons": [
+            [list(_src_point(p)) for p in poly]
+            for poly in check.out_of_bottom_span_corner_contours_xy
+        ],
+        "restored_corner_stock_ownership_mm2": [
+            {"corner":corner,"added_total":total,"side_fold":side,
+             "bottom_fold":bottom,"not_in_either_lower_fold":remainder}
+            for corner,total,side,bottom,remainder
+            in check.restored_stock_ownership_mm2
+        ],
+        "original_WHD_finite_BEND_endpoint_jump_by_corner_mm": [
+            {"corner":corner,"samples":[{"source_y":y,"3d_jump":gap}
+                for y,gap in samples]}
+            for corner,samples in
+            check.native_bottom_span_boundary_jump_samples_mm
+        ],
         "corners":corners,
         "formal_dxf_export":"NOT_ALLOWED",
     }
