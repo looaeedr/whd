@@ -232,6 +232,31 @@ def test_tail_real_same_blank_dual_90_v_and_folded_contact():
         # emitted in bounded CI log chunks for exact-source retrieval.
         payload=build_tail_dual_v_source_preview_zip(check)
         assert len(payload) > 1000
+        # Actual paired 2D / native 3D / RBA 3D / true-T cross-sections
+        # must be emitted from THIS SAME immutable Engine source, not
+        # an earlier separate hard-coded drawing or an approved DXF.
+        from io import BytesIO
+        from zipfile import ZipFile
+        with ZipFile(BytesIO(payload)) as evidence:
+            names=set(evidence.namelist())
+            assert {
+                "WHD_tail_dual_V_same_source_2D.svg",
+                "WHD_tail_dual_V_true_T_left_right_sections.svg",
+                "WHD_tail_dual_V_actual_folded_model.obj",
+                "WHD_tail_dual_V_RBA_focused_fold_check.obj",
+                "WHD_tail_dual_V_folded_preview.png",
+                "WHD_tail_dual_V_model_diagnosis.json",
+            } <= names
+            section=evidence.read(
+                "WHD_tail_dual_V_true_T_left_right_sections.svg"
+            ).decode("utf-8")
+            assert "bottom_left" in section and "bottom_right" in section
+            assert "CHECK only" in section
+            traced=json.loads(evidence.read(
+                "WHD_tail_dual_V_model_diagnosis.json"
+            ))
+            assert traced["formal_dxf_export"] == "NOT_ALLOWED"
+            assert len(traced["corners"]) == 2
         encoded=base64.b64encode(payload).decode("ascii")
         for i in range(0,len(encoded),4096):
             print("WHD_3317_MODEL_ZIP_BASE64_PART="

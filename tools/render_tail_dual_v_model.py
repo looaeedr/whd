@@ -1,7 +1,7 @@
 """Render actual Engine #3317 Tail CHECK 2D/3D; no stand-in geometry.
 
 Input is the exact VMiterTailDualVSourceCheck from one PartSpec/FinalScene.
-Returns one ZIP (flat.svg, folded.obj, folded.png, diagnostics.json).
+Returns one ZIP (flat.svg, true-T section.svg, folded.obj, folded.png, diagnostics.json).
 No DXF and no manufacturing gate changes.
 """
 from __future__ import annotations
@@ -127,6 +127,24 @@ def _svg_flat(check):
             xx,yy=_src_point(p)
             rows.append(f'<line x1="{x:.6f}" y1="{y:.6f}" x2="{xx:.6f}" '
                         f'y2="{yy:.6f}" stroke="#C4513C" stroke-width="1.1"/>')
+    # Purple points are only the inverse of a HYPOTHETICAL formed
+    # R/BA plane intersection; do not add these to CUTTING. Their source
+    # position and side-fold ownership come directly from the same
+    # CHECK report and original FinalScene BEND spans.
+    for corner in check.corners:
+        for z, uv_side, uv_bottom, _s_gap, _b_gap, _guide_gap in (
+            corner.inverse_straight_contact_flat_trace_mm
+        ):
+            if not math.isfinite(z):
+                raise ValueError("WHD non-finite inverse slice")
+            rows.append(
+                f'<circle cx="{_finite(uv_side[0]):.6f}" '
+                f'cy="{_finite(uv_side[1]):.6f}" r="1.0" '
+                'fill="none" stroke="#862c99" stroke-width="0.7"/>'
+            )
+        sample=corner.inverse_straight_contact_flat_trace_mm[0]
+        annotation(_finite(sample[1][0])+2, _finite(sample[1][1])-3,
+                   "RBA inverse: NOT SIDE-FOLDED STOCK")
     transform=f"translate(0,{ymin+ymax:.6f}) scale(1,-1)"
     header=(f'<svg xmlns="http://www.w3.org/2000/svg" '
             f'viewBox="{xmin-16:.3f} {ymin-16:.3f} {width+32:.3f} {height+32:.3f}" '
@@ -134,6 +152,129 @@ def _svg_flat(check):
     return (header+'<rect width="100%" height="100%" fill="white"/>'
             f'<title>WHD Tail dual V CHECK: one original Factory source, mm</title>'
             f'<g transform="{transform}">{"".join(rows)}</g></svg>').encode("utf-8")
+
+
+
+def _true_t_cut_section_segments(faces, station_z):
+    """Actual 3D T-solid tagged cut-wall triangles intersected by Z station.
+
+    No CAD guessing: every line here comes from the genuine paired V
+    CUTTING wall in the R/BA 3D solid, never a whole-flange silhouette.
+    """
+    segments=[]
+    tol=1e-7
+    for triangle in faces:
+        hits=[]
+        for start,end in zip(triangle,(*triangle[1:], triangle[0])):
+            a,b=[_finite(v) for v in start],[_finite(v) for v in end]
+            if abs(a[2]-b[2]) < tol:
+                if abs(a[2]-station_z)<tol:
+                    hits.extend(((a[0],a[1]),(b[0],b[1])))
+                continue
+            t=(station_z-a[2])/(b[2]-a[2])
+            if -tol<=t<=1+tol:
+                hits.append((a[0]+t*(b[0]-a[0]),a[1]+t*(b[1]-a[1])))
+        unique=[]
+        for p in hits:
+            if not any(math.dist(p,q)<tol for q in unique):
+                unique.append(p)
+        if len(unique)>=2:
+            a,b=max(((p,q) for i,p in enumerate(unique)
+                     for q in unique[i+1:]),key=lambda v:math.dist(*v))
+            if math.dist(a,b)>tol:
+                segments.append((a,b))
+    return tuple(segments)
+
+
+def _svg_true_t_sections(check):
+    """Two distinct left/right cut-face cross-sections at the SAME T/R/BA z.
+
+    The proposed 90-degree plane intersection is displayed only as a
+    HYPOTHETICAL datum; 3D cut walls and nearest gap witnesses use the
+    actual Engine mesh. Root collisions are separate from upper seam gap.
+    """
+    panels=[]
+    for i,row in enumerate(check.corners):
+        if not row.sampled_cut_face_nearest_xyz:
+            raise ValueError("WHD dual V missing measured true-T face stations")
+        fraction, gap, side_pt, bottom_pt, status = (
+            row.sampled_cut_face_nearest_xyz[0]
+        )
+        if status != "MEASURED" or gap is None or side_pt is None or bottom_pt is None:
+            raise ValueError("WHD dual V true-T face section not measured")
+        station_z=_finite(side_pt[2])
+        if abs(station_z-_finite(bottom_pt[2]))>1e-6:
+            raise ValueError("WHD dual V measured side/bottom not in same Z section")
+        apex = check.left_apex if row.corner == "bottom_left" else check.right_apex
+        orig_x,orig_y=_src_point(apex)
+        x0=205+430*i
+        y0=210
+        scale=5.0
+        def pxy(p):
+            return (x0+(_finite(p[0])-orig_x)*scale,
+                    y0-(_finite(p[1])-orig_y)*scale)
+        def fxy(p):
+            a,b=pxy(p)
+            return f"{a:.4f},{b:.4f}"
+        panels.append(
+            f'<g font-family="sans-serif" font-size="13" fill="#292929">'
+            f'<text x="{10+430*i}" y="30" font-size="18">'
+            f'{escape(row.corner)}: true T / R / BA</text>'
+            f'<text x="{10+430*i}" y="49">Z={station_z:.3f} mm '
+            f'; real cut-face gap={_finite(gap):.3f} mm</text>'
+            f'<text x="{10+430*i}" y="67">Surface crossings at root: '
+            f'{row.model_interference_pairs} pairs; separate from gap</text>'
+            f'<line x1="{x0-130}" y1="{y0}" '
+            f'x2="{x0+130}" y2="{y0}" stroke="#b6b6b6"/>'
+            f'<line x1="{x0}" y1="{y0-145}" '
+            f'x2="{x0}" y2="{y0+145}" stroke="#b6b6b6"/>'
+            f'<circle cx="{x0}" cy="{y0}" r="3" fill="#444"/>'
+            f'<text x="{x0+6}" y="{y0+14}" font-size="11">'
+            f'original BEND intersection ({orig_x:g},{orig_y:g})</text>'
+            '</g>'
+        )
+        for faces,color in ((row.side_cut_faces,"#c35920"),
+                            (row.bottom_cut_faces,"#175fb1")):
+            lines=_true_t_cut_section_segments(faces,station_z)
+            if not lines:
+                raise ValueError("WHD dual V actual true-T section has no cut walls")
+            for a,b in lines:
+                panels.append(
+                    f'<path d="M {fxy(a)} L {fxy(b)}" stroke="{color}" '
+                    'stroke-width="2" fill="none"/>'
+                )
+        panels.append(
+            f'<line x1="{pxy(side_pt)[0]:.4f}" '
+            f'y1="{pxy(side_pt)[1]:.4f}" '
+            f'x2="{pxy(bottom_pt)[0]:.4f}" '
+            f'y2="{pxy(bottom_pt)[1]:.4f}" '
+            'stroke="#d00000" stroke-width="2" stroke-dasharray="5,3"/>'
+        )
+        for v,color in ((side_pt,"#c35920"),(bottom_pt,"#175fb1")):
+            x,y=pxy(v)
+            panels.append(f'<circle cx="{x:.4f}" cy="{y:.4f}" '
+                          f'r="3.5" fill="{color}"/>')
+        datum=row.actual_joint_axis_xyz[0]
+        x,y=pxy(datum)
+        panels.append(f'<circle cx="{x:.4f}" cy="{y:.4f}" r="6" '
+                      'stroke="#862c99" fill="none" stroke-dasharray="3,3"/>')
+        panels.append(
+            f'<text x="{10+430*i}" y="367" font-family="sans-serif" '
+            'font-size="12" fill="#444">Orange: actual side upper V T-wall; '
+            'blue: bottom lower V T-wall</text>'
+        )
+    return (
+        '<svg xmlns="http://www.w3.org/2000/svg" '
+        'viewBox="0 0 860 410" width="1290" height="615">'
+        '<rect width="100%" height="100%" fill="white"/>'
+        '<title>WHD Tail exact source left/right true-T cut face sections; '
+        'CHECK only</title>'
+        +''.join(panels)+
+        '<text x="15" y="398" font-size="12" fill="#862c99">'
+        'Purple circle: hypothetical 90-degree RBA plane intersection '
+        '(NOT verified contact); red dashed segment: true cut-wall gap'
+        '</text></svg>'
+    ).encode("utf-8")
 
 
 def _actual_obj(check, *, native=True):
@@ -250,6 +391,20 @@ def _model_report(check):
                 {"z":x, "status":status, "gap":gap}
                 for x,status,gap in row.sampled_seam_gap_stations_mm
             ],
+            "actual_true_T_cut_face_nearest_points": [
+                {"fraction":frac, "gap_mm":gap, "side_cut_xyz_mm":s,
+                 "bottom_cut_xyz_mm":b, "status":status}
+                for frac,gap,s,b,status in row.sampled_cut_face_nearest_xyz
+            ],
+            "side_upper_and_bottom_lower_source_v_lengths_mm":
+                row.source_cut_leg_owner_lengths_mm,
+            "hypothetical_RBA_inverse_source_coverage":
+                row.inverse_flat_source_coverage_mm,
+            "hypothetical_RBA_inverse_not_cutting_xyz":
+                row.inverse_straight_contact_flat_trace_mm,
+            "minimum_side_BEND_start_to_hypothetical_y_station_mm":
+                max((r[-1] for r in row.inverse_straight_contact_flat_trace_mm),
+                    default=None),
             "max_sampled_cut_face_gap_mm":(
                 c.max_sampled_cut_face_gap_mm if c is not None else None
             ),
@@ -326,6 +481,7 @@ def _model_report(check):
 def build_tail_dual_v_source_preview_zip(check) -> bytes:
     """Return actual-model evidence; never produces manufacturing files."""
     flat=_svg_flat(check)
+    true_t_section=_svg_true_t_sections(check)
     obj=_actual_obj(check,native=True)
     physical_obj=_actual_obj(check,native=False)
     png=_png_actual_mesh(check)
@@ -334,6 +490,7 @@ def build_tail_dual_v_source_preview_zip(check) -> bytes:
     stream=io.BytesIO()
     with ZipFile(stream,"w",compression=ZIP_DEFLATED,compresslevel=9) as out:
         out.writestr("WHD_tail_dual_V_same_source_2D.svg",flat)
+        out.writestr("WHD_tail_dual_V_true_T_left_right_sections.svg",true_t_section)
         out.writestr("WHD_tail_dual_V_actual_folded_model.obj",obj)
         out.writestr("WHD_tail_dual_V_RBA_focused_fold_check.obj",physical_obj)
         out.writestr("WHD_tail_dual_V_folded_preview.png",png)
