@@ -104,9 +104,18 @@ def project_tail_existing_bottom_broad_face_candidate(
         ):
             continue
         # Valid original retained stock on this side, not a guessed panel.
-        if not all(sequential.source_material_polygon.covers(
-            Point(float(x),float(y))
-        ) for x,y in triangle):
+        # GEOS line intersections used for the original 45-degree V
+        # tessellation can put a vertex a few IEEE ulps outside the
+        # polygon boundary. Demand the *actual source* numerical envelope
+        # (not a manufactured clearance) and never accept a finite-area
+        # outsider. The paired triangle was already derived by the
+        # source-conserving full-blank triangulator.
+        if any(
+            Point(float(x),float(y)).distance(
+                sequential.source_material_polygon
+            ) > tol
+            for x,y in triangle
+        ):
             raise GeometryError("TAIL_ALT_FACE_OUTSIDE_REAL_CUTTING")
         z_levels=[p[2] for p in stage2[i]]
         if min(z_levels)<-tol:
