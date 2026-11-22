@@ -259,6 +259,11 @@ def build_part_scene(
                 # builder must continue using its existing source folds for
                 # Vault Head, untouched Tail and Receiving EndCap. Do not
                 # forward all four resolved folds across that boundary.
+                # An authored Fold is authoritative regardless of the
+                # mutable GUI/INI default. The real baseline has its own
+                # CUTTING/BEND stations; only a non-authored legacy Tail uses
+                # those stations without an override. Passing an authored
+                # 15-mm bottom is geometry-identical to the original baseline.
                 authored_tail_lower_fold = (
                     bool(resolved.is_tail)
                     and cabinet_family_policy.canonical_family_name(
@@ -271,9 +276,6 @@ def build_part_scene(
                             for row in tuple(spec.fold_profile_y or ())
                         )
                     )
-                    and abs(
-                        float(resolved.fold_bottom) - float(ae.ybottom1_def)
-                    ) > 1e-9
                 )
                 tail_lower_override = (
                     {"target_fold_bottom": resolved.fold_bottom}
