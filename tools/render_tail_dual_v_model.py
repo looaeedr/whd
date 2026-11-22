@@ -104,6 +104,22 @@ def _svg_flat(check):
     annotation(bend_end-17,bend_y-9,"END")
     annotation(bend_start-15,bend_y-22,"NO Y FOLD")
     annotation(bend_end+2,bend_y-22,"NO Y FOLD")
+    # Real vertical side BEND starts at Y=49, not the nominal V apex Y=48.
+    # Plot start/end guides from the authoritative FinalScene, never infer
+    # from the candidate diagonal cut or from a stretched bbox.
+    for anchor_x, span, sign in (
+        (check.left_apex.x,check.side_bend_span_y_mm[0],1),
+        (check.right_apex.x,check.side_bend_span_y_mm[1],-1),
+    ):
+        for edge in span:
+            rows.append(f'<circle cx="{anchor_x:.6f}" cy="{edge:.6f}" '
+                        f'r="1.3" fill="#177957" stroke="white" stroke-width="0.4"/>')
+        if sign>0:
+            annotation(anchor_x+5,span[0]+18,
+                       f"SIDE BEND START Y={span[0]:g} mm")
+        else:
+            annotation(anchor_x-120,span[0]+18,
+                       f"SIDE BEND START Y={span[0]:g} mm")
     for apex, hits in ((check.left_apex, check.left_outer_v_hits),
                        (check.right_apex, check.right_outer_v_hits)):
         x,y=_src_point(apex)
