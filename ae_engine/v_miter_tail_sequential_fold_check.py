@@ -346,10 +346,21 @@ def project_tail_same_sheet_sequential_fold_check(
         all_first,thickness_mm,smooth_vertex_normals=True,
         physical_vertex_offsets=offsets_first,tolerance=tol,
     )
-    thick2=thicken_triangle_surface(
-        all_final,thickness_mm,smooth_vertex_normals=True,
-        physical_vertex_offsets=offsets_final,tolerance=tol,
-    )
+    try:
+        thick2=thicken_triangle_surface(
+            all_final,thickness_mm,smooth_vertex_normals=True,
+            physical_vertex_offsets=offsets_final,tolerance=tol,
+        )
+    except ValueError as exc:
+        if "nonmanifold" not in str(exc):
+            raise
+        # Folding the SAME retained corner through two finite creases can
+        # map distinct source UV edges onto coincident world edges. Never
+        # identify this with a weld/contact or force a closed T shell.
+        raise GeometryError(
+            "TAIL_SEQUENTIAL_DOUBLE_BEND_NONMANIFOLD_WORLD_MAPPING_"
+            "ROOT_TRANSITION_NOT_PHYSICALLY_SOLVED"
+        ) from exc
     # These checks operate on the SINGLE physical T-sheet shell,
     # never on separately clipped flange solids. Shared adjacent
     # triangulation edges cannot count as true material penetration.
