@@ -290,6 +290,15 @@ def project_tail_dual_v_same_source_check(
             or any(type(v) is not str or v not in ("x","y")
                    for v in first_bend_axes.values())):
         raise GeometryError("V_MITER_TAIL_OPERATOR_FIRST_PHYSICAL_BEND_REQUIRED")
+    # #3317 user rejected this branch's unapproved symmetric +/-45deg V.
+    # Do not measure its 3D seam or accidentally treat Y=33/63 as an
+    # operator spec. Historical output is reviewable ONLY in the new
+    # authoritative 2D factory/legacy audit, without any fabricated new V.
+    # Keep the old implementation below for traceability, but fail closed.
+    raise GeometryError(
+        "V_MITER_TAIL_OLD_SYMMETRIC_45_DEG_NOT_USER_CONFIRMED_"
+        "FIRST_REVIEW_REAL_FACTORY_CUTTING_BEND_2D"
+    )
     from .v_miter_operator_gui_check import _endcap_existing_fold_angle_sources
     original = _single_source_material(render.scene)
     factory, width, height, original_bends = _factory_original_shape(spec)
