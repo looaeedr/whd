@@ -76,6 +76,8 @@ class TailDualVFaceResult:
     # an arbitrary Door edge or call geometric diagnostics "passed".
     topology_contact_failure: str | None = None
     topological_clearance_lower_bound_mm: float | None = None
+    contact_gap_floor_at_straight_start_mm: float | None = None
+    contact_gap_floor_at_straight_end_mm: float | None = None
     # An incomplete or touching 3D result is NOT declared physically fitting.
     model_status: str = "MODEL_NOT_VERIFIED"
 
@@ -403,12 +405,30 @@ def project_tail_dual_v_same_source_check(
         # while preserving this side-opening topology and both BEND axes.
         topological_floor = q.first_inner_radius_mm
         side_upper_hit = row[2]
+        side_mouth_horizontal_reach = abs(side_upper_hit.x - row[0].x)
+        side_mouth_vertical_rise = side_upper_hit.y - row[0].y
+        if side_mouth_horizontal_reach <= _TOL:
+            raise GeometryError("V_MITER_TAIL_DUAL_UPPER_MOUTH_HAS_NO_HORIZONTAL_REACH")
+        upper_ray_slope = side_mouth_vertical_rise / side_mouth_horizontal_reach
+        # In the straight 90-degree region, the FLAT transverse distance
+        # is u=BA+(Z-(R+T/2)). On this same source-cut leg Y=apexY+
+        # upper_ray_slope*u, while the bottom solid can reach no farther
+        # than Y=apexY-R. Their signed separation is therefore at least
+        # R + slope*u, independent of the near-face nearest-point sample.
+        # This is a physically sourced *lower bound*, not a kerf/tolerance.
+        def source_contact_gap_floor(z):
+            u = q.first_bend_allowance_mm + (z - mid_radius)
+            return q.first_inner_radius_mm + upper_ray_slope * u
+        floor_start = source_contact_gap_floor(straight_start)
+        floor_end = source_contact_gap_floor(contact_reach)
         physical_no_solution = (
             side_upper_hit.y >= row[0].y - _TOL
             and n_bottom[1] < -1.0 + _TOL
             and abs(q.first_inner_radius_mm - q.second_inner_radius_mm)
             <= _TOL
-            and q.first_inner_radius_mm > _TOL
+            and upper_ray_slope > _TOL
+            and floor_start > _TOL
+            and floor_end > _TOL
         )
         topo_failure = (
             "V_MITER_SIDE_OPENING_90_BENDS_NO_CONTACT: "
@@ -471,6 +491,12 @@ def project_tail_dual_v_same_source_check(
             topology_contact_failure=topo_failure,
             topological_clearance_lower_bound_mm=(
                 topological_floor if physical_no_solution else None
+            ),
+            contact_gap_floor_at_straight_start_mm=(
+                floor_start if physical_no_solution else None
+            ),
+            contact_gap_floor_at_straight_end_mm=(
+                floor_end if physical_no_solution else None
             ),
             model_status=(
                 "MODEL_PASS" if topo_failure is None
