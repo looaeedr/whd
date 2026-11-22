@@ -8,6 +8,7 @@ No Door trim, no CNC export, no factory tolerance, no X publication.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from collections.abc import Mapping
 import math
 
 from shapely.geometry import LineString, Point, Polygon, box
@@ -108,15 +109,50 @@ def _apex_ray_side_exit_least_squares(
     return float(side_hit_y), float(max_residual)
 
 
+def _root_intersection_topology(segments, numerical_tol_mm: float):
+    """Classify geometric *location*, not triangle-pair count as penetration.
+
+    Coincident tessellation faces often yield several primitive pairs from
+    ONE physical root edge. A line-only witness is not volumetric overlap.
+    Conversely, non-collinearity is unresolved, not certified penetration.
+    """
+    points = tuple(
+        tuple(float(x) for x in p)
+        for segment in segments for p in segment
+    )
+    if not points:
+        return "NO_ROOT_SURFACE_INTERSECTION"
+    if any(len(p)!=3 or not all(math.isfinite(v) for v in p) for p in points):
+        raise GeometryError("V_MITER_TAIL_NONFINITE_ROOT_INTERSECTION")
+    a,b=max(((v,w) for i,v in enumerate(points) for w in points[i+1:]),
+            key=lambda pair: math.dist(*pair))
+    span=math.dist(a,b)
+    if span <= numerical_tol_mm:
+        return "ROOT_POINT_CONTACT_CANDIDATE_NOT_PENETRATION"
+    direction=tuple((b[i]-a[i])/span for i in range(3))
+    max_off_axis=0.0
+    for p in points:
+        delta=tuple(p[i]-a[i] for i in range(3))
+        projection=sum(delta[i]*direction[i] for i in range(3))
+        off=math.sqrt(max(0.0,sum(delta[i]**2 for i in range(3))-projection**2))
+        max_off_axis=max(max_off_axis,off)
+    if max_off_axis <= max(numerical_tol_mm*20.0, 1e-7):
+        return "COLLINEAR_SHARED_ROOT_EDGE_CANDIDATE_NOT_PENETRATION"
+    return "ROOT_SURFACE_INTERSECTION_NOT_YET_CLASSIFIED_AS_PENETRATION"
+
+
 @dataclass(frozen=True)
 class TailDualVFaceResult:
     corner: str
+    first_bend_axis: str
+    second_bend_axis: str
     side_folded_solid: tuple
     bottom_folded_solid: tuple
     side_cut_faces: tuple
     bottom_cut_faces: tuple
     model_interference_pairs: int
     model_interference_segments: tuple
+    root_intersection_topology: str
     model_volume_status: str
     side_cut_failure: str | None
     bottom_cut_failure: str | None
@@ -167,6 +203,7 @@ class TailDualVFaceResult:
 @dataclass(frozen=True)
 class TailDualVSourceCheck:
     original_factory_scene: DrawingScene
+    operator_first_bend_axes: tuple
     flat_check_scene: DrawingScene
     original_outline: tuple[Vec2, ...]
     corrected_outline: tuple[Vec2, ...]
@@ -197,7 +234,8 @@ class TailDualVSourceCheck:
 
 
 def project_tail_dual_v_same_source_check(
-    spec: EndCapPartSpec, render: PartRenderData,
+    spec: EndCapPartSpec, render: PartRenderData, *,
+    first_bend_axes: Mapping[str, str] | None = None,
 ) -> TailDualVSourceCheck:
     """Construct a two-90-degree V CHECK with both openings on side edges.
 
@@ -210,6 +248,15 @@ def project_tail_dual_v_same_source_check(
             or not isinstance(render, PartRenderData)
             or not isinstance(render.scene, DrawingScene)):
         raise GeometryError("V_MITER_TAIL_DUAL_TYPED_FACTORY_SOURCE_REQUIRED")
+    # Same contract as the existing GUI live-corner CHECK. The two
+    # physical 90-degree BENDs do NOT imply a preferred fold order.
+    # Pass the operator's saved X/Y choice for EACH corner, not an
+    # inferred default or the order of a Python dictionary.
+    if (not isinstance(first_bend_axes, Mapping)
+            or set(first_bend_axes) != {"bottom_left","bottom_right"}
+            or any(type(v) is not str or v not in ("x","y")
+                   for v in first_bend_axes.values())):
+        raise GeometryError("V_MITER_TAIL_OPERATOR_FIRST_PHYSICAL_BEND_REQUIRED")
     from .v_miter_operator_gui_check import _endcap_existing_fold_angle_sources
     original = _single_source_material(render.scene)
     factory, width, height, original_bends = _factory_original_shape(spec)
@@ -621,20 +668,27 @@ def project_tail_dual_v_same_source_check(
     reports = []
     for corner, side in (("bottom_left", "left"), ("bottom_right", "right")):
         row = corner_data[corner]
+        first_axis = first_bend_axes[corner]
+        second_axis = "y" if first_axis == "x" else "x"
+        first_mesh = models[side] if first_axis == "x" else models["bottom"]
+        second_mesh = models["bottom"] if first_axis == "x" else models[side]
         collision = detect_world_mesh_surface_interference(
-            models[side][2], models["bottom"][2],
+            first_mesh[2], second_mesh[2],
         )
-        if collision.pair_count:
-            volume_status = "SURFACE_INTERFERENCE"
-        else:
-            witness = detect_world_mesh_enclosed_volume_witness(
-                models[side][2], models["bottom"][2],
-            )
-            volume_status = (
-                "ENCLOSED_VOLUME_INTERFERENCE" if witness.strictly_inside_points
-                else "NO_DETECTED_VOLUME_WITNESS" if witness.meshes_closed
-                else "VOLUME_UNRESOLVED"
-            )
+        root_contact = _root_intersection_topology(
+            collision.intersection_segments,
+            float(PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES.boundary_separation_tolerance),
+        )
+        # Triangle intersection pairs alone cannot certify *volume*
+        # penetration. Check actual interior witnesses independently.
+        witness = detect_world_mesh_enclosed_volume_witness(
+            first_mesh[2], second_mesh[2],
+        )
+        volume_status = (
+            "ENCLOSED_VOLUME_INTERFERENCE" if witness.strictly_inside_points
+            else "NO_DETECTED_VOLUME_WITNESS" if witness.meshes_closed
+            else "VOLUME_UNRESOLVED"
+        )
         # A source CUTTING wedge has TWO distinct legs. The edge in the
         # y>48 side lip is the UPPER (outward-to-high-Y) V cut, while the
         # y<48 bottom lip owns its LOWER (outward-to-low-Y) cut. Qualify
@@ -707,9 +761,15 @@ def project_tail_dual_v_same_source_check(
         seam = None
         seam_error = None
         if side_faces and bottom_faces:
+            # The physical first fold is explicitly selected, even for
+            # 90/90. The independent flange skins are source-disjoint:
+            # this can measure straight-wall contact in either order, but
+            # cannot prove the shared curved root's ordered deformation.
+            first_faces = side_faces if first_axis == "x" else bottom_faces
+            second_faces = bottom_faces if first_axis == "x" else side_faces
             try:
                 seam = project_v_miter_true_cut_face_continuity_trial(
-                    side_faces, bottom_faces,
+                    first_faces, second_faces,
                     formed_seam_start=physical_seam_start,
                     formed_seam_end=physical_seam_end,
                 )
@@ -795,19 +855,26 @@ def project_tail_dual_v_same_source_check(
         if side_faces and bottom_faces:
             fractions = (0.25, 0.50, 0.75, 0.95)
             sampled = project_v_miter_true_t_seam_section_gap_trial(
-                side_faces, bottom_faces,
+                first_faces, second_faces,
                 formed_seam_start=physical_seam_start,
                 formed_seam_end=physical_seam_end,
                 station_fractions=fractions,
             )
+            # The historical 'frac * contact_reach' field was WRONG:
+            # this section begins above the finite-R arc at z=mid_radius.
+            # Persist the actual 3D z of each trial section.
             sampled_stations = tuple(
-                (float(frac * contact_reach), section.status,
-                 section.measured_gap_mm)
+                (float(physical_seam_start[2] +
+                       frac * (physical_seam_end[2]-physical_seam_start[2])),
+                 section.status, section.measured_gap_mm)
                 for frac, section in zip(fractions, sampled.sections)
             )
             cut_face_witnesses = tuple(
                 (float(frac), section.measured_gap_mm,
-                 section.nearest_first_xyz, section.nearest_second_xyz,
+                 (section.nearest_first_xyz if first_axis == "x"
+                  else section.nearest_second_xyz),
+                 (section.nearest_second_xyz if first_axis == "x"
+                  else section.nearest_first_xyz),
                  section.status)
                 for frac, section in zip(fractions, sampled.sections)
             )
@@ -817,12 +884,14 @@ def project_tail_dual_v_same_source_check(
             for point in segment
         )
         reports.append(TailDualVFaceResult(
-            corner=corner,
+            corner=corner, first_bend_axis=first_axis,
+            second_bend_axis=second_axis,
             side_folded_solid=models[side][2],
             bottom_folded_solid=models["bottom"][2],
             side_cut_faces=side_faces, bottom_cut_faces=bottom_faces,
             model_interference_pairs=collision.pair_count,
             model_interference_segments=collision.intersection_segments,
+            root_intersection_topology=root_contact,
             model_volume_status=volume_status,
             side_cut_failure=side_error, bottom_cut_failure=bottom_error,
             seam_continuity=seam, seam_failure=seam_error,
@@ -865,6 +934,11 @@ def project_tail_dual_v_same_source_check(
         ))
     return TailDualVSourceCheck(
         original_factory_scene=render.scene,
+        operator_first_bend_axes=tuple(
+            (corner, first_bend_axes[corner]) for corner in (
+                "bottom_left","bottom_right"
+            )
+        ),
         flat_check_scene=flat_scene,
         original_outline=tuple(Vec2(float(x), float(y))
                                for x, y in original.exterior.coords),
