@@ -37,6 +37,13 @@ def project_independent_part_view_mesh(
     """
     material = render_data.material
     guides = tuple(getattr(render_data, "fold_guides", ()) or ())
+    if str(part_key)=="tail":
+        from .operator_tail_lower_v import tail_lower_v_preview_mesh
+        preview=tail_lower_v_preview_mesh(render_data)
+        if preview is not None:
+            if float(thickness)!=2.0:
+                raise ValueError("下方 V 型只支援已驗證 T=2 mm")
+            return IndependentPartViewMesh(tuple(preview),x_profile,y_profile,guides)
     metadata = getattr(render_data, "metadata", None) or {}
     if (str(part_key).startswith("base_plate:fixing_plate:")
             and metadata.get("source_profile") == "large"):

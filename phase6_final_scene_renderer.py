@@ -222,16 +222,29 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                     ):
                         fold_material = manufacturing_api.restore_unrelieved_endcap_material(part_material)
                         diagnostic_relief_delta = manufacturing_api.restored_endcap_relief_delta(part_material)
-                    local = _phase6_folded_mesh_from_polygon(
-                        fold_material,
-                        tuple(dict(seg) for seg in part.x_profile),
-                        tuple(dict(seg) for seg in part.y_profile),
-                        fold_guides=tuple(getattr(part_data, "fold_guides", ()) or ()),
+                    preview_t2=(
+                        manufacturing_api.tail_lower_v_preview_mesh(part_data)
+                        if part_key=="tail" else None
+                    )
+                    local=(
+                        preview_t2 if preview_t2 is not None
+                        else _phase6_folded_mesh_from_polygon(
+                            fold_material,
+                            tuple(dict(seg) for seg in part.x_profile),
+                            tuple(dict(seg) for seg in part.y_profile),
+                            fold_guides=tuple(getattr(part_data, "fold_guides", ()) or ()),
+                        )
                     )
                 placement = str(getattr(part, "placement", "offset") or "offset")
                 offset = getattr(part, "offset", (0.0, 0.0, 0.0))
                 formed_surface_for_edges = None
-                if placement in {"top", "head", "bottom", "tail"} and box_body_world:
+                # Preview T2 is already thick: never thicken a second time.
+                if (part_key=="tail" and
+                        manufacturing_api.tail_lower_v_preview_mesh(part_data) is not None):
+                    placed=_phase6_place_assembly_triangles(
+                        local,placement,request.finished_dimensions,offset,
+                    )
+                elif placement in {"top", "head", "bottom", "tail"} and box_body_world:
                     # The Engine returns both the canonical formed surface used
                     # by visual edges and its true-T physical solid.
                     skins = manufacturing_api.resolve_assembled_endcap_world_skins(

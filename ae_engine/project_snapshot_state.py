@@ -227,6 +227,15 @@ def normalize_project_snapshot_authority(snapshot):
         # Existing Door normalization still consumes d/t from the single-Bay
         # runtime view.  This is transient only; v2 writer strips the aliases.
         result = project_primary_bay_legacy_aliases(result)
+    from .operator_tail_lower_v import (
+        TAIL_LOWER_V_SNAPSHOT_KEY, normalize_operator_tail_lower_v_choice,
+    )
+    if TAIL_LOWER_V_SNAPSHOT_KEY in result:
+        choice=normalize_operator_tail_lower_v_choice(result[TAIL_LOWER_V_SNAPSHOT_KEY])
+        if choice=="original":
+            result.pop(TAIL_LOWER_V_SNAPSHOT_KEY,None)
+        else:
+            result[TAIL_LOWER_V_SNAPSHOT_KEY]=choice
     result = normalize_authoritative_door_state(result)
     if is_receiving_snapshot(result):
         from ae_engine.receiving_layout import RECEIVING_DOOR_STATE_KEYS
