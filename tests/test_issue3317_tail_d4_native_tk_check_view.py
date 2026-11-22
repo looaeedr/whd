@@ -122,6 +122,40 @@ def test_actual_whd_gui_d4_check_window_four_factory_holes_and_native_world(
             actual.crossing_target_face_indices
         )
         assert not actual.manufacturing_approved
+        # Exact surface face locations at genuine interior material probes.
+        # These are NOT derived from the orange surface-crossing count.
+        from ae_engine.assembly_geometry import probe_native_world_mesh_axis_faces
+        for fixed_xyz, body_expected, tail_expected in (
+            ((0.,-290.,-20.),(-309.,-307.),(-308.,-306.)),
+            ((0.,-290.,-20.),(307.,309.),(306.,308.)),
+        ):
+            body_hits=probe_native_world_mesh_axis_faces(
+                body,axis=0,fixed_xyz=fixed_xyz,
+            )
+            tail_hits=probe_native_world_mesh_axis_faces(
+                placed,axis=0,fixed_xyz=fixed_xyz,
+            )
+            for value in body_expected:
+                assert any(abs(x-value)<1e-4 for x in body_hits),(
+                    "BODY_SIDE_PROBE",value,body_hits,
+                )
+            for value in tail_expected:
+                assert any(abs(x-value)<1e-4 for x in tail_hits),(
+                    "TAIL_SIDE_PROBE",value,tail_hits,
+                )
+        rear_body=probe_native_world_mesh_axis_faces(
+            body,axis=2,fixed_xyz=(100.,-275.,0.),
+        )
+        rear_tail=probe_native_world_mesh_axis_faces(
+            placed,axis=2,fixed_xyz=(100.,-275.,0.),
+        )
+        for value in (-91.5,-89.5):
+            assert any(abs(z-value)<1e-4 for z in rear_body),(
+                "BODY_REAR_PROBE",value,rear_body,
+            )
+            assert any(abs(z-value)<1e-4 for z in rear_tail),(
+                "TAIL_REAR_PROBE",value,rear_tail,
+            )
         # Reuse the SAME actual GUI Body and native approved 2D for Y-first;
         # do not substitute a 36/312-face separate Body mesh.
         from ae_engine.v_miter_tail_d4_check import (
