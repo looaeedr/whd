@@ -133,6 +133,7 @@ def project_operator_tail_lower_v_preview_render(
     else:
         base=render_data
     flat=project_tail_illustrated_side_v90_flat(spec,base)
+    unmodified_v_source=flat
     preserved_relief=()
     if resolved_render_data is not None:
         from .v_miter_tail_relief_replay import (
@@ -159,8 +160,10 @@ def project_operator_tail_lower_v_preview_render(
         fold_guides=fold_guides_from_final_scene(flat.result_scene),
         metadata={
             **inherited_meta,
-            "tail_lower_v_independent_relief_replayed":bool(preserved_relief),
-            "tail_lower_v_independent_relief_source_count":len(preserved_relief),
+            "tail_lower_v_independent_relief_replayed":flat is not unmodified_v_source,
+            "tail_lower_v_independent_relief_source_count":(
+                len(preserved_relief)+(1 if flat is not unmodified_v_source else 0)
+            ),
             "source":"WHD_ACTUAL_FACTORY_CUTTING_AND_FINITE_BEND",
             "tail_lower_v_choice":"v90",
             "tail_lower_v_preview_only":True,
