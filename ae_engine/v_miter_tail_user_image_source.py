@@ -270,3 +270,140 @@ def project_tail_illustrated_side_v90_staged_check(
         inner_r_mm=q.first_inner_radius_mm,
         bend_allowance_mm=q.first_bend_allowance_mm,
     )
+
+
+@dataclass(frozen=True)
+class TailIllustratedSideV90NominalAndStages:
+    """CHECK evidence, not the completed physical T-solid or a CAM result."""
+    first_axis: str
+    nominal_outside_mm: tuple
+    original_source_faces: tuple
+    after_first_faces_xyz: tuple
+    after_second_faces_xyz: tuple
+    shared_source_uv_vertices: int
+    source_area_mm2: float
+    source_triangle_area_mm2: float
+    first_inner_r_trial_mm: float
+    first_ba_trial_mm: float
+    physical_root_status: str = "UNVERIFIED_DOUBLE_BEND_ROOT_KINEMATIC_ONLY"
+    physical_face_fit_status: str = "NOT_CLAIMED_FROM_MIDSURFACE"
+    manufacturing_approved: bool = False
+
+
+def project_tail_illustrated_side_v90_nominal_and_stages(
+    flat: TailIllustratedSideV90Flat, *, first_axis: str,
+) -> TailIllustratedSideV90NominalAndStages:
+    """WHD canonical Fold-profile outside readback + same-source stage skins.
+
+    The corrected Y=0 side BEND and 90-degree side-opening V are rechecked
+    before any stage motion. Both operator first-bend orders use the EXACT
+    full source triangle splitter/point transformer of the physical
+    single-sheet test, without building a fake thick closed root when the
+    T solid is nonmanifold. This output is expressly NOT manufacturing.
+    """
+    from .endcap_factory_fold import build_endcap_xy_fold_profiles
+    from .endcap_xy_readback import fold_material_segment_outside_length
+    from .manufacturing_render_data import fold_guides_from_final_scene
+    from .v_miter_tail_sequential_fold_check import (
+        _source_triangles, _advance_same_source_uv,
+    )
+    from .v_miter_trial_defaults import project_v_miter_trial_parameter_defaults
+
+    if (not isinstance(flat,TailIllustratedSideV90Flat)
+            or flat.manufacturing_approved
+            or type(first_axis) is not str or first_axis not in ("x","y")
+            or len(flat.side_bend_source_extensions)!=2
+            or len(flat.opening_source_points_xy)!=2):
+        raise GeometryError("TAIL_V90_SOURCE_AND_OPERATOR_FOLD_REQUIRED")
+    s=flat.source_spec
+    if (s.model_name not in ("金庫型","VAULT") or not s.is_tail
+            or flat.result_material.geom_type!="Polygon"
+            or not flat.result_material.is_valid or flat.result_material.interiors):
+        raise GeometryError("TAIL_V90_ONE_VAULT_FACTORY_SHEET_REQUIRED")
+    lo,bot,hi,top=map(float,flat.result_material.bounds)
+    if any(abs(a-b)>1e-7 for a,b in zip((lo,bot,hi,top),(0,0,522,233))):
+        raise GeometryError("TAIL_V90_WRONG_FACTORY_EXTERIOR")
+    guides=fold_guides_from_final_scene(flat.result_scene)
+    for axis,position,start,end in (("x",15.0,0.0,190.0),
+                                    ("x",507.0,0.0,190.0),
+                                    ("y",48.0,16.0,506.0)):
+        if sum(
+            g.axis==axis and abs(g.position-position)<1e-7
+            and abs(g.span_start-start)<1e-7 and abs(g.span_end-end)<1e-7
+            for g in guides
+        )!=1:
+            raise GeometryError("TAIL_V90_CORRECTED_BEND_MISMATCH")
+    if tuple((name,tuple(lo),tuple(apex),tuple(hi))
+             for name,lo,apex,hi in flat.opening_source_points_xy)!=(
+            ("bottom_left",(0.0,33.0),(15.0,48.0),(0.0,63.0)),
+            ("bottom_right",(522.0,33.0),(507.0,48.0),(522.0,63.0)),
+    ):
+        raise GeometryError("TAIL_V90_SOURCE_CUTTING_CHANGED")
+
+    # This is only a material->outside DISPLAY readback, using the original
+    # Vault Family profile owner. Never extract nominal sizes from this R/BA
+    # trial's incomplete world mesh, and never reuse these as CUTTING lengths.
+    source_snapshot={
+        "model":s.model_name, "w":s.width,"d":s.depth,"t":s.thickness,
+        "fw":s.frame_width,"yl1":s.fold_left,"yr1":s.fold_right,
+        "ytop1":s.fold_top,"ybottom1":s.fold_bottom,
+    }
+    profiles=build_endcap_xy_fold_profiles(source_snapshot,part_key="tail")
+    x={row.get("phase6_key"):row for row in profiles["X"]}
+    y={row.get("phase6_key"):row for row in profiles["Y"]}
+    nominal=(
+        ("main_face_w",float(fold_material_segment_outside_length(x["endcap_w_core"]))),
+        ("main_face_d",float(fold_material_segment_outside_length(y["endcap_d_core"]))),
+        ("side_left",float(fold_material_segment_outside_length(x["yl1"]))),
+        ("side_right",float(fold_material_segment_outside_length(x["yr1"]))),
+        ("bottom",float(fold_material_segment_outside_length(y["ybottom1"]))),
+    )
+    q=project_v_miter_trial_parameter_defaults(
+        thickness_mm=s.thickness,second_fold_angle_deg=90.,
+        relief_mode="ROUND_R",
+    )
+    parameters=(
+        15.,507.,48.,0.,522.,190.,
+        float(q.first_bend_allowance_mm),
+        float(q.first_inner_radius_mm+s.thickness/2),
+    )
+    source=_source_triangles(
+        flat.result_material,minx=0.,maxx=522.,miny=0.,maxy=233.,
+        left=15.,right=507.,bottom=48.,
+        allowance=q.first_bend_allowance_mm,
+        side_end=190.,bottom_span=(16.,506.),
+    )
+    first=[]
+    second=[]
+    common=set()
+    area=0.
+    for tri in source:
+        first_tri=[]
+        second_tri=[]
+        a,b,c=tri
+        area+=abs((b[0]-a[0])*(c[1]-a[1])-
+                  (b[1]-a[1])*(c[0]-a[0]))/2.
+        for uv in tri:
+            p1,p2,_,_=_advance_same_source_uv(uv,first_axis,parameters)
+            first_tri.append(p1)
+            second_tri.append(p2)
+            if (uv[1]<48.-1e-7 and (uv[0]<15.-1e-7
+                                    or uv[0]>507.+1e-7)):
+                common.add(tuple(round(q,8) for q in uv))
+        first.append(tuple(first_tri))
+        second.append(tuple(second_tri))
+    if (not source or not common or
+            abs(area-flat.result_material.area)>max(1e-5,area*1e-7)):
+        raise GeometryError("TAIL_V90_SAME_SOURCE_STAGES_AREA_OR_OWNER_INVALID")
+    return TailIllustratedSideV90NominalAndStages(
+        first_axis=first_axis,
+        nominal_outside_mm=tuple(nominal),
+        original_source_faces=tuple(source),
+        after_first_faces_xyz=tuple(first),
+        after_second_faces_xyz=tuple(second),
+        shared_source_uv_vertices=len(common),
+        source_area_mm2=float(flat.result_material.area),
+        source_triangle_area_mm2=float(area),
+        first_inner_r_trial_mm=float(q.first_inner_radius_mm),
+        first_ba_trial_mm=float(q.first_bend_allowance_mm),
+    )

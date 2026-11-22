@@ -331,3 +331,79 @@ def test_user_image_vault_stretched_baseline_not_silent_factory_substitute():
     assert baseline_max_y==pytest.approx(200.0)
     with pytest.raises(Exception,match="TAIL_IMAGE_V90_FACTORY_SOURCE_DIFFERENT"):
         project_tail_illustrated_side_v90_flat(spec,baseline)
+
+
+@pytest.mark.parametrize("axis",("x","y"))
+def test_tail_corrected_nominal_w496_d148_and_both_first_fold_3d_skin(axis):
+    """Source-verified WHD outside readback independent of unknown R/BA root.
+
+    The X-first *solid* still fails closed separately: skin != a certified
+    true-T solid. This test only verifies the actual ordered 3D skin motion
+    from corrected 2D, untouched upper CUTTING and original physical holes.
+    """
+    from ae_engine.v_miter_tail_user_image_source import (
+        project_tail_illustrated_side_v90_flat,
+        project_tail_illustrated_side_v90_nominal_and_stages,
+    )
+    from ae_engine.sheetmetal_drawing import LinePrimitive
+
+    spec,render=_image_sample_vault_tail()
+    original=tuple(render.scene.primitives)
+    flat=project_tail_illustrated_side_v90_flat(spec,render)
+    assert tuple(render.scene.primitives)==original
+    assert all(a is b for a,b in zip(original,flat.result_scene.primitives)
+               if a.layer not in ("BEND","CUTTING"))
+    result=project_tail_illustrated_side_v90_nominal_and_stages(
+        flat,first_axis=axis,
+    )
+    assert dict(result.nominal_outside_mm)=={
+        "main_face_w":496.,"main_face_d":148.,
+        "side_left":17.,"side_right":17.,"bottom":50.,
+    }
+    assert result.source_area_mm2==pytest.approx(117928.)
+    assert result.source_triangle_area_mm2==pytest.approx(117928.)
+    assert len(result.original_source_faces)==762
+    assert len(result.after_first_faces_xyz)==len(result.after_second_faces_xyz)==762
+    assert result.shared_source_uv_vertices>0
+    assert result.physical_root_status.endswith("KINEMATIC_ONLY")
+    assert result.manufacturing_approved is False
+    # Pick the actual upper/lower left V SOURCE points, not standalone flanges.
+    from ae_engine.v_miter_tail_sequential_fold_check import _advance_same_source_uv
+    params=(15.,507.,48.,0.,522.,190.,
+            result.first_ba_trial_mm,
+            result.first_inner_r_trial_mm+spec.thickness/2)
+    upper_first,upper_final,_,_=_advance_same_source_uv((7.5,55.5),axis,params)
+    lower_first,lower_final,_,_=_advance_same_source_uv((7.5,40.5),axis,params)
+    if axis=="x":
+        assert upper_first[2]>0 and lower_first[2]==0
+        assert lower_final[0]>lower_first[0]
+    else:
+        assert upper_first[2]==0 and lower_first[2]>0
+        assert lower_final[0]>lower_first[0]
+    assert upper_final[2]>0 and lower_final[2]>0
+    # The corrected source guides are not the old Y49 original Factory guide.
+    bends=[e for e in flat.result_scene.primitives
+           if isinstance(e,LinePrimitive) and e.layer=="BEND"]
+    assert sum(abs(e.p1.y)<1e-7 for e in bends)==2
+    assert sum(abs(e.p1.y-49.)<1e-7 for e in bends)==0
+
+
+def test_tail_corrected_nominal_and_stages_reject_old_y49_and_unselected_axis():
+    from ae_engine.v_miter_tail_user_image_source import (
+        project_tail_illustrated_side_v90_flat,
+        project_tail_illustrated_side_v90_nominal_and_stages,
+    )
+    from dataclasses import replace
+    spec,render=_image_sample_vault_tail()
+    flat=project_tail_illustrated_side_v90_flat(spec,render)
+    for axis in (None,True,"z"):
+        with pytest.raises(GeometryError,match="TAIL_V90_SOURCE_AND_OPERATOR_FOLD_REQUIRED"):
+            project_tail_illustrated_side_v90_nominal_and_stages(
+                flat,first_axis=axis,
+            )
+    # No fake success for the old finite BEND starting at Y49.
+    invalid=replace(flat,result_scene=render.scene)
+    with pytest.raises(GeometryError,match="TAIL_V90_CORRECTED_BEND_MISMATCH"):
+        project_tail_illustrated_side_v90_nominal_and_stages(
+            invalid,first_axis="x",
+        )
