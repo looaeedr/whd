@@ -547,3 +547,88 @@ def test_d4_check_dxf_rejects_edited_source_without_writing(kind,axis,tmp_path):
         save_tail_d4_check_dxf(altered,path,first_axis=axis)
     assert not path.exists()
     assert not tuple(tmp_path.glob(".tail_d4_check_*.dxf"))
+
+
+@pytest.mark.parametrize("first_axis", ("x", "y"))
+def test_r2_retained_interior_stock_across_y48_has_unresolved_rigid_domain_jump(
+    first_axis,
+):
+    """R2: real stock at Y48±eps has incompatible rigid final positions.
+
+    Not an arc-point probe: sample strictly INSIDE the SAME connected mother
+    at x=15-a / x=627+a for a=.1,.25,.5,.75. The finite lower BEND
+    starts/ends at x16..626, hence none of this strip owns a real Y crease.
+    This is a failure of the existing two-domain SHARP map, NOT proof that a
+    physical formed R2 transition is impossible. No invented R/BA or BEND.
+    """
+    from ae_engine.v_miter_tail_no_ba_sequential import (
+        _stages, stations_from_real_flat,
+    )
+
+    sharp = _real_factory_with_fifth_original_cutting()
+    st = stations_from_real_flat(sharp)
+    assert st.bottom_y == pytest.approx(48.)
+    assert st.bottom_guide_start == pytest.approx(16.)
+    assert st.bottom_guide_end == pytest.approx(626.)
+    assert st.left_x == pytest.approx(15.)
+    assert st.right_x == pytest.approx(627.)
+
+    removed = []
+    for corner, lower, apex, upper in sharp.opening_source_points_xy:
+        rounded, cutback = _rounded_v_notch_polygon(
+            Vec2(*apex), Vec2(*lower), Vec2(*upper),
+            (lower, upper), 2.,
+        )
+        assert cutback == pytest.approx(2.)
+        removed.append(rounded)
+    stock=sharp.original_factory_restored_mother.difference(
+        unary_union(removed)
+    )
+    assert stock.geom_type == "Polygon" and stock.is_valid
+    assert not stock.is_empty
+    assert len(stock.interiors) == 0
+
+    # R2 arc crosses Y48 outside the ORIGINAL finite bottom bend.
+    crossing_left=15.-(2.*math.sqrt(2.)-2.)  # 14.171572875...
+    crossing_right=627.+(2.*math.sqrt(2.)-2.)
+    assert crossing_left == pytest.approx(14.17157287525381)
+    assert crossing_right == pytest.approx(627.8284271247462)
+    for left in (True,False):
+        for a in (.1,.25,.5,.75):
+            x=15.-a if left else 627.+a
+            assert (x<st.bottom_guide_start if left
+                    else x>st.bottom_guide_end)
+            gaps=[]
+            for eps in (1e-4,1e-5):
+                before=Point(x,48.-eps)
+                after=Point(x,48.+eps)
+                assert before.within(stock) and after.within(stock), (
+                    "R2_REAL_RETAINED_STOCK_REQUIRED", first_axis,left,a,eps,
+                )
+                folded_minus=_stages((x,48.-eps),first_axis,st)
+                folded_plus=_stages((x,48.+eps),first_axis,st)
+                first_jump=math.dist(folded_minus[0],folded_plus[0])
+                final_jump=math.dist(folded_minus[1],folded_plus[1])
+                assert first_jump<=5.*eps, (
+                    "R2_FIRST_STAGE_INCORRECTLY_DISCONNECTED",
+                    first_axis,left,a,eps,first_jump,
+                )
+                # Source-connected material cannot have TWO distinct
+                # final positions. Existing sharp rigid-domain mapping
+                # converges to sqrt(2)*a, not zero, in BOTH orders.
+                assert abs(final_jump-math.sqrt(2.)*a)<=5.*eps, (
+                    "R2_FINITE_BEND_RIGID_DOMAIN_CONFLICT_CHANGED",
+                    first_axis,left,a,eps,final_jump,
+                )
+                gaps.append(final_jump)
+            assert gaps[1] > .1, (
+                "R2_INCORRECTLY_ACCEPTED_AS_CONTINUOUS",first_axis,left,a,gaps,
+            )
+            assert abs(gaps[1]-math.sqrt(2.)*a) < abs(
+                gaps[0]-math.sqrt(2.)*a
+            ), ("R2_LIMIT_NOT_CONVERGING",first_axis,left,a,gaps)
+
+    # No current exact finite-BEND, zero-new-crease, no-BA/R continuous
+    # material transition has been proven for this R2 strip.
+    # This check is a NEGATIVE witness only; do not weld/assign/remove stock.
+    assert first_axis in ("x","y")
