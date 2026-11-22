@@ -76,6 +76,93 @@
           "status": "MEASURED"
         }
       ],
+      "alternative_mating_pair": {
+        "actual_CUTTING_changes": "NONE",
+        "actual_Z_gap_and_nearest_xyz": [
+          {
+            "bottom_existing_T_broad_skin_xyz": [
+              11.605116438714528,
+              46,
+              5.705420442681394
+            ],
+            "gap_mm": 8.883738671955818,
+            "off_datum_shortcut": false,
+            "side_original_V_cut_wall_xyz": [
+              11.605116438714528,
+              54.88373867195582,
+              5.705420442681394
+            ],
+            "status": "MEASURED",
+            "z": 5.705420442681394
+          },
+          {
+            "bottom_existing_T_broad_skin_xyz": [
+              12.127406217373833,
+              46,
+              8.410840885362788
+            ],
+            "gap_mm": 11.589159114637212,
+            "off_datum_shortcut": false,
+            "side_original_V_cut_wall_xyz": [
+              12.127406217373833,
+              57.58915911463721,
+              8.410840885362788
+            ],
+            "status": "MEASURED",
+            "z": 8.410840885362788
+          },
+          {
+            "bottom_existing_T_broad_skin_xyz": [
+              12.649695996033136,
+              46,
+              11.116261328044182
+            ],
+            "gap_mm": 14.294579557318606,
+            "off_datum_shortcut": false,
+            "side_original_V_cut_wall_xyz": [
+              12.649695996033136,
+              60.294579557318606,
+              11.116261328044182
+            ],
+            "status": "MEASURED",
+            "z": 11.116261328044182
+          },
+          {
+            "bottom_existing_T_broad_skin_xyz": [
+              12.910840885362788,
+              46,
+              13.280597682189297
+            ],
+            "gap_mm": 16.45891591146372,
+            "off_datum_shortcut": false,
+            "side_original_V_cut_wall_xyz": [
+              12.910840885362788,
+              62.45891591146372,
+              13.280597682189297
+            ],
+            "status": "MEASURED",
+            "z": 13.280597682189297
+          }
+        ],
+        "bottom_real_source_area_mm2": 607.499999999993,
+        "bottom_source_triangle_count": 290,
+        "bottom_surface_original_source": "EXISTING_BOTTOM_PANEL_OUTER_TRUE_T_BROAD_FACE",
+        "bottom_true_T_broad_skin_triangle_count": 290,
+        "candidate_id": "SIDE_UPPER_V_WALL_TO_EXISTING_BOTTOM_OUTER_T_SKIN",
+        "candidate_is_already_approved_V": false,
+        "full_span": {
+          "max_sampled_gap_mm": 11.589159114637212,
+          "missing_face_intervals": 0,
+          "unresolved_events": 2,
+          "upper_bound_mm": null
+        },
+        "full_span_error": null,
+        "material_validity": "BOTH_FACES_FROM_EXISTING_FACTORY_T_SHELL",
+        "root_physical_status": "FINITE_BEND_TIP_TRANSITION_UNCERTIFIED",
+        "side_cut_wall_triangle_count": 34,
+        "side_surface_original_source": "EXISTING_UPPER_V_CUTTING_SIDE_T_WALL",
+        "status": "ALTERNATE_BROAD_FACE_NOT_FULLY_MATING"
+      },
       "any_90deg_asymmetry_best_case_far_gap_floor_mm": null,
       "bottom_cut_face_z_mm": [
         -1,
@@ -1312,6 +1399,18 @@
         }
       ],
       "seam_failure": null,
+      "separate_gate_verdicts": {
+        "actual_root_positive_volume_penetration": "UNKNOWN_NOT_A_GLOBAL_VOLUME_BOOLEAN",
+        "alternative_changes_current_CUTTING": "NO",
+        "alternative_side_V_wall_to_real_bottom_T_broad_face_mating": "FAIL_POSITIVE_MEASURED_GAP",
+        "existing_V_cut_wall_to_cut_wall_full_span_mating": "FAIL_POSITIVE_MEASURED_GAP",
+        "finite_BEND_tip_physical_deformation": "FINITE_BEND_TIP_TRANSITION_KINEMATIC_ONLY",
+        "local_root_true_T_surface_intersection": "NO_DETECTED_NONNEIGHBOR_CROSSING_OR_OVERLAP",
+        "manufacturing_export": "NOT_ALLOWED",
+        "one_UV_receives_at_most_one_fold": "PASS_EXCLUSIVE_CURRENT_KINEMATICS",
+        "one_sheet_T_mesh_numerical_continuity": "PASS_CLOSED_AND_SHARED_SOURCE",
+        "original_CUTTING_BEND_T_R_BA_provenance": "PASS_SOURCE_UNCHANGED"
+      },
       "sequential_final_full_seam": {
         "lower_bound_mm": null,
         "missing_intervals": 0,
@@ -1633,6 +1732,93 @@
           "status": "MEASURED"
         }
       ],
+      "alternative_mating_pair": {
+        "actual_CUTTING_changes": "NONE",
+        "actual_Z_gap_and_nearest_xyz": [
+          {
+            "bottom_existing_T_broad_skin_xyz": [
+              409.0891591146372,
+              46,
+              5.705420442681394
+            ],
+            "gap_mm": 8.883738671955818,
+            "off_datum_shortcut": false,
+            "side_original_V_cut_wall_xyz": [
+              409.0891591146372,
+              54.88373867195582,
+              5.705420442681394
+            ],
+            "status": "MEASURED",
+            "z": 5.705420442681394
+          },
+          {
+            "bottom_existing_T_broad_skin_xyz": [
+              409.0891591146372,
+              46,
+              8.410840885362788
+            ],
+            "gap_mm": 11.589159114637212,
+            "off_datum_shortcut": false,
+            "side_original_V_cut_wall_xyz": [
+              409.0891591146372,
+              57.58915911463721,
+              8.410840885362788
+            ],
+            "status": "MEASURED",
+            "z": 8.410840885362788
+          },
+          {
+            "bottom_existing_T_broad_skin_xyz": [
+              409.0891591146372,
+              46,
+              11.116261328044182
+            ],
+            "gap_mm": 14.294579557318606,
+            "off_datum_shortcut": false,
+            "side_original_V_cut_wall_xyz": [
+              409.0891591146372,
+              60.294579557318606,
+              11.116261328044182
+            ],
+            "status": "MEASURED",
+            "z": 11.116261328044182
+          },
+          {
+            "bottom_existing_T_broad_skin_xyz": [
+              409.0891591146372,
+              46,
+              13.280597682189297
+            ],
+            "gap_mm": 16.45891591146372,
+            "off_datum_shortcut": false,
+            "side_original_V_cut_wall_xyz": [
+              409.0891591146372,
+              62.45891591146372,
+              13.280597682189297
+            ],
+            "status": "MEASURED",
+            "z": 13.280597682189297
+          }
+        ],
+        "bottom_real_source_area_mm2": 607.4999999999999,
+        "bottom_source_triangle_count": 290,
+        "bottom_surface_original_source": "EXISTING_BOTTOM_PANEL_OUTER_TRUE_T_BROAD_FACE",
+        "bottom_true_T_broad_skin_triangle_count": 290,
+        "candidate_id": "SIDE_UPPER_V_WALL_TO_EXISTING_BOTTOM_OUTER_T_SKIN",
+        "candidate_is_already_approved_V": false,
+        "full_span": {
+          "max_sampled_gap_mm": 11.589159114637212,
+          "missing_face_intervals": 0,
+          "unresolved_events": 11,
+          "upper_bound_mm": null
+        },
+        "full_span_error": null,
+        "material_validity": "BOTH_FACES_FROM_EXISTING_FACTORY_T_SHELL",
+        "root_physical_status": "FINITE_BEND_TIP_TRANSITION_UNCERTIFIED",
+        "side_cut_wall_triangle_count": 34,
+        "side_surface_original_source": "EXISTING_UPPER_V_CUTTING_SIDE_T_WALL",
+        "status": "ALTERNATE_BROAD_FACE_NOT_FULLY_MATING"
+      },
       "any_90deg_asymmetry_best_case_far_gap_floor_mm": null,
       "bottom_cut_face_z_mm": [
         -1,
@@ -2869,6 +3055,18 @@
         }
       ],
       "seam_failure": null,
+      "separate_gate_verdicts": {
+        "actual_root_positive_volume_penetration": "UNKNOWN_NOT_A_GLOBAL_VOLUME_BOOLEAN",
+        "alternative_changes_current_CUTTING": "NO",
+        "alternative_side_V_wall_to_real_bottom_T_broad_face_mating": "FAIL_POSITIVE_MEASURED_GAP",
+        "existing_V_cut_wall_to_cut_wall_full_span_mating": "FAIL_POSITIVE_MEASURED_GAP",
+        "finite_BEND_tip_physical_deformation": "FINITE_BEND_TIP_TRANSITION_KINEMATIC_ONLY",
+        "local_root_true_T_surface_intersection": "NO_DETECTED_NONNEIGHBOR_CROSSING_OR_OVERLAP",
+        "manufacturing_export": "NOT_ALLOWED",
+        "one_UV_receives_at_most_one_fold": "PASS_EXCLUSIVE_CURRENT_KINEMATICS",
+        "one_sheet_T_mesh_numerical_continuity": "PASS_CLOSED_AND_SHARED_SOURCE",
+        "original_CUTTING_BEND_T_R_BA_provenance": "PASS_SOURCE_UNCHANGED"
+      },
       "sequential_final_full_seam": {
         "lower_bound_mm": null,
         "missing_intervals": 0,
@@ -3257,6 +3455,14 @@
         }
       ],
       "source_area_mm2": 136828,
+      "source_fold_ownership": {
+        "X_then_Y_vs_Y_then_X_final_xyz_max_difference_mm": 0,
+        "both_fold_source_vertices": 0,
+        "one_fold_per_source_point": true,
+        "order_changes_last_stage_coordinates": false,
+        "x_only_source_vertices": 68,
+        "y_only_source_vertices": 376
+      },
       "source_triangle_count": 762,
       "stage1_T_shell_topology": {
         "boundary_edges": 0,
