@@ -71,6 +71,11 @@ class TailDualVFaceResult:
     # Direct true 3D cut-face stations, not whole-solid nearest distance.
     sampled_seam_gap_stations_mm: tuple = ()
     interference_z_range_mm: tuple | None = None
+    actual_joint_axis_xyz: tuple = ()
+    # A physical impossibility is a model FAIL, not an invitation to trim
+    # an arbitrary Door edge or call geometric diagnostics "passed".
+    topology_contact_failure: str | None = None
+    topological_clearance_lower_bound_mm: float | None = None
     # An incomplete or touching 3D result is NOT declared physically fitting.
     model_status: str = "MODEL_NOT_VERIFIED"
 
@@ -369,14 +374,58 @@ def project_tail_dual_v_same_source_check(
             q.first_inner_radius_mm + q.thickness_mm / 2.0
         )
         contact_reach = min(side_formed, bottom_formed)
+        # A finite-R 90-degree fold has a STRAIGHT planar surface shifted
+        # outward by the mid-surface radius R+T/2. The source apex (X,Y)
+        # used in the sharp ideal was NOT the 3D intersection line. For
+        # each corner use the actual SIDE and BOTTOM planar fold normals.
+        # Sample only above the ends of the cylindrical bend arcs; root
+        # contact/relief must be checked separately, never hidden here.
+        mid_radius = q.first_inner_radius_mm + q.thickness_mm / 2.0
+        joined_x = row[0].x + mid_radius * (
+            (n_left if side == "left" else n_right)[0] + n_bottom[0]
+        )
+        joined_y = row[0].y + mid_radius * (
+            (n_left if side == "left" else n_right)[1] + n_bottom[1]
+        )
+        straight_start = min(contact_reach, mid_radius)
+        if contact_reach <= mid_radius + _TOL:
+            raise GeometryError("V_MITER_TAIL_DUAL_NO_STRAIGHT_FORMED_SEAM")
+        physical_seam_start = (joined_x, joined_y, straight_start)
+        physical_seam_end = (joined_x, joined_y, contact_reach)
+        # For BOTH rays to exit their same outer SIDE with a 90-degree
+        # included V, the ray on the side-fold portion extends from the
+        # apex toward Y>=apex.Y. But the folded bottom flange's true
+        # planar T-surface occupies Y <= apex.Y - R at this 90-degree
+        # bend (its mid-plane is Y=apex.Y-(R+T/2)). There is thus at
+        # least an R-sized positive separation even for a zero-slope ray;
+        # a nonzero upper V slope makes it strictly worse with height.
+        # No angle split or "Door trim" can satisfy the full-seam contact
+        # while preserving this side-opening topology and both BEND axes.
+        topological_floor = q.first_inner_radius_mm
+        side_upper_hit = row[2]
+        physical_no_solution = (
+            side_upper_hit.y >= row[0].y - _TOL
+            and n_bottom[1] < -1.0 + _TOL
+            and abs(q.first_inner_radius_mm - q.second_inner_radius_mm)
+            <= _TOL
+            and q.first_inner_radius_mm > _TOL
+        )
+        topo_failure = (
+            "V_MITER_SIDE_OPENING_90_BENDS_NO_CONTACT: "
+            "upper V-cut belongs to SIDE flange at Y>=BEND_Y, "
+            "but folded BOTTOM flange's physical T surface is "
+            "at Y<=BEND_Y-R. Cannot close its entire seam "
+            "without changing the specified cut topology or BEND."
+            if physical_no_solution else None
+        )
         seam = None
         seam_error = None
         if side_faces and bottom_faces:
             try:
                 seam = project_v_miter_true_cut_face_continuity_trial(
                     side_faces, bottom_faces,
-                    formed_seam_start=(row[0].x, row[0].y, 0.0),
-                    formed_seam_end=(row[0].x, row[0].y, contact_reach),
+                    formed_seam_start=physical_seam_start,
+                    formed_seam_end=physical_seam_end,
                 )
             except GeometryError as exc:
                 seam_error = str(exc)
@@ -387,8 +436,8 @@ def project_tail_dual_v_same_source_check(
             fractions = (0.25, 0.50, 0.75, 0.95)
             sampled = project_v_miter_true_t_seam_section_gap_trial(
                 side_faces, bottom_faces,
-                formed_seam_start=(row[0].x, row[0].y, 0.0),
-                formed_seam_end=(row[0].x, row[0].y, contact_reach),
+                formed_seam_start=physical_seam_start,
+                formed_seam_end=physical_seam_end,
                 station_fractions=fractions,
             )
             sampled_stations = tuple(
@@ -418,8 +467,14 @@ def project_tail_dual_v_same_source_check(
                 (min(interference_z), max(interference_z))
                 if interference_z else None
             ),
+            actual_joint_axis_xyz=(physical_seam_start, physical_seam_end),
+            topology_contact_failure=topo_failure,
+            topological_clearance_lower_bound_mm=(
+                topological_floor if physical_no_solution else None
+            ),
             model_status=(
-                "MODEL_PASS" if not collision.pair_count
+                "MODEL_PASS" if topo_failure is None
+                and not collision.pair_count
                 and volume_status == "NO_DETECTED_VOLUME_WITNESS"
                 and seam is not None and not seam.missing_face_interval_count
                 and not seam.numerically_unresolved_vertex_event_count
