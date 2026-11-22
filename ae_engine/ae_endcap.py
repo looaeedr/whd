@@ -212,6 +212,18 @@ def _resolve_user_holes(holes, geometry, finished_width, finished_depth, *, norm
     return resolve_endcap_features(context, features)
 
 
+def _live_vault_fixed_feature_policy(model_name, explicit_policy=None):
+    """Use the same Engine runtime policy as advanced Settings for Vault only."""
+    if explicit_policy is not None:
+        return explicit_policy
+    if str(model_name or "").strip() not in ("金庫型", "VAULT"):
+        return None
+    # The Settings transaction replaces ae.VAULT_ENDCAP_FEATURE_POLICY;
+    # ae_config/ae_endcap's import-time reference is not the live policy.
+    from . import ae as engine_runtime
+    return engine_runtime.VAULT_ENDCAP_FEATURE_POLICY
+
+
 def _build_end_cap_scene(*, w, d, t, fw, yl1, yr1, ytop1, ybottom1,
                          x_topology="folded", depth_comp_t=3.0, draw_stock=False, is_tail=False, holes=None,
                          model_name=None, feature_policy=None):
@@ -232,7 +244,7 @@ def _build_end_cap_scene(*, w, d, t, fw, yl1, yr1, ytop1, ybottom1,
         model_name=model_name,
         relief_config=RELIEF_CONFIG,
         is_tail=is_tail,
-        feature_policy=feature_policy,
+        feature_policy=_live_vault_fixed_feature_policy(model_name, feature_policy),
     )
     scene.extend(resolved_features_to_primitives(fixed_features))
     scene.extend(build_endcap_check(
@@ -423,6 +435,7 @@ def get_stretched_end_cap_data(
         source_loader=(globals().get("load_baseline_dxf_source") or ezdxf.readfile),
         get_end_cap_contour_points=get_end_cap_contour_points,
         relief_config=RELIEF_CONFIG,
+        vault_fixed_policy=_live_vault_fixed_feature_policy(model_name),
     )
 
 
