@@ -256,9 +256,9 @@ def _iter_line_geometries(geom):
 
 
 def _scene_with_replaced_primary_cutting(scene, material):
-    from shapely.geometry import LineString, Polygon
+    from shapely.geometry import LineString, Point, Polygon
     from shapely.ops import polygonize, unary_union
-    from .sheetmetal_drawing import DrawingScene, LinePrimitive, PolylinePrimitive
+    from .sheetmetal_drawing import DrawingScene, CirclePrimitive, LinePrimitive, PolylinePrimitive
     from .sheetmetal_geometry import Vec2
 
     exterior = _polygon_for_exterior(material)
@@ -350,6 +350,26 @@ def _scene_with_replaced_primary_cutting(scene, material):
         for index, poly in closed_cutting_polys
         if index != primary_index and poly is not None and not poly.is_empty
     ]
+    # Retained CUTTING circles already represent physical holes.  Record their
+    # canonical Shapely material footprints, but leave the original primitives
+    # (including source IDs) untouched.  Only an exactly equal generated ring
+    # may be suppressed; nearby, altered, or additional authored cuts must not
+    # disappear merely because their centers happen to match.
+    retained_circle_holes = []
+    for primitive in primitives:
+        if not isinstance(primitive, CirclePrimitive):
+            continue
+        if str(primitive.layer).upper() != "CUTTING":
+            continue
+        radius = float(primitive.radius)
+        if not (0.0 < radius < float("inf")):
+            continue
+        footprint = Point(
+            float(primitive.center.x), float(primitive.center.y)
+        ).buffer(radius, resolution=32)
+        if not footprint.is_empty and exterior.covers(footprint):
+            retained_circle_holes.append(footprint)
+
     # Existing linework holes remain linework, so don't emit a duplicate
     # closed loop for the same material interior.
     existing_hole_polys.extend(
@@ -372,6 +392,11 @@ def _scene_with_replaced_primary_cutting(scene, material):
                 if existing is not None and not existing.is_empty and ring_poly.symmetric_difference(existing).area <= 1e-4:
                     already_present = True
                     break
+            if not already_present:
+                already_present = any(
+                    ring_poly.equals(circle_hole)
+                    for circle_hole in retained_circle_holes
+                )
         if not already_present:
             new_interior_Loops.append(
                 PolylinePrimitive(points=ring_pts, layer="CUTTING", closed=True)
