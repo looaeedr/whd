@@ -20,6 +20,10 @@ import math
 from shapely.geometry import LineString, Point, Polygon, box
 
 from .assembly_geometry_primitives import thicken_triangle_surface
+from .assembly_geometry import (
+    diagnose_world_mesh_triangle_edge_incidence,
+    diagnose_world_mesh_self_intersections,
+)
 from .contracts import PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES
 from .sheetmetal_geometry_core import GeometryError
 from .v_miter_source_cut_face_trial import trace_v_miter_source_true_t_cut_faces
@@ -50,6 +54,13 @@ class TailSequentialFoldResult:
     triangulated_area_mm2: float
     first_stage_max_duplicate_vertex_jump_mm: float
     final_stage_max_duplicate_vertex_jump_mm: float
+    # Distinguish genuine non-neighbor T shell self-crossings from
+    # source-shared edge/vertex contacts. A zero witness is NOT a complete
+    # factory nonpenetration certification.
+    stage1_shell_topology: object
+    stage2_shell_topology: object
+    stage1_shell_self_intersection: object
+    stage2_shell_self_intersection: object
     # A mesh being numerically continuous does NOT prove that the finite
     # sheet carries a genuine process-supported isometric root transition.
     root_process_status: str = "FINITE_BEND_TIP_TRANSITION_KINEMATIC_ONLY"
@@ -273,6 +284,17 @@ def project_tail_same_sheet_sequential_fold_check(
         all_final,thickness_mm,smooth_vertex_normals=True,
         physical_vertex_offsets=offsets_final,tolerance=tol,
     )
+    # These checks operate on the SINGLE physical T-sheet shell,
+    # never on separately clipped flange solids. Shared adjacent
+    # triangulation edges cannot count as true material penetration.
+    top1=diagnose_world_mesh_triangle_edge_incidence(thick1,tolerance=tol)
+    top2=diagnose_world_mesh_triangle_edge_incidence(thick2,tolerance=tol)
+    self1=diagnose_world_mesh_self_intersections(
+        thick1,tolerance=tol,
+    )
+    self2=diagnose_world_mesh_self_intersections(
+        thick2,tolerance=tol,
+    )
     corners=[]
     tracks=[]
     for corner,apex,hits in (
@@ -340,4 +362,8 @@ def project_tail_same_sheet_sequential_fold_check(
         )),
         first_stage_max_duplicate_vertex_jump_mm=float(continuity_first),
         final_stage_max_duplicate_vertex_jump_mm=float(continuity_final),
+        stage1_shell_topology=top1,
+        stage2_shell_topology=top2,
+        stage1_shell_self_intersection=self1,
+        stage2_shell_self_intersection=self2,
     )

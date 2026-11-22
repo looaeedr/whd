@@ -80,6 +80,10 @@ def test_tail_real_same_blank_dual_90_v_and_folded_contact(first_axis):
         assert seq.root_process_status == (
             "FINITE_BEND_TIP_TRANSITION_KINEMATIC_ONLY"
         ), "A same-source kinematic mesh is NOT a proven elastic root fold"
+        assert seq.stage1_shell_topology.triangle_count > 0
+        assert seq.stage2_shell_topology.triangle_count > 0
+        assert seq.stage1_shell_self_intersection.tested_nonadjacent_pairs >= 0
+        assert seq.stage2_shell_self_intersection.tested_nonadjacent_pairs >= 0
         assert check.side_flange_left_mm == pytest.approx(15)
         assert check.side_flange_right_mm == pytest.approx(15)
         assert check.bottom_flange_mm == pytest.approx(48)
@@ -415,7 +419,7 @@ def test_tail_real_same_blank_dual_90_v_and_folded_contact(first_axis):
             assert traced["one_sheet_two_stage_models"][0]["source_area_mm2"] == pytest.approx(
                 seq.source_area_mm2
             )
-            assert traced["corners"][0]["sequential_same_source_cut_edge_tracks"]
+            assert traced["corners"][0]["same_sheet_stage_source_cut_tracks"]
             stageview=archive.read(
                 "WHD_tail_dual_V_same_sheet_stage1_stage2_V_tracks.svg"
             ).decode("utf-8")

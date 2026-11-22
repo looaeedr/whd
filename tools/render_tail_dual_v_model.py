@@ -711,7 +711,35 @@ def _model_report(check):
              "final_stage_max_same_source_vertex_jump_mm":
                 seq.final_stage_max_duplicate_vertex_jump_mm,
              "root_process_status":seq.root_process_status,
-             "manufacturing_status":seq.manufacturing_status}
+             "manufacturing_status":seq.manufacturing_status,
+             "stage1_T_shell_topology":{
+                 "boundary_edges":seq.stage1_shell_topology.boundary_edge_count,
+                 "nonmanifold_edges":seq.stage1_shell_topology.nonmanifold_edge_count,
+                 "nonmanifold_vertices":seq.stage1_shell_topology.nonmanifold_vertex_count,
+                 "degenerate_triangles":seq.stage1_shell_topology.degenerate_triangle_count,
+                 "edges_manifold_closed":seq.stage1_shell_topology.edges_manifold_closed,
+             },
+             "stage2_T_shell_topology":{
+                 "boundary_edges":seq.stage2_shell_topology.boundary_edge_count,
+                 "nonmanifold_edges":seq.stage2_shell_topology.nonmanifold_edge_count,
+                 "nonmanifold_vertices":seq.stage2_shell_topology.nonmanifold_vertex_count,
+                 "degenerate_triangles":seq.stage2_shell_topology.degenerate_triangle_count,
+                 "edges_manifold_closed":seq.stage2_shell_topology.edges_manifold_closed,
+             },
+             "stage1_true_T_self_intersection":{
+                 "nonadjacent_pairs_tested":seq.stage1_shell_self_intersection.tested_nonadjacent_pairs,
+                 "crossings":seq.stage1_shell_self_intersection.crossing_pair_count,
+                 "coplanar_overlap":seq.stage1_shell_self_intersection.coplanar_overlap_pair_count,
+                 "work_exhausted":seq.stage1_shell_self_intersection.numerical_budget_exhausted,
+                 "first_pair":seq.stage1_shell_self_intersection.first_source_triangle_pair,
+             },
+             "stage2_true_T_self_intersection":{
+                 "nonadjacent_pairs_tested":seq.stage2_shell_self_intersection.tested_nonadjacent_pairs,
+                 "crossings":seq.stage2_shell_self_intersection.crossing_pair_count,
+                 "coplanar_overlap":seq.stage2_shell_self_intersection.coplanar_overlap_pair_count,
+                 "work_exhausted":seq.stage2_shell_self_intersection.numerical_budget_exhausted,
+                 "first_pair":seq.stage2_shell_self_intersection.first_source_triangle_pair,
+             }}
             for axis,seq in check.sequential_same_sheet_stage_models
         ],
         "restored_corner_stock_ownership_mm2": [
