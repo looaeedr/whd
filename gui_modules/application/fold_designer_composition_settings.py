@@ -376,6 +376,36 @@ def settings_context_extension_projection(self, namespace, context):
     receiving_base = manufacturing_api.project_operator_receiving_base_plate_settings(
         base_snapshot, context=context,
     )
+    lower_v=manufacturing_api.project_operator_tail_lower_v_settings(
+        base_snapshot,context=context,
+    )
+    if lower_v is not None:
+        # Presentation receives *actual finite BEND* choices from Engine.
+        # Never derive a line identity from a Tk label or CHECK field.
+        lower_v["first_bend_status"]=(
+            manufacturing_api.project_operator_tail_lower_v_first_bend_status(
+                base_snapshot,
+            )
+        )
+        try:
+            from phase6_manufacturing_adapter import build_scene_payload_for_app
+            source=dict(build_scene_payload_for_app(app,"tail"))
+            source["_use_committed_relief"]=False
+            spec_callback=getattr(app,"_part_spec_query_callback",None)
+            scene_callback=getattr(app,"_scene_query_callback",None)
+            if not callable(spec_callback) or not callable(scene_callback):
+                raise ValueError("V_MITER_FIRST_BEND_ENGINE_SOURCE_UNAVAILABLE")
+            ctx=spec_callback("tail",dict(source))
+            if not isinstance(ctx,tuple) or ctx[0] is None:
+                raise ValueError("V_MITER_FIRST_BEND_PART_SPEC_MISSING")
+            render=scene_callback("tail",dict(source))
+            lower_v["first_bend_options"]=(
+                manufacturing_api.project_operator_tail_lower_v_first_bend_options(
+                    ctx[0],render,
+                )
+            )
+        except (ValueError,TypeError) as exc:
+            lower_v["first_bend_source_error"]=str(exc)
     return {
         "receiving_base_plate": receiving_base,
         "box_structure": (
@@ -395,11 +425,21 @@ def settings_context_extension_projection(self, namespace, context):
         ),
         "corner": {
             **corner_projection(context),
-            "tail_lower_v": manufacturing_api.project_operator_tail_lower_v_settings(
-                base_snapshot,context=context,
-            ),
+            "tail_lower_v": lower_v,
         },
     }
+
+def _schedule_tail_first_bend_source_refresh(app):
+    """Rebuild cached choice labels from CURRENT finite BEND after a UI edit."""
+    panel=getattr(app,"settings_panel",None)
+    root=getattr(app,"root",None)
+    if panel is None or root is None:
+        return
+    def refresh():
+        panel.invalidate_context("tail")
+        panel.render_context("tail")
+    root.after_idle(refresh)
+
 
 def select_tail_lower_v_choice(self, namespace, choice_var):
     """UI wires one Engine-validated optional source into live Save/3D."""
@@ -453,9 +493,14 @@ def select_tail_lower_v_choice(self, namespace, choice_var):
     if requested==current:
         return True
     app._phase6_input_snapshot.pop(key,None)
+    if requested=="original":
+        app._phase6_input_snapshot.pop(
+            manufacturing_api.TAIL_LOWER_V_FIRST_BENDS_KEY,None,
+        )
     if key in next_snapshot:
         app._phase6_input_snapshot[key]=next_snapshot[key]
     app.submit_update_intent("geometry",commit=True)
+    _schedule_tail_first_bend_source_refresh(app)
     status=getattr(app,"settings_status_var",None)
     if status is not None:
         status.set("下方左右截角："+(
@@ -464,6 +509,70 @@ def select_tail_lower_v_choice(self, namespace, choice_var):
         ))
     return True
 
+
+
+
+def select_tail_lower_v_first_bends(self, namespace, left_var, right_var):
+    """Commit source-bound left/right first bends, not an axis label."""
+    app=self.app
+    status=getattr(app,"settings_status_var",None)
+    try:
+        from phase6_manufacturing_adapter import build_scene_payload_for_app
+        values=dict(build_scene_payload_for_app(app,"tail"))
+        values["_use_committed_relief"]=False
+        source_spec=getattr(app,"_part_spec_query_callback",None)
+        source_render=getattr(app,"_scene_query_callback",None)
+        resolver=getattr(app,"_phase6_resolve_manufacturing_geometry",None)
+        if (not callable(source_spec) or not callable(source_render)
+                or not callable(resolver)):
+            raise ValueError("V_MITER_FIRST_BEND_ENGINE_SOURCE_UNAVAILABLE")
+        spec_tuple=source_spec("tail",dict(values))
+        if not isinstance(spec_tuple,tuple) or spec_tuple[0] is None:
+            raise ValueError("V_MITER_FIRST_BEND_PART_SPEC_MISSING")
+        spec=spec_tuple[0]
+        raw=source_render("tail",dict(values))
+        options=manufacturing_api.project_operator_tail_lower_v_first_bend_options(
+            spec,raw,
+        )
+        # Each Tk value must match the corresponding current Engine source
+        # line's explicit label, including physical endpoints.
+        axis={}
+        for corner,var in (("bottom_left",left_var),("bottom_right",right_var)):
+            label=str(var.get())
+            axis[corner]=next((
+                candidate for candidate in ("x","y")
+                if label==options[corner][candidate]["label"]
+            ),None)
+        next_source=manufacturing_api.commit_operator_tail_lower_v_first_bends(
+            app._phase6_input_snapshot,axis,spec=spec,render_data=raw,
+        )
+        solved=resolver()
+        tail=solved.part("tail") if solved is not None else None
+        if tail is None or getattr(tail,"render_data",None) is None:
+            raise ValueError("V_MITER_FIRST_BEND_RESOLVED_TAIL_REQUIRED")
+        manufacturing_api.project_operator_tail_lower_v_preview_render(
+            spec,raw,choice="v90",
+            resolved_render_data=tail.render_data,
+            first_bends=next_source[
+                manufacturing_api.TAIL_LOWER_V_FIRST_BENDS_KEY
+            ],
+        )
+    except (ValueError,TypeError) as exc:
+        if status is not None:
+            status.set(str(exc))
+        return False
+    app._phase6_input_snapshot[
+        manufacturing_api.TAIL_LOWER_V_FIRST_BENDS_KEY
+    ]=next_source[manufacturing_api.TAIL_LOWER_V_FIRST_BENDS_KEY]
+    app.submit_update_intent("geometry",commit=True)
+    _schedule_tail_first_bend_source_refresh(app)
+    if status is not None:
+        status.set(
+            "兩角首折："+axis["bottom_left"].upper()+"/"
+            +axis["bottom_right"].upper()
+            +"（已驗真實折線；非加工預覽）"
+        )
+    return True
 
 def sync_settings_panel_extension(
     self,
@@ -489,6 +598,8 @@ def sync_settings_panel_extension(
         setattr(app, name, dict(state.get(name, {}) or {}))
     original = required("original")
     app.tail_lower_v_choice_var=state.get("tail_lower_v_choice_var")
+    app.tail_lower_v_first_left_var=state.get("tail_lower_v_first_bottom_left_var")
+    app.tail_lower_v_first_right_var=state.get("tail_lower_v_first_bottom_right_var")
     app.fixed_corner_summary_var = (
         state.get("fixed_corner_summary_var")
         or original.tk.StringVar(value="")

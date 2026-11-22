@@ -599,10 +599,18 @@ from .physical_part_identity import (
 from .independent_part_view_mesh import (
     IndependentPartViewMesh, project_independent_part_view_mesh,
 )
+from .operator_tail_lower_v_first_bends import (
+    TAIL_LOWER_V_FIRST_BENDS_KEY,
+    project_operator_tail_lower_v_first_bend_options,
+    commit_operator_tail_lower_v_first_bends,
+    validate_operator_tail_lower_v_first_bends,
+    project_operator_tail_lower_v_first_bend_status,
+)
 from .operator_tail_lower_v import (
     TAIL_LOWER_V_SNAPSHOT_KEY, normalize_operator_tail_lower_v_choice,
     project_operator_tail_lower_v_settings, commit_operator_tail_lower_v_choice,
     project_operator_tail_lower_v_preview_render, tail_lower_v_preview_mesh,
+    tail_lower_v_first_stage_mesh,
     reject_tail_lower_v_preview_for_dxf,
 )
 

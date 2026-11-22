@@ -323,6 +323,11 @@ class Phase6FoldDesignerComposition:
     def select_tail_lower_v_choice(self, namespace, choice_var):
         return _composition_settings.select_tail_lower_v_choice(self, namespace, choice_var)
 
+    def select_tail_lower_v_first_bends(self, namespace, left_var, right_var):
+        return _composition_settings.select_tail_lower_v_first_bends(
+            self, namespace, left_var, right_var,
+        )
+
     def sync_settings_panel_extension(self, namespace, state, context):
         return _composition_settings.sync_settings_panel_extension(self, namespace, state, context)
 

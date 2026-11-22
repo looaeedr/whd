@@ -1125,6 +1125,9 @@ def settings_panel(self, namespace):
         tail_lower_v_selected=lambda part_key, choice_var: self.select_tail_lower_v_choice(
             namespace, choice_var
         ),
+        tail_lower_v_first_bends_selected=lambda left_var, right_var: self.select_tail_lower_v_first_bends(
+            namespace, left_var, right_var,
+        ),
         sync_context_extension=lambda state, context: self.sync_settings_panel_extension(
             namespace, state, context
         ),

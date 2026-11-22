@@ -315,7 +315,8 @@ def resolve(request):
 
     # #3317 single-source preview after existing manufacturing relief.
     from .operator_tail_lower_v import (
-        TAIL_LOWER_V_SNAPSHOT_KEY, normalize_operator_tail_lower_v_choice,
+        TAIL_LOWER_V_SNAPSHOT_KEY, TAIL_LOWER_V_FIRST_BENDS_KEY,
+        normalize_operator_tail_lower_v_choice,
         project_operator_tail_lower_v_preview_render,
     )
     choice=normalize_operator_tail_lower_v_choice(snapshot.get(TAIL_LOWER_V_SNAPSHOT_KEY))
@@ -337,6 +338,7 @@ def resolve(request):
             preview=project_operator_tail_lower_v_preview_render(
                 source.part_spec,source.render_data,choice=choice,
                 resolved_render_data=part.render_data,
+                first_bends=snapshot.get(TAIL_LOWER_V_FIRST_BENDS_KEY),
             )
             projected.append(replace(part,render_data=preview))
         parts=projected

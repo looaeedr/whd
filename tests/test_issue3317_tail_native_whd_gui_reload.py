@@ -60,8 +60,9 @@ def _assert_same_holes(before, after):
     return originals
 
 
+@pytest.mark.parametrize("operator_first_axis",(None,"x","y"))
 def test_actual_whd_main_gui_lower_v_preserves_existing_rect_clearance_roundtrip(
-    tmp_path, monkeypatch,
+    tmp_path, monkeypatch, operator_first_axis,
 ):
     if os.name != "nt" and not os.environ.get("DISPLAY"):
         pytest.skip("native WHD GUI requires a real Tk/Xvfb display")
@@ -231,6 +232,47 @@ def test_actual_whd_main_gui_lower_v_preserves_existing_rect_clearance_roundtrip
         )
         assert mesh.triangles == api.tail_lower_v_preview_mesh(with_v)
         assert len(mesh.triangles) > 500
+        if operator_first_axis is not None:
+            # Real Tk Settings: each corner has a separate source-bound
+            # finite BEND dropdown and an explicit commit control.
+            page = designer.settings_panel.render_context("tail")
+            extension = page["extension_state"]
+            from phase6_manufacturing_adapter import build_scene_payload_for_app
+            source = dict(build_scene_payload_for_app(designer, "tail"))
+            source["_use_committed_relief"] = False
+            spec, _ = designer._part_spec_query_callback("tail", source)
+            raw = designer._scene_query_callback("tail", source)
+            options = api.project_operator_tail_lower_v_first_bend_options(
+                spec, raw,
+            )
+            for corner in ("bottom_left", "bottom_right"):
+                var = extension["tail_lower_v_first_"+corner+"_var"]
+                chooser_axis = extension["tail_lower_v_first_"+corner+"_widget"]
+                assert chooser_axis.winfo_exists()
+                assert var.get() == "未指定"
+                # Invoke the REAL Tk dropdown, never bypass the button.
+                chooser_axis._phase6_menu.invoke(
+                    1 if operator_first_axis == "x" else 2
+                )
+                assert var.get() == options[corner][operator_first_axis]["label"]
+            confirm = extension["tail_lower_v_first_confirm_widget"]
+            assert confirm.winfo_exists()
+            confirm.invoke()
+            root.update_idletasks()
+            root.update()
+            saved_first = designer._phase6_input_snapshot[
+                api.TAIL_LOWER_V_FIRST_BENDS_KEY
+            ]
+            assert saved_first["bottom_left"]["first"] == operator_first_axis
+            assert saved_first["bottom_right"]["first"] == operator_first_axis
+            with_v = _real_resolved_tail(designer)
+            assert (with_v.metadata["tail_lower_v_operator_first_axis"]
+                    == operator_first_axis)
+            assert api.tail_lower_v_first_stage_mesh(with_v)
+            assert api.tail_lower_v_preview_mesh(with_v)
+        else:
+            assert with_v.metadata["tail_lower_v_operator_first_axis"] is None
+            assert api.tail_lower_v_first_stage_mesh(with_v) is None
 
         # Invoke WHD's actual main toolbar Save As and Open buttons.
         main.project_save_as_button.invoke()
@@ -238,6 +280,15 @@ def test_actual_whd_main_gui_lower_v_preserves_existing_rect_clearance_roundtrip
         saved = read_project(destination)["snapshot"]
         assert saved[api.TAIL_LOWER_V_SNAPSHOT_KEY] == "v90"
         assert feature in saved["part_features"]["tail"]
+        if operator_first_axis is None:
+            assert api.TAIL_LOWER_V_FIRST_BENDS_KEY not in saved
+        else:
+            assert saved[api.TAIL_LOWER_V_FIRST_BENDS_KEY][
+                "bottom_left"
+            ]["first"] == operator_first_axis
+            assert saved[api.TAIL_LOWER_V_FIRST_BENDS_KEY][
+                "bottom_right"
+            ]["first"] == operator_first_axis
 
         main.project_open_button.invoke()
         root.update_idletasks()
@@ -246,6 +297,13 @@ def test_actual_whd_main_gui_lower_v_preserves_existing_rect_clearance_roundtrip
         chooser2, selected2 = _real_tail_selector(reopened)
         assert selected2.get() == "V 型"
         reloaded_v = _real_resolved_tail(reopened)
+        assert reloaded_v.metadata["tail_lower_v_operator_first_axis"] == operator_first_axis
+        if operator_first_axis is None:
+            assert api.tail_lower_v_first_stage_mesh(reloaded_v) is None
+        else:
+            assert api.tail_lower_v_first_stage_mesh(reloaded_v) == (
+                api.tail_lower_v_first_stage_mesh(with_v)
+            )
         _assert_same_holes(with_v, reloaded_v)
         assert reloaded_v.material.symmetric_difference(with_v.material).area < 1e-5
         assert api.project_independent_part_view_mesh(
@@ -257,6 +315,7 @@ def test_actual_whd_main_gui_lower_v_preserves_existing_rect_clearance_roundtrip
         root.update()
         assert selected2.get() == "原樣"
         assert api.TAIL_LOWER_V_SNAPSHOT_KEY not in reopened._phase6_input_snapshot
+        assert api.TAIL_LOWER_V_FIRST_BENDS_KEY not in reopened._phase6_input_snapshot
         restored = _real_resolved_tail(reopened)
         _assert_same_holes(original, restored)
         assert restored.material.symmetric_difference(original.material).area < 1e-5

@@ -15,6 +15,10 @@ from dataclasses import dataclass
 from typing import Mapping
 
 from .sheetmetal_geometry_core import GeometryError
+from .operator_tail_lower_v_first_bends import (
+    TAIL_LOWER_V_FIRST_BENDS_KEY,
+    validate_operator_tail_lower_v_first_bends,
+)
 from .manufacturing_render_data import (
     PartRenderData, fold_guides_from_final_scene,
     material_polygon_from_final_scene,
@@ -94,11 +98,13 @@ def commit_operator_tail_lower_v_choice(
         # Removing the OPTIONAL key exactly restores pre-feature project
         # semantics (and keeps legacy projects byte-identical where possible).
         result.pop(TAIL_LOWER_V_SNAPSHOT_KEY,None)
+        result.pop(TAIL_LOWER_V_FIRST_BENDS_KEY,None)
     return result
 
 
 def project_operator_tail_lower_v_preview_render(
     spec, render_data=None, *, choice: str, resolved_render_data=None,
+    first_bends=None,
 ):
     """One Factory source: 2D FinalScene + same-source T2 preview mesh.
 
@@ -133,6 +139,9 @@ def project_operator_tail_lower_v_preview_render(
     else:
         base=render_data
     flat=project_tail_illustrated_side_v90_flat(spec,base)
+    selected_first_axis=validate_operator_tail_lower_v_first_bends(
+        first_bends, spec=spec, render_data=base,
+    )
     unmodified_v_source=flat
     preserved_relief=()
     if resolved_render_data is not None:
@@ -142,7 +151,29 @@ def project_operator_tail_lower_v_preview_render(
         flat,preserved_relief=replay_independent_lower_v_relief(
             flat,original_render=base,resolved_render=resolved_render_data,
         )
-    solid=project_tail_v90_full_t_no_ba(flat,first_axis="x")
+    # The original x-first preview remains a NOMINAL visual until an
+    # operator has selected the actual finite BEND for BOTH corners.
+    # Neither a name nor a saved CHECK-only corner field is an order choice.
+    solid=project_tail_v90_full_t_no_ba(
+        flat,first_axis=selected_first_axis or "x",
+    )
+    stage=None
+    if selected_first_axis is not None:
+        from .v_miter_tail_no_ba_sequential import (
+            project_tail_v90_no_ba_sequential_check,
+        )
+        stage=project_tail_v90_no_ba_sequential_check(
+            flat,first_axis=selected_first_axis,
+        )
+        # Its legacy sequential CHECK triangulation is outer-only. The
+        # physical first-stage preview must instead transform the SAME
+        # hole-preserving source triangles used by the full-T final mesh.
+        from .v_miter_tail_no_ba_sequential import _stages, stations_from_real_flat
+        real_stations=stations_from_real_flat(flat)
+        first_surface=tuple(
+            tuple(_stages(uv,selected_first_axis,real_stations)[0] for uv in tri)
+            for tri in solid.source_triangles
+        )
     if solid.manufacturing_approved:
         raise GeometryError("V_MITER_LOWER_PREVIEW_UNEXPECTED_EXPORT_APPROVAL")
     formed=tuple(
@@ -171,6 +202,24 @@ def project_operator_tail_lower_v_preview_render(
             "tail_lower_v_physical_t":float(spec.thickness),
             "tail_lower_v_nominal_formed_outer_mm":solid.formed_outer_extents_xyz_mm,
             "tail_lower_v_no_ba":True,
+            "tail_lower_v_first_fold_basis": (
+                "OPERATOR_SELECTED_PHYSICAL_BEND" if stage is not None
+                else "NOMINAL_UNSELECTED_PREVIEW"
+            ),
+            "tail_lower_v_operator_first_axis":selected_first_axis,
+            "tail_lower_v_operator_first_stage_triangles":(
+                first_surface if stage is not None else None
+            ),
+            "tail_lower_v_operator_midpoint_tracks":(
+                stage.midpoint_tracks if stage is not None else None
+            ),
+            "tail_lower_v_operator_first_stage_kind":(
+                "SAME_HOLE_PRESERVING_SOURCE_INSIDE_SURFACE"
+                if stage is not None else None
+            ),
+            "tail_lower_v_operator_first_source_bends":(
+                first_bends if stage is not None else None
+            ),
         },
         unfolded_topology=None,
     )
@@ -189,3 +238,16 @@ def tail_lower_v_preview_mesh(render_data):
 def reject_tail_lower_v_preview_for_dxf(render_data):
     if (getattr(render_data,"metadata",{}) or {}).get("tail_lower_v_preview_only"):
         raise ValueError("V 型下方左右截角尚未核准加工 DXF；只能預覽 2D／3D")
+
+
+
+def tail_lower_v_first_stage_mesh(render_data):
+    """Only a verified operator first-fold stage, never the nominal preview."""
+    meta=getattr(render_data,"metadata",{}) or {}
+    if (meta.get("tail_lower_v_first_fold_basis")
+            != "OPERATOR_SELECTED_PHYSICAL_BEND"):
+        return None
+    rows=meta.get("tail_lower_v_operator_first_stage_triangles")
+    if not isinstance(rows,tuple) or not rows:
+        raise GeometryError("V_MITER_OPERATOR_FIRST_STAGE_MESH_MISSING")
+    return rows

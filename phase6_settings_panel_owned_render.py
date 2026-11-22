@@ -265,6 +265,51 @@ class Phase6SettingsPanelOwnedRenderMixin:
         )
         chooser.pack(side=tk.LEFT)
         state["tail_lower_v_choice_widget"]=chooser
+        choices=lower.get("first_bend_options")
+        if not isinstance(choices,dict):
+            note=lower.get("first_bend_source_error") or "未取得原始實體折線"
+            ttk.Label(frame,text="首折來源不可選："+str(note),
+                      wraplength=850).pack(anchor=tk.W)
+            return
+        selected=dict(lower.get("first_bend_status") or {})
+        active={}
+        for corner,title in (
+            ("bottom_left","左下首折"),
+            ("bottom_right","右下首折"),
+        ):
+            options=choices.get(corner)
+            if not isinstance(options,dict):
+                raise ValueError("V_MITER_FIRST_BEND_MISSING_CORNER_LINES")
+            names=tuple(options[axis]["label"] for axis in ("x","y"))
+            axis=selected.get(corner)
+            if axis not in (None,"x","y"):
+                raise ValueError("V_MITER_FIRST_BEND_SAVED_AXIS_INVALID")
+            row=ttk.Frame(frame)
+            row.pack(fill=tk.X,pady=(2,1))
+            ttk.Label(row,text=title+"（實際 BEND）：").pack(side=tk.LEFT)
+            var=tk.StringVar(master=row,value=(
+                options[axis]["label"] if axis is not None else "未指定"
+            ))
+            chooser=build_choice_menubutton(
+                row,variable=var,values=("未指定",)+names,width=61,
+            )
+            chooser.pack(side=tk.LEFT)
+            state["tail_lower_v_first_"+corner+"_var"]=var
+            state["tail_lower_v_first_"+corner+"_widget"]=chooser
+            active[corner]=var
+        action=ttk.Button(
+            frame,text="確認左右兩角首折",
+            command=(lambda l=active["bottom_left"],r=active["bottom_right"]:
+                     self._tail_lower_v_first_bends_selected(l,r))
+            if self._tail_lower_v_first_bends_selected is not None else None,
+        )
+        action.pack(anchor=tk.W,pady=(4,3))
+        state["tail_lower_v_first_confirm_widget"]=action
+        ttk.Label(
+            frame,text="兩角必須各自選真實折線；未指定仍是名義 V 預覽，"
+                       "不同向／只選一角不可視為已確認首折。",
+            wraplength=850,
+        ).pack(anchor=tk.W)
 
     def _render_owned_corner(self, parent, context, start_row, projection, state):
         fixed_summary_var = state["fixed_corner_summary_var"]

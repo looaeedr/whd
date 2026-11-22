@@ -236,6 +236,17 @@ def normalize_project_snapshot_authority(snapshot):
             result.pop(TAIL_LOWER_V_SNAPSHOT_KEY,None)
         else:
             result[TAIL_LOWER_V_SNAPSHOT_KEY]=choice
+    # First-bend selection is an explicit persisted REAL BEND source, not
+    # an old V_MITER_CHECK axis or an optional default. A partial/stale
+    # source must not silently fall back to nominal X on reload.
+    from .operator_tail_lower_v_first_bends import (
+        TAIL_LOWER_V_FIRST_BENDS_KEY,
+        project_operator_tail_lower_v_first_bend_status,
+    )
+    if TAIL_LOWER_V_FIRST_BENDS_KEY in result:
+        if result.get(TAIL_LOWER_V_SNAPSHOT_KEY)!="v90":
+            raise ValueError("V_MITER_FIRST_BEND_REQUIRES_SAVED_V_CHOICE")
+        project_operator_tail_lower_v_first_bend_status(result)
     result = normalize_authoritative_door_state(result)
     if is_receiving_snapshot(result):
         from ae_engine.receiving_layout import RECEIVING_DOOR_STATE_KEYS
