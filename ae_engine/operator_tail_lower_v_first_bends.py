@@ -58,8 +58,16 @@ def _label(axis, segment):
     return f"{name} ({p[0]:g},{p[1]:g})－({q[0]:g},{q[1]:g}) mm"
 
 
-def project_operator_tail_lower_v_first_bend_options(spec, render_data):
-    """Read BOTH physical choices at EACH source corner, including endpoints."""
+def project_operator_tail_lower_v_first_bend_options(
+    spec, render_data, *, active_v_render_data=None,
+):
+    """Read BOTH source BEND identities, but label the ACTUAL visible lines.
+
+    `bend` and `source_bends` ALWAYS come from the original pre-V sheet.
+    The optional active V FinalScene is read only for `display_bend`/label:
+    the V CUTTING repair extends the side guide from Y=49 to real Y=0.
+    Never persist a display-only guide as a source identity.
+    """
     if not isinstance(spec, EndCapPartSpec) or not spec.is_tail or str(
         spec.model_name or ""
     ) not in ("金庫型", "VAULT"):
@@ -72,6 +80,25 @@ def project_operator_tail_lower_v_first_bend_options(spec, render_data):
             material.symmetric_difference(render_data.material).area > 1e-5):
         raise GeometryError("V_MITER_FIRST_BEND_SOURCE_MATERIAL_MISMATCH")
     output = {"source_bends": _all_bends(render_data)}
+    active_material = None
+    if active_v_render_data is not None:
+        if (not isinstance(active_v_render_data, PartRenderData)
+                or active_v_render_data.scene is None
+                or (active_v_render_data.metadata or {}).get(
+                    "tail_lower_v_choice") != "v90"
+                or (active_v_render_data.metadata or {}).get(
+                    "tail_lower_v_preview_only") is not True):
+            raise GeometryError("V_MITER_FIRST_BEND_ACTIVE_V_FINAL_SCENE_REQUIRED")
+        active_material = material_polygon_from_final_scene(
+            active_v_render_data.scene,
+        )
+        if (active_material.geom_type != "Polygon"
+                or not active_material.is_valid
+                or active_v_render_data.material is None
+                or active_material.symmetric_difference(
+                    active_v_render_data.material
+                ).area > 1e-5):
+            raise GeometryError("V_MITER_FIRST_BEND_ACTIVE_V_MATERIAL_MISMATCH")
     for corner in _CORNERS:
         selected = _physical_corner_bends(render_data.scene, material, corner)
         vx, hy = selected[6], selected[7]  # ACTUAL finite source lines.
@@ -79,9 +106,27 @@ def project_operator_tail_lower_v_first_bend_options(spec, render_data):
         if (xs[0][0] != xs[1][0] or ys[0][1] != ys[1][1]
                 or abs(ys[0][1] - float(spec.fold_bottom)) > _TOL):
             raise GeometryError("V_MITER_FIRST_BEND_SOURCE_STATION_MISMATCH")
+        shown_x, shown_y = xs, ys
+        if active_material is not None:
+            # Read the same BEND primitives the operator sees in the
+            # active V FinalScene. The source selection is still recorded
+            # against the unmodified pre-V finite line.
+            visible = _physical_corner_bends(
+                active_v_render_data.scene, active_material, corner,
+            )
+            shown_x, shown_y = _segment(visible[6]), _segment(visible[7])
+            if (shown_y != ys
+                    or shown_x[0][0] != xs[0][0]
+                    or shown_x[1] != xs[1]
+                    or shown_x[0][1] > xs[0][1] + _TOL):
+                raise GeometryError(
+                    "V_MITER_FIRST_BEND_ACTIVE_V_SOURCE_MISMATCH"
+                )
         output[corner] = {
-            "x": {"bend": xs, "label": _label("x", xs)},
-            "y": {"bend": ys, "label": _label("y", ys)},
+            "x": {"bend": xs, "display_bend": shown_x,
+                  "label": _label("x", shown_x)},
+            "y": {"bend": ys, "display_bend": shown_y,
+                  "label": _label("y", shown_y)},
         }
     if output["bottom_left"]["y"]["bend"] != output["bottom_right"]["y"]["bend"]:
         raise GeometryError("V_MITER_FIRST_BEND_SHARED_BOTTOM_SOURCE_MISMATCH")

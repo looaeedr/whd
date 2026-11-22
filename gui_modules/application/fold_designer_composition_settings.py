@@ -399,9 +399,21 @@ def settings_context_extension_projection(self, namespace, context):
             if not isinstance(ctx,tuple) or ctx[0] is None:
                 raise ValueError("V_MITER_FIRST_BEND_PART_SPEC_MISSING")
             render=scene_callback("tail",dict(source))
+            active_v=None
+            if lower_v.get("choice")=="v90":
+                resolver=getattr(
+                    app,"_phase6_resolve_manufacturing_geometry",None,
+                )
+                if not callable(resolver):
+                    raise ValueError("V_MITER_FIRST_BEND_ACTIVE_V_FINAL_SCENE_REQUIRED")
+                geometry=resolver()
+                tail=geometry.part("tail") if geometry is not None else None
+                if tail is None or tail.render_data is None:
+                    raise ValueError("V_MITER_FIRST_BEND_ACTIVE_V_FINAL_SCENE_REQUIRED")
+                active_v=tail.render_data
             lower_v["first_bend_options"]=(
                 manufacturing_api.project_operator_tail_lower_v_first_bend_options(
-                    ctx[0],render,
+                    ctx[0],render,active_v_render_data=active_v,
                 )
             )
         except (ValueError,TypeError) as exc:
@@ -526,11 +538,16 @@ def select_tail_lower_v_first_bends(self, namespace, left_var, right_var):
             raise ValueError("V_MITER_FIRST_BEND_PART_SPEC_MISSING")
         spec=spec_tuple[0]
         raw=source_render("tail",dict(values))
+        current=resolver()
+        active_tail=current.part("tail") if current is not None else None
+        if active_tail is None or active_tail.render_data is None:
+            raise ValueError("V_MITER_FIRST_BEND_ACTIVE_V_FINAL_SCENE_REQUIRED")
         options=manufacturing_api.project_operator_tail_lower_v_first_bend_options(
-            spec,raw,
+            spec,raw,active_v_render_data=active_tail.render_data,
         )
-        # Each Tk value must match the corresponding current Engine source
-        # line's explicit label, including physical endpoints.
+        # Match the CURRENT V FinalScene display label, not the pre-V
+        # guide's original starting point. Engine still commits and
+        # stale-checks original `bend`/`source_bends` from `raw`.
         axis={}
         for corner,var in (("bottom_left",left_var),("bottom_right",right_var)):
             label=str(var.get())

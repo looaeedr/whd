@@ -160,6 +160,18 @@ def test_actual_whd_main_gui_lower_v_preserves_existing_rect_clearance_roundtrip
         original = _real_resolved_tail(designer)
         original_holes = _material_holes(original)
         assert len(original_holes) >= 1
+        source_lines = api.project_operator_tail_lower_v_first_bend_options(
+            live_spec, live_raw,
+        )
+        original_page = designer.settings_panel.render_context("tail")
+        original_controls = original_page["extension_state"]
+        for corner, x in (("bottom_left", 15.), ("bottom_right", 627.)):
+            row = source_lines[corner]["x"]
+            assert row["bend"] == [[x, 49.], [x, 225.]]
+            assert row["display_bend"] == row["bend"]
+            assert original_controls[
+                "tail_lower_v_first_" + corner + "_widget"
+            ]._phase6_menu.entrycget(1, "label") == row["label"]
 
         # Actual Tk dropdown command -> Engine preflight -> live 2D & T3D.
         chooser._phase6_menu.invoke(1)
@@ -227,6 +239,23 @@ def test_actual_whd_main_gui_lower_v_preserves_existing_rect_clearance_roundtrip
             expected_square,
         )
         assert with_v.metadata["tail_lower_v_preview_only"] is True
+        visible_lines = api.project_operator_tail_lower_v_first_bend_options(
+            live_spec, live_raw, active_v_render_data=with_v,
+        )
+        assert visible_lines["source_bends"] == source_lines["source_bends"]
+        v_page = designer.settings_panel.render_context("tail")
+        v_controls = v_page["extension_state"]
+        for corner, x in (("bottom_left", 15.), ("bottom_right", 627.)):
+            row = visible_lines[corner]["x"]
+            assert row["bend"] == source_lines[corner]["x"]["bend"]
+            assert row["display_bend"] == [[x, 0.], [x, 225.]]
+            assert v_controls[
+                "tail_lower_v_first_" + corner + "_widget"
+            ]._phase6_menu.entrycget(1, "label") == row["label"]
+            assert visible_lines[corner]["y"] == {
+                **source_lines[corner]["y"],
+                "display_bend": source_lines[corner]["y"]["bend"],
+            }
         mesh = api.project_independent_part_view_mesh(
             "tail", with_v, x_profile=(), y_profile=(), thickness=2.,
         )
@@ -243,7 +272,7 @@ def test_actual_whd_main_gui_lower_v_preserves_existing_rect_clearance_roundtrip
             spec, _ = designer._part_spec_query_callback("tail", source)
             raw = designer._scene_query_callback("tail", source)
             options = api.project_operator_tail_lower_v_first_bend_options(
-                spec, raw,
+                spec, raw, active_v_render_data=with_v,
             )
             for corner in ("bottom_left", "bottom_right"):
                 var = extension["tail_lower_v_first_"+corner+"_var"]
@@ -305,6 +334,13 @@ def test_actual_whd_main_gui_lower_v_preserves_existing_rect_clearance_roundtrip
                 api.tail_lower_v_first_stage_mesh(with_v)
             )
         _assert_same_holes(with_v, reloaded_v)
+        reopened_page = reopened.settings_panel.render_context("tail")
+        reopened_controls = reopened_page["extension_state"]
+        assert reopened_controls[
+            "tail_lower_v_first_bottom_left_widget"
+        ]._phase6_menu.entrycget(1, "label") == visible_lines[
+            "bottom_left"
+        ]["x"]["label"]
         assert reloaded_v.material.symmetric_difference(with_v.material).area < 1e-5
         assert api.project_independent_part_view_mesh(
             "tail", reloaded_v, x_profile=(), y_profile=(), thickness=2.,
@@ -320,5 +356,12 @@ def test_actual_whd_main_gui_lower_v_preserves_existing_rect_clearance_roundtrip
         _assert_same_holes(original, restored)
         assert restored.material.symmetric_difference(original.material).area < 1e-5
         assert api.tail_lower_v_preview_mesh(restored) is None
+        original_again = reopened.settings_panel.render_context("tail")
+        for corner in ("bottom_left", "bottom_right"):
+            assert original_again["extension_state"][
+                "tail_lower_v_first_" + corner + "_widget"
+            ]._phase6_menu.entrycget(1, "label") == source_lines[
+                corner
+            ]["x"]["label"]
     finally:
         root.destroy()

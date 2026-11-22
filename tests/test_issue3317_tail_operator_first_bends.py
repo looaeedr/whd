@@ -197,3 +197,92 @@ def test_source_bend_drift_or_corrupt_saved_pair_rejected(actual_tail):
         api.validate_operator_tail_lower_v_first_bends(
             recorded, spec=spec, render_data=changed,
         )
+
+
+@pytest.mark.parametrize("axis", (None, "x", "y"))
+def test_active_v_labels_use_drawn_extended_bends_not_saved_source(
+    actual_tail, axis,
+):
+    spec, raw = actual_tail
+    source_options = api.project_operator_tail_lower_v_first_bend_options(
+        spec, raw,
+    )
+    selected = (
+        _selected(spec, raw, axis)[1][api.TAIL_LOWER_V_FIRST_BENDS_KEY]
+        if axis is not None else None
+    )
+    active = api.project_operator_tail_lower_v_preview_render(
+        spec, raw, choice="v90", first_bends=selected,
+    )
+    visible = api.project_operator_tail_lower_v_first_bend_options(
+        spec, raw, active_v_render_data=active,
+    )
+    assert visible["source_bends"] == source_options["source_bends"]
+    assert active.material.bounds == pytest.approx((0., 0., 642., 268.))
+    for corner, x in (("bottom_left", 15.), ("bottom_right", 627.)):
+        # The persistent BEFORE-V fold remains Y=49..225.
+        original_x = [[x, 49.], [x, 225.]]
+        final_x = [[x, 0.], [x, 225.]]
+        assert source_options[corner]["x"]["bend"] == original_x
+        assert visible[corner]["x"]["bend"] == original_x
+        assert visible[corner]["x"]["display_bend"] == final_x
+        assert visible[corner]["x"]["label"] == (
+            f"側折線 X ({x:g},0)－({x:g},225) mm"
+        )
+        assert visible[corner]["x"]["label"] != source_options[corner]["x"]["label"]
+        # Lower Y is unchanged in both physical scenes.
+        assert visible[corner]["y"]["bend"] == source_options[corner]["y"]["bend"]
+        assert visible[corner]["y"]["display_bend"] == source_options[corner]["y"]["bend"]
+        assert visible[corner]["y"]["label"] == source_options[corner]["y"]["label"]
+        # Display endpoints are actual unmodified BEND primitives in V FinalScene.
+        assert any(
+            isinstance(line, LinePrimitive) and line.layer == "BEND"
+            and sorted((
+                [round(line.p1.x, 7), round(line.p1.y, 7)],
+                [round(line.p2.x, 7), round(line.p2.y, 7)],
+            )) == final_x
+            for line in active.scene.primitives
+        )
+    if selected is not None:
+        assert api.validate_operator_tail_lower_v_first_bends(
+            selected, spec=spec, render_data=raw,
+        ) == axis
+        assert api.tail_lower_v_first_stage_mesh(active)
+    else:
+        assert api.tail_lower_v_first_stage_mesh(active) is None
+    assert api.tail_lower_v_preview_mesh(active)
+    with pytest.raises(ValueError, match="禁止加工|尚未核准"):
+        api.reject_tail_lower_v_preview_for_dxf(active)
+
+
+def test_only_active_v_final_scene_may_override_bend_labels(actual_tail):
+    spec, raw = actual_tail
+    with pytest.raises(GeometryError, match="ACTIVE_V_FINAL_SCENE_REQUIRED"):
+        api.project_operator_tail_lower_v_first_bend_options(
+            spec, raw, active_v_render_data=raw,
+        )
+    active = api.project_operator_tail_lower_v_preview_render(
+        spec, raw, choice="v90",
+    )
+    # An invalid active line cannot become an accepted source or GUI label.
+    x_line = next(
+        line for line in active.scene.primitives
+        if isinstance(line, LinePrimitive) and line.layer == "BEND"
+        and line.p1.x == line.p2.x and round(line.p1.x, 7) == 15.
+    )
+    altered = replace(
+        x_line,
+        p1=Vec2(x_line.p1.x, 55.),
+    )
+    changed = replace(
+        active,
+        scene=DrawingScene(
+            [altered if line is x_line else line for line in active.scene.primitives]
+        ),
+    )
+    # The Engine accepts only a line actually seen in the active V
+    # FinalScene; it must not relabel, save, or alter original BEND.
+    with pytest.raises(GeometryError, match="ACTIVE_V_SOURCE_MISMATCH"):
+        api.project_operator_tail_lower_v_first_bend_options(
+            spec, raw, active_v_render_data=changed,
+        )
