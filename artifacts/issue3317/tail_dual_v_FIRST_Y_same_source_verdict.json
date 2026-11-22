@@ -1,0 +1,866 @@
+{
+  "corners": [
+    {
+      "actual_formed_joint_axis_xyz": [
+        [
+          12,
+          45,
+          3
+        ],
+        [
+          12,
+          45,
+          13.821681770725576
+        ]
+      ],
+      "actual_formed_seam_reach_mm": 13.821681770725576,
+      "actual_true_T_cut_face_nearest_points": [
+        {
+          "bottom_cut_xyz_mm": [
+            8.116261328044182,
+            46,
+            5.705420442681394
+          ],
+          "fraction": 0.25,
+          "gap_mm": 9.340062179650456,
+          "side_cut_xyz_mm": [
+            11,
+            54.88373867195582,
+            5.705420442681394
+          ],
+          "status": "MEASURED"
+        },
+        {
+          "bottom_cut_xyz_mm": [
+            5.410840885362788,
+            46,
+            8.410840885362788
+          ],
+          "fraction": 0.5,
+          "gap_mm": 12.866518899574624,
+          "side_cut_xyz_mm": [
+            11,
+            57.58915911463721,
+            8.410840885362788
+          ],
+          "status": "MEASURED"
+        },
+        {
+          "bottom_cut_xyz_mm": [
+            2.705420442681394,
+            46,
+            11.116261328044182
+          ],
+          "fraction": 0.75,
+          "gap_mm": 16.526798079277143,
+          "side_cut_xyz_mm": [
+            11,
+            60.294579557318606,
+            11.116261328044182
+          ],
+          "status": "MEASURED"
+        },
+        {
+          "bottom_cut_xyz_mm": [
+            0.5410840885362784,
+            46,
+            13.280597682189297
+          ],
+          "fraction": 0.95,
+          "gap_mm": 19.50089318528007,
+          "side_cut_xyz_mm": [
+            11,
+            62.45891591146372,
+            13.280597682189297
+          ],
+          "status": "MEASURED"
+        }
+      ],
+      "any_90deg_asymmetry_best_case_far_gap_floor_mm": null,
+      "bottom_cut_face_z_mm": [
+        -1,
+        13.821681770725576
+      ],
+      "corner": "bottom_left",
+      "distal_zero_r_vs_rba_shortfall_mm": 1.1783182292744243,
+      "failure_bottom": null,
+      "failure_side": null,
+      "full_gap_lower_bound_mm": null,
+      "full_gap_upper_bound_mm": null,
+      "hypothetical_RBA_inverse_not_cutting_xyz": [
+        [
+          5.705420442681394,
+          [
+            8.116261328044182,
+            45
+          ],
+          [
+            12,
+            41.11626132804418
+          ],
+          6.988858638415681,
+          2.746217951296395,
+          4
+        ],
+        [
+          8.410840885362788,
+          [
+            5.410840885362788,
+            45
+          ],
+          [
+            12,
+            38.41084088536279
+          ],
+          8.901879779396406,
+          4.659239092277121,
+          4
+        ],
+        [
+          11.116261328044182,
+          [
+            2.705420442681394,
+            45
+          ],
+          [
+            12,
+            35.705420442681394
+          ],
+          10.814900920377132,
+          6.572260233257846,
+          4
+        ],
+        [
+          13.280597682189297,
+          [
+            0.5410840885362767,
+            45
+          ],
+          [
+            12,
+            33.54108408853628
+          ],
+          12.345317833161712,
+          8.102677146042424,
+          4
+        ]
+      ],
+      "hypothetical_RBA_inverse_source_coverage": [
+        [
+          5.705420442681394,
+          true,
+          false,
+          true,
+          true
+        ],
+        [
+          8.410840885362788,
+          true,
+          false,
+          true,
+          true
+        ],
+        [
+          11.116261328044182,
+          true,
+          false,
+          true,
+          true
+        ],
+        [
+          13.280597682189297,
+          true,
+          false,
+          true,
+          true
+        ]
+      ],
+      "interference_z_range_mm": [
+        -1,
+        1
+      ],
+      "max_sampled_cut_face_gap_mm": 12.866518899574624,
+      "minimum_side_BEND_start_to_hypothetical_y_station_mm": 4,
+      "native_uncut_fold_endpoint_jump_max_mm": 0.0002000000000066393,
+      "native_uncut_fold_endpoint_status": "NO_DETECTED_NATIVE_SPAN_DISCONTINUITY",
+      "non_measured_intervals_mm": [],
+      "operator_first_physical_bend_axis": "y",
+      "operator_second_physical_bend_axis": "x",
+      "root_intersection_topology": "COLLINEAR_SHARED_ROOT_EDGE_CANDIDATE_NOT_PENETRATION",
+      "seam_failure": null,
+      "side_cut_face_z_mm": [
+        -1,
+        13.821681770725576
+      ],
+      "side_upper_and_bottom_lower_source_v_lengths_mm": [
+        21.213203435596427,
+        9.999999974053009e-7,
+        21.213203435596427,
+        9.999999974053009e-7
+      ],
+      "source_geometric_gap_floor_at_straight_end_mm": null,
+      "source_geometric_gap_floor_at_straight_start_mm": null,
+      "source_true_T_mating_faces": {
+        "bottom": "lower V original CUTTING -> bottom Y BEND",
+        "side": "upper V original CUTTING -> side X BEND"
+      },
+      "status": "MODEL_NOT_VERIFIED",
+      "straight_section_y_domain_witness_mm": {
+        "bottom_fold_straight_true_T_outer_max_y": 46,
+        "hypothetical_seam_y": 45,
+        "minimum_y_projection_gap": 2,
+        "scope": "current separated RBA patches, not universal V impossibility",
+        "side_fold_source_min_y": 48
+      },
+      "surface_intersection_pairs_do_not_prove_penetration": true,
+      "surface_intersection_segments_xyz": [
+        [
+          [
+            15,
+            48,
+            1
+          ],
+          [
+            15,
+            48,
+            -1
+          ]
+        ]
+      ],
+      "surface_intersection_triangle_pairs": 4,
+      "topological_clearance_lower_bound_mm": null,
+      "topology_contact_failure": null,
+      "true_cut_face_gap_by_z_mm": [
+        {
+          "gap": 9.340062179650456,
+          "status": "MEASURED",
+          "z": 5.705420442681394
+        },
+        {
+          "gap": 12.866518899574624,
+          "status": "MEASURED",
+          "z": 8.410840885362788
+        },
+        {
+          "gap": 16.526798079277143,
+          "status": "MEASURED",
+          "z": 11.116261328044182
+        },
+        {
+          "gap": 19.50089318528007,
+          "status": "MEASURED",
+          "z": 13.280597682189297
+        }
+      ],
+      "unresolved_vertex_events": 2,
+      "volume_status": "NO_DETECTED_VOLUME_WITNESS"
+    },
+    {
+      "actual_formed_joint_axis_xyz": [
+        [
+          410,
+          45,
+          3
+        ],
+        [
+          410,
+          45,
+          13.821681770725576
+        ]
+      ],
+      "actual_formed_seam_reach_mm": 13.821681770725576,
+      "actual_true_T_cut_face_nearest_points": [
+        {
+          "bottom_cut_xyz_mm": [
+            413.8837386719558,
+            46,
+            5.705420442681394
+          ],
+          "fraction": 0.25,
+          "gap_mm": 9.340062179650458,
+          "side_cut_xyz_mm": [
+            411,
+            54.88373867195582,
+            5.705420442681394
+          ],
+          "status": "MEASURED"
+        },
+        {
+          "bottom_cut_xyz_mm": [
+            416.5891591146372,
+            46,
+            8.410840885362788
+          ],
+          "fraction": 0.5,
+          "gap_mm": 12.866518899574618,
+          "side_cut_xyz_mm": [
+            411,
+            57.58915911463721,
+            8.410840885362788
+          ],
+          "status": "MEASURED"
+        },
+        {
+          "bottom_cut_xyz_mm": [
+            419.29457955731857,
+            46,
+            11.116261328044182
+          ],
+          "fraction": 0.75,
+          "gap_mm": 16.52679807927713,
+          "side_cut_xyz_mm": [
+            411,
+            60.294579557318606,
+            11.116261328044182
+          ],
+          "status": "MEASURED"
+        },
+        {
+          "bottom_cut_xyz_mm": [
+            421.45891591146375,
+            46,
+            13.280597682189297
+          ],
+          "fraction": 0.95,
+          "gap_mm": 19.500893185280084,
+          "side_cut_xyz_mm": [
+            411,
+            62.45891591146372,
+            13.280597682189297
+          ],
+          "status": "MEASURED"
+        }
+      ],
+      "any_90deg_asymmetry_best_case_far_gap_floor_mm": null,
+      "bottom_cut_face_z_mm": [
+        -1,
+        13.821681770725576
+      ],
+      "corner": "bottom_right",
+      "distal_zero_r_vs_rba_shortfall_mm": 1.1783182292744243,
+      "failure_bottom": null,
+      "failure_side": null,
+      "full_gap_lower_bound_mm": null,
+      "full_gap_upper_bound_mm": null,
+      "hypothetical_RBA_inverse_not_cutting_xyz": [
+        [
+          5.705420442681394,
+          [
+            413.8837386719558,
+            45
+          ],
+          [
+            410,
+            41.11626132804418
+          ],
+          6.988858638415685,
+          2.746217951296395,
+          4
+        ],
+        [
+          8.410840885362788,
+          [
+            416.5891591146372,
+            45
+          ],
+          [
+            410,
+            38.41084088536279
+          ],
+          8.901879779396396,
+          4.659239092277121,
+          4
+        ],
+        [
+          11.116261328044182,
+          [
+            419.2945795573186,
+            45
+          ],
+          [
+            410,
+            35.705420442681394
+          ],
+          10.814900920377147,
+          6.572260233257846,
+          4
+        ],
+        [
+          13.280597682189297,
+          [
+            421.45891591146375,
+            45
+          ],
+          [
+            410,
+            33.54108408853628
+          ],
+          12.34531783316173,
+          8.102677146042424,
+          4
+        ]
+      ],
+      "hypothetical_RBA_inverse_source_coverage": [
+        [
+          5.705420442681394,
+          true,
+          false,
+          true,
+          true
+        ],
+        [
+          8.410840885362788,
+          true,
+          false,
+          true,
+          true
+        ],
+        [
+          11.116261328044182,
+          true,
+          false,
+          true,
+          true
+        ],
+        [
+          13.280597682189297,
+          true,
+          false,
+          true,
+          true
+        ]
+      ],
+      "interference_z_range_mm": [
+        -1,
+        1
+      ],
+      "max_sampled_cut_face_gap_mm": 12.866518899574618,
+      "minimum_side_BEND_start_to_hypothetical_y_station_mm": 4,
+      "native_uncut_fold_endpoint_jump_max_mm": 0.0001999999999497959,
+      "native_uncut_fold_endpoint_status": "NO_DETECTED_NATIVE_SPAN_DISCONTINUITY",
+      "non_measured_intervals_mm": [],
+      "operator_first_physical_bend_axis": "y",
+      "operator_second_physical_bend_axis": "x",
+      "root_intersection_topology": "COLLINEAR_SHARED_ROOT_EDGE_CANDIDATE_NOT_PENETRATION",
+      "seam_failure": null,
+      "side_cut_face_z_mm": [
+        -1,
+        13.821681770725576
+      ],
+      "side_upper_and_bottom_lower_source_v_lengths_mm": [
+        21.213203435596427,
+        9.99999996149227e-7,
+        21.213203435596427,
+        9.99999996149227e-7
+      ],
+      "source_geometric_gap_floor_at_straight_end_mm": null,
+      "source_geometric_gap_floor_at_straight_start_mm": null,
+      "source_true_T_mating_faces": {
+        "bottom": "lower V original CUTTING -> bottom Y BEND",
+        "side": "upper V original CUTTING -> side X BEND"
+      },
+      "status": "MODEL_NOT_VERIFIED",
+      "straight_section_y_domain_witness_mm": {
+        "bottom_fold_straight_true_T_outer_max_y": 46,
+        "hypothetical_seam_y": 45,
+        "minimum_y_projection_gap": 2,
+        "scope": "current separated RBA patches, not universal V impossibility",
+        "side_fold_source_min_y": 48
+      },
+      "surface_intersection_pairs_do_not_prove_penetration": true,
+      "surface_intersection_segments_xyz": [
+        [
+          [
+            407,
+            48,
+            1
+          ],
+          [
+            407,
+            48,
+            -1
+          ]
+        ]
+      ],
+      "surface_intersection_triangle_pairs": 4,
+      "topological_clearance_lower_bound_mm": null,
+      "topology_contact_failure": null,
+      "true_cut_face_gap_by_z_mm": [
+        {
+          "gap": 9.340062179650458,
+          "status": "MEASURED",
+          "z": 5.705420442681394
+        },
+        {
+          "gap": 12.866518899574618,
+          "status": "MEASURED",
+          "z": 8.410840885362788
+        },
+        {
+          "gap": 16.52679807927713,
+          "status": "MEASURED",
+          "z": 11.116261328044182
+        },
+        {
+          "gap": 19.500893185280084,
+          "status": "MEASURED",
+          "z": 13.280597682189297
+        }
+      ],
+      "unresolved_vertex_events": 8,
+      "volume_status": "NO_DETECTED_VOLUME_WITNESS"
+    }
+  ],
+  "corrected_outline_xy": [
+    [
+      0,
+      0
+    ],
+    [
+      0,
+      33
+    ],
+    [
+      15,
+      48
+    ],
+    [
+      0,
+      63
+    ],
+    [
+      0,
+      290
+    ],
+    [
+      16,
+      290
+    ],
+    [
+      16,
+      294
+    ],
+    [
+      40,
+      294
+    ],
+    [
+      40,
+      333
+    ],
+    [
+      382,
+      333
+    ],
+    [
+      382,
+      294
+    ],
+    [
+      406,
+      294
+    ],
+    [
+      406,
+      290
+    ],
+    [
+      422,
+      290
+    ],
+    [
+      422,
+      63
+    ],
+    [
+      407,
+      48
+    ],
+    [
+      422,
+      33
+    ],
+    [
+      422,
+      0
+    ],
+    [
+      406,
+      0
+    ],
+    [
+      16,
+      0
+    ],
+    [
+      0,
+      0
+    ]
+  ],
+  "fold_intersections": {
+    "left": [
+      15,
+      48
+    ],
+    "right": [
+      407,
+      48
+    ]
+  },
+  "fold_order_contact_scope": "disjoint folded skin patches; shared-root sequential deformation not verified",
+  "formal_dxf_export": "NOT_ALLOWED",
+  "geometry_source": "WHD current real EndCap PartSpec/FinalScene/Factory",
+  "operator_first_bend_axes": [
+    [
+      "bottom_left",
+      "y"
+    ],
+    [
+      "bottom_right",
+      "y"
+    ]
+  ],
+  "original_WHD_3D_finite_BEND_span_triangle_count": 210,
+  "original_WHD_finite_BEND_endpoint_jump_by_corner_mm": [
+    {
+      "corner": "bottom_left",
+      "samples": [
+        {
+          "3d_jump": 0.0002000000000066393,
+          "source_y": 4.800000000000001
+        },
+        {
+          "3d_jump": 0.0002000000000066393,
+          "source_y": 12
+        },
+        {
+          "3d_jump": 0.0002000000000066393,
+          "source_y": 24
+        },
+        {
+          "3d_jump": 0.0002000000000066393,
+          "source_y": 36
+        },
+        {
+          "3d_jump": 0.0002000000000066393,
+          "source_y": 43.2
+        }
+      ]
+    },
+    {
+      "corner": "bottom_right",
+      "samples": [
+        {
+          "3d_jump": 0.0001999999999497959,
+          "source_y": 4.800000000000001
+        },
+        {
+          "3d_jump": 0.0001999999999497959,
+          "source_y": 12
+        },
+        {
+          "3d_jump": 0.0001999999999497959,
+          "source_y": 24
+        },
+        {
+          "3d_jump": 0.0001999999999497959,
+          "source_y": 36
+        },
+        {
+          "3d_jump": 0.0001999999999497959,
+          "source_y": 43.2
+        }
+      ]
+    }
+  ],
+  "original_outline_xy": [
+    [
+      16,
+      0
+    ],
+    [
+      406,
+      0
+    ],
+    [
+      406,
+      49
+    ],
+    [
+      422,
+      49
+    ],
+    [
+      422,
+      290
+    ],
+    [
+      406,
+      290
+    ],
+    [
+      406,
+      294
+    ],
+    [
+      382,
+      294
+    ],
+    [
+      382,
+      333
+    ],
+    [
+      40,
+      333
+    ],
+    [
+      40,
+      294
+    ],
+    [
+      16,
+      294
+    ],
+    [
+      16,
+      290
+    ],
+    [
+      0,
+      290
+    ],
+    [
+      0,
+      49
+    ],
+    [
+      16,
+      49
+    ],
+    [
+      16,
+      0
+    ]
+  ],
+  "out_of_bottom_BEND_original_stock_polygons": [
+    [
+      [
+        0,
+        33
+      ],
+      [
+        15,
+        48
+      ],
+      [
+        16,
+        48
+      ],
+      [
+        16,
+        0
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        33
+      ]
+    ],
+    [
+      [
+        422,
+        33
+      ],
+      [
+        422,
+        0
+      ],
+      [
+        406,
+        0
+      ],
+      [
+        406,
+        48
+      ],
+      [
+        407,
+        48
+      ],
+      [
+        422,
+        33
+      ]
+    ]
+  ],
+  "physical_bottom_BEND_span_x_mm": [
+    16,
+    406
+  ],
+  "physical_flange_mm": {
+    "bottom": 48,
+    "left": 15,
+    "right": 15
+  },
+  "physical_left_and_right_side_BEND_span_y_mm": [
+    [
+      49,
+      290
+    ],
+    [
+      49,
+      290
+    ]
+  ],
+  "restored_corner_stock_ownership_mm2": [
+    {
+      "added_total": 657,
+      "bottom_fold": 655.5,
+      "corner": "bottom_left",
+      "not_in_either_lower_fold": 1,
+      "side_fold": 0.5
+    },
+    {
+      "added_total": 657,
+      "bottom_fold": 655.5,
+      "corner": "bottom_right",
+      "not_in_either_lower_fold": 1,
+      "side_fold": 0.5
+    }
+  ],
+  "retained_stock_outside_bottom_BEND_area_mm2": [
+    655.5,
+    655.5
+  ],
+  "scope": "Tail lower left/right; other source components unchanged",
+  "source_holes_unchanged": [],
+  "source_other_primitive_count": 6,
+  "status": "MODEL_NOT_VERIFIED",
+  "units": "mm",
+  "v_openings": {
+    "left": [
+      [
+        0,
+        33
+      ],
+      [
+        0,
+        63
+      ]
+    ],
+    "right": [
+      [
+        422,
+        33
+      ],
+      [
+        422,
+        63
+      ]
+    ]
+  }
+}
