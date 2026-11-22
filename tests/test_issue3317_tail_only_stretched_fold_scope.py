@@ -15,7 +15,7 @@ from ae_engine.manufacturing_render_data import material_polygon_from_final_scen
 from ae_engine.sheetmetal_drawing import PolylinePrimitive
 
 
-def _spec(*, family="金庫型", is_tail=True, bottom=15.):
+def _spec(*, family="金庫型", is_tail=True, bottom=None):
     return EndCapPartSpec(
         width=620., depth=185., thickness=2., frame_width=25.,
         height=600., model_name=family, is_tail=is_tail,
@@ -63,7 +63,7 @@ def _square_bbox(scene):
 
 
 def test_untouched_vault_tail_retains_legacy_baseline_and_square(monkeypatch):
-    spec = _spec(is_tail=True, bottom=ae.ybottom1_def)
+    spec = _spec(is_tail=True, bottom=None)
     raw, seen = _render_with_stretched_call_record(spec, monkeypatch)
     assert len(seen) == 1
     assert all(not k.startswith("target_fold_") for k in seen[0])
@@ -114,3 +114,48 @@ def test_changed_vault_tail_only_overrides_real_lower_fold_and_fixed_square(monk
     assert forwarded == {"target_fold_bottom": pytest.approx(48.)}
     assert _bbox(raw) == pytest.approx((0., 0., 642., 268.))
     assert _square_bbox(raw) == pytest.approx((3., 18., 7., 22.))
+
+
+def test_authored_vault_tail_48_is_independent_of_mutable_startup_default(monkeypatch):
+    # The independently certified original DXF has bottom=15, regardless of
+    # the mutable advanced Settings / runtime ybottom1 default. A selected
+    # physical 48-mm Fold is a source transaction, not a global-default edit.
+    from ae_engine.sheetmetal_drawing import PolylinePrimitive
+
+    spec = _spec(is_tail=True, bottom=48.)
+    cases = []
+    for startup_default in (15., 48.):
+        with monkeypatch.context() as mp:
+            mp.setattr(ae, "ybottom1_def", startup_default)
+            original = api.build_operator_part_render_data(spec)
+            assert original.material.bounds == pytest.approx((0., 0., 642., 268.))
+            assert _square_bbox(original.scene) == pytest.approx((3., 18., 7., 22.))
+            v = api.project_operator_tail_lower_v_preview_render(
+                spec, original, choice="v90",
+            )
+            assert v.original_scene is original.scene if hasattr(v, "original_scene") else True
+            assert v.metadata["tail_lower_v_preview_only"] is True
+            assert v.material.bounds == pytest.approx((0., 0., 642., 268.))
+            assert len(v.material.interiors) >= len(original.material.interiors)
+            triangles = api.tail_lower_v_preview_mesh(v)
+            assert triangles is not None and len(triangles) > 500
+            cases.append((original, v, triangles))
+    first_orig, first_v, first_mesh = cases[0]
+    second_orig, second_v, second_mesh = cases[1]
+    assert first_orig.material.symmetric_difference(second_orig.material).area < 1e-7
+    assert first_v.material.symmetric_difference(second_v.material).area < 1e-7
+    assert tuple(first_orig.scene.primitives) == tuple(second_orig.scene.primitives)
+    assert tuple(first_v.scene.primitives) == tuple(second_v.scene.primitives)
+    assert tuple(first_mesh) == tuple(second_mesh)
+
+
+def test_legacy_vault_tail_without_authored_lower_fold_ignores_default_48(monkeypatch):
+    # No explicit fold selection = certified baseline source, even if the
+    # operator changed global defaults for newly created parts.
+    spec = _spec(is_tail=True, bottom=None)
+    with monkeypatch.context() as mp:
+        mp.setattr(ae, "ybottom1_def", 48.)
+        scene, seen = _render_with_stretched_call_record(spec, monkeypatch)
+        assert len(seen) == 1
+        assert not any(k.startswith("target_fold_") for k in seen[0])
+        assert _bbox(scene) == pytest.approx((0., 0., 642., 235.))
