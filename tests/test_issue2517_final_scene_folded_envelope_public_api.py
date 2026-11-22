@@ -75,6 +75,18 @@ def test_folded_outside_envelope_matches_real_engine_t_solid_not_blank_or_double
     assert gui(folded_mid, 2.0) == (dims, bounds)
 
 
+def test_real_fold_crease_zero_area_tessellation_does_not_invent_outside():
+    # A legal formed viewer can emit a collapsed tessellation helper at a
+    # finite crease; only its positive-area physical faces own the AABB.
+    valid = _formed_face()[0]
+    collapsed = ((0., 0., 0.), (10., 0., 0.), (5., 0., 0.))
+    plain = owner((valid,), 2.)
+    assert owner((valid, collapsed), 2.) == plain
+    # Without a single physical face, no outside envelope is certified.
+    with pytest.raises(ValueError, match="FOLDED_ENVELOPE_INVALID_WORLD_MESH"):
+        owner((collapsed,), 2.)
+
+
 def test_forming_90_degree_L_outside_readback_does_not_depend_on_flat_length():
     from ae_engine.assembly_geometry_folded_mesh import folded_mesh_from_polygon
     from shapely.geometry import box
