@@ -14,9 +14,38 @@ from tkinter import ttk, filedialog, messagebox
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 from matplotlib.patches import Circle
+from matplotlib import font_manager
+from matplotlib.text import Text
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 from ae_engine import manufacturing_api
+
+
+
+def _native_world_y_up(ax, *, elev, azim):
+    """View only: never reorder WHD X/Y/Z coordinates or mesh winding."""
+    try:
+        ax.view_init(elev=elev, azim=azim, vertical_axis="y")
+    except TypeError as exc:
+        # A Z-up fallback would silently misrepresent the assembled cabinet.
+        raise ValueError(
+            "TAIL_D4_CHECK_REQUIRES_MATPLOTLIB_Y_UP_VIEW"
+        ) from exc
+
+
+def _use_available_cjk_font(figure):
+    """Find an installed face by family, never a platform-specific font path."""
+    installed={entry.name for entry in font_manager.fontManager.ttflist}
+    for name in (
+        "Noto Sans CJK TC", "Noto Sans CJK SC", "Microsoft JhengHei",
+        "PingFang TC", "WenQuanYi Zen Hei", "Source Han Sans TC",
+        "AR PL UMing TW",
+    ):
+        if name in installed:
+            for label in figure.findobj(match=Text):
+                label.set_fontfamily(name)
+            return name
+    return None
 
 
 def _cross_section_world_x(triangles, x_center):
@@ -144,7 +173,7 @@ def show_tail_d4_check_window(
             (first[0],last[0]),(first[1],last[1]),(first[2],last[2]),
             color="#dc2626",linewidth=1.2,
         )
-    assembly_ax.view_init(elev=25,azim=-56)
+    _native_world_y_up(assembly_ax,elev=18,azim=-32)
     assembly_ax.set_title(
         "實際箱身＋Ø4：非共面穿越 %d 對／%d 段；非體積證明" % (
             assembly_check.crossing_pair_count,
@@ -188,7 +217,9 @@ def show_tail_d4_check_window(
                 edgecolors="#164e63",linewidths=.13,alpha=.74,
             ))
             _fit_equal_3d(ax,corner_mesh)
-        ax.view_init(elev=25,azim=-54)
+        _native_world_y_up(
+            ax,elev=20,azim=54 if ax is left_ax else -54,
+        )
         ax.set_title(name+"：真正同源 Ø4 槽底放大",fontsize=10)
         ax.set_xlabel("World X");ax.set_ylabel("World Y")
         ax.set_zlabel("World Z")
@@ -202,6 +233,7 @@ def show_tail_d4_check_window(
         +volume_message+"；切面密合仍未驗收",fontsize=11,
     )
     figure.tight_layout(rect=(0,0,1,.97))
+    win._tail_d4_cjk_font=_use_available_cjk_font(figure)
     canvas=FigureCanvasTkAgg(figure,master=win)
     canvas.get_tk_widget().pack(fill=tk.BOTH,expand=True)
     canvas.draw()
