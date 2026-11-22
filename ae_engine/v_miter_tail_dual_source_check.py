@@ -114,6 +114,7 @@ class TailDualVSourceCheck:
     bottom_bend_span_x_mm: tuple
     side_bend_span_y_mm: tuple
     retained_out_of_span_corner_area_mm2: tuple
+    out_of_bottom_span_corner_contours_xy: tuple
     restored_stock_ownership_mm2: tuple
     # Displacement of two arbitrarily close points on the SAME uncut
     # material either side of finite bottom BEND endpoint in native 3D.
@@ -357,6 +358,15 @@ def project_tail_dual_v_same_source_check(
             which, float(local.area), side_owned,
             bottom_owned, max(0.0, not_lower_fold),
         ))
+    corner_material_regions = (
+        corrected.intersection(box(minx,miny,bottom_start,bottom_y)),
+        corrected.intersection(box(bottom_end,miny,maxx,bottom_y)),
+    )
+    if any(
+        p.geom_type != "Polygon" or not p.is_valid or p.is_empty
+        or p.interiors for p in corner_material_regions
+    ):
+        raise GeometryError("V_MITER_TAIL_DUAL_OUT_OF_SPAN_CORNER_NOT_ONE_PIECE")
     if (any(p.geom_type != "Polygon" or p.is_empty or
             not p.is_valid or p.interiors or p.area <= _TOL
             for p in folded_domains.values())
@@ -661,6 +671,10 @@ def project_tail_dual_v_same_source_check(
             float(corrected.intersection(
                 box(bottom_end,miny,maxx,bottom_y)
             ).area),
+        ),
+        out_of_bottom_span_corner_contours_xy=tuple(
+            tuple(Vec2(float(x),float(y)) for x,y in region.exterior.coords)
+            for region in corner_material_regions
         ),
         restored_stock_ownership_mm2=tuple(restored_stock_ownership),
         native_bottom_span_boundary_jump_samples_mm=tuple(boundary_jumps),
