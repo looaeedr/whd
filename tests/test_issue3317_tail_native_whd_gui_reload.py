@@ -176,9 +176,20 @@ def test_actual_whd_main_gui_lower_v_preserves_existing_rect_clearance_roundtrip
             removed = box(0., 0., width, height).difference(factory)
             components = ((removed,) if removed.geom_type == "Polygon"
                           else tuple(getattr(removed, "geoms", ())))
+            from ae_engine.sheetmetal_drawing import LinePrimitive
+            def bend_rows(scene):
+                return tuple(sorted((
+                    tuple(round(float(v), 7) for v in (
+                        p.p1.x, p.p1.y, p.p2.x, p.p2.y
+                    )) for p in scene.primitives
+                    if isinstance(p, LinePrimitive) and p.layer == "BEND"
+                )))
+            solved = _real_resolved_tail(designer)
+            raw_bends, solved_bends = bend_rows(render.scene), bend_rows(solved.scene)
             pytest.fail(
                 f"Native V refused: {designer.settings_status_var.get()}"
-                f"; spec={spec!r}; raw_bounds={render.material.bounds};"
+                f"; raw_bounds={render.material.bounds};"
+                f" source_bends={raw_bends}; resolved_bends={solved_bends};"
                 f" removed_components={tuple((v.bounds,round(v.area,5)) for v in components)}"
             )
         assert selected.get() == "V 型"
