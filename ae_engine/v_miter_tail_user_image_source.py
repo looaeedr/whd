@@ -203,7 +203,7 @@ def project_tail_illustrated_side_v90_flat(
     result=DrawingScene(result_primitives)
     if len(result.primitives)!=len(render.scene.primitives) or any(
         a is not b for a,b in zip(result.primitives,render.scene.primitives)
-        if a is not originals[0] and id(a) not in side_bend_replacements
+        if b is not originals[0] and id(b) not in side_bend_replacements
     ):
         raise GeometryError("TAIL_IMAGE_V90_ORIGINAL_FEATURE_IDENTITY_LOST")
     return TailIllustratedSideV90Flat(
