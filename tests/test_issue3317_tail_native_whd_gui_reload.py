@@ -366,7 +366,8 @@ def test_actual_whd_main_gui_lower_v_preserves_existing_rect_clearance_roundtrip
             assert {part.part_key for part in dormant.parts} == {
                 "box_body", "head"
             }
-            assert dormant.part("tail") is None
+            with pytest.raises(KeyError, match="tail"):
+                dormant.part("tail")
             for key in ("box_body", "head"):
                 assert dormant.part(key).render_data.material.symmetric_difference(
                     unchanged[key]
