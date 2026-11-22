@@ -112,7 +112,7 @@ def test_actual_whd_main_gui_lower_v_preserves_existing_rect_clearance_roundtrip
         chooser._phase6_menu.invoke(1)
         root.update_idletasks()
         root.update()
-        assert selected.get() == "V 型"
+        assert selected.get() == "V 型", designer.settings_status_var.get()
         assert designer._phase6_input_snapshot[api.TAIL_LOWER_V_SNAPSHOT_KEY] == "v90"
         with_v = _real_resolved_tail(designer)
         _assert_same_holes(original, with_v)
