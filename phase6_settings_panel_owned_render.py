@@ -265,6 +265,15 @@ class Phase6SettingsPanelOwnedRenderMixin:
         )
         chooser.pack(side=tk.LEFT)
         state["tail_lower_v_choice_widget"]=chooser
+        # An independent source-qualified Ø4 inspection, not a third
+        # CornerType, a machine export, or a change to V90 operator input.
+        if self._tail_d4_check_requested is not None:
+            action=ttk.Button(
+                row,text="Ø4 看圖／3D CHECK（不加工）",
+                command=self._tail_d4_check_requested,
+            )
+            action.pack(side=tk.LEFT,padx=(9,0))
+            state["tail_d4_check_widget"]=action
         choices=lower.get("first_bend_options")
         if not isinstance(choices,dict):
             note=lower.get("first_bend_source_error") or "未取得原始實體折線"
