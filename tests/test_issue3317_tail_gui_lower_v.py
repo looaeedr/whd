@@ -93,7 +93,7 @@ def test_actual_source_generates_two_v_and_one_same_source_2d_3d(
 
 
 
-def test_fractional_t_original_bend_precision_is_not_rounded_and_v_works():
+def test_fractional_t_original_bend_precision_is_not_rounded_and_v_works(tmp_path):
     # Factory source carries a 175.5 mm material segment, even when the
     # unchanged legacy UI Fold Profile happens to display it as 176.
     from ae_engine.v_miter_tail_no_ba_sequential import (
@@ -120,6 +120,32 @@ def test_fractional_t_original_bend_precision_is_not_rounded_and_v_works():
     )
     assert tuple(mesh.triangles)==api.tail_lower_v_preview_mesh(preview)
     assert len(mesh.triangles)>500
+    # Same W545/D180/T1.5 physical source survives the real project codec,
+    # then operator returns to the EXACT pre-V original selection.
+    source={"model":"金庫型","w":545.,"d":180.,"t":1.5,"fw":25.,
+            "yl1":14.,"yr1":17.,"ytop1":16.,"ybottom1":48.}
+    before=api.commit_operator_tail_lower_v_choice(
+        source,"original",tail_scene_values=source,
+    )
+    assert TAIL_LOWER_V_SNAPSHOT_KEY not in before
+    selected=api.commit_operator_tail_lower_v_choice(
+        source,"v90",tail_scene_values=source,
+    )
+    saved=project.write_project(tmp_path/"fractional-bend-v.p6fold",{
+        "schema":project.PROJECT_SCHEMA,"snapshot":selected,
+    })
+    loaded=project.read_project(saved)["snapshot"]
+    assert loaded[TAIL_LOWER_V_SNAPSHOT_KEY]=="v90"
+    reopened=api.project_operator_tail_lower_v_preview_render(
+        spec,render,choice=loaded[TAIL_LOWER_V_SNAPSHOT_KEY],
+    )
+    assert reopened.material.symmetric_difference(preview.material).area<1e-7
+    assert tuple(api.tail_lower_v_preview_mesh(reopened))==tuple(mesh.triangles)
+    restored=api.commit_operator_tail_lower_v_choice(
+        loaded,"original",tail_scene_values=loaded,
+    )
+    assert TAIL_LOWER_V_SNAPSHOT_KEY not in restored
+    assert api.tail_lower_v_preview_mesh(render) is None
 
 
 def test_fractional_t_real_upper_bend_shift_rejected_not_masked_by_precision_fix():
