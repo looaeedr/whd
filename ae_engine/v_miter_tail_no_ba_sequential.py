@@ -72,7 +72,13 @@ def _stages(uv,first_axis):
     if second is None:
         return p1,p1,n1,n1,None
     origin,axis,theta=second
-    if first is not None:
+    # The finite BEND owner matters. If X is first, the genuine Y crease
+    # x=16..506 lies in the still-flat MAIN sheet, so its world X axis
+    # does NOT rotate with the outboard corner! The attached lower-lip tip
+    # follows that unchanged axis as a rigid continuation, not a new BEND.
+    # If Y is first, the lower portion of X=15/507 lies in the rotated
+    # lip and its second axis is carried from world Y into world +/-Z.
+    if first is not None and first_axis=="y":
         pvt,prior_axis,prior_theta=first
         origin=_about(origin,pvt,prior_axis,prior_theta)
         axis=_rotate(axis,prior_axis,prior_theta)
