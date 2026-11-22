@@ -250,7 +250,7 @@ def test_d4_true_cutting_crease_crossing_source_keyed_t_skins_are_not_inferred()
 
 
 @pytest.mark.parametrize("first_axis", ("x", "y"))
-def test_d4_source_keyed_real_arc_full_t_shell_and_original_holes(first_axis):
+def test_d4_source_keyed_real_arc_full_t_shell_and_original_holes(first_axis,tmp_path):
     """The real Ø4 arc, retained straight V legs and five original holes.
 
     A CHECK mesh is returned ONLY after all source-edge incidence and local
@@ -258,6 +258,7 @@ def test_d4_source_keyed_real_arc_full_t_shell_and_original_holes(first_axis):
     """
     from ae_engine.v_miter_tail_d4_check import (
         project_tail_d4_source_keyed_t_check,
+        save_tail_d4_check_mesh_and_local_svg,
     )
     flat = _real_factory_with_fifth_original_cutting()
     old = tuple(flat.result_scene.primitives)
@@ -290,6 +291,20 @@ def test_d4_source_keyed_real_arc_full_t_shell_and_original_holes(first_axis):
     assert not check.bad_incidence_edges and not check.bad_winding_edges
     assert len(check.shell_faces) > len(check.source_triangle_faces)*2
     assert len(check.local_interference_by_corner) == 2
+    obj,svg=save_tail_d4_check_mesh_and_local_svg(
+        check,replace(flat,result_scene=scene,result_material=stock),tmp_path,
+    )
+    assert obj.is_file() and svg.is_file()
+    lines=obj.read_text(encoding="utf-8").splitlines()
+    assert sum(row.startswith("v ") for row in lines) == (
+        len(check.inner_xyz)+len(check.outer_xyz)
+    )
+    assert sum(row.startswith("f ") for row in lines) == len(check.shell_faces)
+    assert "NOT CNC" in obj.read_text(encoding="utf-8")
+    visual=svg.read_text(encoding="utf-8")
+    assert "<svg" in visual and "bottom_left" in visual and "bottom_right" in visual
+    assert "NOT CNC" in visual
+
     # Same UV is ONE indexed inner vertex and ONE original-owner outer
     # vertex, even at true intersecting X/Y finite-crease domains.
     # These are the six measured D4 source CUTTING/real BEND crossings,
