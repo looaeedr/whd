@@ -80,15 +80,30 @@ def test_tail_real_same_blank_dual_90_v_and_folded_contact(first_axis):
         assert seq.root_process_status == (
             "FINITE_BEND_TIP_TRANSITION_KINEMATIC_ONLY"
         ), "A same-source kinematic mesh is NOT a proven elastic root fold"
-        assert seq.stage1_shell_topology.triangle_count > 0
-        assert seq.stage2_shell_topology.triangle_count > 0
+        assert seq.stage1_shell_topology.edges_manifold_closed, (
+            "Whole original sheet after first fold is NOT a closed T solid"
+        )
+        assert seq.stage2_shell_topology.edges_manifold_closed, (
+            "Whole original sheet after second fold is NOT a closed T solid"
+        )
         assert {c for c,*_ in seq.root_true_t_self_intersection_by_corner} == {
             "bottom_left","bottom_right"
         }
         for corner,d1,d2,n1,n2 in seq.root_true_t_self_intersection_by_corner:
             assert n1 > 0 and n2 > 0
-            assert d1.tested_nonadjacent_pairs >= 0
-            assert d2.tested_nonadjacent_pairs >= 0
+            # Separate actual non-neighbor T crossings from old
+            # four-triangle shared-root-edge contact. No tolerance changes.
+            for stage,diag in (("FIRST",d1),("SECOND",d2)):
+                assert not diag.numerical_budget_exhausted, (
+                    corner,stage,"ROOT_TRUE_T_SELF_CHECK_INCOMPLETE"
+                )
+                assert diag.tested_nonadjacent_pairs > 0
+                assert diag.crossing_pair_count == 0, (
+                    corner,stage,"ROOT_TRUE_T_CROSSING",diag.first_source_triangle_pair
+                )
+                assert diag.coplanar_overlap_pair_count == 0, (
+                    corner,stage,"ROOT_TRUE_T_COPLANAR_OVERLAP",diag.first_source_triangle_pair
+                )
         assert check.side_flange_left_mm == pytest.approx(15)
         assert check.side_flange_right_mm == pytest.approx(15)
         assert check.bottom_flange_mm == pytest.approx(48)
@@ -206,6 +221,11 @@ def test_tail_real_same_blank_dual_90_v_and_folded_contact(first_axis):
             assert len(corner.sequential_final_seam_sections)==4
             assert corner.sequential_final_full_seam_continuity is not None
             assert corner.sequential_final_full_seam_continuity.max_sampled_cut_face_gap_mm > 0
+            assert corner.sequential_final_full_seam_continuity.missing_face_interval_count == 0
+            # Unresolved vertex events must never turn into manufactured
+            # full-contact bounds, even after root continuity succeeds.
+            if corner.sequential_final_full_seam_continuity.numerically_unresolved_vertex_event_count:
+                assert corner.sequential_final_full_seam_continuity.max_gap_upper_bound_mm is None
             assert all(z>0 and gap is not None and gap>0
                        for z,status,gap,_,_ in
                        corner.sequential_final_seam_sections
