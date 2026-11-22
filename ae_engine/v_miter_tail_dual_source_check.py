@@ -17,7 +17,9 @@ from .assembly_geometry import (
     detect_world_mesh_surface_interference,
     detect_world_mesh_enclosed_volume_witness,
 )
-from .assembly_geometry_primitives import thicken_triangle_surface
+from .assembly_geometry_primitives import (
+    thicken_triangle_surface, smoothed_surface_vertex_offsets,
+)
 from .contracts import EndCapPartSpec
 from .manufacturing_render_data import (
     PartRenderData, fold_guides_from_final_scene,
@@ -286,8 +288,11 @@ def project_tail_dual_v_same_source_check(
         "right": corrected.intersection(box(
             xr, right_guide.span_start, maxx, right_guide.span_end,
         )),
+        # Full connected stock including both wedge-side bottom cut legs.
+        # Only x=16..406 has a full 90-degree fold; the two continuous
+        # attached tips are warped by the source-anchored fold transition.
         "bottom": corrected.intersection(box(
-            bottom_start, miny, bottom_end, bottom_y,
+            minx, miny, maxx, bottom_y,
         )),
     }
     # Preserve the user's source geometry in the existing WHD sharp 3D
@@ -413,7 +418,10 @@ def project_tail_dual_v_same_source_check(
         thickness_mm=spec.thickness,
         second_fold_angle_deg=90.0, relief_mode="ROUND_R",
     )
-    def form(patch, origin, axis, outside, reach, label, axial_min):
+    def form(
+        patch, origin, axis, outside, reach, label, axial_min,
+        *, connected_bottom_tip=False,
+    ):
         if q.first_bend_allowance_mm >= reach - _TOL:
             raise GeometryError("V_MITER_TAIL_DUAL_RBA_CONSUMES_FLANGE")
         # The same Engine neutral axis and radial T/2 mesh as normal Factory
@@ -430,11 +438,40 @@ def project_tail_dual_v_same_source_check(
             axial_min_mm=min(axial_min, min(bounds), 0.0),
             flange_height=reach, return_flat_pairs=True,
         )
-        offsets = _measured_cylindrical_half_t_offsets(
-            flat, skin, apex=origin, outside=outside,
-            angle_rad=math.pi / 2, allowance=q.first_bend_allowance_mm,
-            thickness=q.thickness_mm,
-        )
+        if connected_bottom_tip:
+            # The exact same original 2D material drives the RBA skin and
+            # its finite-BEND blend. Rather than detaching the connected
+            # corner stock, pull each source point toward the physically
+            # formed bottom flange as x approaches the ORIGINAL BEND
+            # endpoint. Full-RBA result stays exact for x=16..406.
+            joined = []
+            for tri2, tri3 in zip(flat, skin):
+                new_tri = []
+                for (fx, fy), (tx, ty, tz) in zip(tri2, tri3):
+                    if fx < bottom_start:
+                        w = (fx - minx) / (bottom_start - minx)
+                    elif fx > bottom_end:
+                        w = (maxx - fx) / (maxx - bottom_end)
+                    else:
+                        w = 1.0
+                    w = max(0.0, min(1.0, w))
+                    new_tri.append((
+                        float(fx + w * (tx - fx)),
+                        float(fy + w * (ty - fy)),
+                        float(w * tz),
+                    ))
+                joined.append(tuple(new_tri))
+            skin = tuple(joined)
+            offsets = smoothed_surface_vertex_offsets(
+                skin, q.thickness_mm,
+                tolerance=_TOL,
+            )
+        else:
+            offsets = _measured_cylindrical_half_t_offsets(
+                flat, skin, apex=origin, outside=outside,
+                angle_rad=math.pi / 2, allowance=q.first_bend_allowance_mm,
+                thickness=q.thickness_mm,
+            )
         solid = tuple(thicken_triangle_surface(
             skin, q.thickness_mm, smooth_vertex_normals=True,
             physical_vertex_offsets=offsets,
@@ -458,7 +495,8 @@ def project_tail_dual_v_same_source_check(
         "right": form(folded_domains["right"], right[0], e_right, n_right,
                       right[4], "RIGHT", 0.0),
         "bottom": form(folded_domains["bottom"], left[0], e_bottom, n_bottom,
-                       left[5], "BOTTOM", minx - left[0].x),
+                       left[5], "BOTTOM", minx - left[0].x,
+                       connected_bottom_tip=True),
     }
     V_lines = {
         name: (LineString(((row[0].x, row[0].y), (row[1].x, row[1].y))),
