@@ -252,6 +252,49 @@ def detect_world_mesh_surface_interference(source_triangles, target_triangles, *
     )
 
 
+
+@dataclass(frozen=True)
+class NativeD4AssemblyCheck:
+    """CHECK-only result for the exact meshes displayed in the native window."""
+
+    body_triangle_count: int
+    tail_triangle_count: int
+    body_edges_manifold_closed: bool
+    crossing_pair_count: int
+    crossing_segments: tuple
+    crossing_points: tuple
+    volume_verdict: str
+    manufacturing_approved: bool = False
+
+
+def inspect_native_d4_assembly_world(body_world, placed_world):
+    """Inspect *the displayed* Body and Ø4 Tail, without remesh or relocation.
+
+    Surface crossing is evidence, not an intersection volume or minimum
+    clearance. Coplanar contact is handled by the existing surface checker;
+    an open Body cannot support an enclosed-volume verdict.
+    """
+    body = tuple(body_world)
+    tail = tuple(placed_world)
+    if not body or not tail:
+        raise ValueError("TAIL_D4_ASSEMBLY_NATIVE_MESH_REQUIRED")
+    closure = diagnose_world_mesh_triangle_edge_incidence(body)
+    crossing = detect_world_mesh_surface_interference(body, tail)
+    return NativeD4AssemblyCheck(
+        body_triangle_count=len(body),
+        tail_triangle_count=len(tail),
+        body_edges_manifold_closed=closure.edges_manifold_closed,
+        crossing_pair_count=crossing.pair_count,
+        crossing_segments=crossing.intersection_segments,
+        crossing_points=crossing.intersection_points,
+        volume_verdict=(
+            "VOLUME_INTERFERENCE_UNVERIFIABLE_BODY_OPEN"
+            if not closure.edges_manifold_closed
+            else "VOLUME_INTERFERENCE_NOT_ESTABLISHED_BY_SURFACE_CROSSINGS"
+        ),
+    )
+
+
 @dataclass(frozen=True)
 class MeshTriangleEdgeIncidenceDiagnostic:
     """Physical 3D triangle shell edge evidence, CHECK-only, never a solid proof."""
