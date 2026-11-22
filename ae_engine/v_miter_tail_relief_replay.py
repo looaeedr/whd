@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from collections import Counter
 from dataclasses import replace
+from math import isfinite
 
 from shapely.geometry import Polygon, LineString
 from shapely.ops import unary_union
@@ -72,11 +73,47 @@ def _extra_features(original, solved, *, structural_outer, solved_outer):
                 and (not isinstance(primitive,PolylinePrimitive) or primitive.closed)):
             raise GeometryError("V_MITER_REPLAY_UNSUPPORTED_ADDED_CUTTING_LINE")
         additions.append(primitive)
-    for layer in ("BEND",):
-        source=[p for p in original.scene.primitives if getattr(p,"layer",None)==layer]
-        changed=[p for p in solved.scene.primitives if getattr(p,"layer",None)==layer]
-        if Counter(source)!=Counter(changed):
+    # The source/solved FinalScenes can represent the very same finite
+    # BEND with a sub-nanometre floating-point endpoint residual (e.g.
+    # 641.9999999999999 versus 642). Preserve ALL real finite BENDs; do
+    # not treat binary representation as a different fold or invent a
+    # clearance tolerance. A physical station/end-point move, addition,
+    # removal or invalid coordinate still fails this original gate.
+    source=[p for p in original.scene.primitives
+            if getattr(p,"layer",None)=="BEND"]
+    changed=[p for p in solved.scene.primitives
+             if getattr(p,"layer",None)=="BEND"]
+    def bend_coordinates(primitive):
+        if not isinstance(primitive,LinePrimitive):
+            return None
+        pairs=tuple(sorted((
+            (float(primitive.p1.x),float(primitive.p1.y)),
+            (float(primitive.p2.x),float(primitive.p2.y)),
+        )))
+        if not all(isfinite(v) for pair in pairs for v in pair):
             raise GeometryError("V_MITER_REPLAY_FINITE_BEND_CHANGED")
+        return (pairs[0][0],pairs[0][1],pairs[1][0],pairs[1][1])
+
+    remaining=list(changed)
+    if len(source)!=len(remaining):
+        raise GeometryError("V_MITER_REPLAY_FINITE_BEND_CHANGED")
+    for source_bend in source:
+        coords=bend_coordinates(source_bend)
+        match=None
+        for i,candidate in enumerate(remaining):
+            target=bend_coordinates(candidate)
+            if ((coords is None or target is None)
+                    and source_bend==candidate):
+                match=i
+                break
+            if (coords is not None and target is not None
+                    and source_bend.color==candidate.color
+                    and all(abs(a-b)<=1e-9 for a,b in zip(coords,target))):
+                match=i
+                break
+        if match is None:
+            raise GeometryError("V_MITER_REPLAY_FINITE_BEND_CHANGED")
+        remaining.pop(match)
     prior=[p for p in original.scene.primitives
            if getattr(p,"layer",None) not in ("CUTTING","BEND")]
     current=[p for p in solved.scene.primitives
