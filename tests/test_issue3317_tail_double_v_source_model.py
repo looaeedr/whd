@@ -16,7 +16,8 @@ from ae_engine.v_miter_tail_dual_source_check import project_tail_dual_v_same_so
 from tools.render_tail_dual_v_model import build_tail_dual_v_source_preview_zip
 
 
-def test_tail_real_same_blank_dual_90_v_and_folded_contact():
+@pytest.mark.parametrize("first_axis", ("x", "y"))
+def test_tail_real_same_blank_dual_90_v_and_folded_contact(first_axis):
     import gui
     import tkinter as tk
 
@@ -28,10 +29,35 @@ def test_tail_real_same_blank_dual_90_v_and_folded_contact():
         app.workspace_controller.set_active_part("tail")
         app.ybottom1_var.set("48")
         snapshot = app._make_original_fold_designer_snapshot()
+        # An actual CHECK corner's saved operator first-fold choice, not
+        # a 90/90 inference or dictionary iteration order. Exercise both
+        # valid selections with exactly the same mother sheet.
+        from ae_engine.v_miter_operator_gui_check import (
+            normalize_operator_v_miter_gui_first_bend_axes,
+        )
+        snapshot["v_miter_gui_check_corners"] = {
+            "tail": {"bottom_left": "V_MITER_CHECK",
+                     "bottom_right": "V_MITER_CHECK"}
+        }
+        snapshot["v_miter_gui_first_bend_axes"] = {
+            "tail": {"bottom_left": first_axis, "bottom_right": first_axis}
+        }
+        operator_order=normalize_operator_v_miter_gui_first_bend_axes(
+            snapshot["v_miter_gui_first_bend_axes"],
+            snapshot["v_miter_gui_check_corners"],
+        )["tail"]
         spec, _ = app._fold_designer_part_spec_from_payload("tail", snapshot)
         render = app._query_fold_designer_render_data("tail", snapshot)
         original = tuple(render.scene.primitives)
-        check = project_tail_dual_v_same_source_check(spec, render)
+        with pytest.raises(Exception, match="V_MITER_TAIL_OPERATOR_FIRST_PHYSICAL_BEND_REQUIRED"):
+            project_tail_dual_v_same_source_check(spec, render)
+        check = project_tail_dual_v_same_source_check(
+            spec, render, first_bend_axes=operator_order,
+        )
+        assert dict(check.operator_first_bend_axes) == operator_order
+        assert all(row.first_bend_axis == first_axis and
+                   row.second_bend_axis == ("y" if first_axis=="x" else "x")
+                   for row in check.corners)
         assert check.side_flange_left_mm == pytest.approx(15)
         assert check.side_flange_right_mm == pytest.approx(15)
         assert check.bottom_flange_mm == pytest.approx(48)
@@ -130,6 +156,29 @@ def test_tail_real_same_blank_dual_90_v_and_folded_contact():
             assert side_upper > 0 and bottom_lower > 0
             assert side_lower < 1e-5 and bottom_upper < 1e-5
             assert len(corner.sampled_cut_face_nearest_xyz) == 4
+            assert corner.model_interference_pairs == 4
+            assert corner.root_intersection_topology in (
+                "COLLINEAR_SHARED_ROOT_EDGE_CANDIDATE_NOT_PENETRATION",
+                "ROOT_SURFACE_INTERSECTION_NOT_YET_CLASSIFIED_AS_PENETRATION",
+            )
+            side_y, bottom_y, floor_y, reference_y = (
+                corner.straight_section_y_domain_witness_mm
+            )
+            assert side_y == pytest.approx(48)
+            assert bottom_y == pytest.approx(46)
+            assert floor_y == pytest.approx(2)
+            assert reference_y == pytest.approx(45)
+            for (station,_,gap), (_,other_gap,side_xyz,bottom_xyz,status) in zip(
+                corner.sampled_seam_gap_stations_mm,
+                corner.sampled_cut_face_nearest_xyz,
+            ):
+                assert status == "MEASURED"
+                assert gap == pytest.approx(other_gap,abs=1e-8)
+                assert side_xyz[2] == pytest.approx(station,abs=1e-7)
+                assert bottom_xyz[2] == pytest.approx(station,abs=1e-7)
+            assert corner.sampled_seam_gap_stations_mm[0][0] == pytest.approx(
+                5.705420442681394, abs=1e-6,
+            )
             assert corner.model_status != "MODEL_PASS"
             assert len(corner.inverse_straight_contact_flat_trace_mm) == 4
             assert len(corner.inverse_flat_source_coverage_mm) == 4
@@ -146,6 +195,8 @@ def test_tail_real_same_blank_dual_90_v_and_folded_contact():
                 "INVERSE_SOURCE_RAYS_COMPATIBLE",
             )
         evidence = {
+            "operator_first_physical_BEND_axis":first_axis,
+            "operator_first_bend_axes":check.operator_first_bend_axes,
             "original_flange_mm":[check.side_flange_left_mm,
                                   check.side_flange_right_mm,
                                   check.bottom_flange_mm],
@@ -179,6 +230,9 @@ def test_tail_real_same_blank_dual_90_v_and_folded_contact():
                 "side_cut_face_z_mm":z_range(row.side_cut_faces),
                 "bottom_cut_face_z_mm":z_range(row.bottom_cut_faces),
                 "collision_surface_triangle_pairs":row.model_interference_pairs,
+                "root_intersection_topology":row.root_intersection_topology,
+                "straight_section_y_domain_witness_mm":
+                    row.straight_section_y_domain_witness_mm,
                 "volume_status":row.model_volume_status,
                 "native_uncut_fold_endpoint_jump_max_mm":
                     row.native_uncut_fold_endpoint_jump_max_mm,
@@ -226,7 +280,6 @@ def test_tail_real_same_blank_dual_90_v_and_folded_contact():
                     if p.midpoint_section.status!="MEASURED"
                 ] if continuity else [],
             })
-        report=json.dumps(evidence,ensure_ascii=False,sort_keys=True)
         # Actual source flat SVG, true folded OBJ/PNG and numerical diagnosis
         # are built from precisely the Engine CHECK model above. The zip is
         # emitted in bounded CI log chunks for exact-source retrieval.
@@ -237,8 +290,8 @@ def test_tail_real_same_blank_dual_90_v_and_folded_contact():
         # an earlier separate hard-coded drawing or an approved DXF.
         from io import BytesIO
         from zipfile import ZipFile
-        with ZipFile(BytesIO(payload)) as evidence:
-            names=set(evidence.namelist())
+        with ZipFile(BytesIO(payload)) as archive:
+            names=set(archive.namelist())
             assert {
                 "WHD_tail_dual_V_same_source_2D.svg",
                 "WHD_tail_dual_V_true_T_left_right_sections.svg",
@@ -247,20 +300,31 @@ def test_tail_real_same_blank_dual_90_v_and_folded_contact():
                 "WHD_tail_dual_V_folded_preview.png",
                 "WHD_tail_dual_V_model_diagnosis.json",
             } <= names
-            section=evidence.read(
+            section=archive.read(
                 "WHD_tail_dual_V_true_T_left_right_sections.svg"
             ).decode("utf-8")
             assert "bottom_left" in section and "bottom_right" in section
             assert "CHECK only" in section
-            traced=json.loads(evidence.read(
+            traced=json.loads(archive.read(
                 "WHD_tail_dual_V_model_diagnosis.json"
             ))
             assert traced["formal_dxf_export"] == "NOT_ALLOWED"
             assert len(traced["corners"]) == 2
+            assert traced["operator_first_bend_axes"] == [
+                ["bottom_left",first_axis],["bottom_right",first_axis],
+            ]
+            assert traced["corners"][0]["true_cut_face_gap_by_z_mm"][0][
+                "z"
+            ] == pytest.approx(5.705420442681394,abs=1e-6)
+        # The SAME ZIP JSON is the sole result/failure/CI log source;
+        # previously the separately computed log report had the wrong Z.
+        report=json.dumps(traced,ensure_ascii=False,sort_keys=True)
+        print("WHD_3317_MODEL_VERDICT_JSON="+report,flush=True)
         encoded=base64.b64encode(payload).decode("ascii")
         for i in range(0,len(encoded),4096):
             print("WHD_3317_MODEL_ZIP_BASE64_PART="
-                  + str(i//4096).zfill(4) + ":" + encoded[i:i+4096],flush=True)
+                  + first_axis+":"+str(i//4096).zfill(4)+":"
+                  + encoded[i:i+4096],flush=True)
         assert all(row.model_status == "MODEL_PASS" for row in check.corners), (
             "WHD_TAIL_DUAL_V_FOLDED_MODEL_NOT_YET_PASS=" + report
         )

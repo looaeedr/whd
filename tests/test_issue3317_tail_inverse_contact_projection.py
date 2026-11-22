@@ -69,6 +69,29 @@ def test_one_sided_source_tip_extension_preserves_original_other_end():
     ) == (False,)
 
 
+def test_root_triangle_pair_count_does_not_imply_volume_penetration():
+    from ae_engine.v_miter_tail_dual_source_check import (
+        _root_intersection_topology,
+    )
+    # Four triangles overlap on a SINGLE physical common Z edge; it
+    # must not be called four distinct volumetric collisions.
+    same_edge = (
+        ((0,0,-1),(0,0,0)),
+        ((0,0,-0.5),(0,0,0.5)),
+        ((0,0,0),(0,0,1)),
+        ((0,0,-1),(0,0,1)),
+    )
+    assert _root_intersection_topology(same_edge,1e-6) == (
+        "COLLINEAR_SHARED_ROOT_EDGE_CANDIDATE_NOT_PENETRATION"
+    )
+    assert _root_intersection_topology(
+        (((0,0,0),(1,0,0)),((0,0,0),(0,1,0))),1e-6,
+    ) == "ROOT_SURFACE_INTERSECTION_NOT_YET_CLASSIFIED_AS_PENETRATION"
+    assert _root_intersection_topology((),1e-6) == (
+        "NO_ROOT_SURFACE_INTERSECTION"
+    )
+
+
 def test_inverse_rejects_missing_straight_section_or_ray():
     from ae_engine.sheetmetal_geometry_core import GeometryError
     with pytest.raises(GeometryError, match="NOT_ON_STRAIGHT"):

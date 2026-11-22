@@ -123,10 +123,13 @@ def _svg_flat(check):
     for apex, hits in ((check.left_apex, check.left_outer_v_hits),
                        (check.right_apex, check.right_outer_v_hits)):
         x,y=_src_point(apex)
-        for p in hits:
+        for i,p in enumerate(hits):
             xx,yy=_src_point(p)
+            # Lower true V CUTTING leg belongs to the bottom fold
+            # (blue); upper leg belongs to the side fold (orange).
+            col=("#175fb1" if i == 0 else "#c35920")
             rows.append(f'<line x1="{x:.6f}" y1="{y:.6f}" x2="{xx:.6f}" '
-                        f'y2="{yy:.6f}" stroke="#C4513C" stroke-width="1.1"/>')
+                        f'y2="{yy:.6f}" stroke="{col}" stroke-width="1.2"/>')
     # Purple points are only the inverse of a HYPOTHETICAL formed
     # R/BA plane intersection; do not add these to CUTTING. Their source
     # position and side-fold ownership come directly from the same
@@ -219,11 +222,15 @@ def _svg_true_t_sections(check):
         panels.append(
             f'<g font-family="sans-serif" font-size="13" fill="#292929">'
             f'<text x="{10+430*i}" y="30" font-size="18">'
-            f'{escape(row.corner)}: true T / R / BA</text>'
+            f'{escape(row.corner)}: true T / R / BA; '
+            f'FIRST {row.first_bend_axis.upper()}</text>'
             f'<text x="{10+430*i}" y="49">Z={station_z:.3f} mm '
             f'; real cut-face gap={_finite(gap):.3f} mm</text>'
-            f'<text x="{10+430*i}" y="67">Surface crossings at root: '
-            f'{row.model_interference_pairs} pairs; separate from gap</text>'
+            f'<text x="{10+430*i}" y="67">Root surface intersections: '
+            f'{row.model_interference_pairs} pairs (NOT proven penetration)</text>'
+            f'<text x="{10+430*i}" y="84">Fixed patch straight Y floor: '
+            f'{_finite(row.straight_section_y_domain_witness_mm[2]):.3f} mm'
+            f' (ownership check only)</text>'
             f'<line x1="{x0-130}" y1="{y0}" '
             f'x2="{x0+130}" y2="{y0}" stroke="#b6b6b6"/>'
             f'<line x1="{x0}" y1="{y0-145}" '
@@ -365,12 +372,27 @@ def _model_report(check):
             return [min(z), max(z)] if z else None
         corners.append({
             "corner":row.corner,
+            "operator_first_physical_bend_axis":row.first_bend_axis,
+            "operator_second_physical_bend_axis":row.second_bend_axis,
+            "source_true_T_mating_faces":{
+                "side":"upper V original CUTTING -> side X BEND",
+                "bottom":"lower V original CUTTING -> bottom Y BEND",
+            },
             "side_cut_face_z_mm":z_span(row.side_cut_faces),
             "bottom_cut_face_z_mm":z_span(row.bottom_cut_faces),
             "status":row.model_status,
             "surface_intersection_triangle_pairs":row.model_interference_pairs,
             "surface_intersection_segments_xyz":row.model_interference_segments,
+            "root_intersection_topology":row.root_intersection_topology,
+            "surface_intersection_pairs_do_not_prove_penetration":True,
             "volume_status":row.model_volume_status,
+            "straight_section_y_domain_witness_mm":{
+                "side_fold_source_min_y":row.straight_section_y_domain_witness_mm[0],
+                "bottom_fold_straight_true_T_outer_max_y":row.straight_section_y_domain_witness_mm[1],
+                "minimum_y_projection_gap":row.straight_section_y_domain_witness_mm[2],
+                "hypothetical_seam_y":row.straight_section_y_domain_witness_mm[3],
+                "scope":"current separated RBA patches, not universal V impossibility",
+            },
             "native_uncut_fold_endpoint_jump_max_mm":
                 row.native_uncut_fold_endpoint_jump_max_mm,
             "native_uncut_fold_endpoint_status":
@@ -429,6 +451,8 @@ def _model_report(check):
         })
     return {
         "geometry_source":"WHD current real EndCap PartSpec/FinalScene/Factory",
+        "operator_first_bend_axes":check.operator_first_bend_axes,
+        "fold_order_contact_scope":"disjoint folded skin patches; shared-root sequential deformation not verified",
         "units":"mm",
         "status":"MODEL_NOT_VERIFIED" if any(
             row.model_status!="MODEL_PASS" for row in check.corners
