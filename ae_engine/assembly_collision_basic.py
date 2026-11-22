@@ -367,7 +367,10 @@ def _scene_with_replaced_primary_cutting(scene, material):
         footprint = Point(
             float(primitive.center.x), float(primitive.center.y)
         ).buffer(radius, resolution=32)
-        if not footprint.is_empty and exterior.covers(footprint):
+        if not footprint.is_empty and any(
+            Polygon(ring).equals(footprint)
+            for ring in exterior.interiors
+        ):
             retained_circle_holes.append(footprint)
 
     # Existing linework holes remain linework, so don't emit a duplicate
