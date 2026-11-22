@@ -320,6 +320,9 @@ class Phase6FoldDesignerComposition:
     def settings_context_extension_projection(self, namespace, context):
         return _composition_settings.settings_context_extension_projection(self, namespace, context)
 
+    def select_tail_lower_v_choice(self, namespace, choice_var):
+        return _composition_settings.select_tail_lower_v_choice(self, namespace, choice_var)
+
     def sync_settings_panel_extension(self, namespace, state, context):
         return _composition_settings.sync_settings_panel_extension(self, namespace, state, context)
 
