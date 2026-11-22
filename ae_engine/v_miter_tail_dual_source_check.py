@@ -154,6 +154,10 @@ class TailDualVFaceResult:
     model_interference_segments: tuple
     root_intersection_topology: str
     model_volume_status: str
+    # Physical Y-direction separation floor under the actual *disjoint*
+    # finite-R/BA straight patches. Not an industrial tolerance or a
+    # proof that every alternative single-blank fold sequence is impossible.
+    straight_section_y_domain_witness_mm: tuple
     side_cut_failure: str | None
     bottom_cut_failure: str | None
     seam_continuity: object | None
@@ -743,6 +747,26 @@ def project_tail_dual_v_same_source_check(
         joined_y = row[0].y + mid_radius * (
             (n_left if side == "left" else n_right)[1] + n_bottom[1]
         )
+        # Source-owned side lip has y>=48, and its side X-fold does
+        # not change Y. The bottom Y-fold straight T-skin occupies
+        # y=joined_y +/- T/2. This *physical Y projection* witnesses a
+        # strictly positive gap even if the two V source rays are moved
+        # arbitrarily inside their existing patches. It says nothing
+        # about a different, yet-to-be-proven shared-root sheet map.
+        side_axis = e_left if side == "left" else e_right
+        side_normal = n_left if side == "left" else n_right
+        if (abs(side_axis[0])>_TOL or abs(side_normal[1])>_TOL
+                or abs(e_bottom[1])>_TOL or abs(n_bottom[0])>_TOL
+                or n_bottom[1]>=-_TOL):
+            raise GeometryError("V_MITER_TAIL_STRAIGHT_DOMAIN_AXES_NOT_ORTHOGONAL")
+        side_min_y = float(folded_domains[side].bounds[1])
+        bottom_max_y = float(joined_y+q.thickness_mm/2.0)
+        y_domain_floor = max(0.0, side_min_y-bottom_max_y)
+        # (side material min-Y, bottom outer physical-T Y,
+        # physical Y floor, hypothetical seam Y)
+        straight_y_witness = (
+            side_min_y, bottom_max_y, float(y_domain_floor), joined_y,
+        )
         straight_start = min(contact_reach, mid_radius)
         if contact_reach <= mid_radius + _TOL:
             raise GeometryError("V_MITER_TAIL_DUAL_NO_STRAIGHT_FORMED_SEAM")
@@ -893,6 +917,7 @@ def project_tail_dual_v_same_source_check(
             model_interference_segments=collision.intersection_segments,
             root_intersection_topology=root_contact,
             model_volume_status=volume_status,
+            straight_section_y_domain_witness_mm=straight_y_witness,
             side_cut_failure=side_error, bottom_cut_failure=bottom_error,
             seam_continuity=seam, seam_failure=seam_error,
             actual_formed_reach_mm=contact_reach,
@@ -923,6 +948,7 @@ def project_tail_dual_v_same_source_check(
                     endpoint_status == "NO_DETECTED_NATIVE_SPAN_DISCONTINUITY"
                     and side_tip_status == "NO_DETECTED_SIDE_TIP_DISCONTINUITY"
                 ) and topo_failure is None
+                and y_domain_floor <= _TOL
                 and not collision.pair_count
                 and volume_status == "NO_DETECTED_VOLUME_WITNESS"
                 and seam is not None and not seam.missing_face_interval_count
