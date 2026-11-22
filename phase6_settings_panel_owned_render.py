@@ -248,6 +248,24 @@ class Phase6SettingsPanelOwnedRenderMixin:
         state["bottom_wrap_widget"] = box
         return start_row + 1
 
+    def _render_tail_lower_v_choice(self, frame, context, projection, state):
+        lower=projection.get("tail_lower_v")
+        if not isinstance(lower,dict):
+            return
+        # One row INSIDE the existing CornerType group, not a new type.
+        row=ttk.Frame(frame)
+        row.pack(fill=tk.X,pady=(5,3))
+        ttk.Label(row,text="下方左右截角：").pack(side=tk.LEFT,padx=(0,6))
+        var=tk.StringVar(master=row,value=("V 型" if lower.get("choice")=="v90" else "原樣"))
+        state["tail_lower_v_choice_var"]=var
+        chooser=build_choice_menubutton(
+            row,variable=var,values=("原樣","V 型"),width=9,
+            command=(lambda c=context,v=var: self._tail_lower_v_selected(c,v))
+            if self._tail_lower_v_selected is not None else None,
+        )
+        chooser.pack(side=tk.LEFT)
+        state["tail_lower_v_choice_widget"]=chooser
+
     def _render_owned_corner(self, parent, context, start_row, projection, state):
         fixed_summary_var = state["fixed_corner_summary_var"]
         mode = str(projection.get("mode") or "none")
@@ -261,6 +279,7 @@ class Phase6SettingsPanelOwnedRenderMixin:
             box.grid(row=start_row, column=0, columnspan=5, sticky="ew", padx=3, pady=(6, 2))
             fixed_summary_var.set(summary)
             ttk.Label(box, textvariable=fixed_summary_var, wraplength=900).pack(anchor=tk.W)
+            self._render_tail_lower_v_choice(box,context,projection,state)
             return start_row + 1
 
         type_editable = bool(projection.get("type_editable", False))
@@ -416,6 +435,7 @@ class Phase6SettingsPanelOwnedRenderMixin:
                         for entry in (primary, retain, depth):
                             entry.bind("<Return>", lambda _e, p=context, t=target_key: self._corner_target_changed(p, t))
                             entry.bind("<FocusOut>", lambda _e, p=context, t=target_key: self._corner_target_changed(p, t))
+        self._render_tail_lower_v_choice(box,context,projection,state)
         return start_row + 1
 
     def _render_owned_receiving_base_plate(self, parent, start_row, projection, state):
@@ -583,6 +603,8 @@ class Phase6SettingsPanelOwnedRenderMixin:
             "corner_secondary_depth_vars": {},
             "corner_detail_frames": {},
             "fixed_corner_summary_var": tk.StringVar(master=parent, value=""),
+            "tail_lower_v_choice_var": None,
+            "tail_lower_v_choice_widget": None,
             "corner_param_lock_button": None,
             "endcap_fw_follow_var": None,
             "endcap_fw_value_var": None,
