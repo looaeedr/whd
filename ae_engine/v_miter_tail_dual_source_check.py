@@ -58,6 +58,56 @@ from .v_miter_seam_gap_trial import (
 _TOL = 1e-6
 
 
+def _inverse_straight_90_fold_contact(
+    point_xy: tuple[float, float], z_mm: float, *,
+    apex: Vec2, axis: tuple, outside: tuple,
+    bend_allowance_mm: float, mid_radius_mm: float,
+) -> Vec2:
+    """Backproject a real straight 90-degree R/BA skin station to flat UV.
+
+    Inverts the exact straight branch of _formed_curved_skin, never the
+    zero-R ideal or a whole-width fabricated BEND. Only CHECK geometry;
+    the curved root and T-thick cut-face contact remain independent tests.
+    """
+    if not (mid_radius_mm <= z_mm + _TOL
+            and bend_allowance_mm > 0 and mid_radius_mm > 0):
+        raise GeometryError("V_MITER_TAIL_INVERSE_NOT_ON_STRAIGHT_RBA_SKIN")
+    axial = (
+        (point_xy[0] - apex.x - mid_radius_mm * outside[0]) * axis[0]
+        + (point_xy[1] - apex.y - mid_radius_mm * outside[1]) * axis[1]
+    )
+    flat_u = bend_allowance_mm + z_mm - mid_radius_mm
+    if not all(math.isfinite(v) for v in (axial, flat_u)):
+        raise GeometryError("V_MITER_TAIL_INVERSE_NONFINITE")
+    return Vec2(
+        apex.x + axis[0] * axial + outside[0] * flat_u,
+        apex.y + axis[1] * axial + outside[1] * flat_u,
+    )
+
+
+def _apex_ray_side_exit_least_squares(
+    apex: Vec2, projected: tuple[Vec2, ...], side_x: float,
+) -> tuple[float, float]:
+    """Infer an unconstrained straight V ray, pinned at the actual BEND apex.
+
+    Returns the fitted intersection y at the ORIGINAL outside side edge and
+    the maximum flat residual (mm). Neither result grants CUTTING status.
+    A negative or wrong-side exit is an explicit incompatibility witness,
+    not a reason to silently move the original apex or outer perimeter.
+    """
+    dx = tuple(p.x - apex.x for p in projected)
+    denominator = sum(v * v for v in dx)
+    if denominator <= _TOL * _TOL:
+        raise GeometryError("V_MITER_TAIL_INVERSE_RAY_NOT_DETERMINED")
+    slope = sum(x * (p.y - apex.y) for x, p in zip(dx, projected)) / denominator
+    side_hit_y = apex.y + slope * (side_x - apex.x)
+    max_residual = max(
+        abs((p.y - apex.y) - slope * x) / math.sqrt(1.0 + slope * slope)
+        for x, p in zip(dx, projected)
+    )
+    return float(side_hit_y), float(max_residual)
+
+
 @dataclass(frozen=True)
 class TailDualVFaceResult:
     corner: str
@@ -76,6 +126,13 @@ class TailDualVFaceResult:
     distal_ideal_shortfall_mm: float
     # Direct true 3D cut-face stations, not whole-solid nearest distance.
     sampled_seam_gap_stations_mm: tuple = ()
+    # Actual finite-R/BA 90-degree contact inverses: z, side UV, bottom UV,
+    # each distance from its current SOURCE V leg and unrepresented side BEND.
+    inverse_straight_contact_flat_trace_mm: tuple = ()
+    # Unconstrained straight-ray side-edge intersections, not accepted cuts:
+    # (side_ray_y, side_ray_max_residual, bottom_ray_y, bottom_ray_max_residual).
+    inverse_unconstrained_outer_hits_mm: tuple = ()
+    inverse_source_fit_status: str = "NOT_EVALUATED"
     interference_z_range_mm: tuple | None = None
     actual_joint_axis_xyz: tuple = ()
     native_uncut_fold_endpoint_jump_max_mm: float | None = None
@@ -578,6 +635,58 @@ def project_tail_dual_v_same_source_check(
             if endpoint_jump_max > 1e-3
             else "NO_DETECTED_NATIVE_SPAN_DISCONTINUITY"
         )
+        # Invert the *formed* straight contact line through the same actual
+        # R/BA map used to form both physical skins. A same-side-opening V
+        # is allowed only if these two inverse curves can each be supported
+        # by its own actual connected stock and unmodified BEND spans.
+        inverse_stations = tuple(
+            mid_radius + fraction * (contact_reach - mid_radius)
+            for fraction in (0.25, 0.50, 0.75, 0.95)
+        )
+        side_outside = n_left if side == "left" else n_right
+        side_inverse = tuple(_inverse_straight_90_fold_contact(
+            (joined_x, joined_y), z, apex=row[0],
+            axis=e_left if side == "left" else e_right,
+            outside=side_outside,
+            bend_allowance_mm=q.first_bend_allowance_mm,
+            mid_radius_mm=mid_radius,
+        ) for z in inverse_stations)
+        bottom_inverse = tuple(_inverse_straight_90_fold_contact(
+            (joined_x, joined_y), z, apex=row[0], axis=e_bottom,
+            outside=n_bottom, bend_allowance_mm=q.first_bend_allowance_mm,
+            mid_radius_mm=mid_radius,
+        ) for z in inverse_stations)
+        outer_x = minx if side == "left" else maxx
+        upper_ray = LineString(((row[0].x, row[0].y),
+                                (row[2].x, row[2].y)))
+        lower_ray = LineString(((row[0].x, row[0].y),
+                                (row[1].x, row[1].y)))
+        real_side_guide = left_guide if side == "left" else right_guide
+        inverse_trace = tuple((
+            float(z), (float(s.x), float(s.y)),
+            (float(b.x), float(b.y)),
+            float(Point(s.x, s.y).distance(upper_ray)),
+            float(Point(b.x, b.y).distance(lower_ray)),
+            float(max(real_side_guide.span_start - s.y,
+                      s.y - real_side_guide.span_end, 0.0)),
+        ) for z, s, b in zip(inverse_stations, side_inverse, bottom_inverse))
+        side_fit = _apex_ray_side_exit_least_squares(
+            row[0], side_inverse, outer_x,
+        )
+        bottom_fit = _apex_ray_side_exit_least_squares(
+            row[0], bottom_inverse, outer_x,
+        )
+        # The projected V rays must have a *real* upper and lower exterior
+        # exit and lie on both inverse straight seams; the physical side
+        # flange cannot silently extend below its source BEND start.
+        inverse_fit_status = (
+            "INVERSE_SOURCE_RAYS_COMPATIBLE"
+            if side_fit[0] > row[0].y + _TOL
+            and bottom_fit[0] < row[0].y - _TOL
+            and max(side_fit[1], bottom_fit[1]) <= _TOL
+            and all(max(record[3:]) <= _TOL for record in inverse_trace)
+            else "INVERSE_SOURCE_RAYS_NOT_COMPATIBLE"
+        )
         sampled_stations = ()
         if side_faces and bottom_faces:
             fractions = (0.25, 0.50, 0.75, 0.95)
@@ -610,6 +719,9 @@ def project_tail_dual_v_same_source_check(
             actual_formed_reach_mm=contact_reach,
             distal_ideal_shortfall_mm=max(0.0, min(row[4], row[5])-contact_reach),
             sampled_seam_gap_stations_mm=sampled_stations,
+            inverse_straight_contact_flat_trace_mm=inverse_trace,
+            inverse_unconstrained_outer_hits_mm=(*side_fit, *bottom_fit),
+            inverse_source_fit_status=inverse_fit_status,
             interference_z_range_mm=(
                 (min(interference_z), max(interference_z))
                 if interference_z else None
