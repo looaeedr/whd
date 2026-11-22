@@ -429,18 +429,6 @@ def settings_context_extension_projection(self, namespace, context):
         },
     }
 
-def _schedule_tail_first_bend_source_refresh(app):
-    """Rebuild cached choice labels from CURRENT finite BEND after a UI edit."""
-    panel=getattr(app,"settings_panel",None)
-    root=getattr(app,"root",None)
-    if panel is None or root is None:
-        return
-    def refresh():
-        panel.invalidate_context("tail")
-        panel.render_context("tail")
-    root.after_idle(refresh)
-
-
 def select_tail_lower_v_choice(self, namespace, choice_var):
     """UI wires one Engine-validated optional source into live Save/3D."""
     app=self.app
@@ -500,7 +488,14 @@ def select_tail_lower_v_choice(self, namespace, choice_var):
     if key in next_snapshot:
         app._phase6_input_snapshot[key]=next_snapshot[key]
     app.submit_update_intent("geometry",commit=True)
-    _schedule_tail_first_bend_source_refresh(app)
+    panel=getattr(app,"settings_panel",None)
+    if panel is not None:
+        app.root.after_idle(
+            lambda p=panel: (
+                p.invalidate_context("tail"),
+                p.render_context("tail"),
+            )
+        )
     status=getattr(app,"settings_status_var",None)
     if status is not None:
         status.set("下方左右截角："+(
@@ -547,12 +542,29 @@ def select_tail_lower_v_first_bends(self, namespace, left_var, right_var):
             app._phase6_input_snapshot,axis,spec=spec,render_data=raw,
         )
         from phase6_manufacturing_adapter import (
-            preview_tail_first_bend_candidate_for_app,
+            build_manufacturing_request,
+            operator_finished_dimensions_for_app,
         )
-        # Full candidate uses one immutable native manufacturing request:
-        # recompute resolved non-V relief BEFORE the V projection. Never
-        # mistake the current V preview for pre-V resolved source.
-        preview_tail_first_bend_candidate_for_app(app,next_source)
+        # One immutable native request recomputes non-V resolved relief
+        # BEFORE V projection. Never reinterpret the current V preview as raw.
+        # The adapter owns the source patch, Engine owns the actual solve.
+        first_key=manufacturing_api.TAIL_LOWER_V_FIRST_BENDS_KEY
+        request=build_manufacturing_request(
+            app,
+            scene_payload_builder=lambda key: build_scene_payload_for_app(app,key),
+            render_data_provider=source_render,
+            part_spec_provider=source_spec,
+            finished_dimensions_provider=lambda key=None:
+                operator_finished_dimensions_for_app(app,key),
+            operator_source_patch={first_key:next_source[first_key]},
+        )
+        response=manufacturing_api.resolve_manufacturing_request(request)
+        tail=response.geometry.part("tail")
+        if tail is None or tail.render_data is None:
+            raise ValueError("V_MITER_FIRST_BEND_RESOLVED_TAIL_REQUIRED")
+        if (tail.render_data.metadata.get("tail_lower_v_first_fold_basis")
+                != "OPERATOR_SELECTED_PHYSICAL_BEND"):
+            raise ValueError("V_MITER_FIRST_BEND_CANDIDATE_NOT_PROJECTED")
     except (ValueError,TypeError) as exc:
         if status is not None:
             status.set(str(exc))
@@ -561,7 +573,14 @@ def select_tail_lower_v_first_bends(self, namespace, left_var, right_var):
         manufacturing_api.TAIL_LOWER_V_FIRST_BENDS_KEY
     ]=next_source[manufacturing_api.TAIL_LOWER_V_FIRST_BENDS_KEY]
     app.submit_update_intent("geometry",commit=True)
-    _schedule_tail_first_bend_source_refresh(app)
+    panel=getattr(app,"settings_panel",None)
+    if panel is not None:
+        app.root.after_idle(
+            lambda p=panel: (
+                p.invalidate_context("tail"),
+                p.render_context("tail"),
+            )
+        )
     if status is not None:
         status.set(
             "兩角首折："+axis["bottom_left"].upper()+"/"
