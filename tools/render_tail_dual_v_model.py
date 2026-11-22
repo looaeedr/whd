@@ -221,9 +221,10 @@ def _svg_true_t_sections(check):
     for i,row in enumerate(check.corners):
         if not row.sampled_cut_face_nearest_xyz:
             raise ValueError("WHD dual V missing measured true-T face stations")
-        fraction, gap, side_pt, bottom_pt, status = (
-            row.sampled_cut_face_nearest_xyz[0]
+        station_z_source,status,gap,side_pt,bottom_pt = (
+            row.sequential_final_seam_sections[0]
         )
+        fraction=.25
         if status != "MEASURED" or gap is None or side_pt is None or bottom_pt is None:
             raise ValueError("WHD dual V true-T face section not measured")
         station_z=_finite(side_pt[2])
@@ -243,7 +244,7 @@ def _svg_true_t_sections(check):
         panels.append(
             f'<g font-family="sans-serif" font-size="13" fill="#292929">'
             f'<text x="{10+430*i}" y="30" font-size="18">'
-            f'{escape(row.corner)}: true T / R / BA; '
+            f'{escape(row.corner)}: WHOLE ONE SHEET RBA/T; '
             f'FIRST {row.first_bend_axis.upper()}</text>'
             f'<text x="{10+430*i}" y="49">Z={station_z:.3f} mm '
             f'; real cut-face gap={_finite(gap):.3f} mm</text>'
@@ -261,8 +262,10 @@ def _svg_true_t_sections(check):
             f'original BEND intersection ({orig_x:g},{orig_y:g})</text>'
             '</g>'
         )
-        for faces,color in ((row.side_cut_faces,"#c35920"),
-                            (row.bottom_cut_faces,"#175fb1")):
+        for faces,color in (
+            (row.sequential_second_side_cut_faces,"#c35920"),
+            (row.sequential_second_bottom_cut_faces,"#175fb1"),
+        ):
             lines=_true_t_cut_section_segments(faces,station_z)
             if not lines:
                 raise ValueError("WHD dual V actual true-T section has no cut walls")
@@ -384,6 +387,86 @@ def _svg_same_source_2d_and_true_t_sections(check):
     return (header+flat_view+section_view+"".join(note_view)+"</svg>").encode("utf-8")
 
 
+
+def _one_source_mesh_obj(mesh, *, label):
+    """One stage, all mesh vertices from ONE triangulated Factory sheet."""
+    out=io.StringIO()
+    out.write("# WHD same sheet, finite R/BA/T two-stage CHECK, not CNC\n")
+    out.write(f"g {label}\n")
+    index=1
+    for tri in mesh:
+        if len(tri)!=3:
+            raise ValueError("WHD same source folded triangle malformed")
+        for p in tri:
+            out.write("v "+" ".join(f"{_finite(v):.6f}" for v in p)+"\n")
+        out.write(f"f {index} {index+1} {index+2}\n")
+        index+=3
+    return out.getvalue().encode("utf-8")
+
+
+def _svg_first_then_second_v_tracks(check):
+    """Actual same UV points in flat, first, final 3D. No guessed drawing."""
+    panels=[]
+    for i,row in enumerate(check.corners):
+        x=15+i*615
+        panels.append(
+            f'<text x="{x}" y="33" font-family="sans-serif" '
+            f'font-size="21" fill="#222">{escape(row.corner)} '
+            f'— FIRST {row.first_bend_axis.upper()}</text>'
+        )
+        panels.append(
+            f'<text x="{x}" y="59" font-family="sans-serif" '
+            'font-size="13" fill="#555">All XYZ in mm; same original CUTTING '
+            'point at every stage</text>'
+        )
+        for k,leg in enumerate(("SIDE_UPPER","BOTTOM_LOWER")):
+            row_hit=next(t for t in row.sequential_source_cut_edge_tracks
+                         if t[1]==leg and t[2]==.5)
+            _,_leg,frac,uv,p1,p2,first_t,last_t=row_hit
+            y=100+k*195
+            color="#c35920" if k==0 else "#175fb1"
+            panels.append(
+                f'<text x="{x}" y="{y}" fill="{color}" '
+                f'font-family="sans-serif" font-size="18">{escape(leg)}</text>'
+            )
+            for j,(title,point) in enumerate((
+                ("SOURCE UV",(uv[0],uv[1],0.0)),
+                ("STAGE 1 XYZ",p1),
+                ("STAGE 2 XYZ",p2),
+            )):
+                xx=x+203*j
+                panels.append(
+                    f'<rect x="{xx}" y="{y+17}" width="186" height="115" '
+                    'rx="8" fill="#f6f7f9" stroke="#b5bdc8"/>'
+                    f'<text x="{xx+9}" y="{y+41}" font-family="sans-serif" '
+                    f'font-size="13" fill="#444">{title}</text>'
+                    f'<text x="{xx+9}" y="{y+67}" font-family="monospace" '
+                    f'font-size="15" fill="#111">X={_finite(point[0]):.4f}</text>'
+                    f'<text x="{xx+9}" y="{y+88}" font-family="monospace" '
+                    f'font-size="15" fill="#111">Y={_finite(point[1]):.4f}</text>'
+                    f'<text x="{xx+9}" y="{y+109}" font-family="monospace" '
+                    f'font-size="15" fill="#111">Z={_finite(point[2]):.4f}</text>'
+                )
+                if j<2:
+                    panels.append(
+                        f'<path d="M {xx+188} {y+77} l 10 0" '
+                        'stroke="#333" stroke-width="2"/>'
+                    )
+        panels.append(
+            f'<text x="{x}" y="523" font-family="sans-serif" '
+            'font-size="13" fill="#902b30">'
+            'Root process: finite BEND-end transition NOT verified</text>'
+        )
+    return (
+        '<svg xmlns="http://www.w3.org/2000/svg" '
+        'viewBox="0 0 1240 570" width="1488" height="684">'
+        '<rect width="100%" height="100%" fill="white"/>'
+        '<title>WHD original Tail V edge points after physical FIRST then '
+        'SECOND folds; one source mesh; CHECK only</title>'
+        +''.join(panels)+'</svg>'
+    ).encode("utf-8")
+
+
 def _actual_obj(check, *, native=True):
     mesh_groups=(
         (("original_WHD_3D_finite_BEND_span", check.native_original_fold_path_mesh),)
@@ -472,6 +555,28 @@ def _model_report(check):
             return [min(z), max(z)] if z else None
         corners.append({
             "corner":row.corner,
+            "same_sheet_stage_source_cut_tracks":[
+                {"leg":leg,"source_fraction":fraction,"source_uv":uv,
+                 "after_first_xyz":first_xyz,"after_second_xyz":final_xyz,
+                 "stage1_T_plus_minus_xyz":first_t,
+                 "stage2_T_plus_minus_xyz":final_t}
+                for _corner,leg,fraction,uv,first_xyz,final_xyz,first_t,final_t
+                in row.sequential_source_cut_edge_tracks
+            ],
+            "sequential_final_true_T_gap_by_actual_z_mm":[
+                {"z":z,"status":status,"gap_mm":gap,
+                 "side_cut_xyz_mm":side,"bottom_cut_xyz_mm":bottom}
+                for z,status,gap,side,bottom
+                in row.sequential_final_seam_sections
+            ],
+            "sequential_root_process_status":
+                row.sequential_root_process_status,
+            "sequential_source_true_T_cut_face_z_ranges_mm":{
+                "after_first_side":z_span(row.sequential_first_side_cut_faces),
+                "after_first_bottom":z_span(row.sequential_first_bottom_cut_faces),
+                "after_second_side":z_span(row.sequential_second_side_cut_faces),
+                "after_second_bottom":z_span(row.sequential_second_bottom_cut_faces),
+            },
             "operator_first_physical_bend_axis":row.first_bend_axis,
             "operator_second_physical_bend_axis":row.second_bend_axis,
             "source_true_T_mating_faces":{
@@ -559,7 +664,7 @@ def _model_report(check):
     return {
         "geometry_source":"WHD current real EndCap PartSpec/FinalScene/Factory",
         "operator_first_bend_axes":check.operator_first_bend_axes,
-        "fold_order_contact_scope":"disjoint folded skin patches; shared-root sequential deformation not verified",
+        "fold_order_contact_scope":"one source triangle mesh, physical first then second RBA/T stage; finite root transition not physically certified",
         "units":"mm",
         "status":"MODEL_NOT_VERIFIED" if any(
             row.model_status!="MODEL_PASS" for row in check.corners
@@ -592,6 +697,23 @@ def _model_report(check):
             [list(_src_point(p)) for p in poly]
             for poly in check.out_of_bottom_span_corner_contours_xy
         ],
+        "one_sheet_two_stage_models":[
+            {"operator_first_axis":axis,
+             "operator_second_axis":seq.second_axis,
+             "source_area_mm2":seq.source_area_mm2,
+             "source_triangle_count":len(seq.flat_source_triangles),
+             "stage1_triangle_count":len(seq.first_formed_skin_triangles),
+             "stage2_triangle_count":len(seq.second_formed_skin_triangles),
+             "stage1_T_solid_triangle_count":len(seq.first_thick_solid_triangles),
+             "stage2_T_solid_triangle_count":len(seq.second_thick_solid_triangles),
+             "first_stage_max_same_source_vertex_jump_mm":
+                seq.first_stage_max_duplicate_vertex_jump_mm,
+             "final_stage_max_same_source_vertex_jump_mm":
+                seq.final_stage_max_duplicate_vertex_jump_mm,
+             "root_process_status":seq.root_process_status,
+             "manufacturing_status":seq.manufacturing_status}
+            for axis,seq in check.sequential_same_sheet_stage_models
+        ],
         "restored_corner_stock_ownership_mm2": [
             {"corner":corner,"added_total":total,"side_fold":side,
              "bottom_fold":bottom,"not_in_either_lower_fold":remainder}
@@ -616,6 +738,16 @@ def build_tail_dual_v_source_preview_zip(check) -> bytes:
     combined=_svg_same_source_2d_and_true_t_sections(check)
     obj=_actual_obj(check,native=True)
     physical_obj=_actual_obj(check,native=False)
+    stage_tracks=_svg_first_then_second_v_tracks(check)
+    if len(check.sequential_same_sheet_stage_models)!=1:
+        raise ValueError("WHD exported single-sheet stage order not uniquely selected")
+    _,seq=check.sequential_same_sheet_stage_models[0]
+    first_solid=_one_source_mesh_obj(
+        seq.first_thick_solid_triangles,label="FIRST_SOURCE_T_SHEET",
+    )
+    final_solid=_one_source_mesh_obj(
+        seq.second_thick_solid_triangles,label="SECOND_SOURCE_T_SHEET",
+    )
     png=_png_actual_mesh(check)
     report=json.dumps(_model_report(check),ensure_ascii=False,indent=2,
                       sort_keys=True).encode("utf-8")
@@ -626,6 +758,10 @@ def build_tail_dual_v_source_preview_zip(check) -> bytes:
         out.writestr("WHD_tail_dual_V_original_2D_and_folded_true_T_sections.svg",combined)
         out.writestr("WHD_tail_dual_V_actual_folded_model.obj",obj)
         out.writestr("WHD_tail_dual_V_RBA_focused_fold_check.obj",physical_obj)
+        out.writestr("WHD_tail_dual_V_same_sheet_AFTER_FIRST_T.obj",first_solid)
+        out.writestr("WHD_tail_dual_V_same_sheet_AFTER_SECOND_T.obj",final_solid)
+        out.writestr("WHD_tail_dual_V_same_sheet_stage1_stage2_V_tracks.svg",
+                     stage_tracks)
         out.writestr("WHD_tail_dual_V_folded_preview.png",png)
         out.writestr("WHD_tail_dual_V_model_diagnosis.json",report)
     return stream.getvalue()

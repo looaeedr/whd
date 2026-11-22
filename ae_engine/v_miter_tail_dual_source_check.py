@@ -1065,6 +1065,7 @@ def project_tail_dual_v_same_source_check(
                     and side_tip_status == "NO_DETECTED_SIDE_TIP_DISCONTINUITY"
                 ) and topo_failure is None
                 and y_domain_floor <= _TOL
+                and sequential.root_process_status == "PHYSICALLY_VERIFIED"
                 and not collision.pair_count
                 and volume_status == "NO_DETECTED_VOLUME_WITNESS"
                 and seam is not None and not seam.missing_face_interval_count

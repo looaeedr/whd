@@ -58,6 +58,28 @@ def test_tail_real_same_blank_dual_90_v_and_folded_contact(first_axis):
         assert all(row.first_bend_axis == first_axis and
                    row.second_bend_axis == ("y" if first_axis=="x" else "x")
                    for row in check.corners)
+        # An actual one-source triangulation has two different 3D
+        # transformations. Distinct first-fold choices MUST move different
+        # physical V lips at stage one, not merely rename static parts.
+        assert len(check.sequential_same_sheet_stage_models) == 1
+        saved_axis,seq=check.sequential_same_sheet_stage_models[0]
+        assert saved_axis == first_axis
+        assert seq.first_axis == first_axis
+        assert seq.second_axis == ("y" if first_axis=="x" else "x")
+        assert seq.flat_source_triangles
+        assert len(seq.flat_source_triangles) == len(
+            seq.first_formed_skin_triangles
+        ) == len(seq.second_formed_skin_triangles)
+        assert seq.first_formed_skin_triangles != seq.second_formed_skin_triangles
+        assert seq.first_thick_solid_triangles and seq.second_thick_solid_triangles
+        assert seq.source_area_mm2 == pytest.approx(
+            seq.triangulated_area_mm2,rel=1e-7
+        )
+        assert seq.first_stage_max_duplicate_vertex_jump_mm < 1e-7
+        assert seq.final_stage_max_duplicate_vertex_jump_mm < 1e-7
+        assert seq.root_process_status == (
+            "FINITE_BEND_TIP_TRANSITION_KINEMATIC_ONLY"
+        ), "A same-source kinematic mesh is NOT a proven elastic root fold"
         assert check.side_flange_left_mm == pytest.approx(15)
         assert check.side_flange_right_mm == pytest.approx(15)
         assert check.bottom_flange_mm == pytest.approx(48)
@@ -140,6 +162,46 @@ def test_tail_real_same_blank_dual_90_v_and_folded_contact(first_axis):
         # only; the new connected stock skin must be continuous without
         # changing any source BEND endpoints or CUTTING holes.
         for corner in check.corners:
+            # Trace both source V lips at the original UV, after the
+            # selected first physical fold, and after second physical
+            # fold. The stationary lip MUST differ by order; the opposite
+            # lip must be transported by the actual first-stage map.
+            rows=corner.sequential_source_cut_edge_tracks
+            assert len(rows) == 14
+            assert {t[1] for t in rows} == {
+                "SIDE_UPPER","BOTTOM_LOWER"
+            }
+            upper=next(t for t in rows
+                       if t[1]=="SIDE_UPPER" and t[2]==.5)
+            lower=next(t for t in rows
+                       if t[1]=="BOTTOM_LOWER" and t[2]==.5)
+            apex=next(t for t in rows
+                      if t[1]=="SIDE_UPPER" and t[2]==0.0)
+            assert apex[4] == pytest.approx((*apex[3],0.0))
+            assert apex[5] == pytest.approx((*apex[3],0.0))
+            if first_axis=="x":
+                assert upper[4][2] > 0
+                assert lower[4][2] == pytest.approx(0.0)
+            else:
+                assert lower[4][2] > 0
+                assert upper[4][2] == pytest.approx(0.0)
+            assert upper[5][2] > 0 and lower[5][2] > 0
+            assert upper[5][2] == pytest.approx(lower[5][2],abs=1e-6)
+            assert upper[4] != upper[5] or lower[4] != lower[5]
+            assert all((
+                corner.sequential_first_side_cut_faces,
+                corner.sequential_first_bottom_cut_faces,
+                corner.sequential_second_side_cut_faces,
+                corner.sequential_second_bottom_cut_faces,
+            ))
+            assert len(corner.sequential_final_seam_sections)==4
+            assert all(z>0 and gap is not None and gap>0
+                       for z,status,gap,_,_ in
+                       corner.sequential_final_seam_sections
+                       if status=="MEASURED")
+            assert corner.sequential_root_process_status == (
+                "FINITE_BEND_TIP_TRANSITION_KINEMATIC_ONLY"
+            )
             assert corner.native_uncut_fold_endpoint_jump_max_mm is not None
             assert corner.native_uncut_fold_endpoint_jump_max_mm < 1e-3
             assert corner.native_uncut_fold_endpoint_status == (
@@ -207,6 +269,16 @@ def test_tail_real_same_blank_dual_90_v_and_folded_contact(first_axis):
         evidence = {
             "operator_first_physical_BEND_axis":first_axis,
             "operator_first_bend_axes":check.operator_first_bend_axes,
+            "same_sheet_stage_model":"ONE_SOURCE_TRIANGULATION_SEQUENTIAL_RBA_T",
+            "source_triangle_count":len(seq.flat_source_triangles),
+            "first_folded_triangle_count":len(seq.first_formed_skin_triangles),
+            "final_folded_triangle_count":len(seq.second_formed_skin_triangles),
+            "source_area_mm2":seq.source_area_mm2,
+            "stage1_source_vertex_jump_mm":
+                seq.first_stage_max_duplicate_vertex_jump_mm,
+            "stage2_source_vertex_jump_mm":
+                seq.final_stage_max_duplicate_vertex_jump_mm,
+            "root_process_status":seq.root_process_status,
             "original_flange_mm":[check.side_flange_left_mm,
                                   check.side_flange_right_mm,
                                   check.bottom_flange_mm],
@@ -237,6 +309,12 @@ def test_tail_real_same_blank_dual_90_v_and_folded_contact(first_axis):
                 return [min(zs), max(zs)] if zs else None
             evidence["corners"].append({
                 "corner":row.corner,
+                "sequential_same_source_cut_edge_tracks":
+                    row.sequential_source_cut_edge_tracks,
+                "sequential_final_true_T_seam_sections":
+                    row.sequential_final_seam_sections,
+                "sequential_root_process_status":
+                    row.sequential_root_process_status,
                 "side_cut_face_z_mm":z_range(row.side_cut_faces),
                 "bottom_cut_face_z_mm":z_range(row.bottom_cut_faces),
                 "collision_surface_triangle_pairs":row.model_interference_pairs,
@@ -310,6 +388,9 @@ def test_tail_real_same_blank_dual_90_v_and_folded_contact(first_axis):
                 "WHD_tail_dual_V_original_2D_and_folded_true_T_sections.svg",
                 "WHD_tail_dual_V_actual_folded_model.obj",
                 "WHD_tail_dual_V_RBA_focused_fold_check.obj",
+                "WHD_tail_dual_V_same_sheet_AFTER_FIRST_T.obj",
+                "WHD_tail_dual_V_same_sheet_AFTER_SECOND_T.obj",
+                "WHD_tail_dual_V_same_sheet_stage1_stage2_V_tracks.svg",
                 "WHD_tail_dual_V_folded_preview.png",
                 "WHD_tail_dual_V_model_diagnosis.json",
             } <= names
@@ -331,6 +412,15 @@ def test_tail_real_same_blank_dual_90_v_and_folded_contact(first_axis):
             ))
             assert traced["formal_dxf_export"] == "NOT_ALLOWED"
             assert len(traced["corners"]) == 2
+            assert traced["one_sheet_two_stage_models"][0]["source_area_mm2"] == pytest.approx(
+                seq.source_area_mm2
+            )
+            assert traced["corners"][0]["sequential_same_source_cut_edge_tracks"]
+            stageview=archive.read(
+                "WHD_tail_dual_V_same_sheet_stage1_stage2_V_tracks.svg"
+            ).decode("utf-8")
+            assert "STAGE 1" in stageview and "STAGE 2" in stageview
+            assert "bottom_left" in stageview and "bottom_right" in stageview
             assert traced["operator_first_bend_axes"] == [
                 ["bottom_left",first_axis],["bottom_right",first_axis],
             ]
