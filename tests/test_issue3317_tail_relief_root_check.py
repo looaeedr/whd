@@ -454,3 +454,96 @@ def test_d4_rejects_unauthorized_outer_change_even_with_same_bbox_and_holes(
     with pytest.raises(GeometryError,
             match=r"^TAIL_D4_CHECK_OUTER_UNRELATED_DELTA"):
         project_tail_d4_source_keyed_t_check(revised,first_axis=axis)
+
+
+@pytest.mark.parametrize("axis",("x","y"))
+def test_d4_check_dxf_independently_reopens_full_source_no_formal_layers(axis,tmp_path):
+    """AutoCAD-readable, source-typed loops and finite BEND *datums* only."""
+    import ezdxf
+    from ae_engine.v_miter_tail_d4_check_dxf import save_tail_d4_check_dxf
+    from ae_engine.sheetmetal_drawing import CirclePrimitive,LinePrimitive
+    from shapely.geometry import Polygon as ShPolygon
+
+    flat=_d4_revised_factory_source()
+    path=tmp_path/f"vault_tail_W620_D185_T2_D4_{axis}_CHECK_NOT_CNC.dxf"
+    result=save_tail_d4_check_dxf(flat,path,first_axis=axis)
+    assert result==path and path.exists()
+    # Independent ezdxf audit, do NOT call the adapter's own reopen checker.
+    doc=ezdxf.readfile(path)
+    assert not doc.audit().has_errors
+    assert doc.header["$INSUNITS"]==4
+    assert not {"CUTTING","BEND","MARKING"}.intersection(doc.layers.entries.keys())
+    entities=tuple(doc.modelspace())
+    assert all(e.dxf.layer in ("CHECK","DATUM") for e in entities)
+    check_polys=tuple(e for e in entities if e.dxftype()=="LWPOLYLINE")
+    original_holes=tuple(p for p in flat.result_scene.primitives
+                         if p.layer=="CUTTING"
+                         and getattr(p,"semantic_id",None)!="OUTER_BOUNDARY")
+    assert len(check_polys)==1+sum(isinstance(p,PolylinePrimitive)
+                                   for p in original_holes)
+    assert all(e.closed for e in check_polys)
+    assert sum(e.dxftype()=="CIRCLE" for e in entities)==sum(
+        isinstance(p,CirclePrimitive) for p in original_holes)
+    outer=max(check_polys,key=lambda e:ShPolygon(
+        tuple((p[0],p[1]) for p in e.get_points("xy"))).area)
+    assert ShPolygon(tuple(e[:2] for e in outer.get_points("xy"))).symmetric_difference(
+        flat.result_material).area<1e-7
+    actual_circles=tuple(e for e in entities if e.dxftype()=="CIRCLE")
+    expected_circles=tuple(p for p in original_holes if isinstance(p,CirclePrimitive))
+    assert len(actual_circles)==len(expected_circles)
+    for old,new in zip(expected_circles,actual_circles):
+        assert new.dxf.center.x==pytest.approx(old.center.x,abs=1e-7)
+        assert new.dxf.center.y==pytest.approx(old.center.y,abs=1e-7)
+        assert new.dxf.radius==pytest.approx(old.radius,abs=1e-7)
+    reference_lines=tuple(e for e in entities if e.dxftype()=="LINE")
+    native_bends=tuple(p for p in flat.result_scene.primitives
+                       if isinstance(p,LinePrimitive) and p.layer=="BEND")
+    assert len(reference_lines)==len(native_bends)
+    assert all(e.dxf.layer=="DATUM" for e in reference_lines)
+    for old,new in zip(native_bends,reference_lines):
+        assert (new.dxf.start.x,new.dxf.start.y,new.dxf.end.x,new.dxf.end.y)==pytest.approx(
+            (old.p1.x,old.p1.y,old.p2.x,old.p2.y),abs=1e-7)
+    labels=tuple(e for e in entities if e.dxftype()=="MTEXT")
+    assert len(labels)==1 and "CHECK_NOT_CNC" in labels[0].text
+    assert len(flat.opening_source_points_xy)==2
+    # Both D4 root arcs remain present in the TRUE exported outer contour.
+    real_boundary=ShPolygon(tuple(e[:2] for e in outer.get_points("xy"))).boundary
+    for _name,_lower,apex,_upper in flat.opening_source_points_xy:
+        for x,y in ((apex[0],apex[1]-2),(apex[0],apex[1]+2)):
+            assert real_boundary.distance(Point(x,y))<1e-7
+
+
+@pytest.mark.parametrize("kind",("delete_authored_hole","alter_non_hinge_arc"))
+@pytest.mark.parametrize("axis",("x","y"))
+def test_d4_check_dxf_rejects_edited_source_without_writing(kind,axis,tmp_path):
+    from shapely.geometry import Point as ShPoint
+    from ae_engine.sheetmetal_drawing import CirclePrimitive
+    from ae_engine.v_miter_tail_d4_check_dxf import save_tail_d4_check_dxf
+    flat=_d4_revised_factory_source()
+    old=tuple(flat.result_scene.primitives)
+    outer=next(p for p in old if getattr(p,"semantic_id",None)=="OUTER_BOUNDARY")
+    if kind=="delete_authored_hole":
+        hole=next(p for p in old if isinstance(p,CirclePrimitive)
+                  and p.layer=="CUTTING")
+        altered=replace(flat,result_scene=DrawingScene(
+            tuple(p for p in old if p is not hole)))
+        pattern="TAIL_D4_CHECK_AUTHORED_CUTTING_IDENTITY_CHANGED"
+    else:
+        apex=flat.opening_source_points_xy[0][2]
+        point=(apex[0]+math.sqrt(2),apex[1]+math.sqrt(2))
+        modified=flat.result_material.difference(
+            ShPoint(*point).buffer(.06,resolution=16))
+        assert modified.symmetric_difference(flat.result_material).area>0
+        new=PolylinePrimitive(
+            points=tuple(Vec2(float(x),float(y))
+                         for x,y in modified.exterior.coords[:-1]),
+            layer="CUTTING",closed=True,semantic_id="OUTER_BOUNDARY")
+        altered=replace(flat,result_scene=DrawingScene(
+            tuple(new if p is outer else p for p in old)),
+            result_material=modified)
+        pattern="TAIL_D4_CHECK_OUTER_UNRELATED_DELTA"
+    path=tmp_path/f"bad_{axis}_{kind}_CHECK_NOT_CNC.dxf"
+    with pytest.raises(GeometryError,match=pattern):
+        save_tail_d4_check_dxf(altered,path,first_axis=axis)
+    assert not path.exists()
+    assert not tuple(tmp_path.glob(".tail_d4_check_*.dxf"))
