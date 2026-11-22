@@ -26,7 +26,6 @@ from .sheetmetal_geometry_core import GeometryError, Vec2
 from .v_miter_factory_mother_check import (
     _factory_original_shape, _selected_original_corner_component,
 )
-from .v_miter_material_trial import _single_source_material
 from .v_miter_operator_gui_check import _physical_corner_bends
 
 
@@ -70,11 +69,22 @@ def project_tail_illustrated_side_v90_flat(
         for key,target in required
     ):
         raise GeometryError("TAIL_IMAGE_V90_EXAMPLE_DIMENSIONS_MISMATCH")
-    original=_single_source_material(render.scene)
+    # Vault includes three legitimate CUTTING circles and one rectangular
+    # CUTTING hole. The generic single-contour V trial helper rejects them:
+    # never discard these source features just to satisfy a preview helper.
     factory,width,height,_=_factory_original_shape(spec)
-    if (abs(width-522)>tol or abs(height-233)>tol or
-            factory.symmetric_difference(original).area>tol):
+    outer=tuple(
+        p for p in render.scene.primitives
+        if isinstance(p,PolylinePrimitive) and p.layer=="CUTTING"
+        and p.closed and len(p.points)>=3
+        and abs(Polygon([(q.x,q.y) for q in p.points])
+                .symmetric_difference(factory).area)<=tol
+    )
+    if (abs(width-522)>tol or abs(height-233)>tol or len(outer)!=1):
         raise GeometryError("TAIL_IMAGE_V90_FACTORY_SOURCE_DIFFERENT")
+    original=Polygon([(p.x,p.y) for p in outer[0].points])
+    if factory.symmetric_difference(original).area>tol:
+        raise GeometryError("TAIL_IMAGE_V90_FACTORY_OUTER_CHANGED")
     mother=box(0,0,width,height)
     old_cuts=tuple(_selected_original_corner_component(
         original,mother,key

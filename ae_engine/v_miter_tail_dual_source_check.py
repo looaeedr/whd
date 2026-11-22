@@ -316,7 +316,10 @@ def project_tail_dual_v_same_source_check(
         ).area > _TOL):
         raise GeometryError("V_MITER_TAIL_ILLUSTRATION_NOT_MATCHING_CUTTING")
     from .v_miter_operator_gui_check import _endcap_existing_fold_angle_sources
-    original = _single_source_material(render.scene)
+    # This source is now explicitly an illustrated Vault Tail. Its true
+    # FinalScene has additional CUTTING hole loops; do not invoke the old
+    # single-CUTTING-only trial reader or erase its real circles/square.
+    original = authenticated.original_factory_material
     factory, width, height, original_bends = _factory_original_shape(spec)
     if factory.symmetric_difference(original).area > _TOL:
         raise GeometryError("V_MITER_TAIL_DUAL_FACTORY_ORIGINAL_DIFFERS")
