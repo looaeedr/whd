@@ -139,11 +139,14 @@ def project_tail_v90_full_t_no_ba(flat, *, first_axis: str):
         raise GeometryError("TAIL_V90_T2_FULL_HOLES_OR_SOURCE_MISSING:OUTER_ID")
     original_hole_features=tuple(p for p in original_cutting if p is not source_outer[0])
     final_hole_features=tuple(p for p in restored_cutting if p is not final_outer[0])
+    inherited=tuple(flat.inherited_non_v_cutting_features)
     if (stock.geom_type!="Polygon" or not stock.is_valid or stock.is_empty
             or original_stock.geom_type!="Polygon" or not original_stock.is_valid
-            or len(original_hole_features)!=len(final_hole_features)
+            or len(final_hole_features)!=len(original_hole_features)+len(inherited)
             or any(p is not q for p,q in zip(
-                original_hole_features,final_hole_features))
+                original_hole_features,
+                final_hole_features[:len(original_hole_features)]))
+            or tuple(final_hole_features[len(original_hole_features):])!=inherited
             or stock.difference(flat.result_material).area>_EPS):
         raise GeometryError("TAIL_V90_T2_FULL_HOLES_OR_SOURCE_MISSING:RAW_CUTTING_CHANGED")
     # Every source hole in this V blank MUST be a real physical cutout in

@@ -41,6 +41,9 @@ class TailIllustratedSideV90Flat:
     opening_source_points_xy: tuple
     # Source BEND corrected by the operator: (side X, old start Y, new start Y, end Y).
     side_bend_source_extensions: tuple = ()
+    # Already-solved, independent non-V CUTTING appended by the Engine
+    # after V source derivation. Exact raw features are never changed.
+    inherited_non_v_cutting_features: tuple = ()
     status: str = "USER_CORRECTED_SIDE_BEND_TO_BOTTOM_2D_V90_FOLDED_FIT_NOT_VERIFIED"
     manufacturing_approved: bool = False
 
