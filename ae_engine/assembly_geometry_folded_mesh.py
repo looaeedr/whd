@@ -524,13 +524,20 @@ def folded_mesh_from_polygon(
 
     xb, xf = _profile_geometry(x_profile)
     yb, yf = _profile_geometry(y_profile)
+    # Source-owned finite BEND tip continuity is OPT-IN. Keep the original
+    # mapper call contract byte-for-byte when no tip extension was requested,
+    # including the pre-existing performance/legacy mapper consumers.
+    tip_kwargs = (
+        {"fold_tip_continuity": fold_tip_continuity}
+        if fold_tip_continuity else {}
+    )
     x_mapper = _prepare_profile_mapper(
         x_profile, axis="x", fold_guides=fold_guides,
-        geometry=(xb, xf), fold_tip_continuity=fold_tip_continuity,
+        geometry=(xb, xf), **tip_kwargs,
     )
     y_mapper = _prepare_profile_mapper(
         y_profile, axis="y", fold_guides=fold_guides,
-        geometry=(yb, yf), fold_tip_continuity=fold_tip_continuity,
+        geometry=(yb, yf), **tip_kwargs,
     )
     total_x, total_y = float(xb[-1]), float(yb[-1])
     display_material = material.simplify(0.05, preserve_topology=True)
