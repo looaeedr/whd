@@ -59,6 +59,7 @@ class MeshInterferenceDiagnostic:
     intersection_points: tuple[tuple[float, float, float], ...]
     pair_count: int = 0
     intersection_segments: tuple = ()
+    target_face_indices: tuple[int, ...] = ()
 
     @property
     def has_interference(self) -> bool:
@@ -182,6 +183,7 @@ def detect_world_mesh_surface_interference(source_triangles, target_triangles, *
     src_min = src.min(axis=1)
     src_max = src.max(axis=1)
     target_hits = []
+    target_face_indices = []
     points = []
     pair_count = 0
     segments = []
@@ -194,7 +196,7 @@ def detect_world_mesh_surface_interference(source_triangles, target_triangles, *
             point_keys.add(key)
             points.append(tuple(float(v) for v in point))
 
-    for target_tri in target:
+    for face_index, target_tri in enumerate(target):
         arr = np.asarray(target_tri, dtype=float)
         tmin = arr.min(axis=0) - float(tolerance)
         tmax = arr.max(axis=0) + float(tolerance)
@@ -246,9 +248,11 @@ def detect_world_mesh_surface_interference(source_triangles, target_triangles, *
                         record(point)
         if hit_target:
             target_hits.append(target_tri)
+            target_face_indices.append(face_index)
 
     return MeshInterferenceDiagnostic(
-        tuple(target_hits), tuple(points), pair_count, tuple(segments)
+        tuple(target_hits), tuple(points), pair_count, tuple(segments),
+        tuple(target_face_indices),
     )
 
 
@@ -264,10 +268,17 @@ class NativeD4AssemblyCheck:
     crossing_segments: tuple
     crossing_points: tuple
     volume_verdict: str
+    crossing_tail_uv_bounds: tuple | None = None
+    crossing_world_bounds: tuple | None = None
+    crossing_regions: tuple = ()
+    crossing_target_face_indices: tuple = ()
     manufacturing_approved: bool = False
 
 
-def inspect_native_d4_assembly_world(body_world, placed_world):
+def inspect_native_d4_assembly_world(
+    body_world, placed_world, *, tail_faces=None, source_uv=None,
+    openings=None,
+):
     """Inspect *the displayed* Body and Ø4 Tail, without remesh or relocation.
 
     Surface crossing is evidence, not an intersection volume or minimum
@@ -280,6 +291,47 @@ def inspect_native_d4_assembly_world(body_world, placed_world):
         raise ValueError("TAIL_D4_ASSEMBLY_NATIVE_MESH_REQUIRED")
     closure = diagnose_world_mesh_triangle_edge_incidence(body)
     crossing = detect_world_mesh_surface_interference(body, tail)
+    # Map actual hit Tail triangles back to their ORIGINAL source UV.
+    # This is evidence, not material removal or a second fold model.
+    uv_bounds = None
+    regions = ()
+    if tail_faces is not None or source_uv is not None:
+        if tail_faces is None or source_uv is None:
+            raise ValueError("TAIL_D4_ASSEMBLY_UV_SOURCE_INCOMPLETE")
+        faces = tuple(tail_faces)
+        uv = tuple(source_uv)
+        if len(faces) != len(tail) or not uv:
+            raise ValueError("TAIL_D4_ASSEMBLY_UV_SOURCE_MISMATCH")
+        all_uv = []
+        hits_by_region = {"bottom_left": 0, "bottom_right": 0, "other": 0}
+        apexes = {str(item[0]): tuple(item[2]) for item in (openings or ())}
+        for index in crossing.target_face_indices:
+            coords = tuple(uv[int(i) % len(uv)] for i in faces[index])
+            all_uv.extend(coords)
+            region = "other"
+            for name, apex in apexes.items():
+                if name in hits_by_region and all(
+                    abs(float(p[0]) - float(apex[0])) <= 26.
+                    and abs(float(p[1]) - float(apex[1])) <= 26.
+                    for p in coords
+                ):
+                    region = name
+                    break
+            hits_by_region[region] += 1
+        if all_uv:
+            uv_bounds = tuple(
+                (min(float(p[k]) for p in all_uv),
+                 max(float(p[k]) for p in all_uv))
+                for k in (0, 1)
+            )
+        regions = tuple(hits_by_region.items())
+    world_bounds = None
+    if crossing.intersection_points:
+        world_bounds = tuple(
+            (min(p[k] for p in crossing.intersection_points),
+             max(p[k] for p in crossing.intersection_points))
+            for k in range(3)
+        )
     return NativeD4AssemblyCheck(
         body_triangle_count=len(body),
         tail_triangle_count=len(tail),
@@ -287,6 +339,10 @@ def inspect_native_d4_assembly_world(body_world, placed_world):
         crossing_pair_count=crossing.pair_count,
         crossing_segments=crossing.intersection_segments,
         crossing_points=crossing.intersection_points,
+        crossing_tail_uv_bounds=uv_bounds,
+        crossing_world_bounds=world_bounds,
+        crossing_regions=regions,
+        crossing_target_face_indices=crossing.target_face_indices,
         volume_verdict=(
             "VOLUME_INTERFERENCE_UNVERIFIABLE_BODY_OPEN"
             if not closure.edges_manifold_closed
