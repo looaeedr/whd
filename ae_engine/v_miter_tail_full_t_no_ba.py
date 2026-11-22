@@ -191,6 +191,7 @@ def project_tail_v90_full_t_no_ba(flat, *, first_axis: str):
     )
     if nonmanifold or missing:
         raise GeometryError("TAIL_V90_T2_FULL_SOURCE_EDGE_NOT_CONTIGUOUS")
+    physical_wall_faces_by_source_edge={}
     for a,b in boundary:
         # With source CCW the wall winding points toward missing
         # material (including the ORIGINAL through-holes). Two opposite
@@ -200,9 +201,11 @@ def project_tail_v90_full_t_no_ba(flat, *, first_axis: str):
         # otherwise the two nonplanar T2 quads use opposite diagonals and
         # falsely claim a surface gap/penetration despite equal vertices.
         if inside[a] <= inside[b]:
-            shell.extend(((a,b+k,b),(a,a+k,b+k)))
+            faces=((a,b+k,b),(a,a+k,b+k))
         else:
-            shell.extend(((b,a,a+k),(b,a+k,b+k)))
+            faces=((b,a,a+k),(b,a+k,b+k))
+        shell.extend(faces)
+        physical_wall_faces_by_source_edge[frozenset((a,b))]=faces
 
     edge_faces=defaultdict(list)
     for a,b,c in shell:
@@ -266,9 +269,9 @@ def project_tail_v90_full_t_no_ba(flat, *, first_axis: str):
                 seg=LineString((vertices_uv[a],vertices_uv[b]))
                 if seg.length<=_EPS or seg.difference(ideal.buffer(_EPS*3)).length>_EPS:
                     continue
-                selected.extend((
-                    (vertices[a],vertices[b+k],vertices[b]),
-                    (vertices[a],vertices[a+k],vertices[b+k]),
+                selected.extend(tuple(
+                    tuple(vertices[vi] for vi in face)
+                    for face in physical_wall_faces_by_source_edge[frozenset((a,b))]
                 ))
             if not selected:
                 raise GeometryError("TAIL_V90_T2_FULL_CUT_WALL_SOURCE_NOT_FOUND")
