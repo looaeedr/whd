@@ -78,7 +78,8 @@ def stations_from_real_flat(flat) -> LowerDualVStations:
     guides=fold_guides_from_final_scene(flat.result_scene)
     horizontal=[
         g for g in guides if g.axis=="y" and abs(g.position-ly)<_TOL
-        and g.span_start <= lx+_TOL and g.span_end >= rx-_TOL
+        and g.span_start >= lx-_TOL and g.span_end <= rx+_TOL
+        and g.span_end > g.span_start+_TOL
     ]
     if len(horizontal)!=1:
         raise GeometryError("V_MITER_LOWER_FINITE_BOTTOM_BEND_GUIDE_INVALID")
