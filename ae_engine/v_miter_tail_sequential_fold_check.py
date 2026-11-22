@@ -54,9 +54,8 @@ class TailSequentialFoldResult:
     triangulated_area_mm2: float
     source_material_polygon: Polygon
     source_fold_parameters: tuple
-    # Hard physical UV partition proof: current rules do not apply BOTH
-    # bends to any one source point. X/Y final geometries MUST be identical,
-    # even though first-stage XYZ genuinely differ.
+    # Operator-corrected side BENDs reach the lower edge, so some
+    # retained corner UV receives BOTH bends. X/Y final positions may differ.
     source_x_only_vertices: int
     source_y_only_vertices: int
     source_double_bend_vertices: int
@@ -131,18 +130,16 @@ def _fold_action(source_xy, xyz, normal, *, axis: str, left: float,
                  side_end: float, allowance: float, mid_radius: float):
     """Apply ONE selected 90-degree R/BA bend to the PREVIOUS 3D frame.
 
-    'x' acts only on actual connected side stock above the original apex;
-    'y' acts only on the connected bottom lip, including material beyond
-    finite guide tips carried by the lip. Never rename that bottom stock
-    a side flange. The second action rotates about the carried first
-    surface normal, rather than projecting three independently formed
-    static flanges into the same final view.
+    'x' follows the operator-corrected physical side BEND all the way to
+    the real bottom edge. 'y' folds below the real finite horizontal guide.
+    Their retained lower-corner overlap receives BOTH motions in the chosen
+    order; this is a kinematic CHECK, not certified root plasticity.
     """
     x,y=source_xy
     outside=(0.0,0.0,0.0)
     u=0.0
     if axis == "x":
-        if bottom-_EPS <= y <= side_end+_EPS:
+        if y <= side_end+_EPS:
             if x < left-_EPS:
                 u=left-x
                 outside=(-1.0,0.0,0.0)
@@ -256,8 +253,11 @@ def project_tail_same_sheet_sequential_fold_check(
     lg=physical_guide("x",left)
     rg=physical_guide("x",right)
     bg=physical_guide("y",bottom)
-    if (not (bottom<float(lg.span_start)<=float(lg.span_end)
-             and bottom<float(rg.span_start)<=float(rg.span_end))
+    # Source BEND was corrected by the user to reach the real bottom Y.
+    if (not (abs(float(lg.span_start)-miny)<=_EPS
+             and abs(float(rg.span_start)-miny)<=_EPS
+             and bottom<float(lg.span_end)
+             and bottom<float(rg.span_end))
             or abs(float(lg.span_end)-float(rg.span_end))>_EPS
             or not(minx<left<float(bg.span_start)
                    <float(bg.span_end)<right<maxx)):
@@ -338,10 +338,9 @@ def project_tail_same_sheet_sequential_fold_check(
         all_final.append(tuple(final_face))
     if max(continuity_first,continuity_final)>tol:
         raise GeometryError("TAIL_SEQUENTIAL_UNCUT_SOURCE_TEAR")
-    if (not x_only or not y_only or both
-            or order_max_delta>tol):
+    if not x_only or not y_only or not both or order_max_delta<=tol:
         raise GeometryError(
-            "TAIL_SEQUENTIAL_SOURCE_POINT_TWO_BENDS_OR_ORDER_DEPENDENT"
+            "TAIL_SEQUENTIAL_BOTTOM_SIDE_BEND_OVERLAP_NOT_MODELED"
         )
     thick1=thicken_triangle_surface(
         all_first,thickness_mm,smooth_vertex_normals=True,
