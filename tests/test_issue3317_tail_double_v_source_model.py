@@ -54,33 +54,34 @@ def test_tail_real_same_blank_dual_90_v_and_folded_contact():
         assert original_outline.is_valid
         assert new_outline.is_valid and not new_outline.interiors
         assert len(check.corners) == 2
-        # The source 90-degree opening on the exterior SAME SIDE is a
-        # prescribed geometry contract. Its 3D contact must still be real.
-        # Do not re-interpret the root R/BA height or test runner status
-        # as a passing seam, and never switch to the Door trim solution.
+        assert check.bottom_bend_span_x_mm == pytest.approx((16.0, 406.0))
+        assert check.native_original_fold_path_mesh
+        assert check.retained_out_of_span_corner_area_mm2[0] > 0
+        assert check.retained_out_of_span_corner_area_mm2[1] > 0
+        assert all(
+            row.topology_contact_failure is None
+            and row.topological_clearance_lower_bound_mm is None
+            and row.asymmetry_best_case_far_gap_floor_mm is None
+            for row in check.corners
+        ), "The old full-bottom-fold 6.69mm impossibility proof is invalid"
+        # Reproduce exactly the existing WHD 3D folding path from the
+        # SAME corrected source and the actual finite BEND guides; the
+        # retained corner stock outside 16..406 must not be assigned
+        # to the bottom return.
+        from ae_engine.assembly_geometry_folded_mesh import folded_mesh_from_polygon
+        from ae_engine.final_scene_fold_source import (
+            fold_ownership_exemptions, scene_fold_boundaries,
+        )
+        from ae_engine.v_miter_operator_gui_check import _endcap_existing_fold_angle_sources
+        xp, yp = _endcap_existing_fold_angle_sources(spec, "tail")
+        xb, yb = scene_fold_boundaries(render.scene, new_outline)
+        original_path = folded_mesh_from_polygon(
+            new_outline, xp, yp,
+            fold_guides=render.fold_guides,
+            fold_exemptions=fold_ownership_exemptions(new_outline, xb, yb),
+        )
+        assert check.native_original_fold_path_mesh == original_path
         for corner in check.corners:
-            assert corner.topology_contact_failure is not None
-            assert "NO_CONTACT" in corner.topology_contact_failure
-            assert corner.topological_clearance_lower_bound_mm == pytest.approx(2.0)
-            assert corner.contact_gap_floor_at_straight_start_mm == pytest.approx(
-                6.178318229274424, abs=1e-6
-            )
-            assert corner.contact_gap_floor_at_straight_end_mm == pytest.approx(
-                17.0, abs=1e-6
-            )
-            # All 90 V ray angle splits still yield a positive far-end
-            # floor: d*h=15², d<=48 => h>=4.6875 mm.
-            assert corner.asymmetry_best_case_far_gap_floor_mm == pytest.approx(
-                6.6875, abs=1e-6
-            )
-            start, end = corner.actual_joint_axis_xyz
-            assert start[1] == pytest.approx(45.0)
-            assert end[1] == pytest.approx(45.0)
-            assert start[0] == pytest.approx(
-                12.0 if corner.corner=="bottom_left" else 410.0
-            )
-            assert start[2] == pytest.approx(3.0)
-            assert end[2] == pytest.approx(13.82168177072558, abs=1e-6)
             assert corner.model_status != "MODEL_PASS"
         evidence = {
             "original_flange_mm":[check.side_flange_left_mm,
@@ -93,6 +94,12 @@ def test_tail_real_same_blank_dual_90_v_and_folded_contact():
             "original_bounds":original_outline.bounds,
             "corrected_bounds":new_outline.bounds,
             "unchanged_primitive_count":len(check.original_other_primitives),
+            "bottom_real_BEND_span_x_mm":check.bottom_bend_span_x_mm,
+            "side_real_BEND_span_y_mm":check.side_bend_span_y_mm,
+            "retained_corner_stock_outside_bottom_BEND_area_mm2":
+                check.retained_out_of_span_corner_area_mm2,
+            "native_original_3D_triangle_count":
+                len(check.native_original_fold_path_mesh),
             "corners": [],
         }
         for row in check.corners:
