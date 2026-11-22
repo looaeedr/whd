@@ -274,7 +274,14 @@ def project_tail_v90_full_t_no_ba(flat, *, first_axis: str):
         # of their actual physical quadrilateral, not their geometry:
         # otherwise the two nonplanar T2 quads use opposite diagonals and
         # falsely claim a surface gap/penetration despite equal vertices.
-        if inside[a] <= inside[b]:
+        # Quantize at the existing geometry tolerance before choosing the
+        # contact-wall diagonal. A real 90-degree transform may give
+        # 13.999999999999998 vs 14.0 at one endpoint; comparing raw floats
+        # otherwise splits coincident V walls on opposite diagonals.
+        # This changes only the triangulation, never CUTTING/BEND/T or tol.
+        formed_a=tuple(round(v/_EPS) for v in inside[a])
+        formed_b=tuple(round(v/_EPS) for v in inside[b])
+        if formed_a <= formed_b:
             faces=((a,b+k,b),(a,a+k,b+k))
         else:
             faces=((b,a,a+k),(b,a+k,b+k))
