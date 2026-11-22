@@ -284,6 +284,84 @@ def _svg_true_t_sections(check):
     ).encode("utf-8")
 
 
+
+def _svg_same_source_2d_and_true_t_sections(check):
+    """One labeled view, derived solely from the *same run's* two Engine SVGs.
+
+    Nested SVG viewports retain exact millimeter source geometry and real
+    physical T section coordinates. No unverified V is drawn as CUTTING.
+    """
+    flat=_svg_flat(check).decode("utf-8")
+    sections=_svg_true_t_sections(check).decode("utf-8")
+    def content(svg):
+        if not svg.startswith("<svg ") or not svg.endswith("</svg>"):
+            raise ValueError("WHD composite source SVG invalid")
+        return svg.split(">",1)[1].rsplit("</svg>",1)[0]
+    orig=tuple(_src_point(p) for p in check.original_outline)
+    xmin=min(p[0] for p in orig)
+    ymin=min(p[1] for p in orig)
+    xmax=max(p[0] for p in orig)
+    ymax=max(p[1] for p in orig)
+    view=f"{xmin-16:.3f} {ymin-16:.3f} {xmax-xmin+32:.3f} {ymax-ymin+32:.3f}"
+    orders=" / ".join(
+        f"{corner}: {axis.upper()} FIRST"
+        for corner,axis in check.operator_first_bend_axes
+    )
+    # All numerals below are read from the physical R/BA / exact source
+    # model, not guessed geometry or a CAM/shop acceptance limit.
+    left=check.corners[0].straight_section_y_domain_witness_mm
+    gap=left[2]
+    if gap<=0:
+        raise ValueError("WHD Tail source obstruction drawing requires positive Y gap")
+    notes=(
+        f"Side-lip source begins Y={left[0]:.3f} mm; bottom straight "
+        f"T-outer ends Y={left[1]:.3f} mm: Y gap floor {gap:.3f} mm.",
+        f"Hypothetical seam Y={left[3]:.3f} mm is outside side-fold ownership; "
+        "DO NOT transfer bottom-lip stock to side without physical fold proof.",
+        "Change candidate: verify tip/crease-end material ownership and ordered "
+        "R/BA deformation, OR a different genuinely mating seam. "
+        "Keep original 15/15/48, side openings, apexes, holes, BEND.",
+        "Every actual cut wall is CHECK only. Four root surface pair hits at "
+        "one edge do not establish physical penetration. No machining DXF.",
+    )
+    header=(
+        '<svg xmlns="http://www.w3.org/2000/svg" '
+        'viewBox="0 0 1930 890" width="1930" height="890">'
+        '<rect width="100%" height="100%" fill="white"/>'
+        '<title>WHD #3317 one Factory sheet: original flat + '
+        'measured true-T cut sections; CHECK ONLY</title>'
+        '<text x="26" y="35" font-family="sans-serif" font-size="24" '
+        'fill="#242424">WHD 封尾 — 同源展開 / 左右實際 V 切面 (CHECK)</text>'
+        f'<text x="28" y="62" font-family="sans-serif" font-size="16" '
+        f'fill="#434343">{escape(orders)}</text>'
+        '<text x="30" y="100" font-family="sans-serif" font-size="20" '
+        'fill="#29384d">2D Factory blank + real BEND span (mm)</text>'
+        '<text x="995" y="100" font-family="sans-serif" font-size="20" '
+        'fill="#29384d">Folded R/BA/T true cut-face sections</text>'
+    )
+    flat_view=(
+        f'<svg x="22" y="112" width="905" height="720" '
+        f'viewBox="{view}">{content(flat)}</svg>'
+    )
+    section_view=(
+        '<svg x="970" y="130" width="925" height="460" '
+        'viewBox="0 0 860 410">'
+        f'{content(sections)}</svg>'
+    )
+    note_view=['<line x1="970" y1="613" x2="1885" y2="613" '
+               'stroke="#b0b0b0" stroke-width="1"/>']
+    for i,line in enumerate(notes):
+        # Long lines are deliberately wrapped at the semantic message
+        # boundary; never truncate the source-geometry warning.
+        text_line=escape(line)
+        note_view.append(
+            f'<text x="980" y="{650+i*48}" '
+            f'font-family="sans-serif" font-size="15" fill="#333">'
+            f'{text_line}</text>'
+        )
+    return (header+flat_view+section_view+"".join(note_view)+"</svg>").encode("utf-8")
+
+
 def _actual_obj(check, *, native=True):
     mesh_groups=(
         (("original_WHD_3D_finite_BEND_span", check.native_original_fold_path_mesh),)
@@ -506,6 +584,7 @@ def build_tail_dual_v_source_preview_zip(check) -> bytes:
     """Return actual-model evidence; never produces manufacturing files."""
     flat=_svg_flat(check)
     true_t_section=_svg_true_t_sections(check)
+    combined=_svg_same_source_2d_and_true_t_sections(check)
     obj=_actual_obj(check,native=True)
     physical_obj=_actual_obj(check,native=False)
     png=_png_actual_mesh(check)
@@ -515,6 +594,7 @@ def build_tail_dual_v_source_preview_zip(check) -> bytes:
     with ZipFile(stream,"w",compression=ZIP_DEFLATED,compresslevel=9) as out:
         out.writestr("WHD_tail_dual_V_same_source_2D.svg",flat)
         out.writestr("WHD_tail_dual_V_true_T_left_right_sections.svg",true_t_section)
+        out.writestr("WHD_tail_dual_V_original_2D_and_folded_true_T_sections.svg",combined)
         out.writestr("WHD_tail_dual_V_actual_folded_model.obj",obj)
         out.writestr("WHD_tail_dual_V_RBA_focused_fold_check.obj",physical_obj)
         out.writestr("WHD_tail_dual_V_folded_preview.png",png)

@@ -295,6 +295,7 @@ def test_tail_real_same_blank_dual_90_v_and_folded_contact(first_axis):
             assert {
                 "WHD_tail_dual_V_same_source_2D.svg",
                 "WHD_tail_dual_V_true_T_left_right_sections.svg",
+                "WHD_tail_dual_V_original_2D_and_folded_true_T_sections.svg",
                 "WHD_tail_dual_V_actual_folded_model.obj",
                 "WHD_tail_dual_V_RBA_focused_fold_check.obj",
                 "WHD_tail_dual_V_folded_preview.png",
@@ -305,6 +306,13 @@ def test_tail_real_same_blank_dual_90_v_and_folded_contact(first_axis):
             ).decode("utf-8")
             assert "bottom_left" in section and "bottom_right" in section
             assert "CHECK only" in section
+            combined=archive.read(
+                "WHD_tail_dual_V_original_2D_and_folded_true_T_sections.svg"
+            ).decode("utf-8")
+            assert "Side-lip source begins Y=48.000" in combined
+            assert "Y gap floor 2.000 mm" in combined
+            assert "bottom_left" in combined and "bottom_right" in combined
+            assert "CHECK" in combined
             traced=json.loads(archive.read(
                 "WHD_tail_dual_V_model_diagnosis.json"
             ))
@@ -320,6 +328,13 @@ def test_tail_real_same_blank_dual_90_v_and_folded_contact(first_axis):
         # previously the separately computed log report had the wrong Z.
         report=json.dumps(traced,ensure_ascii=False,sort_keys=True)
         print("WHD_3317_MODEL_VERDICT_JSON="+report,flush=True)
+        # Publish the actual one-run annotated composite as a
+        # *separate* SVG next to JSON/ZIP without redrawing anything.
+        picture=base64.b64encode(combined.encode("utf-8")).decode("ascii")
+        for i in range(0,len(picture),4096):
+            print("WHD_3317_MODEL_COMPOSITE_SVG_BASE64_PART="
+                  + first_axis+":"+str(i//4096).zfill(4)+":"
+                  + picture[i:i+4096],flush=True)
         encoded=base64.b64encode(payload).decode("ascii")
         for i in range(0,len(encoded),4096):
             print("WHD_3317_MODEL_ZIP_BASE64_PART="
