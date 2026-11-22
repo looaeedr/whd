@@ -16,7 +16,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import math
 
-from shapely.geometry import Polygon, box
+from shapely.geometry import Polygon, Point, box
 from shapely.ops import unary_union
 
 from .contracts import EndCapPartSpec, PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES
