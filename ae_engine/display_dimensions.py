@@ -45,7 +45,12 @@ def _finite_display_dimension(value) -> float:
 
 
 def folded_outside_envelope(triangles, thickness):
-    """Return compensated outside AABB for an already-folded FinalScene mesh."""
+    """Measure the physical outside AABB of a folded mid-surface using +/-T/2.
+
+    The same material-space fold mesh feeds single-part and assembly views.
+    This is a readback of physical XYZ, never an unfolded blank length or a
+    replacement for a source-derived formed-size/assembly placement rule.
+    """
     # A FinalScene vertex must be a real physical XYZ before becoming a
     # display or manufacturing CHECK dimension. float(True) is not 1 mm.
     try:
@@ -68,23 +73,6 @@ def folded_outside_envelope(triangles, thickness):
             tris.append(xyz)
     except (TypeError, ValueError, OverflowError) as exc:
         raise ValueError("FOLDED_ENVELOPE_INVALID_WORLD_MESH") from exc
-    points = [pt for tri in tris for pt in tri]
-    mins = [min(point[axis] for point in points) for axis in range(3)]
-    maxs = [max(point[axis] for point in points) for axis in range(3)]
-    normal_extent = [0.0, 0.0, 0.0]
-    for a, b, c in tris:
-        u = tuple(b[i] - a[i] for i in range(3))
-        v = tuple(c[i] - a[i] for i in range(3))
-        n = (
-            u[1] * v[2] - u[2] * v[1],
-            u[2] * v[0] - u[0] * v[2],
-            u[0] * v[1] - u[1] * v[0],
-        )
-        mag = math.sqrt(sum(value * value for value in n))
-        if mag <= 1e-12:
-            continue
-        for axis in range(3):
-            normal_extent[axis] = max(normal_extent[axis], abs(n[axis] / mag))
     # Only missing T can use the neutral mesh envelope; an explicitly saved
     # invalid T must not shrink physical finished dimensions to zero thickness.
     if thickness is None:
@@ -98,8 +86,37 @@ def folded_outside_envelope(triangles, thickness):
             raise ValueError("FOLDED_ENVELOPE_INVALID_WORLD_MESH") from exc
         if not math.isfinite(t) or t < 0.0:
             raise ValueError("FOLDED_ENVELOPE_INVALID_WORLD_MESH")
+    # The input is a FOLDED MID-SURFACE, not a flat blank's outside bounds
+    # and not an already-thickened T solid. The existing Engine physical
+    # shell owner offsets its two skins by +/-T/2 from this surface.
+    # Extending each global AABB side by T (the old behavior) doubled the
+    # plate thickness. Applying one *global* maximum normal to every
+    # extremum also exaggerated mixed-orientation (e.g. L-shaped) parts.
+    # Project each actual formed triangle's two physical skin vertices
+    # instead, so no sheet thickness or material length is added twice.
+    physical_points = []
+    half_t = t / 2.0
+    for a, b, c in tris:
+        u = tuple(b[i] - a[i] for i in range(3))
+        v = tuple(c[i] - a[i] for i in range(3))
+        n = (
+            u[1] * v[2] - u[2] * v[1],
+            u[2] * v[0] - u[0] * v[2],
+            u[0] * v[1] - u[1] * v[0],
+        )
+        mag = math.sqrt(sum(value * value for value in n))
+        if not math.isfinite(mag) or mag <= 1e-12:
+            if half_t:
+                raise ValueError("FOLDED_ENVELOPE_INVALID_WORLD_MESH")
+            offsets = (0.0, 0.0, 0.0)
+        else:
+            offsets = tuple(half_t * value / mag for value in n)
+        for point in (a, b, c):
+            physical_points.append(tuple(point[i] - offsets[i] for i in range(3)))
+            physical_points.append(tuple(point[i] + offsets[i] for i in range(3)))
     bounds = tuple(
-        (mins[axis] - t * normal_extent[axis], maxs[axis] + t * normal_extent[axis])
+        (min(pt[axis] for pt in physical_points),
+         max(pt[axis] for pt in physical_points))
         for axis in range(3)
     )
     dims = tuple(hi - lo for lo, hi in bounds)
