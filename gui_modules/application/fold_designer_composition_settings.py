@@ -536,6 +536,9 @@ def show_tail_d4_check(self, namespace):
         placed=manufacturing_api.place_prethickened_endcap_world_skins(
             local,placement="bottom",box_body_world=body_world,
         )
+        assembly_check=manufacturing_api.inspect_operator_tail_d4_assembly_world(
+            body_world,placed,
+        )
         def save_view_dxf(path):
             # Rebuild from current source without committing GUI update intents.
             latest,_checks,now_axis,_body=source()
@@ -550,6 +553,7 @@ def show_tail_d4_check(self, namespace):
         return show_tail_d4_check_window(
             app.root,flat=flat,check=check,body_world=body_world,
             placed_world=placed,first_axis=axis,save_dxf=save_view_dxf,
+            assembly_check=assembly_check,
         )
     except (ValueError,TypeError,OSError) as exc:
         status=getattr(app,"settings_status_var",None)
