@@ -30,7 +30,7 @@ def _material_holes(render):
 
 def _real_tail_selector(designer):
     designer.activate_part("tail")
-    page = designer._phase6_render_settings_context("tail")
+    page = designer.settings_panel.render_context("tail")
     extension = page["extension_state"]
     chooser = extension["tail_lower_v_choice_widget"]
     var = extension["tail_lower_v_choice_var"]
