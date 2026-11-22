@@ -375,7 +375,10 @@ def test_tail_corrected_nominal_w496_d148_and_both_first_fold_3d_skin(axis):
     upper_first,upper_final,_,_=_advance_same_source_uv((7.5,55.5),axis,params)
     lower_first,lower_final,_,_=_advance_same_source_uv((7.5,40.5),axis,params)
     if axis=="x":
-        assert upper_first[2]>0 and lower_first[2]==0
+        # Corrected side BEND reaches Y=0: the lower shared corner
+        # MUST already follow X on the first fold. The old Y49 model
+        # incorrectly left this original source point stationary.
+        assert upper_first[2]>0 and lower_first[2]>0
         assert lower_final[0]>lower_first[0]
     else:
         assert upper_first[2]==0 and lower_first[2]>0
