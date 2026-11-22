@@ -148,6 +148,7 @@ class Phase6SettingsPanel(Phase6SettingsPanelOwnedRenderMixin):
         corner_target_changed: Callable[[str, str], object] | None = None,
         tail_lower_v_selected: Callable[[str, object], object] | None = None,
         tail_lower_v_first_bends_selected: Callable[[object, object], object] | None = None,
+        tail_d4_check_requested: Callable[[], object] | None = None,
         baseline_model_changed: Callable[[], object] | None = None,
         ui_text_size_changed: Callable[[str], object] | None = None,
         panel_name_getter: Callable[[], str] | None = None,
@@ -182,6 +183,7 @@ class Phase6SettingsPanel(Phase6SettingsPanelOwnedRenderMixin):
         self._corner_target_changed = corner_target_changed
         self._tail_lower_v_selected = tail_lower_v_selected
         self._tail_lower_v_first_bends_selected = tail_lower_v_first_bends_selected
+        self._tail_d4_check_requested = tail_d4_check_requested
         self._baseline_model_changed = baseline_model_changed
         self._ui_text_size_changed = ui_text_size_changed
         self._panel_name_getter = panel_name_getter or (lambda: "")
