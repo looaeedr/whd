@@ -44,6 +44,9 @@ from .v_miter_source_cut_face_trial import trace_v_miter_source_true_t_cut_faces
 from .v_miter_cut_face_continuity_trial import (
     project_v_miter_true_cut_face_continuity_trial,
 )
+from .v_miter_seam_gap_trial import (
+    project_v_miter_true_t_seam_section_gap_trial,
+)
 
 
 _TOL = 1e-6
@@ -65,6 +68,9 @@ class TailDualVFaceResult:
     seam_failure: str | None
     actual_formed_reach_mm: float
     distal_ideal_shortfall_mm: float
+    # Direct true 3D cut-face stations, not whole-solid nearest distance.
+    sampled_seam_gap_stations_mm: tuple = ()
+    interference_z_range_mm: tuple | None = None
     # An incomplete or touching 3D result is NOT declared physically fitting.
     model_status: str = "MODEL_NOT_VERIFIED"
 
@@ -376,6 +382,25 @@ def project_tail_dual_v_same_source_check(
                 seam_error = str(exc)
         else:
             seam_error = "V_MITER_TAIL_DUAL_SOURCE_CUT_FACE_MISSING"
+        sampled_stations = ()
+        if side_faces and bottom_faces:
+            fractions = (0.25, 0.50, 0.75, 0.95)
+            sampled = project_v_miter_true_t_seam_section_gap_trial(
+                side_faces, bottom_faces,
+                formed_seam_start=(row[0].x, row[0].y, 0.0),
+                formed_seam_end=(row[0].x, row[0].y, contact_reach),
+                station_fractions=fractions,
+            )
+            sampled_stations = tuple(
+                (float(frac * contact_reach), section.status,
+                 section.measured_gap_mm)
+                for frac, section in zip(fractions, sampled.sections)
+            )
+        interference_z = tuple(
+            float(point[2])
+            for segment in collision.intersection_segments
+            for point in segment
+        )
         reports.append(TailDualVFaceResult(
             corner=corner,
             side_folded_solid=models[side][2],
@@ -388,6 +413,11 @@ def project_tail_dual_v_same_source_check(
             seam_continuity=seam, seam_failure=seam_error,
             actual_formed_reach_mm=contact_reach,
             distal_ideal_shortfall_mm=max(0.0, min(row[4], row[5])-contact_reach),
+            sampled_seam_gap_stations_mm=sampled_stations,
+            interference_z_range_mm=(
+                (min(interference_z), max(interference_z))
+                if interference_z else None
+            ),
             model_status=(
                 "MODEL_PASS" if not collision.pair_count
                 and volume_status == "NO_DETECTED_VOLUME_WITNESS"
