@@ -50,7 +50,11 @@ def _assert_same_holes(before, after):
     originals = _material_holes(before)
     updates = _material_holes(after)
     assert len(originals) >= 1
-    assert len(updates) == len(originals)
+    # The original Factory square can sit inside the old cutaway corner,
+    # then become a real through-hole when the selected V restores that stock.
+    # Existing operator holes must survive; new legitimate fixed holes may
+    # appear, but losing an old hole is never allowed.
+    assert len(updates) >= len(originals)
     assert all(any(a.symmetric_difference(b).area < 1e-5 for b in updates)
                for a in originals)
     return originals
@@ -181,6 +185,33 @@ def test_actual_whd_main_gui_lower_v_preserves_existing_rect_clearance_roundtrip
         assert designer._phase6_input_snapshot[api.TAIL_LOWER_V_SNAPSHOT_KEY] == "v90"
         with_v = _real_resolved_tail(designer)
         _assert_same_holes(original, with_v)
+        # The Vault fixed 4x4 square uses the original sheet left/bottom
+        # datum from Advanced Settings, not the stretched 48mm fold station.
+        from ae_engine import ae
+        from ae_engine.sheetmetal_drawing import PolylinePrimitive
+        fixed = ae.VAULT_ENDCAP_FEATURE_POLICY
+        expected_square = (
+            fixed.square_hole_origin.x,
+            fixed.square_hole_origin.y,
+            fixed.square_hole_origin.x + fixed.square_hole_size.x,
+            fixed.square_hole_origin.y + fixed.square_hole_size.y,
+        )
+        matching_square = [
+            item for item in with_v.scene.primitives
+            if isinstance(item, PolylinePrimitive)
+            and item.layer == "CUTTING" and item.closed
+            and len(item.points) == 4
+            and all(abs(a-b) < 1e-7 for a,b in zip((
+                min(pt.x for pt in item.points),
+                min(pt.y for pt in item.points),
+                max(pt.x for pt in item.points),
+                max(pt.y for pt in item.points),
+            ), expected_square))
+        ]
+        assert len(matching_square) == 1, (
+            "VAULT_NATIVE_V48_FIXED_SQUARE_NOT_AT_SHEET_DATUM",
+            expected_square,
+        )
         assert with_v.metadata["tail_lower_v_preview_only"] is True
         mesh = api.project_independent_part_view_mesh(
             "tail", with_v, x_profile=(), y_profile=(), thickness=2.,
