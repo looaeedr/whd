@@ -263,6 +263,10 @@ def build_part_scene(
                     box_body_formed_fw_right=resolved.box_body_formed_fw_right,
                     draw_stock=ctx.draw_stock, is_tail=resolved.is_tail, holes=common["holes"],
                     corner_policy=resolved.corner_policy,
+                    target_fold_left=resolved.fold_left,
+                    target_fold_right=resolved.fold_right,
+                    target_fold_top=resolved.fold_top,
+                    target_fold_bottom=resolved.fold_bottom,
                 )
                 scene = data.scene
             elif resolved.corner_policy is not None:
