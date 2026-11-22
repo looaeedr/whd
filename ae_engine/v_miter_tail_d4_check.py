@@ -120,6 +120,80 @@ def _require_authored_cutting_source(flat, stock):
     return expected
 
 
+def _require_exact_d4_outer_from_trusted_sharp(flat, stock):
+    """Rebuild the ONLY Ø4 boundary from Factory/source, not candidate bounds.
+
+    Keep independently resolved CUTTING features as real holes, but permit
+    no unrelated exterior subtraction, arc edit or anonymous outer delta.
+    """
+    from shapely.geometry import Polygon, box
+    from shapely.ops import unary_union
+    from .v_miter_factory_mother_check import (
+        _factory_original_shape, _selected_original_corner_component,
+    )
+
+    factory, width, height, _ = _factory_original_shape(flat.source_spec)
+    raw=flat.original_factory_material
+    if (raw.geom_type!="Polygon"
+            or raw.symmetric_difference(factory).area > _EPS):
+        _error("TAIL_D4_CHECK_TRUSTED_FACTORY_SOURCE_CHANGED")
+    mother=box(0.,0.,width,height)
+    old_cuts=tuple(_selected_original_corner_component(factory,mother,name)
+                   for name in ("bottom_left","bottom_right"))
+    canonical_mother=factory.union(unary_union(old_cuts))
+    if (canonical_mother.geom_type!="Polygon"
+            or canonical_mother.symmetric_difference(
+                flat.original_factory_restored_mother).area > _EPS):
+        _error("TAIL_D4_CHECK_TRUSTED_MOTHER_SOURCE_CHANGED")
+    if len(flat.opening_source_points_xy)!=2:
+        _error("TAIL_D4_CHECK_TWO_CORNER_SOURCE_REQUIRED")
+
+    wedges=[]
+    names=set()
+    for name,lower,apex,upper in flat.opening_source_points_xy:
+        if name not in ("bottom_left","bottom_right") or name in names:
+            _error("TAIL_D4_CHECK_CORNER_SOURCE_NOT_UNIQUE",uv=apex)
+        names.add(name)
+        wedge=Polygon((lower,apex,upper))
+        if (not wedge.is_valid or wedge.area<=0.
+                or wedge.difference(canonical_mother).area > _EPS):
+            _error("TAIL_D4_CHECK_ORIGINAL_V_SOURCE_INVALID",uv=apex)
+        wedges.append(wedge.union(Point(*apex).buffer(2.,resolution=48)))
+    if names!={"bottom_left","bottom_right"}:
+        _error("TAIL_D4_CHECK_CORNER_SOURCE_NOT_UNIQUE")
+
+    expected=canonical_mother.difference(unary_union(wedges))
+    from .sheetmetal_drawing import PolylinePrimitive
+    contours=tuple(p for p in flat.result_scene.primitives
+                   if isinstance(p,PolylinePrimitive)
+                   and p.layer=="CUTTING" and p.closed
+                   and p.semantic_id=="OUTER_BOUNDARY")
+    if len(contours)!=1:
+        _error("TAIL_D4_CHECK_SOURCE_OUTER_NOT_UNIQUE")
+    candidate=Polygon([(p.x,p.y) for p in contours[0].points])
+    if (candidate.geom_type!="Polygon" or not candidate.is_valid
+            or expected.geom_type!="Polygon" or not expected.is_valid):
+        _error("TAIL_D4_CHECK_OUTER_INVALID")
+    # Compare geometric sets in BOTH directions and actual boundary locus;
+    # hole loops are separately checked by authored-source identity.
+    extra=candidate.difference(expected)
+    missing=expected.difference(candidate)
+    if (extra.area>_EPS or missing.area>_EPS
+            or candidate.boundary.hausdorff_distance(
+                expected.boundary)>_EPS
+            or flat.result_material.symmetric_difference(candidate).area>_EPS):
+        delta=extra if extra.area>=missing.area else missing
+        uv=delta.representative_point().coords[0] if not delta.is_empty else None
+        _error("TAIL_D4_CHECK_OUTER_UNRELATED_DELTA",uv=uv,
+               detail=(extra.area,missing.area))
+    # Independent authored/overlay holes are retained in 'stock', but the
+    # resolved outer MUST be this exact original-source-generated Ø4 cut.
+    if (not expected.covers(stock)
+            or stock.difference(expected).area>_EPS):
+        _error("TAIL_D4_CHECK_RESOLVED_STOCK_OUTSIDE_AUTHORIZED_OUTER")
+    return expected
+
+
 def _actual_opposed_v_contact_ignores(
     local_ids, local_triangles, shell, boundary, source_uv, vertices, pairs
 ):
@@ -186,6 +260,7 @@ def project_tail_d4_source_keyed_t_check(flat, *, first_axis):
     if stock.geom_type != "Polygon" or not stock.is_valid:
         _error("TAIL_D4_CHECK_TRUE_CUTTING_WITH_HOLES_REQUIRED")
     _require_authored_cutting_source(flat,stock)
+    _require_exact_d4_outer_from_trusted_sharp(flat,stock)
     if len(flat.opening_source_points_xy) != 2:
         _error("TAIL_D4_CHECK_TWO_CORNER_SOURCE_REQUIRED")
 
