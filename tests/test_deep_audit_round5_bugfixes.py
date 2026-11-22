@@ -802,9 +802,9 @@ def test_r5_74_mesh_envelope_cannot_disguise_nonphysical_explicit_thickness(bad_
     mesh = (((0., 0., 0.), (4., 0., 0.), (0., 2., 0.)),)
     with pytest.raises(ValueError, match="FOLDED_ENVELOPE_INVALID_WORLD_MESH"):
         folded_outside_envelope(mesh, bad_thickness)
-    # Real T2 face normal still adds exactly 2 mm to each Z side.
+    # A T2 mid-surface is +/-1 mm from each physical Z skin, not +/-2.
     measured, _bounds = folded_outside_envelope(mesh, 2.)
-    assert measured == pytest.approx((4., 2., 4.))
+    assert measured == pytest.approx((4., 2., 2.))
     # No mesh is an intentionally valid preview-only fallback.
     assert folded_outside_envelope((), None) is None
 
@@ -948,4 +948,4 @@ def test_r5_74_operator_finished_mesh_missing_t_uses_existing_valid_saved_t():
     for explicit in (None, 2.):
         assert resolve_operator_finished_dimensions(
             "box_body", snapshot=saved, triangles=mesh, thickness=explicit,
-        ) == pytest.approx((4., 2., 4.))
+        ) == pytest.approx((4., 2., 2.))
