@@ -549,6 +549,9 @@ def select_tail_lower_v_first_bends(self, namespace, left_var, right_var):
         # BEFORE V projection. Never reinterpret the current V preview as raw.
         # The adapter owns the source patch, Engine owns the actual solve.
         first_key=manufacturing_api.TAIL_LOWER_V_FIRST_BENDS_KEY
+        from phase6_manufacturing_contracts import (
+            manufacturing_request_fingerprint,
+        )
         request=build_manufacturing_request(
             app,
             scene_payload_builder=lambda key: build_scene_payload_for_app(app,key),
@@ -556,9 +559,18 @@ def select_tail_lower_v_first_bends(self, namespace, left_var, right_var):
             part_spec_provider=source_spec,
             finished_dimensions_provider=lambda key=None:
                 operator_finished_dimensions_for_app(app,key),
-            operator_source_patch={first_key:next_source[first_key]},
         )
-        response=manufacturing_api.resolve_manufacturing_request(request)
+        candidate=replace(
+            request,input_snapshot={
+                **dict(request.input_snapshot),
+                first_key:deepcopy(next_source[first_key]),
+            },
+        )
+        candidate=replace(
+            candidate,
+            source_fingerprint=manufacturing_request_fingerprint(candidate),
+        )
+        response=manufacturing_api.resolve_manufacturing_request(candidate)
         tail=response.geometry.part("tail")
         if tail is None or tail.render_data is None:
             raise ValueError("V_MITER_FIRST_BEND_RESOLVED_TAIL_REQUIRED")

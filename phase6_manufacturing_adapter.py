@@ -463,7 +463,6 @@ def build_manufacturing_request(
     part_spec_provider=None,
     finished_dimensions_provider=None,
     cache_key_fingerprint="",
-    operator_source_patch=None,
 ) -> ManufacturingResolveRequest:
     """Build one immutable manufacturing request from current app/workspace state.
 
@@ -484,16 +483,6 @@ def build_manufacturing_request(
     snapshot = manufacturing_api.project_operator_manufacturing_request_snapshot(
         snapshot, settings, box_dimensions,
     )
-    if operator_source_patch is not None:
-        # Reuse the existing immutable request seam for a candidate real
-        # first-BEND selection. Only its Engine-owned source key may differ;
-        # physical geometry and all workspace inputs stay live/unchanged.
-        key = manufacturing_api.TAIL_LOWER_V_FIRST_BENDS_KEY
-        if (not isinstance(operator_source_patch, Mapping)
-                or set(operator_source_patch) != {key}):
-            raise ValueError("V_MITER_FIRST_BEND_CANDIDATE_SOURCE_PATCH_INVALID")
-        snapshot = dict(snapshot)
-        snapshot[key] = deepcopy(operator_source_patch[key])
     corner_state = _mapping(getattr(app, "_phase6_corner_state", {}) or {})
     endcap_fw = _mapping(getattr(app, "_phase6_endcap_fw_state", {}) or {})
     endcap_bottom_wrap = _mapping(getattr(app, "_phase6_endcap_bottom_wrap_state", {}) or {})
