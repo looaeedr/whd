@@ -369,6 +369,10 @@ def settings_context_extension_projection(self, namespace, context):
         }
 
     base_snapshot = dict(getattr(app, "_phase6_input_snapshot", {}) or {})
+    # Engine reads the current Family selection, not stale saved baseline.
+    model_var=getattr(app,"baseline_model_var",None)
+    if model_var is not None:
+        base_snapshot["model"]=str(model_var.get() or "").strip()
     receiving_base = manufacturing_api.project_operator_receiving_base_plate_settings(
         base_snapshot, context=context,
     )
@@ -389,8 +393,51 @@ def settings_context_extension_projection(self, namespace, context):
             if context in endcap_fw_parts
             else None
         ),
-        "corner": corner_projection(context),
+        "corner": {
+            **corner_projection(context),
+            "tail_lower_v": manufacturing_api.project_operator_tail_lower_v_settings(
+                base_snapshot,context=context,
+            ),
+        },
     }
+
+def select_tail_lower_v_choice(self, namespace, choice_var):
+    """UI wires one Engine-validated optional source into live Save/3D."""
+    app=self.app
+    key=manufacturing_api.TAIL_LOWER_V_SNAPSHOT_KEY
+    current=manufacturing_api.normalize_operator_tail_lower_v_choice(
+        (getattr(app,"_phase6_input_snapshot",{}) or {}).get(key)
+    )
+    requested={"原樣":"original","V 型":"v90"}.get(str(choice_var.get()))
+    if requested is None:
+        choice_var.set("V 型" if current=="v90" else "原樣")
+        raise ValueError("下方左右截角只可選原樣／V 型")
+    try:
+        from phase6_manufacturing_adapter import build_scene_payload_for_app
+        values=build_scene_payload_for_app(app,"tail")
+        next_snapshot=manufacturing_api.commit_operator_tail_lower_v_choice(
+            app._phase6_input_snapshot,requested,tail_scene_values=values,
+        )
+    except (ValueError,TypeError) as exc:
+        choice_var.set("V 型" if current=="v90" else "原樣")
+        status=getattr(app,"settings_status_var",None)
+        if status is not None:
+            status.set(str(exc))
+        return False
+    if requested==current:
+        return True
+    app._phase6_input_snapshot.pop(key,None)
+    if key in next_snapshot:
+        app._phase6_input_snapshot[key]=next_snapshot[key]
+    app.submit_update_intent("geometry",commit=True)
+    status=getattr(app,"settings_status_var",None)
+    if status is not None:
+        status.set("下方左右截角："+(
+            "V 型（僅 2D／3D 預覽，禁止加工 DXF）"
+            if requested=="v90" else "原樣（已還原）"
+        ))
+    return True
+
 
 def sync_settings_panel_extension(
     self,
@@ -415,6 +462,7 @@ def sync_settings_panel_extension(
     ):
         setattr(app, name, dict(state.get(name, {}) or {}))
     original = required("original")
+    app.tail_lower_v_choice_var=state.get("tail_lower_v_choice_var")
     app.fixed_corner_summary_var = (
         state.get("fixed_corner_summary_var")
         or original.tk.StringVar(value="")
