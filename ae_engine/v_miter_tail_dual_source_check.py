@@ -165,6 +165,7 @@ class TailDualVFaceResult:
     sequential_second_side_cut_faces: tuple
     sequential_second_bottom_cut_faces: tuple
     sequential_final_seam_sections: tuple
+    sequential_final_full_seam_continuity: object | None
     sequential_root_process_status: str
     # Physical Y-direction separation floor under the actual *disjoint*
     # finite-R/BA straight patches. Not an industrial tolerance or a
@@ -991,6 +992,12 @@ def project_tail_dual_v_same_source_check(
         # It is measured independently of the earlier three-patch shadow.
         # Its first-stage cut walls are present even before the second
         # fold; final walls come from the SAME source triangle IDs.
+        seq_full_seam = project_v_miter_true_cut_face_continuity_trial(
+            seq_final_side if first_axis=="x" else seq_final_bottom,
+            seq_final_bottom if first_axis=="x" else seq_final_side,
+            formed_seam_start=physical_seam_start,
+            formed_seam_end=physical_seam_end,
+        )
         seq_sample = project_v_miter_true_t_seam_section_gap_trial(
             seq_final_side if first_axis=="x" else seq_final_bottom,
             seq_final_bottom if first_axis=="x" else seq_final_side,
@@ -1027,6 +1034,7 @@ def project_tail_dual_v_same_source_check(
             sequential_second_side_cut_faces=seq_final_side,
             sequential_second_bottom_cut_faces=seq_final_bottom,
             sequential_final_seam_sections=seq_sections,
+            sequential_final_full_seam_continuity=seq_full_seam,
             sequential_root_process_status=sequential.root_process_status,
             straight_section_y_domain_witness_mm=straight_y_witness,
             side_cut_failure=side_error, bottom_cut_failure=bottom_error,
@@ -1066,6 +1074,10 @@ def project_tail_dual_v_same_source_check(
                 ) and topo_failure is None
                 and y_domain_floor <= _TOL
                 and sequential.root_process_status == "PHYSICALLY_VERIFIED"
+                and seq_full_seam is not None
+                and seq_full_seam.max_gap_upper_bound_mm is not None
+                and seq_full_seam.max_gap_upper_bound_mm <= _TOL
+                and not seq_full_seam.missing_face_interval_count
                 and not collision.pair_count
                 and volume_status == "NO_DETECTED_VOLUME_WITNESS"
                 and seam is not None and not seam.missing_face_interval_count

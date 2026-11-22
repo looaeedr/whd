@@ -571,6 +571,28 @@ def _model_report(check):
             ],
             "sequential_root_process_status":
                 row.sequential_root_process_status,
+            "sequential_final_full_seam":{
+                "sampled_max_gap_mm":(
+                    row.sequential_final_full_seam_continuity.max_sampled_cut_face_gap_mm
+                    if row.sequential_final_full_seam_continuity else None
+                ),
+                "upper_bound_mm":(
+                    row.sequential_final_full_seam_continuity.max_gap_upper_bound_mm
+                    if row.sequential_final_full_seam_continuity else None
+                ),
+                "lower_bound_mm":(
+                    row.sequential_final_full_seam_continuity.max_gap_lower_bound_mm
+                    if row.sequential_final_full_seam_continuity else None
+                ),
+                "missing_intervals":(
+                    row.sequential_final_full_seam_continuity.missing_face_interval_count
+                    if row.sequential_final_full_seam_continuity else None
+                ),
+                "vertex_events":(
+                    row.sequential_final_full_seam_continuity.numerically_unresolved_vertex_event_count
+                    if row.sequential_final_full_seam_continuity else None
+                ),
+            },
             "sequential_source_true_T_cut_face_z_ranges_mm":{
                 "after_first_side":z_span(row.sequential_first_side_cut_faces),
                 "after_first_bottom":z_span(row.sequential_first_bottom_cut_faces),
@@ -726,20 +748,24 @@ def _model_report(check):
                  "degenerate_triangles":seq.stage2_shell_topology.degenerate_triangle_count,
                  "edges_manifold_closed":seq.stage2_shell_topology.edges_manifold_closed,
              },
-             "stage1_true_T_self_intersection":{
-                 "nonadjacent_pairs_tested":seq.stage1_shell_self_intersection.tested_nonadjacent_pairs,
-                 "crossings":seq.stage1_shell_self_intersection.crossing_pair_count,
-                 "coplanar_overlap":seq.stage1_shell_self_intersection.coplanar_overlap_pair_count,
-                 "work_exhausted":seq.stage1_shell_self_intersection.numerical_budget_exhausted,
-                 "first_pair":seq.stage1_shell_self_intersection.first_source_triangle_pair,
-             },
-             "stage2_true_T_self_intersection":{
-                 "nonadjacent_pairs_tested":seq.stage2_shell_self_intersection.tested_nonadjacent_pairs,
-                 "crossings":seq.stage2_shell_self_intersection.crossing_pair_count,
-                 "coplanar_overlap":seq.stage2_shell_self_intersection.coplanar_overlap_pair_count,
-                 "work_exhausted":seq.stage2_shell_self_intersection.numerical_budget_exhausted,
-                 "first_pair":seq.stage2_shell_self_intersection.first_source_triangle_pair,
-             }}
+             "root_true_T_self_intersection":[
+                 {"corner":corner,
+                  "stage1_roi_T_triangles":n1,
+                  "stage2_roi_T_triangles":n2,
+                  "stage1_nonadjacent_pairs_tested":d1.tested_nonadjacent_pairs,
+                  "stage1_surface_crossings":d1.crossing_pair_count,
+                  "stage1_coplanar_overlap":d1.coplanar_overlap_pair_count,
+                  "stage1_work_exhausted":d1.numerical_budget_exhausted,
+                  "stage1_first_pair":d1.first_source_triangle_pair,
+                  "stage2_nonadjacent_pairs_tested":d2.tested_nonadjacent_pairs,
+                  "stage2_surface_crossings":d2.crossing_pair_count,
+                  "stage2_coplanar_overlap":d2.coplanar_overlap_pair_count,
+                  "stage2_work_exhausted":d2.numerical_budget_exhausted,
+                  "stage2_first_pair":d2.first_source_triangle_pair,
+                  "status":"ROOT_SELF_SURFACE_CHECK_ONLY_NO_VOLUME_CERTIFICATION"}
+                 for corner,d1,d2,n1,n2
+                 in seq.root_true_t_self_intersection_by_corner
+             ]}}
             for axis,seq in check.sequential_same_sheet_stage_models
         ],
         "restored_corner_stock_ownership_mm2": [

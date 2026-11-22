@@ -59,8 +59,9 @@ class TailSequentialFoldResult:
     # factory nonpenetration certification.
     stage1_shell_topology: object
     stage2_shell_topology: object
-    stage1_shell_self_intersection: object
-    stage2_shell_self_intersection: object
+    # True source-root ROIs, not arbitrary independently invented solids.
+    # Per-corner (corner, stage1, stage2, original cut-bounded region counts).
+    root_true_t_self_intersection_by_corner: tuple
     # A mesh being numerically continuous does NOT prove that the finite
     # sheet carries a genuine process-supported isometric root transition.
     root_process_status: str = "FINITE_BEND_TIP_TRANSITION_KINEMATIC_ONLY"
@@ -289,12 +290,38 @@ def project_tail_same_sheet_sequential_fold_check(
     # triangulation edges cannot count as true material penetration.
     top1=diagnose_world_mesh_triangle_edge_incidence(thick1,tolerance=tol)
     top2=diagnose_world_mesh_triangle_edge_incidence(thick2,tolerance=tol)
-    self1=diagnose_world_mesh_self_intersections(
-        thick1,tolerance=tol,
-    )
-    self2=diagnose_world_mesh_self_intersections(
-        thick2,tolerance=tol,
-    )
+    # Exhaustively inspect the two *source-bounded root regions*.
+    # The full sheet has many shared coplanar source mesh neighbors which
+    # exhaust the general-purpose global check's bounded pair budget.
+    # Cropping here is OBSERVATION ONLY: no triangles are moved/trimmed;
+    # original whole-sheet topology is still checked separately above.
+    root_self_checks=[]
+    for corner,apex,hits in (
+        ("bottom_left",left_apex,left_v_hits),
+        ("bottom_right",right_apex,right_v_hits),
+    ):
+        low=(min(float(apex.x),*(float(p.x) for p in hits))-thickness_mm,
+             min(float(apex.y),*(float(p.y) for p in hits))-thickness_mm,
+             -thickness_mm)
+        high=(max(float(apex.x),*(float(p.x) for p in hits))+thickness_mm,
+              max(float(apex.y),*(float(p.y) for p in hits))+thickness_mm,
+              max(left-minx,maxx-right)+thickness_mm)
+        def near_source_root(solid):
+            return tuple(tri for tri in solid
+                if all(
+                    max(v[axis] for v in tri) >= low[axis]-tol
+                    and min(v[axis] for v in tri) <= high[axis]+tol
+                    for axis in range(3)
+                ))
+        root_first=near_source_root(thick1)
+        root_final=near_source_root(thick2)
+        if not root_first or not root_final:
+            raise GeometryError("TAIL_SEQUENTIAL_SOURCE_ROOT_T_SHELL_MISSING")
+        diag1=diagnose_world_mesh_self_intersections(root_first,tolerance=tol)
+        diag2=diagnose_world_mesh_self_intersections(root_final,tolerance=tol)
+        root_self_checks.append((
+            corner,diag1,diag2,len(root_first),len(root_final),
+        ))
     corners=[]
     tracks=[]
     for corner,apex,hits in (
@@ -364,6 +391,5 @@ def project_tail_same_sheet_sequential_fold_check(
         final_stage_max_duplicate_vertex_jump_mm=float(continuity_final),
         stage1_shell_topology=top1,
         stage2_shell_topology=top2,
-        stage1_shell_self_intersection=self1,
-        stage2_shell_self_intersection=self2,
+        root_true_t_self_intersection_by_corner=tuple(root_self_checks),
     )

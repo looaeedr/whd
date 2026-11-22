@@ -82,8 +82,13 @@ def test_tail_real_same_blank_dual_90_v_and_folded_contact(first_axis):
         ), "A same-source kinematic mesh is NOT a proven elastic root fold"
         assert seq.stage1_shell_topology.triangle_count > 0
         assert seq.stage2_shell_topology.triangle_count > 0
-        assert seq.stage1_shell_self_intersection.tested_nonadjacent_pairs >= 0
-        assert seq.stage2_shell_self_intersection.tested_nonadjacent_pairs >= 0
+        assert {c for c,*_ in seq.root_true_t_self_intersection_by_corner} == {
+            "bottom_left","bottom_right"
+        }
+        for corner,d1,d2,n1,n2 in seq.root_true_t_self_intersection_by_corner:
+            assert n1 > 0 and n2 > 0
+            assert d1.tested_nonadjacent_pairs >= 0
+            assert d2.tested_nonadjacent_pairs >= 0
         assert check.side_flange_left_mm == pytest.approx(15)
         assert check.side_flange_right_mm == pytest.approx(15)
         assert check.bottom_flange_mm == pytest.approx(48)
@@ -199,6 +204,8 @@ def test_tail_real_same_blank_dual_90_v_and_folded_contact(first_axis):
                 corner.sequential_second_bottom_cut_faces,
             ))
             assert len(corner.sequential_final_seam_sections)==4
+            assert corner.sequential_final_full_seam_continuity is not None
+            assert corner.sequential_final_full_seam_continuity.max_sampled_cut_face_gap_mm > 0
             assert all(z>0 and gap is not None and gap>0
                        for z,status,gap,_,_ in
                        corner.sequential_final_seam_sections
