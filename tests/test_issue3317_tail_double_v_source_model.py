@@ -248,9 +248,14 @@ def test_user_image_vault_stretched_baseline_not_silent_factory_substitute():
         p.y for p in intrinsic.scene.primitives[0].points
     )
     assert intrinsic_max_y==pytest.approx(233.0)
-    assert baseline_max_y==pytest.approx(200.0)
-    with pytest.raises(Exception,match="TAIL_IMAGE_V90_FACTORY_SOURCE_DIFFERENT"):
-        project_tail_illustrated_side_v90_flat(spec,baseline)
+    # This is now an explicitly authored Vault Tail lower=48. The Native
+    # stretched baseline must preserve that actual CUTTING station, instead
+    # of returning the older 15-mm lower-fold 200-mm blank.
+    assert baseline_max_y==pytest.approx(intrinsic_max_y)
+    assert baseline.material.symmetric_difference(intrinsic.material).area<1e-7
+    flat=project_tail_illustrated_side_v90_flat(spec,baseline)
+    assert flat.original_scene is baseline.scene
+    assert len(flat.opening_source_points_xy)==2
 
 
 @pytest.mark.parametrize("axis",("x","y"))
