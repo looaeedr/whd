@@ -50,8 +50,10 @@ def project_tail_illustrated_side_v90_flat(
 ) -> TailIllustratedSideV90Flat:
     """One very specific confirmed image -> true Factory source CUTTING.
 
-    Keep ALL original hole/mark/BEND primitive objects unchanged; replace
-    exactly one structural exterior CUTTING. Never invent a BEND to the apex.
+    Preserve the original CUTTING holes and marking and all unselected BEND
+    primitives. Change only the two source corner V's and the two operator-
+    corrected physical side BEND lower endpoints (Y=49 -> real bottom Y=0).
+    Never extend an unrelated BEND or alter the production Factory.
     """
     if (not isinstance(spec,EndCapPartSpec) or not spec.is_tail
             or not isinstance(render,PartRenderData)
