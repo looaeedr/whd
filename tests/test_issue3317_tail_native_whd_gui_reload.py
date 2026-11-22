@@ -190,6 +190,8 @@ def test_actual_whd_main_gui_lower_v_preserves_existing_rect_clearance_roundtrip
                 f"Native V refused: {designer.settings_status_var.get()}"
                 f"; raw_bounds={render.material.bounds};"
                 f" source_bends={raw_bends}; resolved_bends={solved_bends};"
+                f" exact_source_bends={tuple(repr(row) for row in render.scene.primitives if isinstance(row, LinePrimitive) and row.layer == 'BEND')};"
+                f" exact_resolved_bends={tuple(repr(row) for row in solved.scene.primitives if isinstance(row, LinePrimitive) and row.layer == 'BEND')};"
                 f" removed_components={tuple((v.bounds,round(v.area,5)) for v in components)}"
             )
         assert selected.get() == "V 型"
