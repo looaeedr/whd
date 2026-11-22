@@ -184,7 +184,7 @@ def test_user_illustrated_tail_2d_factory_cutting_bend_holes_and_dxf_reopen(tmp_
 
 
 @pytest.mark.parametrize("first_axis",("x","y"))
-def test_user_image_v90_same_sheet_3d_left_right_fit_stays_red_if_open(first_axis):
+def test_user_image_v90_same_sheet_3d_left_right_fit_stays_red_if_open(first_axis,tmp_path):
     """Do real first/second T fold only AFTER confirmed image/source parity.
 
     The 2D image is now sourced, but 3D full seam fit must not be
@@ -196,6 +196,7 @@ def test_user_image_v90_same_sheet_3d_left_right_fit_stays_red_if_open(first_axi
     from tools.render_tail_dual_v_model import build_tail_dual_v_source_preview_zip
     from zipfile import ZipFile
     from io import BytesIO
+    from ae_engine.dxf_serialization import save_scene_dxf
 
     spec,render=_image_sample_vault_tail()
     flat=project_tail_illustrated_side_v90_flat(spec,render)
@@ -217,6 +218,13 @@ def test_user_image_v90_same_sheet_3d_left_right_fit_stays_red_if_open(first_axi
     assert sequence.root_process_status.endswith("KINEMATIC_ONLY")
     assert all(len(c.sequential_final_seam_sections)==4 for c in check.corners)
     evidence=build_tail_dual_v_source_preview_zip(check)
+    # Emit the EXACT same-run original-Factory scene as a real DXF for
+    # independent reopen. The file is a geometry CHECK (no NC approval),
+    # never the normal public manufacturing sink.
+    dxf_path=tmp_path/"Vault_Tail_500x150_side_V90_2D_ONLY_NOT_CNC.dxf"
+    save_scene_dxf(dxf_path,flat.result_scene)
+    import ezdxf
+    assert ezdxf.readfile(dxf_path).header["$INSUNITS"]==4
     with ZipFile(BytesIO(evidence)) as z:
         diag=json.loads(z.read("WHD_tail_dual_V_model_diagnosis.json"))
         assert len(diag["corners"])==2
@@ -230,7 +238,44 @@ def test_user_image_v90_same_sheet_3d_left_right_fit_stays_red_if_open(first_axi
     print("WHD_3317_USER_IMAGE_V90_3D_DIAG="+json.dumps(
         {"axis":first_axis,"data":diag},sort_keys=True,ensure_ascii=False,
     ),flush=True)
+    for kind,binary in (
+        ("DXF",dxf_path.read_bytes()),("ZIP",evidence),
+    ):
+        encoded=base64.b64encode(binary).decode("ascii")
+        for offset in range(0,len(encoded),4096):
+            print("WHD_3317_USER_IMAGE_V90_"+kind+"_BASE64_PART="+
+                  first_axis+":"+str(offset//4096).zfill(4)+":"+
+                  encoded[offset:offset+4096],flush=True)
     # Correct 2D does not remove the required RED gate for unseated seams.
     assert all(c.model_status=="MODEL_PASS" for c in check.corners), (
         "USER_IMAGE_V90_2D_SOURCE_VERIFIED_3D_SEAM_NOT_YET_MATING"
     )
+
+
+def test_user_image_vault_stretched_baseline_not_silent_factory_substitute():
+    """Do not quietly pass 200-mm mapped source as the user's 233-mm blank."""
+    from ae_engine import manufacturing_api as api
+    from ae_engine.contracts import ManufacturingContext
+    from ae_engine.v_miter_tail_user_image_source import (
+        project_tail_illustrated_side_v90_flat,
+    )
+    from ae_engine.sheetmetal_drawing import PolylinePrimitive
+
+    spec,intrinsic=_image_sample_vault_tail()
+    baseline=api.build_operator_part_render_data(
+        spec,ManufacturingContext(draw_stock=False),
+    )
+    boundary=tuple(
+        p for p in baseline.scene.primitives
+        if isinstance(p,PolylinePrimitive) and p.layer=="CUTTING"
+        and p.closed and len(p.points)>10
+    )
+    assert len(boundary)==1
+    baseline_max_y=max(p.y for p in boundary[0].points)
+    intrinsic_max_y=max(
+        p.y for p in intrinsic.scene.primitives[0].points
+    )
+    assert intrinsic_max_y==pytest.approx(233.0)
+    assert baseline_max_y==pytest.approx(200.0)
+    with pytest.raises(Exception,match="TAIL_IMAGE_V90_FACTORY_SOURCE_DIFFERENT"):
+        project_tail_illustrated_side_v90_flat(spec,baseline)
