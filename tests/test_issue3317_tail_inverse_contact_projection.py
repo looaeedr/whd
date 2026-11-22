@@ -104,3 +104,31 @@ def test_inverse_rejects_missing_straight_section_or_ray():
         _apex_ray_side_exit_least_squares(
             Vec2(15, 48), (Vec2(15, 47), Vec2(15, 46)), 0.0,
         )
+
+
+
+def test_tail_original_uv_bend_ownership_is_mutually_exclusive_and_order_invariant():
+    """#3317: X/Y first choice changes intermediates but cannot change final V.
+
+    Uses the original Tail 15/15/48, 2mm T/2mm R/4.178318mm BA
+    from the existing Factory candidate check; no guessed cuts/creases.
+    """
+    from ae_engine.v_miter_tail_sequential_fold_check import (
+        _advance_same_source_uv,
+    )
+    original=(15.,407.,48.,0.,422.,290.,4.178318229274424,3.)
+    # Both actually retained candidate V wall source midpoints, apex,
+    # out-of-span bottom stock. Every UV receives at most one RBA bend.
+    uv_points=((7.5,55.5),(7.5,40.5),(414.5,55.5),
+               (414.5,40.5),(15.,48.),(407.,48.),
+               (1.,15.),(421.,15.))
+    changed_first=0
+    for uv in uv_points:
+        sx,fx,_,_=_advance_same_source_uv(uv,"x",original)
+        sy,fy,_,_=_advance_same_source_uv(uv,"y",original)
+        assert fx==pytest.approx(fy,abs=1e-9), (
+            uv,"Exclusive original UV cannot depend on first bend choice"
+        )
+        if math.dist(sx,sy)>1e-6:
+            changed_first+=1
+    assert changed_first >=4

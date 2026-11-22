@@ -782,8 +782,64 @@ def _model_report(check):
         def z_span(faces):
             z = [float(vertex[2]) for tri in faces for vertex in tri]
             return [min(z), max(z)] if z else None
+        order_model=next(
+            model for axis,model in check.sequential_same_sheet_stage_models
+            if axis==row.first_bend_axis
+        )
+        root_row=next(
+            item for item in order_model.root_true_t_self_intersection_by_corner
+            if item[0]==row.corner
+        )
+        _,stage1_collision,stage2_collision,_,_=root_row
+        continuous=(
+            order_model.stage1_shell_topology.edges_manifold_closed and
+            order_model.stage2_shell_topology.edges_manifold_closed and
+            order_model.first_stage_max_duplicate_vertex_jump_mm <= 1e-7 and
+            order_model.final_stage_max_duplicate_vertex_jump_mm <= 1e-7
+        )
+        no_root_crossing=all(
+            not d.numerical_budget_exhausted and
+            not d.crossing_pair_count and
+            not d.coplanar_overlap_pair_count
+            for d in (stage1_collision,stage2_collision)
+        )
+        alt=row.alternative_existing_stock_contact_trial
+        alt_gaps=tuple(x[2] for x in alt.sampled_section_z_gap_mm
+                       if x[1]=="MEASURED" and x[2] is not None)
+        current_gaps=tuple(x[2] for x in row.sequential_final_seam_sections
+                           if x[1]=="MEASURED" and x[2] is not None)
         corners.append({
             "corner":row.corner,
+            "separate_gate_verdicts":{
+                "original_CUTTING_BEND_T_R_BA_provenance":"PASS_SOURCE_UNCHANGED",
+                "one_UV_receives_at_most_one_fold":(
+                    "PASS_EXCLUSIVE_CURRENT_KINEMATICS"
+                    if order_model.source_double_bend_vertices==0 else "FAIL"
+                ),
+                "one_sheet_T_mesh_numerical_continuity":(
+                    "PASS_CLOSED_AND_SHARED_SOURCE"
+                    if continuous else "FAIL_OR_UNRESOLVED"
+                ),
+                "local_root_true_T_surface_intersection":(
+                    "NO_DETECTED_NONNEIGHBOR_CROSSING_OR_OVERLAP"
+                    if no_root_crossing else "FAIL_OR_UNRESOLVED"
+                ),
+                "actual_root_positive_volume_penetration":
+                    "UNKNOWN_NOT_A_GLOBAL_VOLUME_BOOLEAN",
+                "finite_BEND_tip_physical_deformation":order_model.root_process_status,
+                "existing_V_cut_wall_to_cut_wall_full_span_mating":(
+                    "FAIL_POSITIVE_MEASURED_GAP"
+                    if any(g>1e-6 for g in current_gaps)
+                    else "UNKNOWN_FULL_INTERVAL_CERTIFICATE"
+                ),
+                "alternative_side_V_wall_to_real_bottom_T_broad_face_mating":(
+                    "FAIL_POSITIVE_MEASURED_GAP"
+                    if any(g>1e-6 for g in alt_gaps)
+                    else "UNKNOWN_FULL_INTERVAL_CERTIFICATE"
+                ),
+                "alternative_changes_current_CUTTING":"NO",
+                "manufacturing_export":"NOT_ALLOWED",
+            },
             "alternative_mating_pair":{
                 "candidate_id":
                     row.alternative_existing_stock_contact_trial.candidate_id,

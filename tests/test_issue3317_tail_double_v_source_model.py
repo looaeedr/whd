@@ -258,6 +258,20 @@ def test_tail_real_same_blank_dual_90_v_and_folded_contact(first_axis):
             )
             assert len(alt.sampled_section_z_gap_mm)==4
             assert alt.manufacturing_status=="CHECK_ONLY_NOT_APPROVED"
+            for alternative_station,original_station in zip(
+                alt.sampled_section_z_gap_mm,
+                corner.sequential_final_seam_sections,
+            ):
+                z, status, gap, side_xyz, bottom_xyz, shortcut=alternative_station
+                original_z,original_status,original_gap,_,_=original_station
+                assert status=="MEASURED" and original_status=="MEASURED"
+                assert z==pytest.approx(original_z,abs=1e-7)
+                assert gap>0 and gap<original_gap, (
+                    "Real alternate contact must improve yet remain visibly"
+                    " unseated, not be a duplicate V-wall test"
+                )
+                assert not shortcut
+                assert side_xyz is not None and bottom_xyz is not None
             # A supposed side inverse can be inside the ORIGINAL
             # reconstructed mother but physically absent after the
             # CURRENT real V CUTTING. Do not invent it or assign bottom
@@ -492,6 +506,12 @@ def test_tail_real_same_blank_dual_90_v_and_folded_contact(first_axis):
             assert traced["corners"][0]["same_sheet_stage_source_cut_tracks"]
             assert traced["corners"][0]["alternative_mating_pair"]["bottom_real_source_area_mm2"] > 0
             assert traced["corners"][0]["alternative_mating_pair"]["candidate_is_already_approved_V"] is False
+            assert all(
+                row["separate_gate_verdicts"][
+                    "alternative_side_V_wall_to_real_bottom_T_broad_face_mating"
+                ] == "FAIL_POSITIVE_MEASURED_GAP"
+                for row in traced["corners"]
+            )
             assert traced["one_sheet_two_stage_models"][0]["source_fold_ownership"]["both_fold_source_vertices"] == 0
             alt_svg=archive.read(
                 "WHD_tail_dual_V_ALTERNATIVE_original_candidate_overlay_sections.svg"
@@ -521,6 +541,14 @@ def test_tail_real_same_blank_dual_90_v_and_folded_contact(first_axis):
         # Publish the actual one-run annotated composite as a
         # *separate* SVG next to JSON/ZIP without redrawing anything.
         picture=base64.b64encode(combined.encode("utf-8")).decode("ascii")
+        # Both separate files are bytes from THIS EXACT test ZIP.
+        # CI can publish the actual original-versus-candidate overlay,
+        # never a rebuilt picture from a different factory snapshot.
+        alt_picture=base64.b64encode(alt_svg.encode("utf-8")).decode("ascii")
+        for i in range(0,len(alt_picture),4096):
+            print("WHD_3317_ALTERNATIVE_SOURCE_OVERLAY_SVG_BASE64_PART="
+                  + first_axis+":"+str(i//4096).zfill(4)+":"
+                  + alt_picture[i:i+4096],flush=True)
         for i in range(0,len(picture),4096):
             print("WHD_3317_MODEL_COMPOSITE_SVG_BASE64_PART="
                   + first_axis+":"+str(i//4096).zfill(4)+":"
