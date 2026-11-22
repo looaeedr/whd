@@ -112,9 +112,30 @@ def test_actual_whd_gui_d4_check_window_four_factory_holes_and_native_world(
         actual=win._tail_d4_assembly_check
         assert actual.body_triangle_count==len(body)==308
         assert actual.tail_triangle_count==len(placed)==2860
-        assert actual.crossing_pair_count>0
-        assert len(actual.crossing_segments)>0
+        assert actual.crossing_pair_count==951
+        assert len(actual.crossing_segments)==947
         assert not actual.manufacturing_approved
+        # Reuse the SAME actual GUI Body and native approved 2D for Y-first;
+        # do not substitute a 36/312-face separate Body mesh.
+        from ae_engine.v_miter_tail_d4_check import (
+            project_tail_d4_source_keyed_t_check,
+        )
+        second=project_tail_d4_source_keyed_t_check(flat,first_axis="y")
+        vertices=second.inner_xyz+second.outer_xyz
+        second_local=tuple(
+            tuple(vertices[i] for i in face) for face in second.shell_faces
+        )
+        second_world=api.place_prethickened_endcap_world_skins(
+            second_local,placement="bottom",box_body_world=body,
+        )
+        second_assembly=api.inspect_operator_tail_d4_assembly_world(
+            body,second_world,
+        )
+        assert second_assembly.body_triangle_count==len(body)==308
+        assert second_assembly.tail_triangle_count==len(second_world)==2860
+        assert second_assembly.crossing_pair_count==951
+        assert len(second_assembly.crossing_segments)==947
+        assert not second_assembly.manufacturing_approved
         assert actual.volume_verdict.startswith("VOLUME_INTERFERENCE_")
         figure=win._tail_d4_check_figure
         assert len(figure.axes)==5
@@ -158,12 +179,17 @@ def test_actual_whd_gui_d4_check_window_four_factory_holes_and_native_world(
         assert not reopened.audit().has_errors
         entities=tuple(reopened.modelspace())
         assert len(entities)==11  # outer + four circles + five datum + warning
-        assert len([e for e in entities if e.dxf.layer=="CHECK"
-                    and e.dxftype()=="CIRCLE"])==4
+        # The source has three original CIRCLEs and a fourth real CUTTING
+        # hole represented by a closed polyline. Preserve both source types.
+        circles=[e for e in entities if e.dxf.layer=="CHECK"
+                 and e.dxftype()=="CIRCLE"]
+        closed=[e for e in entities if e.dxf.layer=="CHECK"
+                and e.dxftype()=="LWPOLYLINE" and e.closed]
+        assert len(circles)==3
+        assert len(closed)==2  # source exterior + fourth original hole
+        assert len(circles)+len(closed)-1==4
         assert len([e for e in entities if e.dxf.layer=="DATUM"
                     and e.dxftype()=="LINE"])==5
-        assert len([e for e in entities if e.dxf.layer=="CHECK"
-                    and e.dxftype()=="LWPOLYLINE" and e.closed])==1
         assert not any(e.dxf.layer in ("CUTTING","BEND","MARKING")
                        for e in entities)
         assert designer._phase6_input_snapshot==before
