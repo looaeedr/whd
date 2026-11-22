@@ -137,8 +137,13 @@ def test_tail_real_same_blank_dual_90_v_and_folded_contact():
         }
         for row in check.corners:
             continuity = row.seam_continuity
+            def z_range(faces):
+                zs = [float(p[2]) for tri in faces for p in tri]
+                return [min(zs), max(zs)] if zs else None
             evidence["corners"].append({
                 "corner":row.corner,
+                "side_cut_face_z_mm":z_range(row.side_cut_faces),
+                "bottom_cut_face_z_mm":z_range(row.bottom_cut_faces),
                 "collision_surface_triangle_pairs":row.model_interference_pairs,
                 "volume_status":row.model_volume_status,
                 "native_uncut_fold_endpoint_jump_max_mm":

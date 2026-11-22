@@ -219,8 +219,13 @@ def _model_report(check):
     corners=[]
     for row in check.corners:
         c=row.seam_continuity
+        def z_span(faces):
+            z = [float(vertex[2]) for tri in faces for vertex in tri]
+            return [min(z), max(z)] if z else None
         corners.append({
             "corner":row.corner,
+            "side_cut_face_z_mm":z_span(row.side_cut_faces),
+            "bottom_cut_face_z_mm":z_span(row.bottom_cut_faces),
             "status":row.model_status,
             "surface_intersection_triangle_pairs":row.model_interference_pairs,
             "surface_intersection_segments_xyz":row.model_interference_segments,
