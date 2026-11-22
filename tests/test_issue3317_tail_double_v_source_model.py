@@ -147,9 +147,21 @@ def test_user_illustrated_tail_2d_factory_cutting_bend_holes_and_dxf_reopen(tmp_
         assert tip == pytest.approx((wanted_tip_x,48))
         assert upper == pytest.approx((wanted_x,63))
     assert len(flat.result_scene.primitives)==len(snapshot)
-    assert all(p is q for p,q in zip(
-        flat.result_scene.primitives[1:],snapshot[1:],
-    ))
+    # Only the CUTTING outer contour and two physical side BEND lines
+    # change. Former Y=49 starts MUST NOT silently survive into this model.
+    changed=[(old,new) for old,new in zip(snapshot,flat.result_scene.primitives)
+             if old is not new]
+    assert len(changed)==3
+    assert flat.side_bend_source_extensions==(
+        (15.0,49.0,0.0,190.0),(507.0,49.0,0.0,190.0),
+    )
+    from ae_engine.sheetmetal_drawing import LinePrimitive
+    for old,new in changed:
+        if isinstance(old,LinePrimitive):
+            assert old.layer==new.layer=="BEND"
+            assert old.p1.y==pytest.approx(49)
+            assert new.p1.y==pytest.approx(0)
+            assert new.p2==old.p2
     original_cutting=tuple(
         p for p in snapshot if p.layer=="CUTTING"
     )
@@ -166,11 +178,21 @@ def test_user_illustrated_tail_2d_factory_cutting_bend_holes_and_dxf_reopen(tmp_
                 ).area < 1e-6)
     )
     assert all(p in new_cutting for p in original_other)
-    assert all(p in flat.result_scene.primitives for p in snapshot[1:])
+    assert all(
+        old is new for old,new in zip(snapshot,flat.result_scene.primitives)
+        if old.layer!="BEND" and old is not snapshot[0]
+    )
     path=tmp_path/"tail_user_illustrated_90_same_side_2D_CHECK_NOT_CNC.dxf"
     save_scene_dxf(path,flat.result_scene)
     reopened=ezdxf.readfile(path)
     assert reopened.header["$INSUNITS"]==4
+    side_lines=tuple(e for e in reopened.modelspace().query('LINE[layer=="BEND"]')
+                     if abs(e.dxf.start.x-e.dxf.end.x)<1e-7)
+    assert len(side_lines)==2
+    assert sorted((round(e.dxf.start.x,5),round(e.dxf.start.y,5),
+                   round(e.dxf.end.y,5)) for e in side_lines)==[
+        (15.0,0.0,190.0),(507.0,0.0,190.0),
+    ]
     poly=tuple(reopened.modelspace().query('LWPOLYLINE[layer=="CUTTING"]'))
     outline=tuple(e for e in poly if e.closed and len(e.get_points("xy"))>12)
     assert len(outline)==1
@@ -185,71 +207,101 @@ def test_user_illustrated_tail_2d_factory_cutting_bend_holes_and_dxf_reopen(tmp_
 
 @pytest.mark.parametrize("first_axis",("x","y"))
 def test_user_image_v90_same_sheet_3d_left_right_fit_stays_red_if_open(first_axis,tmp_path):
-    """Do real first/second T fold only AFTER confirmed image/source parity.
+    """The operator's corrected Y=0 side BEND must drive BOTH physical folds.
 
-    The 2D image is now sourced, but 3D full seam fit must not be
-    silently approved by simply rebuilding the historical V triangle.
+    Old Y=49 three-panel diagnostics are rejected; a real retained source
+    corner now gets both X and Y action. Keep physical cut-face mating as
+    a hard gate and never declare a complete CNC model from this CHECK.
     """
     from ae_engine.v_miter_tail_user_image_source import (
         project_tail_illustrated_side_v90_flat,
+        project_tail_illustrated_side_v90_staged_check,
     )
-    from tools.render_tail_dual_v_model import build_tail_dual_v_source_preview_zip
-    from zipfile import ZipFile
-    from io import BytesIO
+    from ae_engine.v_miter_trial_defaults import project_v_miter_trial_parameter_defaults
+    from ae_engine.v_miter_seam_gap_trial import (
+        project_v_miter_true_t_seam_section_gap_trial,
+    )
+    from ae_engine.v_miter_cut_face_continuity_trial import (
+        project_v_miter_true_cut_face_continuity_trial,
+    )
     from ae_engine.dxf_serialization import save_scene_dxf
+    from ae_engine.contracts import PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES
+    import ezdxf
 
     spec,render=_image_sample_vault_tail()
     flat=project_tail_illustrated_side_v90_flat(spec,render)
-    check=project_tail_dual_v_same_source_check(
-        spec,render,
-        first_bend_axes={
-            "bottom_left":first_axis,"bottom_right":first_axis,
-        },
-        illustrated_v90_source=flat,
-    )
-    assert check.original_factory_scene is render.scene
-    assert check.corrected_outline
-    assert len(check.corners)==2
-    assert all(c.first_bend_axis==first_axis for c in check.corners)
-    assert len(check.sequential_same_sheet_stage_models)==1
-    _,sequence=check.sequential_same_sheet_stage_models[0]
-    assert sequence.stage1_shell_topology.edges_manifold_closed
-    assert sequence.stage2_shell_topology.edges_manifold_closed
-    assert sequence.root_process_status.endswith("KINEMATIC_ONLY")
-    assert all(len(c.sequential_final_seam_sections)==4 for c in check.corners)
-    evidence=build_tail_dual_v_source_preview_zip(check)
-    # Emit the EXACT same-run original-Factory scene as a real DXF for
-    # independent reopen. The file is a geometry CHECK (no NC approval),
-    # never the normal public manufacturing sink.
-    dxf_path=tmp_path/"Vault_Tail_500x150_side_V90_2D_ONLY_NOT_CNC.dxf"
+    # Prevent a valid-looking but WRONG old V result from the unchanged
+    # original Factory guide start at Y=49.
+    with pytest.raises(GeometryError,match="STALE_DISJOINT_BEND_MODEL"):
+        project_tail_dual_v_same_source_check(
+            spec,render,
+            first_bend_axes={"bottom_left":first_axis,"bottom_right":first_axis},
+            illustrated_v90_source=flat,
+        )
+    seq=project_tail_illustrated_side_v90_staged_check(flat,first_axis=first_axis)
+    assert seq.first_axis==first_axis
+    assert seq.stage1_shell_topology.edges_manifold_closed
+    assert seq.stage2_shell_topology.edges_manifold_closed
+    assert seq.root_process_status.endswith("KINEMATIC_ONLY")
+    assert seq.source_x_only_vertices>0
+    assert seq.source_y_only_vertices>0
+    assert seq.source_double_bend_vertices>0
+    assert seq.max_X_then_Y_vs_Y_then_X_final_delta_mm>1e-6
+    assert seq.first_stage_max_duplicate_vertex_jump_mm<1e-5
+    assert seq.final_stage_max_duplicate_vertex_jump_mm<1e-5
+    assert len(seq.true_t_cut_faces_by_corner)==2
+
+    dxf_path=tmp_path/f"Vault_Tail_500x150_side_V90_TO_BOTTOM_{first_axis}_NOT_CNC.dxf"
     save_scene_dxf(dxf_path,flat.result_scene)
-    import ezdxf
-    assert ezdxf.readfile(dxf_path).header["$INSUNITS"]==4
-    with ZipFile(BytesIO(evidence)) as z:
-        diag=json.loads(z.read("WHD_tail_dual_V_model_diagnosis.json"))
-        assert len(diag["corners"])==2
-        assert diag["formal_dxf_export"]=="NOT_ALLOWED"
-        assert {
-            "WHD_tail_dual_V_same_source_2D.svg",
-            "WHD_tail_dual_V_same_sheet_AFTER_FIRST_T.obj",
-            "WHD_tail_dual_V_same_sheet_AFTER_SECOND_T.obj",
-            "WHD_tail_dual_V_true_T_left_right_sections.svg",
-        } <= set(z.namelist())
-    print("WHD_3317_USER_IMAGE_V90_3D_DIAG="+json.dumps(
-        {"axis":first_axis,"data":diag},sort_keys=True,ensure_ascii=False,
-    ),flush=True)
-    for kind,binary in (
-        ("DXF",dxf_path.read_bytes()),("ZIP",evidence),
-    ):
-        encoded=base64.b64encode(binary).decode("ascii")
-        for offset in range(0,len(encoded),4096):
-            print("WHD_3317_USER_IMAGE_V90_"+kind+"_BASE64_PART="+
-                  first_axis+":"+str(offset//4096).zfill(4)+":"+
-                  encoded[offset:offset+4096],flush=True)
-    # Correct 2D does not remove the required RED gate for unseated seams.
-    assert all(c.model_status=="MODEL_PASS" for c in check.corners), (
-        "USER_IMAGE_V90_2D_SOURCE_VERIFIED_3D_SEAM_NOT_YET_MATING"
+    doc=ezdxf.readfile(dxf_path)
+    assert doc.header["$INSUNITS"]==4
+
+    # Both true source V CUTTING walls MUST mate over their complete
+    # post-RBA straight physical span (never just a single nearest point).
+    q=project_v_miter_trial_parameter_defaults(
+        thickness_mm=spec.thickness,second_fold_angle_deg=90.0,
+        relief_mode="ROUND_R",
     )
+    mid_radius=q.first_inner_radius_mm+q.thickness_mm/2.0
+    formed_reach=15-q.first_bend_allowance_mm+mid_radius
+    assert formed_reach>mid_radius
+    verdict=[]
+    tol=float(PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES.boundary_separation_tolerance)
+    for corner,first_side,first_bottom,final_side,final_bottom in (
+            seq.true_t_cut_faces_by_corner):
+        x=15-mid_radius if corner=="bottom_left" else 507+mid_radius
+        seam_start=(x,48-mid_radius,mid_radius)
+        seam_end=(x,48-mid_radius,formed_reach)
+        section=project_v_miter_true_t_seam_section_gap_trial(
+            final_side,final_bottom,
+            formed_seam_start=seam_start,formed_seam_end=seam_end,
+            station_fractions=(.25,.50,.75,.95),
+        )
+        complete=project_v_miter_true_cut_face_continuity_trial(
+            final_side,final_bottom,
+            formed_seam_start=seam_start,formed_seam_end=seam_end,
+        )
+        verdict.append((corner,section,complete))
+    print("WHD_3317_CORRECTED_BOTTOM_REACH_BEND_MODEL="+json.dumps({
+        "first_axis":first_axis,
+        "double_bend_source_vertices":seq.source_double_bend_vertices,
+        "order_effect_mm":seq.max_X_then_Y_vs_Y_then_X_final_delta_mm,
+        "cuts":tuple((corner,
+            section.max_measured_gap_mm,
+            complete.max_gap_upper_bound_mm,
+            complete.missing_face_interval_count)
+            for corner,section,complete in verdict),
+    },sort_keys=True),flush=True)
+    assert all(
+        section.missing_section_count==0
+        and section.max_measured_gap_mm is not None
+        and section.max_measured_gap_mm<=tol
+        and complete.max_gap_upper_bound_mm is not None
+        and complete.max_gap_upper_bound_mm<=tol
+        and complete.missing_face_interval_count==0
+        and complete.numerically_unresolved_vertex_event_count==0
+        for _,section,complete in verdict
+    ), "CORRECTED_2D_BEND_TRUE_T_FINAL_V_FACES_NOT_FULLY_MATING"
 
 
 def test_user_image_vault_stretched_baseline_not_silent_factory_substitute():
