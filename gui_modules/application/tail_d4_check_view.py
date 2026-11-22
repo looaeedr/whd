@@ -67,11 +67,15 @@ def _fit_equal_3d(ax, triangles):
 
 def show_tail_d4_check_window(
     parent, *, flat, check, body_world, placed_world, first_axis,
-    save_dxf,
+    save_dxf, assembly_check,
 ):
     """Open a native Tk CHECK-only view: 2D, assembled 3D, upper, both roots."""
     if not body_world or len(placed_world)!=len(check.shell_faces):
         raise ValueError("TAIL_D4_CHECK_GUI_NATIVE_WORLD_SOURCE_REQUIRED")
+    if (assembly_check.body_triangle_count != len(body_world)
+            or assembly_check.tail_triangle_count != len(placed_world)
+            or assembly_check.manufacturing_approved):
+        raise ValueError("TAIL_D4_CHECK_GUI_ASSEMBLY_SOURCE_MISMATCH")
     win=tk.Toplevel(parent)
     win.title("WHD 封尾 Ø4 CHECK_NOT_CNC — 不能加工")
     win.geometry("1480x940")
@@ -80,7 +84,7 @@ def show_tail_d4_check_window(
     ttk.Label(toolbar,text=(
         "封尾 Ø4｜真 Factory／專案來源｜"
         +first_axis.upper()+"/"+first_axis.upper()
-        +"｜CHECK_NOT_CNC｜R2_MODEL_UNRESOLVED｜箱體交會未驗收"
+        +"｜CHECK_NOT_CNC｜R2_MODEL_UNRESOLVED｜裝配體積未驗收"
     )).pack(side=tk.LEFT)
     def save():
         filename=filedialog.asksaveasfilename(
@@ -135,8 +139,18 @@ def show_tail_d4_check_window(
         placed_world,facecolors="#0284c7",edgecolors="none",alpha=.43,
     ))
     _fit_equal_3d(assembly_ax,tuple(body_world)+tuple(placed_world))
+    for first,last in assembly_check.crossing_segments:
+        assembly_ax.plot(
+            (first[0],last[0]),(first[1],last[1]),(first[2],last[2]),
+            color="#dc2626",linewidth=1.2,
+        )
     assembly_ax.view_init(elev=25,azim=-56)
-    assembly_ax.set_title("原生箱身＋封尾 Ø4 T2 殼（非密合證明）",fontsize=10)
+    assembly_ax.set_title(
+        "實際箱身＋Ø4：非共面穿越 %d 對／%d 段；非體積證明" % (
+            assembly_check.crossing_pair_count,
+            len(assembly_check.crossing_segments),
+        ),fontsize=10,
+    )
     assembly_ax.set_xlabel("World X");assembly_ax.set_ylabel("World Y")
     assembly_ax.set_zlabel("World Z")
 
@@ -178,9 +192,14 @@ def show_tail_d4_check_window(
         ax.set_title(name+"：真正同源 Ø4 槽底放大",fontsize=10)
         ax.set_xlabel("World X");ax.set_ylabel("World Y")
         ax.set_zlabel("World Z")
+    volume_message=(
+        "Body 非封閉：體積干涉無法驗證"
+        if not assembly_check.body_edges_manifold_closed
+        else "體積干涉未由表面穿越證實"
+    )
     figure.suptitle(
         "WHD #3317 Ø4 CHECK_NOT_CNC — 原始料四個真孔；"
-        "定位不表示箱體免避空／V 面密合合格",fontsize=11,
+        +volume_message+"；切面密合仍未驗收",fontsize=11,
     )
     figure.tight_layout(rect=(0,0,1,.97))
     canvas=FigureCanvasTkAgg(figure,master=win)
@@ -194,4 +213,5 @@ def show_tail_d4_check_window(
     win._tail_d4_check_shell=check
     win._tail_d4_check_body_world=body_world
     win._tail_d4_check_placed_world=placed_world
+    win._tail_d4_assembly_check=assembly_check
     return win
