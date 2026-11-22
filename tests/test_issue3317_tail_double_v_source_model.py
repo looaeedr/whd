@@ -291,11 +291,7 @@ def test_user_image_v90_same_sheet_3d_left_right_fit_stays_red_if_open(first_axi
             complete.max_gap_upper_bound_mm,
             complete.missing_face_interval_count)
             for corner,section,complete in verdict),
-    },sort_keys=True)
-    print("WHD_3317_SOURCE_ROOT_AUDIT="+audit_report,flush=True)
-    # Focused CI uses pytest capture for passing tests; retain an explicit
-    # source-attributed diagnostic in its warnings summary on this RED root.
-    warnings.warn("WHD_3317_SOURCE_ROOT_AUDIT="+audit_report,UserWarning)
+    },sort_keys=True),flush=True)
     assert all(
         section.missing_section_count==0
         and section.max_measured_gap_mm is not None
@@ -461,4 +457,6 @@ def test_tail_3317_real_source_root_alias_and_second_axis_transport_audit(axis):
         "world_reversed_faces":audit.final_reversed_face_count,
         "second_axis":audit.second_bend_axis_witnesses,
         "trial_t_outer_xyz":audit.trial_t_outer_extent_xyz_mm,
-    },sort_keys=True),flush=True)
+    },sort_keys=True)
+    print("WHD_3317_SOURCE_ROOT_AUDIT="+audit_report,flush=True)
+    warnings.warn("WHD_3317_SOURCE_ROOT_AUDIT="+audit_report,UserWarning)
