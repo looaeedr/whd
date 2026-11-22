@@ -353,15 +353,19 @@ def test_actual_whd_main_gui_lower_v_preserves_existing_rect_clearance_roundtrip
                 key: before_exclusion.part(key).render_data.material
                 for key in ("box_body", "head")
             }
-            reopened.activate_part("head")
-            assert reopened.designer_workspace.remove_part("tail")
-            from phase6_manufacturing_adapter import build_manufacturing_request
-            dormant_request = build_manufacturing_request(reopened)
-            assert set(dormant_request.canonical_part_keys) == {"box_body", "head"}
+            assert reopened.remove_part("tail")
+            root.update_idletasks()
+            root.update()
+            assert set(reopened.designer_workspace.available_parts) == {
+                "box_body", "head"
+            }
             assert api.TAIL_LOWER_V_SNAPSHOT_KEY in dict(
                 reopened._phase6_input_snapshot
             )
             dormant = reopened._phase6_resolve_manufacturing_geometry()
+            assert {part.part_key for part in dormant.parts} == {
+                "box_body", "head"
+            }
             assert dormant.part("tail") is None
             for key in ("box_body", "head"):
                 assert dormant.part(key).render_data.material.symmetric_difference(
@@ -369,19 +373,32 @@ def test_actual_whd_main_gui_lower_v_preserves_existing_rect_clearance_roundtrip
                 ).area < 1e-5
             main.project_save_as_button.invoke()
             dormant_saved = read_project(destination)["snapshot"]
+            assert set(dormant_saved["existing_parts"]) == {
+                "box_body", "head"
+            }
             assert dormant_saved[api.TAIL_LOWER_V_SNAPSHOT_KEY] == "v90"
-            assert dormant_saved[api.TAIL_LOWER_V_FIRST_BENDS_KEY][
-                "bottom_left"
-            ]["first"] == "x"
+            assert dormant_saved[api.TAIL_LOWER_V_FIRST_BENDS_KEY] == saved_first
+            assert feature in dormant_saved["part_features"]["tail"]
             main.project_open_button.invoke()
             root.update_idletasks()
             root.update()
             reopened = main.fold_designer_app or main.open_original_fold_designer()
-            assert "tail" not in reopened.designer_workspace.available_parts
+            assert set(reopened.designer_workspace.available_parts) == {
+                "box_body", "head"
+            }
+            assert set(reopened._phase6_input_snapshot["existing_parts"]) == {
+                "box_body", "head"
+            }
             assert reopened._phase6_input_snapshot[
                 api.TAIL_LOWER_V_SNAPSHOT_KEY
             ] == "v90"
-            assert reopened.designer_workspace.add_part("tail")
+            assert reopened._phase6_input_snapshot[
+                api.TAIL_LOWER_V_FIRST_BENDS_KEY
+            ] == saved_first
+            reopened.add_part("tail")
+            root.update_idletasks()
+            root.update()
+            assert "tail" in reopened.designer_workspace.available_parts
             chooser2, selected2 = _real_tail_selector(reopened)
             restored_v = _real_resolved_tail(reopened)
             assert selected2.get() == "V 型"
@@ -389,7 +406,10 @@ def test_actual_whd_main_gui_lower_v_preserves_existing_rect_clearance_roundtrip
             assert restored_v.material.symmetric_difference(
                 reloaded_v.material
             ).area < 1e-5
-            assert api.tail_lower_v_first_stage_mesh(restored_v)
+            _assert_same_holes(reloaded_v, restored_v)
+            assert api.tail_lower_v_first_stage_mesh(restored_v) == (
+                api.tail_lower_v_first_stage_mesh(reloaded_v)
+            )
             with pytest.raises(ValueError, match="禁止加工|尚未核准"):
                 api.reject_tail_lower_v_preview_for_dxf(restored_v)
 
