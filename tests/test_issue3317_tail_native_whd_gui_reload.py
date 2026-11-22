@@ -102,12 +102,29 @@ def test_actual_whd_main_gui_lower_v_preserves_existing_rect_clearance_roundtrip
         designer = main.open_original_fold_designer()
         root.update_idletasks()
         root.update()
-        # The WHD fresh-start Tail has a 15-mm lower fold; the specified
-        # non-sample V scenario has a physical 48-mm lower fold. Commit that
-        # operator setting via the existing GUI Settings transaction, not by
-        # mutating the Factory or inventing a test-only contour.
-        designer.settings_panel._stage_setting_update("ybottom1", 48.0)
-        designer.flush_pending_settings()
+        # The WHD fresh-start Tail has a 15-mm material lower fold, whereas
+        # this operator's actual lower V scenario has a 48-mm material fold.
+        # Edit the REAL Tk Fold Editor row (formed/outside display), using
+        # Engine's own display projection for the corresponding material.
+        # A generic Settings-only ybottom1 update would leave the existing
+        # physical Y Fold Profile at 15 mm and create a false source mismatch.
+        editor = designer.bend_ui
+        editor.nb.select(editor.tabs.index("Y"))
+        root.update_idletasks()
+        root.update()
+        rows = editor.get_active_dict()["Y"]
+        bottom_idx = next(i for i, seg in enumerate(rows)
+                          if seg.get("phase6_key") == "ybottom1")
+        candidate_rows = [dict(seg) for seg in rows]
+        candidate_rows[bottom_idx]["len"] = 48.0
+        displayed = api.project_operator_fold_editor_display_rows(
+            candidate_rows, getattr(designer.state, "phase6_thickness", 2.0),
+        )
+        editor.controls[bottom_idx]["len"].set(
+            str(displayed[bottom_idx]["len"])
+        )
+        editor.save()
+        designer._save_current_part(notify=False)
         root.update_idletasks()
         root.update()
         chooser, selected = _real_tail_selector(designer)
