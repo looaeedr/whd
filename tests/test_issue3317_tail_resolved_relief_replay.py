@@ -97,3 +97,47 @@ def test_real_other_relief_that_hits_v_must_fail_without_clipping_source():
         project_operator_tail_lower_v_preview_render(
             spec,raw,choice="v90",resolved_render_data=solved,
         )
+
+@pytest.mark.parametrize("shift,expect_rejection", (
+    (1e-12, False),  # Native source and replay have equal physical BENDs.
+    (1e-4, True),    # A real 0.0001-mm end-point move is still forbidden.
+))
+def test_resolved_replay_compares_actual_finite_bends_without_ulp_false_conflict(
+    shift, expect_rejection,
+):
+    from types import SimpleNamespace
+    from ae_engine.v_miter_tail_relief_replay import _extra_features
+    from ae_engine.sheetmetal_geometry_core import GeometryError
+
+    spec, source = _real_source(w=620., d=185., t=2.)
+    primitives = list(source.scene.primitives)
+    original_bend = next(
+        p for p in primitives
+        if isinstance(p, LinePrimitive) and p.layer == "BEND"
+    )
+    modified_bend = replace(
+        original_bend,
+        p1=Vec2(original_bend.p1.x + shift, original_bend.p1.y),
+    )
+    modified_scene = DrawingScene([
+        modified_bend if p is original_bend else p for p in primitives
+    ])
+    source_outer = next(
+        p for p in source.scene.primitives
+        if isinstance(p, PolylinePrimitive) and p.layer == "CUTTING"
+        and p.closed and len(p.points) > 10
+    )
+    altered = SimpleNamespace(scene=modified_scene)
+    if expect_rejection:
+        with pytest.raises(
+            GeometryError, match="V_MITER_REPLAY_FINITE_BEND_CHANGED"
+        ):
+            _extra_features(
+                source, altered,
+                structural_outer=source_outer, solved_outer=source_outer,
+            )
+    else:
+        assert _extra_features(
+            source, altered,
+            structural_outer=source_outer, solved_outer=source_outer,
+        ) == ((), ())
