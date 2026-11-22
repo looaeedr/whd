@@ -239,10 +239,17 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                 offset = getattr(part, "offset", (0.0, 0.0, 0.0))
                 formed_surface_for_edges = None
                 # Preview T2 is already thick: never thicken a second time.
-                if (part_key=="tail" and
-                        manufacturing_api.tail_lower_v_preview_mesh(part_data) is not None):
-                    placed=_phase6_place_assembly_triangles(
-                        local,placement,request.finished_dimensions,offset,
+                if preview_t2 is not None and part_key=="tail":
+                    # The V CHECK is ALREADY a complete T shell. Use the
+                    # same native Box Body mating origin as normal Tail;
+                    # do not recenter Z, mirror local Y or thicken again.
+                    # The Engine also reverses winding once for the
+                    # odd-handed (x,y,z)->(x,z,y) world transform.
+                    placed=manufacturing_api.place_prethickened_endcap_world_skins(
+                        local,placement=placement,box_body_world=box_body_world,
+                        offset=offset,preserve_core_origin=bool(getattr(
+                            render_data,"preserve_endcap_core_origin",False
+                        )),
                     )
                 elif placement in {"top", "head", "bottom", "tail"} and box_body_world:
                     # The Engine returns both the canonical formed surface used
