@@ -257,6 +257,40 @@ def detect_world_mesh_surface_interference(source_triangles, target_triangles, *
 
 
 
+
+def probe_native_world_mesh_axis_faces(triangles, *, axis, fixed_xyz,
+                                      tolerance=1e-7):
+    """Read the exact mesh's physical faces on an axis-aligned world line.
+
+    Returned sorted coordinates are surface hits ONLY. A paired set of hits
+    is not assumed to be a watertight solid, or a licence to edit the mesh.
+    This exact-source diagnostic also works when the Box Body is open.
+    """
+    import math
+    if axis not in (0, 1, 2):
+        raise ValueError("NATIVE_WORLD_PROBE_AXIS_INVALID")
+    fixed = tuple(float(v) for v in fixed_xyz)
+    if len(fixed) != 3 or not all(math.isfinite(v) for v in fixed):
+        raise ValueError("NATIVE_WORLD_PROBE_POINT_INVALID")
+    mesh = tuple(triangles)
+    if not mesh:
+        raise ValueError("NATIVE_WORLD_PROBE_MESH_REQUIRED")
+    low = min(float(p[axis]) for tri in mesh for p in tri) - 1.
+    high = max(float(p[axis]) for tri in mesh for p in tri) + 1.
+    start = list(fixed)
+    end = list(fixed)
+    start[axis] = low
+    end[axis] = high
+    hits = set()
+    for triangle in mesh:
+        xyz = _segment_triangle_intersection(
+            start, end, triangle, tolerance=tolerance,
+        )
+        if xyz is not None:
+            hits.add(round(float(xyz[axis]), 6))
+    return tuple(sorted(hits))
+
+
 @dataclass(frozen=True)
 class NativeD4AssemblyCheck:
     """CHECK-only result for the exact meshes displayed in the native window."""
