@@ -21,7 +21,7 @@ from shapely.ops import unary_union
 
 from .contracts import EndCapPartSpec, PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES
 from .manufacturing_render_data import PartRenderData
-from .sheetmetal_drawing import DrawingScene, PolylinePrimitive
+from .sheetmetal_drawing import DrawingScene, PolylinePrimitive, LinePrimitive
 from .sheetmetal_geometry_core import GeometryError, Vec2
 from .v_miter_factory_mother_check import (
     _factory_original_shape, _selected_original_corner_component,
@@ -39,7 +39,9 @@ class TailIllustratedSideV90Flat:
     original_factory_restored_mother: Polygon
     cut_wedges: tuple
     opening_source_points_xy: tuple
-    status: str = "USER_ILLUSTRATED_2D_V90_VERIFIED_FOLDED_FIT_NOT_VERIFIED"
+    # Source BEND corrected by the operator: (side X, old start Y, new start Y, end Y).
+    side_bend_source_extensions: tuple = ()
+    status: str = "USER_CORRECTED_SIDE_BEND_TO_BOTTOM_2D_V90_FOLDED_FIT_NOT_VERIFIED"
     manufacturing_approved: bool = False
 
 
@@ -110,12 +112,40 @@ def project_tail_illustrated_side_v90_flat(
         raise GeometryError("TAIL_IMAGE_V90_RESTORED_FACTORY_INVALID")
     openings=[]
     wedges=[]
+    side_bend_replacements={}
+    side_bend_extensions=[]
     for key in ("bottom_left","bottom_right"):
         real=_physical_corner_bends(render.scene,original,key)
         # Fold stations, not physical guide ENDPOINTS: the original
         # side BEND begins at y=49 and bottom BEND at x=16/506.
         vertical,horizontal=real[:2]
         apex=(float(vertical.p1.x),float(horizontal.p1.y))
+        # The factory has a finite side BEND starting at Y=49. The
+        # operator explicitly corrected THIS illustrated V specimen: its
+        # left/right side creases must reach the real bottom edge Y=0.
+        # Do not silently alter the baseline Factory or other EndCaps.
+        original_side=real[6]
+        original_start=min(original_side.p1.y,original_side.p2.y)
+        original_end=max(original_side.p1.y,original_side.p2.y)
+        if (original_side.layer!="BEND" or
+                abs(original_start-49.0)>tol or
+                abs(original_end-190.0)>tol or
+                abs(original_side.p1.x-original_side.p2.x)>tol or
+                abs(original_side.p1.x-apex[0])>tol or
+                abs(mother.bounds[1])>tol):
+            raise GeometryError("TAIL_IMAGE_V90_SIDE_BEND_SOURCE_CHANGED")
+        if id(original_side) in side_bend_replacements:
+            raise GeometryError("TAIL_IMAGE_V90_SIDE_BEND_NOT_UNIQUE")
+        corrected_side=LinePrimitive(
+            p1=Vec2(original_side.p1.x,
+                    0.0 if original_side.p1.y==original_start else original_side.p1.y),
+            p2=Vec2(original_side.p2.x,
+                    0.0 if original_side.p2.y==original_start else original_side.p2.y),
+            layer=original_side.layer,color=original_side.color,
+        )
+        side_bend_replacements[id(original_side)]=corrected_side
+        side_bend_extensions.append((float(apex[0]),float(original_start),
+                                     float(mother.bounds[1]),float(original_end)))
         side_x=0.0 if key=="bottom_left" else width
         if (abs(apex[1]-48)>tol or
                 abs(apex[0]-(15 if key=="bottom_left" else width-15))>tol):
@@ -152,21 +182,34 @@ def project_tail_illustrated_side_v90_flat(
     )
     if len(originals)!=1:
         raise GeometryError("TAIL_IMAGE_V90_OUTER_CUTTING_NOT_UNIQUE")
-    unchanged=tuple(p for p in render.scene.primitives if p is not originals[0])
-    result=DrawingScene([
-        PolylinePrimitive(
-            points=tuple(Vec2(float(x),float(y))
-                         for x,y in corrected.exterior.coords[:-1]),
-            layer="CUTTING",closed=True,
-            semantic_id="OUTER_BOUNDARY",
-        ),
-        *unchanged,
-    ])
-    if any(p is not q for p,q in zip(result.primitives[1:],unchanged)):
+    if len(side_bend_replacements)!=2:
+        raise GeometryError("TAIL_IMAGE_V90_SIDE_BEND_PAIR_MISSING")
+    corrected_outer=PolylinePrimitive(
+        points=tuple(Vec2(float(x),float(y))
+                     for x,y in corrected.exterior.coords[:-1]),
+        layer="CUTTING",closed=True,semantic_id="OUTER_BOUNDARY",
+    )
+    # Preserve the complete native Factory scene except (a) the nominated
+    # two V corner CUTTING replacements and (b) the user's two side BEND
+    # start-point corrections. Other BENDs, holes and marks remain IDENTICAL.
+    result_primitives=[]
+    for p in render.scene.primitives:
+        if p is originals[0]:
+            result_primitives.append(corrected_outer)
+        elif id(p) in side_bend_replacements:
+            result_primitives.append(side_bend_replacements[id(p)])
+        else:
+            result_primitives.append(p)
+    result=DrawingScene(result_primitives)
+    if len(result.primitives)!=len(render.scene.primitives) or any(
+        a is not b for a,b in zip(result.primitives,render.scene.primitives)
+        if a is not originals[0] and id(a) not in side_bend_replacements
+    ):
         raise GeometryError("TAIL_IMAGE_V90_ORIGINAL_FEATURE_IDENTITY_LOST")
     return TailIllustratedSideV90Flat(
         source_spec=spec,original_scene=render.scene,result_scene=result,
         original_factory_material=original,result_material=corrected,
         original_factory_restored_mother=restored,
         cut_wedges=tuple(wedges),opening_source_points_xy=tuple(openings),
+        side_bend_source_extensions=tuple(side_bend_extensions),
     )
