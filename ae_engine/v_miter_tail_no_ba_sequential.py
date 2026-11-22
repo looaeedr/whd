@@ -95,7 +95,12 @@ def stations_from_real_flat(flat) -> LowerDualVStations:
             or abs(breaks[1]-ly)>_TOL
             or abs(breaks[-1]-ymax)>_TOL
             or breaks[2] <= ly+_TOL or breaks[3]<=breaks[2]+_TOL):
-        raise GeometryError("V_MITER_LOWER_UNCHANGED_UPPER_FOLD_TOPOLOGY_INVALID")
+        raise GeometryError(
+            "V_MITER_LOWER_UNCHANGED_UPPER_FOLD_TOPOLOGY_INVALID:"
+            f" current_CUTTING_Y={ymax:.6f}"
+            f" current_profile_Y={breaks[-1]:.6f}"
+            f" lower_bend_Y={ly:.6f} profile_lower_Y={breaks[1]:.6f}"
+        )
     # A 90-degree sharp root requires actual perpendicular source rays.
     if any(row.get("angle") is not None and abs(abs(float(row["angle"]))-90.)>_TOL
            for row in y_profile):
