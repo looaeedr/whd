@@ -652,8 +652,18 @@ def test_d4_delivery_real_factory_without_fixture_writes_ascii_mm_dxf(
         w=620,d=185,t=2,fw=25,yl1=15,yr1=15,
         ytop1=16,ybottom1=48,is_tail=True,model_name="金庫型",
     )
-    authored=tuple(p for p in original.primitives if p.layer=="CUTTING"
-                   and getattr(p,"semantic_id",None)!="OUTER_BOUNDARY")
+    from ae_engine.v_miter_factory_mother_check import _factory_original_shape
+    factory,_,_,_=_factory_original_shape(spec)
+    # The original Factory structural outer is NOT tagged OUTER_BOUNDARY.
+    # Classify by exact Factory source geometry, not by insertion order,
+    # bounding boxes, size or fake-hole coordinates.
+    factory_outers=tuple(p for p in original.primitives
+        if isinstance(p,PolylinePrimitive) and p.layer=="CUTTING"
+        and p.closed and Polygon([(q.x,q.y) for q in p.points])
+            .symmetric_difference(factory).area<=1e-7)
+    assert len(factory_outers)==1
+    authored=tuple(p for p in original.primitives
+                   if p.layer=="CUTTING" and p is not factory_outers[0])
     assert authored
     assert all(getattr(p,"semantic_id",None)!="USER_ADDED_CHECK_CUTTING"
                for p in authored)
