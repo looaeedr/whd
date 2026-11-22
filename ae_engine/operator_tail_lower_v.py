@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """#3317 single-source, preview-only lower bilateral V for verified Vault Tail.
 
-The ONLY enabled physical source is the operator-confirmed 522 x 233 mm
-intrinsic Vault Tail specimen at W500/D150/T2/FW25/15-15-16-48. Existing
+The physical source is the current PartSpec and actual CUTTING/BEND; the
+former 522 x 233 mm / T2 example is a regression case, NEVER a whitelist. Existing
 upper folds and holes are regenerated from the same original EndCap Factory
 scene and remain unchanged. No BA/R is ever synthesized.
 
@@ -23,7 +23,7 @@ from .manufacturing_render_data import (
 TAIL_LOWER_V_SNAPSHOT_KEY = "tail_lower_v_choice"
 TAIL_LOWER_V_ORIGINAL = "original"
 TAIL_LOWER_V_V90 = "v90"
-TAIL_LOWER_V_UNSUPPORTED = "下方左右 V 型只支援已驗證的金庫型封尾 W500、D150、T2、FW25、左右15、上16、下48（522×233 mm）；其他尺寸／箱型不支援"
+TAIL_LOWER_V_UNSUPPORTED = "此板件的實際 CUTTING、有限 BEND、折邊歸屬或原孔不符合雙 V 求解；請核對幾何原因，不以尺寸／板件名稱限制"
 
 
 def normalize_operator_tail_lower_v_choice(raw) -> str:
@@ -37,22 +37,17 @@ def normalize_operator_tail_lower_v_choice(raw) -> str:
 
 def _validated_spec(spec):
     from .contracts import EndCapPartSpec
-    if not isinstance(spec, EndCapPartSpec) or not spec.is_tail:
-        raise ValueError(TAIL_LOWER_V_UNSUPPORTED)
-    values=(
-        ("width",500.),("depth",150.),("thickness",2.),
-        ("frame_width",25.),("fold_left",15.),("fold_right",15.),
-        ("fold_top",16.),("fold_bottom",48.),
-    )
-    if (spec.model_name not in ("金庫型","VAULT")
-            or spec.corner_policy is not None
-            or any(
-                type(getattr(spec,key,None)) is bool
-                or getattr(spec,key,None) is None
-                or abs(float(getattr(spec,key))-wanted)>1e-7
-                for key,wanted in values
-            )):
-        raise ValueError(TAIL_LOWER_V_UNSUPPORTED)
+    if not isinstance(spec, EndCapPartSpec):
+        raise ValueError("V_MITER_LOWER_REQUIRES_PHYSICAL_ENDCAP_SOURCE")
+    values=("width","depth","thickness","frame_width",
+            "fold_left","fold_right","fold_top","fold_bottom")
+    import math
+    if any(
+        type(getattr(spec,key,None)) not in (int,float)
+        or not math.isfinite(getattr(spec,key))
+        or getattr(spec,key)<=0 for key in values
+    ):
+        raise ValueError("V_MITER_LOWER_PHYSICAL_DIMENSIONS_INVALID")
     return spec
 
 
@@ -82,20 +77,18 @@ def commit_operator_tail_lower_v_choice(
     result=dict(source or {})
     if value==TAIL_LOWER_V_V90:
         raw=dict(tail_scene_values or {})
-        if raw.get("model") not in ("金庫型","VAULT"):
-            raise ValueError(TAIL_LOWER_V_UNSUPPORTED)
-        req=(("w",500.),("d",150.),("t",2.),("fw",25.),
-             ("yl1",15.),("yr1",15.),("ytop1",16.),("ybottom1",48.))
+        import math
+        req=("w","d","t","fw","yl1","yr1","ytop1","ybottom1")
         try:
             acceptable=all(
-                type(raw.get(key)) is not bool and
-                abs(float(raw[key])-target)<=1e-7
-                for key,target in req
+                type(raw[key]) in (int,float) and
+                math.isfinite(raw[key]) and raw[key]>0
+                for key in req
             )
         except (KeyError,ValueError,TypeError,OverflowError):
             acceptable=False
         if not acceptable:
-            raise ValueError(TAIL_LOWER_V_UNSUPPORTED)
+            raise ValueError("V_MITER_LOWER_MISSING_OR_INVALID_PHYSICAL_FOLD_SOURCE")
         result[TAIL_LOWER_V_SNAPSHOT_KEY]=value
     else:
         # Removing the OPTIONAL key exactly restores pre-feature project
@@ -104,7 +97,7 @@ def commit_operator_tail_lower_v_choice(
     return result
 
 
-def project_operator_tail_lower_v_preview_render(spec, *, choice: str):
+def project_operator_tail_lower_v_preview_render(spec, render_data=None, *, choice: str):
     """One Factory source: 2D FinalScene + same-source T2 preview mesh.
 
     Never project onto the original generic endcap render as a 'nearby'
@@ -119,21 +112,28 @@ def project_operator_tail_lower_v_preview_render(spec, *, choice: str):
     )
     from .v_miter_tail_full_t_no_ba import project_tail_v90_full_t_no_ba
 
-    scene=_build_end_cap_scene(
-        w=spec.width,d=spec.depth,t=spec.thickness,
-        fw=spec.frame_width,yl1=spec.fold_left,yr1=spec.fold_right,
-        ytop1=spec.fold_top,ybottom1=spec.fold_bottom,
-        is_tail=True,model_name=spec.model_name,
-    )
-    base=PartRenderData(
-        scene=scene,material=material_polygon_from_final_scene(scene),
-        fold_guides=fold_guides_from_final_scene(scene),
-        metadata={"source":"WHD_INTRINSIC_VAULT_TAIL_VERIFIED_522X233"},
-    )
+    if render_data is None:
+        # Headless compatibility only. The GUI MUST forward its exact
+        # canonical physical FinalScene, including original authored holes.
+        scene=_build_end_cap_scene(
+            w=spec.width,d=spec.depth,t=spec.thickness,
+            fw=spec.frame_width,yl1=spec.fold_left,yr1=spec.fold_right,
+            ytop1=spec.fold_top,ybottom1=spec.fold_bottom,
+            is_tail=bool(spec.is_tail),model_name=spec.model_name,
+        )
+        base=PartRenderData(
+            scene=scene,material=material_polygon_from_final_scene(scene),
+            fold_guides=fold_guides_from_final_scene(scene),
+            metadata={"source":"WHD_ACTUAL_FACTORY_SOURCE"},
+        )
+    elif not isinstance(render_data,PartRenderData):
+        raise ValueError("V_MITER_LOWER_ACTUAL_RENDER_SOURCE_REQUIRED")
+    else:
+        base=render_data
     flat=project_tail_illustrated_side_v90_flat(spec,base)
     solid=project_tail_v90_full_t_no_ba(flat,first_axis="x")
-    if solid.manufacturing_approved or solid.source_hole_count!=4:
-        raise GeometryError("TAIL_V90_GUI_T2_SOURCE_HOLES_NOT_VERIFIED")
+    if solid.manufacturing_approved:
+        raise GeometryError("V_MITER_LOWER_PREVIEW_UNEXPECTED_EXPORT_APPROVAL")
     formed=tuple(
         tuple(solid.vertices_xyz[i] for i in indices)
         for indices in solid.indexed_triangle_faces
@@ -143,10 +143,11 @@ def project_operator_tail_lower_v_preview_render(spec, *, choice: str):
         material=solid.source_material_with_holes,
         fold_guides=fold_guides_from_final_scene(flat.result_scene),
         metadata={
-            "source":"WHD_INTRINSIC_VAULT_TAIL_VERIFIED_522X233",
+            "source":"WHD_ACTUAL_FACTORY_CUTTING_AND_FINITE_BEND",
             "tail_lower_v_choice":"v90",
             "tail_lower_v_preview_only":True,
             "tail_lower_v_full_t_mesh":formed,
+            "tail_lower_v_physical_t":float(spec.thickness),
             "tail_lower_v_nominal_formed_outer_mm":solid.formed_outer_extents_xyz_mm,
             "tail_lower_v_no_ba":True,
         },
@@ -160,7 +161,7 @@ def tail_lower_v_preview_mesh(render_data):
         return None
     rows=meta.get("tail_lower_v_full_t_mesh")
     if not isinstance(rows,tuple) or not rows:
-        raise GeometryError("TAIL_V90_GUI_PREVIEW_T2_MESH_MISSING")
+        raise GeometryError("V_MITER_LOWER_GUI_PREVIEW_T_MESH_MISSING")
     return rows
 
 
