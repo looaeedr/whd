@@ -59,20 +59,17 @@ def project_tail_illustrated_side_v90_flat(
             or not isinstance(render,PartRenderData)
             or not isinstance(render.scene,DrawingScene)):
         raise GeometryError("TAIL_IMAGE_V90_REAL_FACTORY_TAIL_REQUIRED")
-    if spec.corner_policy is not None or spec.model_name not in ("金庫型", "VAULT"):
-        raise GeometryError("TAIL_IMAGE_V90_VAULT_INTRINSIC_ONLY")
-    required=(
-        ("width",500.0),("depth",150.0),("thickness",2.0),
-        ("frame_width",25.0),("fold_left",15.0),
-        ("fold_right",15.0),("fold_top",16.0),("fold_bottom",48.0),
-    )
+    # All physical sizes are resolved from current source; the former
+    # W500/D150/T2 example is regression evidence, not an allow-list.
     tol=float(PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES.boundary_separation_tolerance)
     if any(
         getattr(spec,key) is None or
-        not math.isclose(float(getattr(spec,key)),target,rel_tol=0,abs_tol=tol)
-        for key,target in required
+        not math.isfinite(float(getattr(spec,key))) or
+        float(getattr(spec,key))<=0.
+        for key in ("width","depth","thickness","frame_width",
+                    "fold_left","fold_right","fold_top","fold_bottom")
     ):
-        raise GeometryError("TAIL_IMAGE_V90_EXAMPLE_DIMENSIONS_MISMATCH")
+        raise GeometryError("V_MITER_LOWER_PHYSICAL_DIMENSIONS_INVALID")
     # Vault includes three legitimate CUTTING circles and one rectangular
     # CUTTING hole. The generic single-contour V trial helper rejects them:
     # never discard these source features just to satisfy a preview helper.
@@ -84,7 +81,7 @@ def project_tail_illustrated_side_v90_flat(
         and abs(Polygon([(q.x,q.y) for q in p.points])
                 .symmetric_difference(factory).area)<=tol
     )
-    if (abs(width-522)>tol or abs(height-233)>tol or len(outer)!=1):
+    if len(outer)!=1:
         # Fail closed with actual Factory and FinalScene observations.
         # A baseline-mapped Vault outline must not be silently replaced
         # with an unrelated guessed rectangle.
@@ -97,8 +94,8 @@ def project_tail_illustrated_side_v90_flat(
             if isinstance(p,PolylinePrimitive) and len(p.points)>=3
         )
         raise GeometryError(
-            "TAIL_IMAGE_V90_FACTORY_SOURCE_DIFFERENT:"
-            f" expected_522x233 actual={width}x{height}"
+            "V_MITER_LOWER_FACTORY_CUTTING_NOT_UNIQUE:"
+            f" actual={width}x{height}"
             f" factory_bounds={factory.bounds} factory_area={factory.area}"
             f" outer_matches={len(outer)} candidates={candidates}"
         )
@@ -129,42 +126,59 @@ def project_tail_illustrated_side_v90_flat(
         original_side=real[6]
         original_start=min(original_side.p1.y,original_side.p2.y)
         original_end=max(original_side.p1.y,original_side.p2.y)
-        if (original_side.layer!="BEND" or
-                abs(original_start-49.0)>tol or
-                abs(original_end-190.0)>tol or
-                abs(original_side.p1.x-original_side.p2.x)>tol or
-                abs(original_side.p1.x-apex[0])>tol or
-                abs(mother.bounds[1])>tol):
-            raise GeometryError("TAIL_IMAGE_V90_SIDE_BEND_SOURCE_CHANGED")
+        if (original_side.layer!="BEND"
+                or abs(original_side.p1.x-original_side.p2.x)>tol
+                or abs(original_side.p1.x-apex[0])>tol
+                or original_start < mother.bounds[1]-tol
+                or original_end > mother.bounds[3]+tol
+                or original_end <= apex[1]+tol):
+            raise GeometryError("V_MITER_LOWER_SIDE_BEND_TOPOLOGY_INVALID")
+        # Extending the user's short side guide is only defensible if its
+        # finite source remains adjacent to this intersection, not an
+        # unrelated crease elsewhere on the sheet.
+        if abs(original_start-apex[1])>max(spec.thickness,tol)*2.:
+            raise GeometryError("V_MITER_LOWER_SIDE_BEND_DISCONNECTED_FROM_ROOT")
         if id(original_side) in side_bend_replacements:
             raise GeometryError("TAIL_IMAGE_V90_SIDE_BEND_NOT_UNIQUE")
-        corrected_side=LinePrimitive(
-            p1=Vec2(original_side.p1.x,
-                    0.0 if original_side.p1.y==original_start else original_side.p1.y),
-            p2=Vec2(original_side.p2.x,
-                    0.0 if original_side.p2.y==original_start else original_side.p2.y),
-            layer=original_side.layer,color=original_side.color,
+        corrected_side=(
+            original_side if abs(original_start-mother.bounds[1])<=tol else
+            LinePrimitive(
+                p1=Vec2(original_side.p1.x,
+                        mother.bounds[1] if original_side.p1.y==original_start else original_side.p1.y),
+                p2=Vec2(original_side.p2.x,
+                        mother.bounds[1] if original_side.p2.y==original_start else original_side.p2.y),
+                layer=original_side.layer,color=original_side.color,
+            )
         )
         side_bend_replacements[id(original_side)]=corrected_side
         side_bend_extensions.append((float(apex[0]),float(original_start),
                                      float(mother.bounds[1]),float(original_end)))
-        side_x=0.0 if key=="bottom_left" else width
-        if (abs(apex[1]-48)>tol or
-                abs(apex[0]-(15 if key=="bottom_left" else width-15))>tol):
-            raise GeometryError("TAIL_IMAGE_V90_REAL_APEX_CHANGED")
+        side_x=mother.bounds[0] if key=="bottom_left" else mother.bounds[2]
+        if (abs(apex[1]-float(spec.fold_bottom))>tol or
+                not mother.bounds[0]+tol < apex[0] < mother.bounds[2]-tol):
+            raise GeometryError("V_MITER_LOWER_BEND_STATION_NOT_AT_CORNER")
         delta=abs(side_x-apex[0])
         low=(side_x,apex[1]-delta)
         high=(side_x,apex[1]+delta)
+        if (low[1]<mother.bounds[1]-tol or high[1]>original_end+tol):
+            raise GeometryError("V_MITER_LOWER_FLANGE_REACH_TOO_SHORT_FOR_V")
         u=(low[0]-apex[0],low[1]-apex[1])
         v=(high[0]-apex[0],high[1]-apex[1])
-        if (abs(u[0]*v[0]+u[1]*v[1])>tol or
-                not math.isclose(delta,15.0,abs_tol=tol)):
+        if abs(u[0]*v[0]+u[1]*v[1])>tol:
             raise GeometryError("TAIL_IMAGE_V90_ANGLE_NOT_90")
         wedge=Polygon((low,apex,high))
         if not wedge.is_valid or wedge.area<=tol or wedge.difference(restored).area>tol:
             raise GeometryError("TAIL_IMAGE_V90_OPENING_OUTSIDE_SOURCE")
         openings.append((key,low,apex,high))
         wedges.append(wedge)
+    # Real CUTTING holes are immutable. A candidate V that runs through an
+    # existing hole has no legal one-sheet source, regardless of its size.
+    from .manufacturing_render_data import material_polygon_from_final_scene
+    original_with_holes=material_polygon_from_final_scene(render.scene)
+    for ring in original_with_holes.interiors:
+        hole=Polygon(ring)
+        if any(w.intersection(hole).area>tol for w in wedges):
+            raise GeometryError("V_MITER_LOWER_CUTTING_CONFLICTS_WITH_ORIGINAL_HOLE")
     corrected=restored.difference(unary_union(wedges))
     if (corrected.geom_type!="Polygon" or corrected.interiors or
             not corrected.is_valid or corrected.is_empty or
