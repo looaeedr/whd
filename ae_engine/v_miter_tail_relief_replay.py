@@ -86,13 +86,13 @@ def _extra_features(original, solved, *, structural_outer, solved_outer):
     def bend_coordinates(primitive):
         if not isinstance(primitive,LinePrimitive):
             return None
-        pairs=tuple(sorted((
+        pairs=(
             (float(primitive.p1.x),float(primitive.p1.y)),
             (float(primitive.p2.x),float(primitive.p2.y)),
-        )))
+        )
         if not all(isfinite(v) for pair in pairs for v in pair):
             raise GeometryError("V_MITER_REPLAY_FINITE_BEND_CHANGED")
-        return (pairs[0][0],pairs[0][1],pairs[1][0],pairs[1][1])
+        return pairs
 
     remaining=list(changed)
     if len(source)!=len(remaining):
@@ -108,7 +108,14 @@ def _extra_features(original, solved, *, structural_outer, solved_outer):
                 break
             if (coords is not None and target is not None
                     and source_bend.color==candidate.color
-                    and all(abs(a-b)<=1e-9 for a,b in zip(coords,target))):
+                    and (
+                        all(abs(a-b)<=1e-9
+                            for p,q in zip(coords,target)
+                            for a,b in zip(p,q))
+                        or all(abs(a-b)<=1e-9
+                               for p,q in zip(coords,reversed(target))
+                               for a,b in zip(p,q))
+                    )):
                 match=i
                 break
         if match is None:
