@@ -22,7 +22,9 @@ from .contracts import EndCapPartSpec
 from .manufacturing_render_data import (
     PartRenderData, fold_guides_from_final_scene,
 )
-from .assembly_geometry_folded_mesh import folded_mesh_from_polygon
+from .assembly_geometry_folded_mesh import (
+    folded_mesh_from_polygon, _profile_map_with_guides,
+)
 from .final_scene_fold_source import fold_ownership_exemptions, scene_fold_boundaries
 from .sheetmetal_drawing import (
     CirclePrimitive, DrawingScene, LinePrimitive, PolylinePrimitive,
@@ -112,6 +114,10 @@ class TailDualVSourceCheck:
     bottom_bend_span_x_mm: tuple
     side_bend_span_y_mm: tuple
     retained_out_of_span_corner_area_mm2: tuple
+    restored_stock_ownership_mm2: tuple
+    # Displacement of two arbitrarily close points on the SAME uncut
+    # material either side of finite bottom BEND endpoint in native 3D.
+    native_bottom_span_boundary_jump_samples_mm: tuple
     corners: tuple[TailDualVFaceResult, TailDualVFaceResult]
     geometry_status: str = "TAIL_DOUBLE_V_CHECK_ONLY_UNVERIFIED"
 
@@ -287,6 +293,70 @@ def project_tail_dual_v_same_source_check(
     )
     if not native_fold_mesh:
         raise GeometryError("V_MITER_TAIL_DUAL_NATIVE_FOLD_MESH_EMPTY")
+
+    # The triangles are only a display tessellation. Independently
+    # verify whether their finite-guide mapping is continuous across
+    # material that has NOT been cut at the end of the bottom BEND.
+    # A jump is a geometric tear in the preview, NOT a V-cut-face gap.
+    sampling_delta = 1e-4
+    scan_heights = (0.10, 0.25, 0.50, 0.75, 0.90)
+    boundary_jumps = []
+    for which, station in (("bottom_left", bottom_start),
+                           ("bottom_right", bottom_end)):
+        records = []
+        for fraction in scan_heights:
+            y = miny + (bottom_y - miny) * fraction
+            before, after = (station - sampling_delta, y), (
+                station + sampling_delta, y,
+            )
+            if not all(corrected.covers(Point(*p)) for p in (before, after)):
+                continue
+            pts3d = []
+            for x, y2 in (before, after):
+                ux, zx = _profile_map_with_guides(
+                    x, y2, x_profile, axis="x", fold_guides=guides,
+                )
+                uy, zy = _profile_map_with_guides(
+                    y2, x, y_profile, axis="y", fold_guides=guides,
+                )
+                pts3d.append((ux, uy, zx + zy))
+            dx = math.dist(pts3d[0], pts3d[1])
+            records.append((float(y), float(dx)))
+        if not records:
+            raise GeometryError(
+                "V_MITER_TAIL_DUAL_NATIVE_BEND_END_CONTINUITY_UNRESOLVED"
+            )
+        boundary_jumps.append((which, tuple(records)))
+
+    # Ownership of the *restored* original corner stock is computed from
+    # the existing fold spans, NOT from the V's visual 2D appearance.
+    # The region outside BOTH side and bottom BEND coverage stays under
+    # WHD's normal 3D no-fold (or other-guide) mapping. Do not count it
+    # as a physical lower return merely because it is below Y=48.
+    added_stock = corrected.difference(original)
+    restored_stock_ownership = []
+    for which, limit in (("bottom_left", bottom_start),
+                          ("bottom_right", bottom_end)):
+        if which == "bottom_left":
+            local = added_stock.intersection(
+                box(minx, miny, limit, maxy)
+            )
+        else:
+            local = added_stock.intersection(
+                box(limit, miny, maxx, maxy)
+            )
+        side_name = "left" if which == "bottom_left" else "right"
+        bottom_owned = float(local.intersection(folded_domains["bottom"]).area)
+        side_owned = float(local.intersection(folded_domains[side_name]).area)
+        not_lower_fold = float(local.area) - bottom_owned - side_owned
+        if min(bottom_owned, side_owned, not_lower_fold) < -_TOL:
+            raise GeometryError(
+                "V_MITER_TAIL_DUAL_RESTORED_STOCK_OWNERSHIP_OVERLAP"
+            )
+        restored_stock_ownership.append((
+            which, float(local.area), side_owned,
+            bottom_owned, max(0.0, not_lower_fold),
+        ))
     if (any(p.geom_type != "Polygon" or p.is_empty or
             not p.is_valid or p.interiors or p.area <= _TOL
             for p in folded_domains.values())
@@ -592,5 +662,7 @@ def project_tail_dual_v_same_source_check(
                 box(bottom_end,miny,maxx,bottom_y)
             ).area),
         ),
+        restored_stock_ownership_mm2=tuple(restored_stock_ownership),
+        native_bottom_span_boundary_jump_samples_mm=tuple(boundary_jumps),
         corners=(reports[0], reports[1]),
     )
