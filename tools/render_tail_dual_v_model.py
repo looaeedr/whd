@@ -177,6 +177,9 @@ def _model_report(check):
             "actual_formed_seam_reach_mm":row.actual_formed_reach_mm,
             "distal_zero_r_vs_rba_shortfall_mm":row.distal_ideal_shortfall_mm,
             "interference_z_range_mm":row.interference_z_range_mm,
+            "actual_formed_joint_axis_xyz":row.actual_joint_axis_xyz,
+            "topology_contact_failure":row.topology_contact_failure,
+            "topological_clearance_lower_bound_mm":row.topological_clearance_lower_bound_mm,
             "true_cut_face_gap_by_z_mm": [
                 {"z":x, "status":status, "gap":gap}
                 for x,status,gap in row.sampled_seam_gap_stations_mm
