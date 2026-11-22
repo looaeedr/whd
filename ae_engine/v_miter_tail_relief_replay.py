@@ -160,4 +160,12 @@ def replay_independent_lower_v_relief(flat, *, original_render, resolved_render)
         result_material=Polygon(combined.exterior),
         inherited_non_v_cutting_features=tuple(extra_cutting),
     )
-    return updated,tuple(extra_cutting)+tuple(extra_marks)
+    # Physical CUTTING removed by a verified EndCap/USER_ADDED solution
+    # is itself a replayed source difference. Do not report zero replayed
+    # relief merely because the cut was an exterior notch rather than an
+    # additional CUTTING hole or MARKING primitive.
+    physical_differences=tuple(
+        item for item in (removed,added)
+        if not item.is_empty and item.area>1e-7
+    )
+    return updated,physical_differences+tuple(extra_cutting)+tuple(extra_marks)
