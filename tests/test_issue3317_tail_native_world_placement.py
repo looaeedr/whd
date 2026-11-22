@@ -48,7 +48,7 @@ def test_native_thick_tail_local_skin_uses_box_body_lower_datum_not_midpoint():
         (-298.,-300.,-250.),abs=1e-9,
     )
     # Local Y is NOT mirrored; original offset is NOT dropped.
-    assert placed[0][0][2] < placed[0][2][2]
+    assert placed[0][0][2] < placed[0][1][2]  # wound face is (a,c,b)
     shifted=api.place_prethickened_endcap_world_skins(
         local,placement="bottom",box_body_world=_BODY_LOWER_DATUM,
         offset=(3.,4.,5.),
