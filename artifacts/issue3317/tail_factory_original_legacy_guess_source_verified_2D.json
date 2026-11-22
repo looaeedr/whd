@@ -1,0 +1,486 @@
+{
+  "3D_or_formed_gap_from_legacy_assumption": "NOT_RUN_NOT_USER_SPEC",
+  "all_original_scene_primitive_count": 7,
+  "current_2d_Factory_original_area_mm2": 135710,
+  "current_factory_cutting_changed": false,
+  "drawing_status": "ORIGINAL_PROVEN_OLD_HYPOTHESIS_REJECTED_NEW_V_UNKNOWN",
+  "factory_original_outline_xy_mm": [
+    [
+      [
+        16,
+        0
+      ],
+      [
+        406,
+        0
+      ],
+      [
+        406,
+        49
+      ],
+      [
+        422,
+        49
+      ],
+      [
+        422,
+        290
+      ],
+      [
+        406,
+        290
+      ],
+      [
+        406,
+        294
+      ],
+      [
+        382,
+        294
+      ],
+      [
+        382,
+        333
+      ],
+      [
+        40,
+        333
+      ],
+      [
+        40,
+        294
+      ],
+      [
+        16,
+        294
+      ],
+      [
+        16,
+        290
+      ],
+      [
+        0,
+        290
+      ],
+      [
+        0,
+        49
+      ],
+      [
+        16,
+        49
+      ],
+      [
+        16,
+        0
+      ]
+    ]
+  ],
+  "historical_symmetric_only_outline_xy_mm": [
+    [
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        33
+      ],
+      [
+        15,
+        48
+      ],
+      [
+        0,
+        63
+      ],
+      [
+        0,
+        290
+      ],
+      [
+        16,
+        290
+      ],
+      [
+        16,
+        294
+      ],
+      [
+        40,
+        294
+      ],
+      [
+        40,
+        333
+      ],
+      [
+        382,
+        333
+      ],
+      [
+        382,
+        294
+      ],
+      [
+        406,
+        294
+      ],
+      [
+        406,
+        290
+      ],
+      [
+        422,
+        290
+      ],
+      [
+        422,
+        63
+      ],
+      [
+        407,
+        48
+      ],
+      [
+        422,
+        33
+      ],
+      [
+        422,
+        0
+      ],
+      [
+        406,
+        0
+      ],
+      [
+        16,
+        0
+      ],
+      [
+        0,
+        0
+      ]
+    ]
+  ],
+  "left_and_right": [
+    {
+      "apex_source": "ACTUAL_X_Y_BEND_STATION_INTERSECTION_NOT_EXTRA_BEND",
+      "candidate_status": "UNCONFIRMED_TWO_ANGLED_RAYS_SOURCE_GEOMETRY_REQUIRED",
+      "confirmed_lower_opening_y_mm": null,
+      "confirmed_new_cutting_polygon": null,
+      "confirmed_retained_and_removed_new_stock": null,
+      "confirmed_two_angled_cut_edges_xy": null,
+      "confirmed_upper_opening_y_mm": null,
+      "corner": "bottom_left",
+      "historical_only_symmetric_V_lower_outer_y_mm": 33,
+      "historical_only_symmetric_V_upper_outer_y_mm": 63,
+      "historical_only_symmetric_removed_area_mm2": 225,
+      "old_hypothesis_added_contours_xy_mm": [
+        [
+          [
+            0,
+            33
+          ],
+          [
+            15,
+            48
+          ],
+          [
+            14,
+            49
+          ],
+          [
+            16,
+            49
+          ],
+          [
+            16,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            33
+          ]
+        ]
+      ],
+      "old_hypothesis_added_vs_original_mm2": 657,
+      "old_hypothesis_removed_contours_xy_mm": [
+        [
+          [
+            0,
+            63
+          ],
+          [
+            14,
+            49
+          ],
+          [
+            0,
+            49
+          ],
+          [
+            0,
+            63
+          ]
+        ]
+      ],
+      "old_hypothesis_removed_vs_original_mm2": 98,
+      "original_factory_removed_relief_area_mm2": 784,
+      "original_factory_removed_relief_outline_xy_mm": [
+        [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            49
+          ],
+          [
+            16,
+            49
+          ],
+          [
+            16,
+            0
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      ],
+      "original_nominal_apex_xy_mm": [
+        15,
+        48
+      ],
+      "real_finite_bottom_BEND_endpoints_xy_mm": [
+        [
+          16,
+          48
+        ],
+        [
+          406,
+          48
+        ]
+      ],
+      "real_finite_side_BEND_endpoints_xy_mm": [
+        [
+          15,
+          49
+        ],
+        [
+          15,
+          290
+        ]
+      ],
+      "same_side_outer_x_mm": 0
+    },
+    {
+      "apex_source": "ACTUAL_X_Y_BEND_STATION_INTERSECTION_NOT_EXTRA_BEND",
+      "candidate_status": "UNCONFIRMED_TWO_ANGLED_RAYS_SOURCE_GEOMETRY_REQUIRED",
+      "confirmed_lower_opening_y_mm": null,
+      "confirmed_new_cutting_polygon": null,
+      "confirmed_retained_and_removed_new_stock": null,
+      "confirmed_two_angled_cut_edges_xy": null,
+      "confirmed_upper_opening_y_mm": null,
+      "corner": "bottom_right",
+      "historical_only_symmetric_V_lower_outer_y_mm": 33,
+      "historical_only_symmetric_V_upper_outer_y_mm": 63,
+      "historical_only_symmetric_removed_area_mm2": 225,
+      "old_hypothesis_added_contours_xy_mm": [
+        [
+          [
+            406,
+            0
+          ],
+          [
+            406,
+            49
+          ],
+          [
+            408,
+            49
+          ],
+          [
+            407,
+            48
+          ],
+          [
+            422,
+            33
+          ],
+          [
+            422,
+            0
+          ],
+          [
+            406,
+            0
+          ]
+        ]
+      ],
+      "old_hypothesis_added_vs_original_mm2": 657,
+      "old_hypothesis_removed_contours_xy_mm": [
+        [
+          [
+            422,
+            63
+          ],
+          [
+            422,
+            49
+          ],
+          [
+            408,
+            49
+          ],
+          [
+            422,
+            63
+          ]
+        ]
+      ],
+      "old_hypothesis_removed_vs_original_mm2": 98,
+      "original_factory_removed_relief_area_mm2": 784,
+      "original_factory_removed_relief_outline_xy_mm": [
+        [
+          [
+            422,
+            0
+          ],
+          [
+            406,
+            0
+          ],
+          [
+            406,
+            49
+          ],
+          [
+            422,
+            49
+          ],
+          [
+            422,
+            0
+          ]
+        ]
+      ],
+      "original_nominal_apex_xy_mm": [
+        407,
+        48
+      ],
+      "real_finite_bottom_BEND_endpoints_xy_mm": [
+        [
+          16,
+          48
+        ],
+        [
+          406,
+          48
+        ]
+      ],
+      "real_finite_side_BEND_endpoints_xy_mm": [
+        [
+          407,
+          49
+        ],
+        [
+          407,
+          290
+        ]
+      ],
+      "same_side_outer_x_mm": 422
+    }
+  ],
+  "manufacturing_DXF": "NOT_ALLOWED",
+  "numerical_source_tolerance_mm": 1e-7,
+  "part_spec": {
+    "corner_policy_type": "FourCornerTypePolicy",
+    "depth": 250,
+    "fold_bottom": 48,
+    "fold_left": 15,
+    "fold_right": 15,
+    "frame_width": 25,
+    "model_name": null,
+    "part": "tail",
+    "thickness": 2,
+    "width": 400
+  },
+  "snapshot_baseline_selection": "自訂",
+  "snapshot_is_individual_user_project": false,
+  "source": "WHD EndCapPartSpec -> Factory/FinalScene -> original CUTTING and BEND",
+  "source_match": "FACTORY_FINALSCENE_ORIGINAL_MATCH",
+  "source_original_BEND_lines_xy_mm": [
+    [
+      "bottom_left",
+      "side",
+      [
+        [
+          15,
+          49
+        ],
+        [
+          15,
+          290
+        ]
+      ]
+    ],
+    [
+      "bottom_left",
+      "bottom",
+      [
+        [
+          16,
+          48
+        ],
+        [
+          406,
+          48
+        ]
+      ]
+    ],
+    [
+      "bottom_right",
+      "side",
+      [
+        [
+          407,
+          49
+        ],
+        [
+          407,
+          290
+        ]
+      ]
+    ],
+    [
+      "bottom_right",
+      "bottom",
+      [
+        [
+          16,
+          48
+        ],
+        [
+          406,
+          48
+        ]
+      ]
+    ]
+  ],
+  "strict_V_contract": {
+    "actual_opening_coordinates": "UNKNOWN_UNRESOLVED",
+    "asymmetric_slopes": "ALLOWED_NOT_AUTOMATICALLY_45_DEGREES",
+    "nominal_apex": "PHYSICAL_X_Y_BEND_STATIONS_INTERSECTION",
+    "outer_opening_side": "LEFT_OUTER_FOR_LEFT_AND_RIGHT_OUTER_FOR_RIGHT",
+    "two_sloping_cut_edges": "REQUIRED_BUT_NOT_YET_RESOLVED"
+  }
+}
