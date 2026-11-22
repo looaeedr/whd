@@ -184,6 +184,8 @@ def _model_report(check):
                 row.contact_gap_floor_at_straight_start_mm,
             "source_geometric_gap_floor_at_straight_end_mm":
                 row.contact_gap_floor_at_straight_end_mm,
+            "any_90deg_asymmetry_best_case_far_gap_floor_mm":
+                row.asymmetry_best_case_far_gap_floor_mm,
             "true_cut_face_gap_by_z_mm": [
                 {"z":x, "status":status, "gap":gap}
                 for x,status,gap in row.sampled_seam_gap_stations_mm

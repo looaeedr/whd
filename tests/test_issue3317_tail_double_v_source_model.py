@@ -68,6 +68,11 @@ def test_tail_real_same_blank_dual_90_v_and_folded_contact():
             assert corner.contact_gap_floor_at_straight_end_mm == pytest.approx(
                 17.0, abs=1e-6
             )
+            # All 90 V ray angle splits still yield a positive far-end
+            # floor: d*h=15², d<=48 => h>=4.6875 mm.
+            assert corner.asymmetry_best_case_far_gap_floor_mm == pytest.approx(
+                6.6875, abs=1e-6
+            )
             start, end = corner.actual_joint_axis_xyz
             assert start[1] == pytest.approx(45.0)
             assert end[1] == pytest.approx(45.0)

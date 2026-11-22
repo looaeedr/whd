@@ -78,6 +78,10 @@ class TailDualVFaceResult:
     topological_clearance_lower_bound_mm: float | None = None
     contact_gap_floor_at_straight_start_mm: float | None = None
     contact_gap_floor_at_straight_end_mm: float | None = None
+    # For ANY asymmetric 90-degree included V whose two legs still exit
+    # this very same side, the best possible distant contact has a
+    # strictly positive lower bound without changing the original BEND.
+    asymmetry_best_case_far_gap_floor_mm: float | None = None
     # An incomplete or touching 3D result is NOT declared physically fitting.
     model_status: str = "MODEL_NOT_VERIFIED"
 
@@ -421,6 +425,28 @@ def project_tail_dual_v_same_source_check(
             return q.first_inner_radius_mm + upper_ray_slope * u
         floor_start = source_contact_gap_floor(straight_start)
         floor_end = source_contact_gap_floor(contact_reach)
+        # A=(outerX, bendY-d), B=(outerX,bendY+h), apex=(bendX,bendY)
+        # are the only two legs of the prescribed 90-degree V. Their
+        # dot product is dx*dx-d*h=0; hence d*h=dx^2. Since the lower
+        # endpoint cannot leave the original 48-mm bottom flange,
+        # d<=bottom_height, so h>=dx^2/bottom_height. Thus even an
+        # arbitrarily ASYMMETRIC 90 V cannot bring the upper side cut
+        # down to the lower bottom-fold contact plane. This certificate
+        # uses source sizes, not guessed miter clearance or a Door trim.
+        if row[5] <= _TOL:
+            raise GeometryError("V_MITER_TAIL_DUAL_NO_BOTTOM_FLANGE_FOR_V")
+        minimum_asymmetric_upper_rise = (
+            side_mouth_horizontal_reach * side_mouth_horizontal_reach
+            / row[5]
+        )
+        u_at_far_end = q.first_bend_allowance_mm + (
+            contact_reach - mid_radius
+        )
+        all_asymmetry_far_gap_floor = (
+            q.first_inner_radius_mm
+            + minimum_asymmetric_upper_rise
+              * u_at_far_end / side_mouth_horizontal_reach
+        )
         physical_no_solution = (
             side_upper_hit.y >= row[0].y - _TOL
             and n_bottom[1] < -1.0 + _TOL
@@ -497,6 +523,10 @@ def project_tail_dual_v_same_source_check(
             ),
             contact_gap_floor_at_straight_end_mm=(
                 floor_end if physical_no_solution else None
+            ),
+            asymmetry_best_case_far_gap_floor_mm=(
+                all_asymmetry_far_gap_floor
+                if physical_no_solution else None
             ),
             model_status=(
                 "MODEL_PASS" if topo_failure is None
