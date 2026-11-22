@@ -106,7 +106,7 @@ def test_actual_whd_main_gui_lower_v_preserves_existing_rect_clearance_roundtrip
         # non-sample V scenario has a physical 48-mm lower fold. Commit that
         # operator setting via the existing GUI Settings transaction, not by
         # mutating the Factory or inventing a test-only contour.
-        designer.stage_setting_update("ybottom1", 48.0)
+        designer.settings_panel._stage_setting_update("ybottom1", 48.0)
         designer.flush_pending_settings()
         root.update_idletasks()
         root.update()
