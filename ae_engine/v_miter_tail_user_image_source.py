@@ -213,3 +213,58 @@ def project_tail_illustrated_side_v90_flat(
         cut_wedges=tuple(wedges),opening_source_points_xy=tuple(openings),
         side_bend_source_extensions=tuple(side_bend_extensions),
     )
+
+
+def project_tail_illustrated_side_v90_staged_check(
+    flat: TailIllustratedSideV90Flat, *, first_axis: str,
+):
+    """Operator-corrected same-sheet 2D -> first/second physical T fold CHECK.
+
+    This is deliberately separate from the older #3405 three-disjoint-
+    domain diagnostic, which used Factory Y=49 side BEND starts and must
+    never be used to approve the operator's Y=0 corrected creases.
+    """
+    from .manufacturing_render_data import fold_guides_from_final_scene
+    from .v_miter_tail_sequential_fold_check import (
+        project_tail_same_sheet_sequential_fold_check,
+    )
+    from .v_miter_trial_defaults import project_v_miter_trial_parameter_defaults
+
+    if (not isinstance(flat,TailIllustratedSideV90Flat)
+            or flat.manufacturing_approved or first_axis not in ("x","y")
+            or len(flat.side_bend_source_extensions)!=2
+            or len(flat.opening_source_points_xy)!=2):
+        raise GeometryError("TAIL_IMAGE_V90_CORRECTED_STAGED_SOURCE_REQUIRED")
+    if not all(
+        abs(old-49.0)<=1e-7 and abs(new)<=1e-7 and abs(end-190.0)<=1e-7
+        for _,old,new,end in flat.side_bend_source_extensions
+    ):
+        raise GeometryError("TAIL_IMAGE_V90_SIDE_BEND_NOT_TO_BOTTOM")
+    guides=fold_guides_from_final_scene(flat.result_scene)
+    for axis,x,lo,hi in (("x",15.0,0.0,190.0),
+                          ("x",507.0,0.0,190.0),
+                          ("y",48.0,16.0,506.0)):
+        if not any(
+            g.axis==axis and abs(g.position-x)<=1e-7
+            and abs(g.span_start-lo)<=1e-7 and abs(g.span_end-hi)<=1e-7
+            for g in guides
+        ):
+            raise GeometryError("TAIL_IMAGE_V90_CORRECTED_FINITE_BEND_MISMATCH")
+    left,right=flat.opening_source_points_xy
+    if left[0]!="bottom_left" or right[0]!="bottom_right":
+        raise GeometryError("TAIL_IMAGE_V90_CORRECTED_CORNER_IDENTITY_MISMATCH")
+    q=project_v_miter_trial_parameter_defaults(
+        thickness_mm=flat.source_spec.thickness,
+        second_fold_angle_deg=90.0,relief_mode="ROUND_R",
+    )
+    return project_tail_same_sheet_sequential_fold_check(
+        flat.original_factory_restored_mother,
+        flat.result_material,
+        left_apex=Vec2(*left[2]),right_apex=Vec2(*right[2]),
+        left_v_hits=(Vec2(*left[1]),Vec2(*left[3])),
+        right_v_hits=(Vec2(*right[1]),Vec2(*right[3])),
+        guides=guides,first_axis=first_axis,
+        thickness_mm=q.thickness_mm,
+        inner_r_mm=q.first_inner_radius_mm,
+        bend_allowance_mm=q.first_bend_allowance_mm,
+    )
