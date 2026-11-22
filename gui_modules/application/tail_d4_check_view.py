@@ -16,10 +16,7 @@ from matplotlib.figure import Figure
 from matplotlib.patches import Circle
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
-from ae_engine.sheetmetal_drawing import (
-    CirclePrimitive, LinePrimitive, PolylinePrimitive,
-)
-from ae_engine.v_miter_tail_no_ba_sequential import stations_from_real_flat
+from ae_engine import manufacturing_api
 
 
 def _cross_section_world_x(triangles, x_center):
@@ -111,16 +108,16 @@ def show_tail_d4_check_window(
     left_ax=figure.add_subplot(grid[1,1],projection="3d")
     right_ax=figure.add_subplot(grid[1,2],projection="3d")
     for primitive in flat.result_scene.primitives:
-        if isinstance(primitive,PolylinePrimitive) and primitive.layer=="CUTTING":
+        if isinstance(primitive,manufacturing_api.TailD4PreviewPolylinePrimitive) and primitive.layer=="CUTTING":
             xy=[(p.x,p.y) for p in primitive.points]
             if primitive.closed:xy.append(xy[0])
             flat_ax.plot([v[0] for v in xy],[v[1] for v in xy],
                          color="#0378aa",linewidth=.9)
-        elif isinstance(primitive,CirclePrimitive) and primitive.layer=="CUTTING":
+        elif isinstance(primitive,manufacturing_api.TailD4PreviewCirclePrimitive) and primitive.layer=="CUTTING":
             flat_ax.add_patch(Circle((primitive.center.x,primitive.center.y),
                              primitive.radius,fill=False,
                              edgecolor="#0378aa",linewidth=1.))
-        elif isinstance(primitive,LinePrimitive) and primitive.layer=="BEND":
+        elif isinstance(primitive,manufacturing_api.TailD4PreviewLinePrimitive) and primitive.layer=="BEND":
             flat_ax.plot((primitive.p1.x,primitive.p2.x),
                          (primitive.p1.y,primitive.p2.y),
                          color="#b7791f",linewidth=.9,linestyle="--")
@@ -147,7 +144,7 @@ def show_tail_d4_check_window(
     # The Y/Z coordinates come directly from the assembled T mesh.
     all_x=[p[0] for tri in placed_world for p in tri]
     center=(min(all_x)+max(all_x))/2
-    st=stations_from_real_flat(flat)
+    st=manufacturing_api.project_operator_tail_d4_source_stations(flat)
     n=len(check.source_uv)
     upper_mesh=tuple(
         tri for face,tri in zip(check.shell_faces,placed_world)

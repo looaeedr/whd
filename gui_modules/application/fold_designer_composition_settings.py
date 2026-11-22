@@ -459,10 +459,6 @@ def show_tail_d4_check(self, namespace):
         )
         from phase6_manufacturing_contracts import manufacturing_request_fingerprint
         from phase6_final_scene_view import AssemblyScenePart
-        from ae_engine.v_miter_tail_d4_delivery import (
-            build_tail_d4_check_from_original,
-        )
-        from ae_engine.v_miter_tail_d4_check_dxf import save_tail_d4_check_dxf
         from gui_modules.application.tail_d4_check_view import (
             show_tail_d4_check_window,
         )
@@ -503,7 +499,7 @@ def show_tail_d4_check(self, namespace):
             if (raw_tail is None or raw_tail.render_data is None
                     or body is None or body.render_data is None):
                 raise ValueError("TAIL_D4_CHECK_GUI_BODY_AND_TAIL_REQUIRED")
-            flat,checks=build_tail_d4_check_from_original(
+            flat,checks=manufacturing_api.build_operator_tail_d4_check_from_original(
                 spec,original_render_data=raw,
                 resolved_render_data=raw_tail.render_data,
             )
@@ -549,7 +545,7 @@ def show_tail_d4_check(self, namespace):
                 raise ValueError(
                     "TAIL_D4_CHECK_GUI_SOURCE_CHANGED_REOPEN_PREVIEW"
                 )
-            return save_tail_d4_check_dxf(
+            return manufacturing_api.save_operator_tail_d4_check_dxf(
                 latest,path,first_axis=axis,overwrite=False,
             )
         return show_tail_d4_check_window(

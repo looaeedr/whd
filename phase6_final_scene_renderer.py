@@ -203,6 +203,8 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                     )
                 diagnostic_relief_delta = None
                 physical_piece_world = ()
+                # Multipart BoxBody never owns a Tail pre-thick preview.
+                preview_t2 = None
                 if getattr(part_data, "pieces", None):
                     piece_meshes = _phase6_box_body_structure_meshes(part_data, thickness=request.thickness)
                     physical_piece_world = _phase6_box_body_true_world_piece_meshes(

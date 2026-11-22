@@ -3208,3 +3208,23 @@ from .receiving_nfb_ui1a import (
     effective_nfb_slot_brand as project_receiving_nfb_draft_slot_brand,
     nfb_ui1a_preview as preview_receiving_nfb_draft,
 )
+
+
+# #3317: public read-only native Tail Ø4 CHECK projection.  The Engine owns
+# source verification, thickness, finite BEND and independent DXF reopen;
+# GUI consumers may only paint typed primitives and inspect stations.
+# No manufacturing export, CornerType promotion or CNC permission is implied.
+from .sheetmetal_drawing import (
+    CirclePrimitive as TailD4PreviewCirclePrimitive,
+    LinePrimitive as TailD4PreviewLinePrimitive,
+    PolylinePrimitive as TailD4PreviewPolylinePrimitive,
+)
+from .v_miter_tail_no_ba_sequential import (
+    stations_from_real_flat as project_operator_tail_d4_source_stations,
+)
+from .v_miter_tail_d4_delivery import (
+    build_tail_d4_check_from_original as build_operator_tail_d4_check_from_original,
+)
+from .v_miter_tail_d4_check_dxf import (
+    save_tail_d4_check_dxf as save_operator_tail_d4_check_dxf,
+)
