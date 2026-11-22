@@ -449,9 +449,9 @@ def show_tail_d4_check(self, namespace):
     """
     app=self.app
     try:
-        scheduler=getattr(app,"_phase6_update_scheduler",None)
-        if scheduler is not None:
-            scheduler.flush_now()
+        # A CHECK view is a read-only projection of committed native sources.
+        # Flushing the live scheduler here applies manufacturing snapshot
+        # patches (including assembly_relief) merely by opening a window.
         from phase6_manufacturing_adapter import (
             build_scene_payload_for_app,
             build_manufacturing_request,
@@ -537,8 +537,7 @@ def show_tail_d4_check(self, namespace):
             local,placement="bottom",box_body_world=body_world,
         )
         def save_view_dxf(path):
-            if scheduler is not None:
-                scheduler.flush_now()
+            # Rebuild from current source without committing GUI update intents.
             latest,_checks,now_axis,_body=source()
             if (latest.result_scene.primitives!=flat.result_scene.primitives
                     or now_axis!=axis):
