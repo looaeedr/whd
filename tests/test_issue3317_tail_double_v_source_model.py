@@ -58,6 +58,20 @@ def test_tail_real_same_blank_dual_90_v_and_folded_contact():
         assert check.native_original_fold_path_mesh
         assert check.retained_out_of_span_corner_area_mm2[0] > 0
         assert check.retained_out_of_span_corner_area_mm2[1] > 0
+        assert len(check.out_of_bottom_span_corner_contours_xy) == 2
+        assert len(check.restored_stock_ownership_mm2) == 2
+        for side,total,side_fold,bottom_fold,neither in check.restored_stock_ownership_mm2:
+            assert side in ("bottom_left","bottom_right")
+            assert total > 0
+            assert bottom_fold == pytest.approx(0,abs=1e-7), (
+                "Restored corner stock outside original bottom BEND cannot be folded by it"
+            )
+            assert total == pytest.approx(side_fold+bottom_fold+neither,abs=1e-7)
+        assert len(check.native_bottom_span_boundary_jump_samples_mm) == 2
+        for side,samples in check.native_bottom_span_boundary_jump_samples_mm:
+            assert side in ("bottom_left","bottom_right")
+            assert len(samples) >= 3
+            assert all(0 < y < 48 and gap >= 0 for y,gap in samples)
         assert all(
             row.topology_contact_failure is None
             and row.topological_clearance_lower_bound_mm is None
@@ -98,6 +112,9 @@ def test_tail_real_same_blank_dual_90_v_and_folded_contact():
             "side_real_BEND_span_y_mm":check.side_bend_span_y_mm,
             "retained_corner_stock_outside_bottom_BEND_area_mm2":
                 check.retained_out_of_span_corner_area_mm2,
+            "restored_corner_ownership_mm2":check.restored_stock_ownership_mm2,
+            "native_finite_BEND_endpoint_3D_jump_mm":
+                check.native_bottom_span_boundary_jump_samples_mm,
             "native_original_3D_triangle_count":
                 len(check.native_original_fold_path_mesh),
             "corners": [],
