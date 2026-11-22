@@ -61,6 +61,10 @@ from .v_miter_tail_sequential_fold_check import (
 from .v_miter_tail_alternative_mating_check import (
     project_tail_existing_bottom_broad_face_candidate,
 )
+from .v_miter_tail_user_image_source import (
+    TailIllustratedSideV90Flat,
+    project_tail_illustrated_side_v90_flat,
+)
 
 
 _TOL = 1e-6
@@ -269,6 +273,7 @@ class TailDualVSourceCheck:
 def project_tail_dual_v_same_source_check(
     spec: EndCapPartSpec, render: PartRenderData, *,
     first_bend_axes: Mapping[str, str] | None = None,
+    illustrated_v90_source: TailIllustratedSideV90Flat | None = None,
 ) -> TailDualVSourceCheck:
     """Construct a two-90-degree V CHECK with both openings on side edges.
 
@@ -290,15 +295,26 @@ def project_tail_dual_v_same_source_check(
             or any(type(v) is not str or v not in ("x","y")
                    for v in first_bend_axes.values())):
         raise GeometryError("V_MITER_TAIL_OPERATOR_FIRST_PHYSICAL_BEND_REQUIRED")
-    # #3317 user rejected this branch's unapproved symmetric +/-45deg V.
-    # Do not measure its 3D seam or accidentally treat Y=33/63 as an
-    # operator spec. Historical output is reviewable ONLY in the new
-    # authoritative 2D factory/legacy audit, without any fabricated new V.
-    # Keep the old implementation below for traceability, but fail closed.
-    raise GeometryError(
-        "V_MITER_TAIL_OLD_SYMMETRIC_45_DEG_NOT_USER_CONFIRMED_"
-        "FIRST_REVIEW_REAL_FACTORY_CUTTING_BEND_2D"
-    )
+    # The previous unconfirmed candidate is still rejected by default.
+    # The user has NOW supplied a corrected illustrated, symmetrical 90°
+    # side V for this exact Vault example. Only the source-checked,
+    # exactly matching physical image candidate can reopen this 3D trial.
+    # Flat confirmation is NOT a folded-contact certification.
+    if illustrated_v90_source is None:
+        raise GeometryError(
+            "V_MITER_TAIL_OLD_SYMMETRIC_45_DEG_NOT_USER_CONFIRMED_"
+            "EXPLICIT_ILLUSTRATED_2D_SOURCE_REQUIRED"
+        )
+    if (not isinstance(illustrated_v90_source,TailIllustratedSideV90Flat)
+            or illustrated_v90_source.source_spec!=spec
+            or illustrated_v90_source.original_scene!=render.scene
+            or illustrated_v90_source.manufacturing_approved):
+        raise GeometryError("V_MITER_TAIL_ILLUSTRATED_2D_SOURCE_MISMATCH")
+    authenticated=project_tail_illustrated_side_v90_flat(spec,render)
+    if (illustrated_v90_source.result_material.symmetric_difference(
+            authenticated.result_material
+        ).area > _TOL):
+        raise GeometryError("V_MITER_TAIL_ILLUSTRATION_NOT_MATCHING_CUTTING")
     from .v_miter_operator_gui_check import _endcap_existing_fold_angle_sources
     original = _single_source_material(render.scene)
     factory, width, height, original_bends = _factory_original_shape(spec)
@@ -361,6 +377,10 @@ def project_tail_dual_v_same_source_check(
     corrected = restored.difference(unary_union((
         corner_data["bottom_left"][3], corner_data["bottom_right"][3],
     )))
+    if corrected.symmetric_difference(
+        illustrated_v90_source.result_material
+    ).area > _TOL:
+        raise GeometryError("V_MITER_TAIL_MAPPED_V_NOT_USER_ILLUSTRATION")
     if (corrected.geom_type != "Polygon" or corrected.is_empty
             or not corrected.is_valid or corrected.interiors
             or corrected.difference(restored).area > _TOL
