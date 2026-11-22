@@ -419,6 +419,91 @@ def test_actual_whd_main_gui_lower_v_preserves_existing_rect_clearance_roundtrip
             )
             with pytest.raises(ValueError, match="禁止加工|尚未核准"):
                 api.reject_tail_lower_v_preview_for_dxf(restored_v)
+            with pytest.raises(ValueError, match="禁止加工|尚未核准"):
+                api.save_part_render_data_dxf(
+                    restored_v, tmp_path / "active-v-forbidden.dxf",
+                )
+            assert not (tmp_path / "active-v-forbidden.dxf").exists()
+
+            # Exercise the REAL baseline-model Tk menu, not a rewritten
+            # snapshot or a mocked provider. The old Vault V/X-X is dormant
+            # in the Receiving family even though canonical Tail stays active.
+            family_menu = reopened.baseline_model_combo._phase6_menu
+            def choose_family(name):
+                index = next(
+                    i for i in range(family_menu.index("end") + 1)
+                    if name in str(family_menu.entrycget(i, "label"))
+                )
+                family_menu.invoke(index)
+                root.update_idletasks()
+                root.update()
+
+            choose_family("受電箱")
+            assert reopened.baseline_model_var.get() == "受電箱"
+            assert "tail" in reopened.designer_workspace.available_parts
+            receiving = reopened._phase6_resolve_manufacturing_geometry()
+            assert {"box_body", "head", "tail"}.issubset(
+                {part.part_key for part in receiving.parts}
+            )
+            receiving_tail = receiving.part("tail").render_data
+            assert not (receiving_tail.metadata or {}).get(
+                "tail_lower_v_preview_only", False
+            )
+            assert api.tail_lower_v_preview_mesh(receiving_tail) is None
+            assert reopened._phase6_input_snapshot[
+                api.TAIL_LOWER_V_SNAPSHOT_KEY
+            ] == "v90"
+            assert reopened._phase6_input_snapshot[
+                api.TAIL_LOWER_V_FIRST_BENDS_KEY
+            ] == saved_first
+            receiving_dxf = tmp_path / "receiving-tail-with-dormant-v.dxf"
+            api.save_part_render_data_dxf(
+                receiving_tail, receiving_dxf, verify_reopen=True,
+            )
+            assert receiving_dxf.is_file()
+            main.project_save_as_button.invoke()
+            receiving_saved = read_project(destination)["snapshot"]
+            assert receiving_saved[api.TAIL_LOWER_V_SNAPSHOT_KEY] == "v90"
+            assert receiving_saved[api.TAIL_LOWER_V_FIRST_BENDS_KEY] == saved_first
+            main.project_open_button.invoke()
+            root.update_idletasks()
+            root.update()
+            reopened = main.fold_designer_app or main.open_original_fold_designer()
+            assert reopened.baseline_model_var.get() == "受電箱"
+            reloaded_receiving = reopened._phase6_resolve_manufacturing_geometry()
+            assert reloaded_receiving.part("tail").render_data.metadata.get(
+                "tail_lower_v_preview_only"
+            ) is not True
+            assert reopened._phase6_input_snapshot[
+                api.TAIL_LOWER_V_FIRST_BENDS_KEY
+            ] == saved_first
+
+            # Reenter Vault through the same native selector. Original
+            # source/first-bend guards must still run; no synthetic fallback.
+            family_menu = reopened.baseline_model_combo._phase6_menu
+            choose_family("金庫型")
+            assert reopened.baseline_model_var.get() == "金庫型"
+            try:
+                returned_v = _real_resolved_tail(reopened)
+            except (ValueError, TypeError) as exc:
+                assert any(word in str(exc) for word in (
+                    "SOURCE", "BEND", "CUTTING", "FACTORY", "輪廓",
+                ))
+                # The changed physical source must refuse rather than
+                # silently discarding the saved V or X/X operator choice.
+                assert reopened._phase6_input_snapshot[
+                    api.TAIL_LOWER_V_SNAPSHOT_KEY
+                ] == "v90"
+                assert reopened._phase6_input_snapshot[
+                    api.TAIL_LOWER_V_FIRST_BENDS_KEY
+                ] == saved_first
+                return
+            assert returned_v.metadata["tail_lower_v_preview_only"] is True
+            with pytest.raises(ValueError, match="禁止加工|尚未核准"):
+                api.save_part_render_data_dxf(
+                    returned_v, tmp_path / "returned-v-forbidden.dxf",
+                )
+            chooser2, selected2 = _real_tail_selector(reopened)
 
         chooser2._phase6_menu.invoke(0)
         root.update_idletasks()
