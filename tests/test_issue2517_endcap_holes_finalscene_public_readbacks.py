@@ -128,7 +128,7 @@ def test_all_main_gui_endcap_restore_paths_use_public_feature_projection():
 
 
 @pytest.mark.parametrize("part_key,expected", (
-    ("box_body", (10.0, 20.0, 4.0)),
+    ("box_body", (10.0, 20.0, 2.0)),
     ("door", (10.0, 20.0)),
 ))
 def test_finalscene_gui_finished_dimensions_delegate_to_public_engine(

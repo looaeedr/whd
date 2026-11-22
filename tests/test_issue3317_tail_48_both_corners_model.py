@@ -180,6 +180,35 @@ def test_existing_tail_48_both_lower_corners_folded_3d_gap_and_penetration(axis,
                     "issues": ["求解異常：" + type(exc).__name__ + ": " + str(exc)],
                 })
             else:
+                curved = live.factory_radius_ba_check
+                if curved is not None:
+                    # The far-end 1.178318mm is NOT the root ROUND_R relief.
+                    # Its exact source is the flat 15mm reach minus the
+                    # actual 90deg RBA mid-surface formed reach.
+                    expected_reach = min(
+                        live.ideal.formed_contact_length_mm,
+                        live.first_flange_height_mm
+                        - curved.first_bend_allowance_mm
+                        + curved.first_inner_radius_mm + spec.thickness / 2,
+                        live.second_flange_height_mm
+                        - curved.second_bend_allowance_mm
+                        + curved.second_inner_radius_mm + spec.thickness / 2,
+                    )
+                    assert curved.physical_formed_seam_reach_mm == pytest.approx(
+                        expected_reach, abs=1e-7,
+                    )
+                    assert curved.distal_ideal_seam_shortfall_mm == pytest.approx(
+                        live.ideal.formed_contact_length_mm - expected_reach,
+                        abs=1e-7,
+                    )
+                    assert curved.distal_ideal_seam_shortfall_mm == pytest.approx(
+                        1.178318229274425, abs=1e-6,
+                    )
+                    if curved.source_cut_face_continuity is not None:
+                        assert (
+                            curved.source_cut_face_continuity.seam_length_mm
+                            == pytest.approx(expected_reach, abs=1e-7)
+                        )
                 details.append(_diagnose(
                     live, corner=corner, axis=axis, spec=spec, render=render,
                 ))
