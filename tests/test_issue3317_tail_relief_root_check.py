@@ -247,3 +247,46 @@ def test_d4_true_cutting_crease_crossing_source_keyed_t_skins_are_not_inferred()
         "uncertified_one_sided_outer_offsets": t_offset_discontinuities,
         "status": "T_CREASE_CONNECTOR_NOT_PROVEN_NO_MESH_CLAIM",
     })
+
+
+@pytest.mark.parametrize("first_axis", ("x", "y"))
+def test_d4_source_keyed_real_arc_full_t_shell_and_original_holes(first_axis):
+    """The real Ø4 arc, retained straight V legs and five original holes.
+
+    A CHECK mesh is returned ONLY after all source-edge incidence and local
+    non-neighbor true-T tests pass. No apex cap, artificial BEND or BA/R.
+    """
+    from ae_engine.v_miter_tail_d4_check import (
+        project_tail_d4_source_keyed_t_check,
+    )
+    flat = _real_factory_with_fifth_original_cutting()
+    old = tuple(flat.result_scene.primitives)
+    outer = next(p for p in old if getattr(p,"semantic_id",None)=="OUTER_BOUNDARY")
+    removed = tuple(
+        Polygon((lower,apex,upper)).union(
+            Point(*apex).buffer(2.,resolution=48),
+        )
+        for _,lower,apex,upper in flat.opening_source_points_xy
+    )
+    stock = flat.original_factory_restored_mother.difference(
+        unary_union(removed)
+    )
+    assert stock.is_valid and stock.geom_type=="Polygon"
+    updated = PolylinePrimitive(
+        points=tuple(Vec2(float(x),float(y))
+                     for x,y in stock.exterior.coords[:-1]),
+        layer="CUTTING",closed=True,semantic_id="OUTER_BOUNDARY",
+    )
+    scene = DrawingScene(tuple(updated if item is outer else item for item in old))
+    assert all(a is b for a,b in zip(old,scene.primitives) if a is not outer)
+    check = project_tail_d4_source_keyed_t_check(
+        replace(flat,result_scene=scene,result_material=stock),
+        first_axis=first_axis,
+    )
+    assert check.manufacturing_approved is False
+    assert check.source_hole_count == 5
+    assert all(count > 0 for _,count in check.arc_wall_edges_by_corner)
+    assert all(count > 0 for _,count in check.surviving_v_wall_edges_by_corner)
+    assert not check.bad_incidence_edges and not check.bad_winding_edges
+    assert len(check.shell_faces) > len(check.source_triangle_faces)*2
+    assert len(check.local_interference_by_corner) == 2
