@@ -254,6 +254,31 @@ def build_part_scene(
                 baseline is not None and abs(float(resolved.depth_comp_t) - 3.0) <= 1e-9
             )
             if used_stretched_baseline:
+                # #3317: this baseline override is only for a deliberately
+                # changed Vault Tail lower Fold. The shared stretched EndCap
+                # builder must continue using its existing source folds for
+                # Vault Head, untouched Tail and Receiving EndCap. Do not
+                # forward all four resolved folds across that boundary.
+                authored_tail_lower_fold = (
+                    bool(resolved.is_tail)
+                    and cabinet_family_policy.canonical_family_name(
+                        resolved.model_name
+                    ) == "金庫型"
+                    and (
+                        spec.fold_bottom is not None
+                        or any(
+                            row.phase6_key == "ybottom1"
+                            for row in tuple(spec.fold_profile_y or ())
+                        )
+                    )
+                    and abs(
+                        float(resolved.fold_bottom) - float(ae.ybottom1_def)
+                    ) > 1e-9
+                )
+                tail_lower_override = (
+                    {"target_fold_bottom": resolved.fold_bottom}
+                    if authored_tail_lower_fold else {}
+                )
                 data = _call(
                     ae._build_stretched_end_cap_scene,
                     resolved.model_name, resolved.width, resolved.height or resolved.depth, resolved.depth,
@@ -263,10 +288,7 @@ def build_part_scene(
                     box_body_formed_fw_right=resolved.box_body_formed_fw_right,
                     draw_stock=ctx.draw_stock, is_tail=resolved.is_tail, holes=common["holes"],
                     corner_policy=resolved.corner_policy,
-                    target_fold_left=resolved.fold_left,
-                    target_fold_right=resolved.fold_right,
-                    target_fold_top=resolved.fold_top,
-                    target_fold_bottom=resolved.fold_bottom,
+                    **tail_lower_override,
                 )
                 scene = data.scene
             elif resolved.corner_policy is not None:
