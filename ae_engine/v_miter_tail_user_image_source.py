@@ -173,12 +173,23 @@ def project_tail_illustrated_side_v90_flat(
         wedges.append(wedge)
     # Real CUTTING holes are immutable. A candidate V that runs through an
     # existing hole has no legal one-sheet source, regardless of its size.
-    from .manufacturing_render_data import material_polygon_from_final_scene
-    original_with_holes=material_polygon_from_final_scene(render.scene)
-    for ring in original_with_holes.interiors:
-        hole=Polygon(ring)
-        if any(w.intersection(hole).area>tol for w in wedges):
-            raise GeometryError("V_MITER_LOWER_CUTTING_CONFLICTS_WITH_ORIGINAL_HOLE")
+    # Test ALL original CUTTING hole entities, not merely holes currently
+    # visible in the old Factory polygon. The old corner may mask a real
+    # already-authored hole which reappears when the V restores the mother.
+    from .sheetmetal_drawing import CirclePrimitive
+    physical_holes=[]
+    for part in render.scene.primitives:
+        if isinstance(part,CirclePrimitive) and part.layer=="CUTTING":
+            physical_holes.append(
+                Point(part.center.x,part.center.y).buffer(part.radius,64)
+            )
+        elif (isinstance(part,PolylinePrimitive) and part.layer=="CUTTING"
+              and part.closed and part is not outer[0]):
+            physical_holes.append(Polygon((p.x,p.y) for p in part.points))
+    if any(not hole.is_valid or hole.area<=tol for hole in physical_holes):
+        raise GeometryError("V_MITER_LOWER_ORIGINAL_HOLE_CUTTING_INVALID")
+    if any(w.distance(hole)<=tol for hole in physical_holes for w in wedges):
+        raise GeometryError("V_MITER_LOWER_CUTTING_CONFLICTS_WITH_ORIGINAL_HOLE")
     corrected=restored.difference(unary_union(wedges))
     if (corrected.geom_type!="Polygon" or corrected.interiors or
             not corrected.is_valid or corrected.is_empty or
