@@ -728,3 +728,37 @@ def test_d4_delivery_fixture_hole_remains_only_negative_guard():
     flat,_=build_tail_d4_check_from_original(
         spec,original_render_data=render)
     assert any(p is legitimate for p in flat.result_scene.primitives)
+
+
+def test_d4_one_time_real_factory_dxf_and_svg_capture_for_issue3317(
+    record_property,tmp_path,
+):
+    """One-time real Factory CHECK payload in standard shard JUnit artifact.
+
+    NO test fixture, no new general CI step and no manufacturing export.
+    This temporary extraction witness is removed after independent delivery.
+    """
+    import base64
+    from io import BytesIO
+    from zipfile import ZipFile, ZIP_DEFLATED
+    from ae_engine.v_miter_tail_d4_delivery import deliver_tail_d4_check_only
+    from ae_engine.v_miter_tail_d4_check import (
+        save_tail_d4_check_mesh_and_local_svg,
+    )
+    files,flat,checks=deliver_tail_d4_check_only(tmp_path)
+    all_paths=list(files)
+    for axis in ("x","y"):
+        _obj,svg=save_tail_d4_check_mesh_and_local_svg(
+            checks[axis],flat,tmp_path,
+        )
+        all_paths.append(svg)
+    payload=BytesIO()
+    with ZipFile(payload,"w",compression=ZIP_DEFLATED,compresslevel=9) as z:
+        for p in all_paths:
+            z.write(p,arcname=p.name)
+    # record_property is part of pytest's EXISTING JUnit output;
+    # no project CI workflow or test fixture is used to build the files.
+    record_property("ISSUE3317_FACTORY_NO_FIXTURE_CHECK_ZIP_B64",
+                    base64.b64encode(payload.getvalue()).decode("ascii"))
+    assert len(tuple(p for p in flat.result_scene.primitives
+                     if p.layer=="CUTTING"))==5  # outer + FOUR real features
