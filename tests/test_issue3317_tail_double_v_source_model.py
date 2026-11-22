@@ -113,6 +113,11 @@ def test_tail_real_same_blank_dual_90_v_and_folded_contact():
                 "NO_DETECTED_NATIVE_SPAN_DISCONTINUITY"
             )
             assert corner.model_status != "MODEL_PASS"
+            assert len(corner.inverse_straight_contact_flat_trace_mm) == 4
+            assert corner.inverse_source_fit_status in (
+                "INVERSE_SOURCE_RAYS_NOT_COMPATIBLE",
+                "INVERSE_SOURCE_RAYS_COMPATIBLE",
+            )
         evidence = {
             "original_flange_mm":[check.side_flange_left_mm,
                                   check.side_flange_right_mm,
@@ -165,6 +170,11 @@ def test_tail_real_same_blank_dual_90_v_and_folded_contact():
                 "source_gap_floor_at_straight_end_mm":
                     row.contact_gap_floor_at_straight_end_mm,
                 "sampled_true_face_gap_stations_mm":row.sampled_seam_gap_stations_mm,
+                "inverse_straight_contact_flat_trace_mm":
+                    row.inverse_straight_contact_flat_trace_mm,
+                "inverse_unconstrained_outer_hits_mm":
+                    row.inverse_unconstrained_outer_hits_mm,
+                "inverse_source_fit_status":row.inverse_source_fit_status,
                 "seam_span_mm":continuity.seam_length_mm if continuity else None,
                 "gap_max_sample_mm":continuity.max_sampled_cut_face_gap_mm if continuity else None,
                 "gap_upper_bound_mm":continuity.max_gap_upper_bound_mm if continuity else None,
