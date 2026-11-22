@@ -108,6 +108,7 @@ def test_actual_whd_main_gui_lower_v_preserves_existing_rect_clearance_roundtrip
         # Engine's own display projection for the corresponding material.
         # A generic Settings-only ybottom1 update would leave the existing
         # physical Y Fold Profile at 15 mm and create a false source mismatch.
+        designer.activate_part("tail")
         editor = designer.bend_ui
         editor.nb.select(editor.tabs.index("Y"))
         root.update_idletasks()
