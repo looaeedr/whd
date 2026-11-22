@@ -183,5 +183,5 @@ def test_d4_same_factory_source_is_one_2d_and_3d_preview_not_manufacturing(first
     assert len(api.tail_lower_v_preview_mesh(preview))==len(
         checks[first_axis].shell_faces
     )
-    with pytest.raises(ValueError,match="禁止加工 DXF"):
+    with pytest.raises(ValueError,match="尚未核准加工 DXF"):
         api.reject_tail_lower_v_preview_for_dxf(preview)
