@@ -2595,6 +2595,7 @@ from .receiving_settings_assembly_mesh import (
     resolve_box_body_true_world_piece_meshes,
     AssembledEndcapWorldSkins,
     resolve_assembled_endcap_world_skins,
+    place_prethickened_endcap_world_skins,
 )
 
 # #2517: physical material/outside/BEND dimension evidence for FinalScene UI.
