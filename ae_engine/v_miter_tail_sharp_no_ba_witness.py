@@ -64,16 +64,17 @@ def project_tail_sharp_no_ba_v_witness(flat) -> TailSharpNoBAWitness:
     if not isinstance(flat,TailIllustratedSideV90Flat) or flat.manufacturing_approved:
         raise GeometryError("TAIL_SHARP_NO_BA_VERIFIED_SOURCE_REQUIRED")
     spec=flat.source_spec
-    if (spec.model_name not in ("金庫型","VAULT") or not spec.is_tail
-            or abs(float(spec.thickness)-2)>1e-8
-            or tuple(map(float,flat.result_material.bounds))!=(0.,0.,522.,233.)
+    from .v_miter_tail_no_ba_sequential import stations_from_real_flat
+    st=stations_from_real_flat(flat)
+    if (not math.isfinite(spec.thickness) or spec.thickness<=0
             or len(flat.opening_source_points_xy)!=2
             or len(flat.side_bend_source_extensions)!=2):
-        raise GeometryError("TAIL_SHARP_NO_BA_522x233_T2_SOURCE_REQUIRED")
+        raise GeometryError("V_MITER_LOWER_ONE_SHEET_T_SOURCE_REQUIRED")
     guides=fold_guides_from_final_scene(flat.result_scene)
-    for axis,station,start,end in (("x",15.,0.,190.),
-                                    ("x",507.,0.,190.),
-                                    ("y",48.,16.,506.)):
+    for axis,station,start,end in (
+            ("x",st.left_x,st.ymin,st.left_side_end),
+            ("x",st.right_x,st.ymin,st.right_side_end),
+            ("y",st.bottom_y,st.bottom_guide_start,st.bottom_guide_end)):
         if sum(
             g.axis==axis and abs(g.position-station)<1e-7
             and abs(g.span_start-start)<1e-7
@@ -98,8 +99,9 @@ def project_tail_sharp_no_ba_v_witness(flat) -> TailSharpNoBAWitness:
     )
     xb,xf=_profile_geometry(p["X"])
     yb,yf=_profile_geometry(p["Y"])
-    if abs(xb[-1]-522.)>1e-7 or abs(yb[-1]-233.)>1e-7:
-        raise GeometryError("TAIL_SHARP_NO_BA_SOURCE_PROFILE_SIZE_DRIFT")
+    if (abs(xb[0]-st.xmin)>1e-7 or abs(xb[-1]-st.xmax)>1e-7
+            or abs(yb[0]-st.ymin)>1e-7 or abs(yb[-1]-st.ymax)>1e-7):
+        raise GeometryError("V_MITER_LOWER_FOLD_PROFILE_SOURCE_SIZE_MISMATCH")
     map_x=_prepare_profile_mapper(
         p["X"],axis="x",fold_guides=guides,geometry=(xb,xf),
     )
@@ -116,13 +118,14 @@ def project_tail_sharp_no_ba_v_witness(flat) -> TailSharpNoBAWitness:
         return result
     corners=[]
     for name,lower,apex,upper in flat.opening_source_points_xy:
-        target_x=15. if name=="bottom_left" else 507.
-        outer_x=0. if name=="bottom_left" else 522.
+        target_x=st.left_x if name=="bottom_left" else st.right_x
+        outer_x=st.xmin if name=="bottom_left" else st.xmax
+        delta=abs(outer_x-target_x)
         if (name not in ("bottom_left","bottom_right")
-                or tuple(apex)!=(target_x,48.)
-                or tuple(lower)!=(outer_x,33.)
-                or tuple(upper)!=(outer_x,63.)):
-            raise GeometryError("TAIL_SHARP_NO_BA_ORIGINAL_V_EDGES_CHANGED")
+                or math.dist(apex,(target_x,st.bottom_y))>1e-7
+                or math.dist(lower,(outer_x,st.bottom_y-delta))>1e-7
+                or math.dist(upper,(outer_x,st.bottom_y+delta))>1e-7):
+            raise GeometryError("V_MITER_LOWER_ACTUAL_CUT_EDGE_OR_BEND_TOPOLOGY_CHANGED")
         if any(
             LineString((apex,p)).difference(flat.result_material.boundary.buffer(1e-7)).length>1e-7
             for p in (lower,upper)
@@ -133,11 +136,13 @@ def project_tail_sharp_no_ba_v_witness(flat) -> TailSharpNoBAWitness:
         base=whd_mid_xy_to_xyz(apex)
         def anchored(uv):
             candidate=whd_mid_xy_to_xyz(uv)
-            return tuple(float(candidate[i]-base[i]+(target_x,48.,0.)[i])
+            return tuple(float(candidate[i]-base[i]+(target_x,st.bottom_y,0.)[i])
                          for i in range(3))
         current_a=anchored(a)
         current_b=anchored(b)
-        user_target=(target_x,55.5,7.5)
+        # Geometric sharp-fold mating oracle from THIS corner flange reach,
+        # not from any specimen's image coordinates.
+        user_target=(target_x,st.bottom_y+delta/2.,delta/2.)
         corners.append(TailSharpNoBAVCorner(
             corner=name,upper_source_mid_xy=a,lower_source_mid_xy=b,
             apex_source_xy=tuple(apex),
@@ -150,7 +155,7 @@ def project_tail_sharp_no_ba_v_witness(flat) -> TailSharpNoBAWitness:
         ))
     return TailSharpNoBAWitness(
         corners=tuple(corners),
-        source_blank_mm=(522.,233.),
+        source_blank_mm=(st.xmax-st.xmin,st.ymax-st.ymin),
         nominal_outside_mm=nominal,
         physical_sheet_thickness_mm=float(spec.thickness),
     )
