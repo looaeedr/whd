@@ -95,25 +95,35 @@ def project_tail_v90_full_t_no_ba(flat, *, first_axis: str):
     from .v_miter_tail_user_image_source import TailIllustratedSideV90Flat
     from .endcap_factory_fold import build_endcap_xy_fold_profiles
     from .assembly_geometry_folded_mesh import _profile_geometry, _profile_map
+    from .v_miter_tail_no_ba_sequential import stations_from_real_flat
+
+    st=stations_from_real_flat(flat)
 
     if (not isinstance(flat,TailIllustratedSideV90Flat)
             or first_axis not in ("x","y") or flat.manufacturing_approved):
         raise GeometryError("TAIL_V90_T2_FULL_CORRECTED_FACTORY_REQUIRED")
     qualified=project_tail_sharp_no_ba_v_witness(flat)
     thickness=float(qualified.physical_sheet_thickness_mm)
-    if abs(thickness-2.)>_EPS:
-        raise GeometryError("TAIL_V90_T2_FULL_THICKNESS_DRIFT")
+    if thickness<=0. or not math.isfinite(thickness):
+        raise GeometryError("V_MITER_LOWER_PHYSICAL_T_REQUIRED")
     stock=material_polygon_from_final_scene(flat.result_scene)
+    from .manufacturing_render_data import material_polygon_from_final_scene
+    original_stock=material_polygon_from_final_scene(flat.original_scene)
     if (stock.geom_type!="Polygon" or not stock.is_valid or stock.is_empty
-            or len(stock.interiors)!=4
-            or stock.symmetric_difference(flat.result_material).area < 0.5):
-        raise GeometryError("TAIL_V90_T2_FULL_HOLES_OR_SOURCE_MISSING")
+            or original_stock.geom_type!="Polygon" or not original_stock.is_valid
+            or len(stock.interiors)!=len(original_stock.interiors)
+            or not set(round(p.area,7) for p in
+                       (Polygon(r) for r in stock.interiors)) ==
+                   set(round(p.area,7) for p in
+                       (Polygon(r) for r in original_stock.interiors))
+            or stock.difference(flat.result_material).area > _EPS):
+        raise GeometryError("V_MITER_LOWER_ORIGINAL_HOLES_NOT_PRESERVED")
     outer_only=flat.result_material
     if (not outer_only.covers(stock) or
             stock.difference(outer_only).area>_EPS or
             outer_only.difference(stock).area<=0):
         raise GeometryError("TAIL_V90_T2_FULL_NOT_SAME_FACTORY_CUTTING")
-    source,area=_single_sheet_triangles(stock)
+    source,area=_single_sheet_triangles(stock,st)
     if abs(area-stock.area)>max(1e-5,stock.area*1e-7):
         raise GeometryError("TAIL_V90_T2_FULL_CUTTING_AREA_LOST")
 
@@ -125,21 +135,20 @@ def project_tail_v90_full_t_no_ba(flat, *, first_axis: str):
     _,yfold=_profile_geometry(profiles["Y"])
     ybreak,_=_profile_geometry(profiles["Y"])
     if len(ybreak)!=5 or any(abs(ybreak[i]-q)>_EPS for i,q in enumerate(
-            (0.,48.,192.,217.,233.))):
-        raise GeometryError("TAIL_V90_T2_FULL_UPPER_PROFILE_CHANGED")
-    u0,z0=_profile_map(48.,ybreak,yfold)
+            (st.ymin,st.bottom_y,st.upper_start,st.upper_crease,st.ymax))):
+        raise GeometryError("V_MITER_LOWER_UNCHANGED_UPPER_PROFILE_NOT_MATCHED")
+    u0,z0=_profile_map(st.bottom_y,ybreak,yfold)
 
     def formed(uv):
         x,y=map(float,uv)
-        if y<=192.+_EPS:
-            # Corrected lower material and the unchanged central datum.
-            return _stages((x,y),first_axis)[1]
-        # All source material above y=192 is between x=16 and x=506.
-        # No fabricated side BEND is allowed in this original upper band.
-        if x<16.-_EPS or x>506.+_EPS:
-            raise GeometryError("TAIL_V90_T2_FULL_UPPER_STOCK_CHANGED")
+        if y<=st.upper_start+_EPS:
+            # The lower V owns only source-corrected material. Upper crease
+            # profile remains the unmodified native Engine chain.
+            return _stages((x,y),first_axis,st)[1]
+        if x<st.bottom_guide_start-_EPS or x>st.bottom_guide_end+_EPS:
+            raise GeometryError("V_MITER_LOWER_UPPER_MATERIAL_NOT_ON_CORE")
         uy,uz=_profile_map(y,ybreak,yfold)
-        return (x,float(48.+uy-u0),float(uz-z0))
+        return (x,float(st.bottom_y+uy-u0),float(uz-z0))
 
     uv_index={}
     vertices_uv=[]
@@ -263,16 +272,24 @@ def project_tail_v90_full_t_no_ba(flat, *, first_axis: str):
             (extents[2],nominal["bottom"])):
         if abs(actual-want)>_EPS*10:
             raise GeometryError("TAIL_V90_T2_FULL_OUTSIDE_REAL_MESH_MISMATCH")
-    # The side flange material reaches z=15; the main outside face is z=-T.
-    # Use actual world vertices, not the 15-mm material len alone.
-    side_end=max(
-        inside[i][2] for i,xy in enumerate(vertices_uv)
-        if ((abs(xy[0])<=_EPS or abs(xy[0]-522.)<=_EPS)
-            and 63.-_EPS<=xy[1]<=190.+_EPS)
-    )
-    side_reach=side_end-bounds[2][0]
-    if abs(side_reach-nominal["side_left"])>_EPS*10:
-        raise GeometryError("TAIL_V90_T2_FULL_SIDE_OUTSIDE_MISMATCH")
+    side_reaches=[]
+    for name,side_x,top_station,expected in (
+        ("left",st.xmin,st.left_side_end,nominal["side_left"]),
+        ("right",st.xmax,st.right_side_end,nominal["side_right"]),
+    ):
+        delta=(st.left_x-st.xmin) if name=="left" else (st.xmax-st.right_x)
+        sides=[
+            inside[i][2] for i,xy in enumerate(vertices_uv)
+            if abs(xy[0]-side_x)<=_EPS
+            and st.bottom_y+delta-_EPS<=xy[1]<=top_station+_EPS
+        ]
+        if not sides:
+            raise GeometryError("V_MITER_LOWER_SIDE_FLANGE_SOURCE_MISSING:"+name)
+        reach=max(sides)-bounds[2][0]
+        side_reaches.append(reach)
+        if abs(reach-expected)>_EPS*10:
+            raise GeometryError("V_MITER_LOWER_SIDE_OUTSIDE_MISMATCH:"+name)
+    side_reach=side_reaches[0]
 
     # Each real V wall has two oppositely oriented copies, each with its
     # own original CUTTING source IDs. Compare their ENTIRE triangle sets,
@@ -376,7 +393,10 @@ def project_tail_v90_full_t_no_ba(flat, *, first_axis: str):
         formed_side_outside_reach_mm=float(side_reach),
         formed_bottom_outside_reach_mm=float(extents[2]),
         true_t_v_seam_contact=tuple(cut_contacts),
-        actual_upper_fold_sample_xyz=formed((261.,228.)),
+        actual_upper_fold_sample_xyz=formed((
+            (st.left_x+st.right_x)/2.,
+            (st.upper_crease+st.ymax)/2.,
+        )),
         nominal_outside_mm=qualified.nominal_outside_mm,
         thickness_mm=thickness,
     )
