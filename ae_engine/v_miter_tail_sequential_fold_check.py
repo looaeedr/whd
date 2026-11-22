@@ -52,6 +52,8 @@ class TailSequentialFoldResult:
     true_t_cut_faces_by_corner: tuple
     source_area_mm2: float
     triangulated_area_mm2: float
+    source_material_polygon: Polygon
+    source_fold_parameters: tuple
     first_stage_max_duplicate_vertex_jump_mm: float
     final_stage_max_duplicate_vertex_jump_mm: float
     # Distinguish genuine non-neighbor T shell self-crossings from
@@ -168,6 +170,49 @@ def _fold_action(source_xy, xyz, normal, *, axis: str, left: float,
     return point,new_normal
 
 
+
+def _advance_same_source_uv(source_xy, first_axis, parameters):
+    """Actual point transformer shared by the stage mesh AND inverse gate."""
+    (left,right,bottom,minx,maxx,side_end,
+     allowance,mid_radius)=parameters
+    base=(float(source_xy[0]),float(source_xy[1]),0.0)
+    n0=(0.0,0.0,1.0)
+    first,n1=_fold_action(
+        source_xy,base,n0,axis=first_axis,
+        left=left,right=right,bottom=bottom,minx=minx,maxx=maxx,
+        side_end=side_end,allowance=allowance,mid_radius=mid_radius,
+    )
+    second,n2=_fold_action(
+        source_xy,first,n1,
+        axis=("y" if first_axis=="x" else "x"),
+        left=left,right=right,bottom=bottom,minx=minx,maxx=maxx,
+        side_end=side_end,allowance=allowance,mid_radius=mid_radius,
+    )
+    return first,second,n1,n2
+
+
+def project_tail_same_sheet_staged_source_point(model, source_uv):
+    """Forward-recheck a proposed inverse using RETAINED original V stock.
+
+    A point on the original mother but inside the already removed V wedge
+    is NOT sheet metal. Reject it before fold mapping; no fabricated cut
+    line or material re-ownership can be inferred from that UV.
+    """
+    if not isinstance(model,TailSequentialFoldResult):
+        raise GeometryError("TAIL_SEQUENTIAL_TYPED_STAGE_MODEL_REQUIRED")
+    try:
+        xy=(float(source_uv[0]),float(source_uv[1]))
+    except (IndexError,TypeError,ValueError):
+        raise GeometryError("TAIL_SEQUENTIAL_SOURCE_UV_INVALID") from None
+    if not all(math.isfinite(v) for v in xy):
+        raise GeometryError("TAIL_SEQUENTIAL_SOURCE_UV_INVALID")
+    if not model.source_material_polygon.covers(Point(*xy)):
+        raise GeometryError("TAIL_SEQUENTIAL_UV_REMOVED_BY_ACTUAL_V_CUTTING")
+    return _advance_same_source_uv(
+        xy,model.first_axis,model.source_fold_parameters,
+    )
+
+
 def project_tail_same_sheet_sequential_fold_check(
     restored_mother: Polygon, v_cut_stock: Polygon, *,
     left_apex, right_apex,
@@ -221,23 +266,13 @@ def project_tail_same_sheet_sequential_fold_check(
     )
     mid_r=inner_r_mm+thickness_mm/2.0
     second_axis="y" if first_axis=="x" else "x"
+    parameters=(
+        left,right,bottom,minx,maxx,float(lg.span_end),
+        bend_allowance_mm,mid_r,
+    )
     tol=float(PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES.boundary_separation_tolerance)
     def forward(xy):
-        base=(float(xy[0]),float(xy[1]),0.0)
-        n=(0.0,0.0,1.0)
-        first,n1=_fold_action(
-            xy,base,n,axis=first_axis,left=left,right=right,
-            bottom=bottom,minx=minx,maxx=maxx,
-            side_end=float(lg.span_end),allowance=bend_allowance_mm,
-            mid_radius=mid_r,
-        )
-        final,n2=_fold_action(
-            xy,first,n1,axis=second_axis,left=left,right=right,
-            bottom=bottom,minx=minx,maxx=maxx,
-            side_end=float(lg.span_end),allowance=bend_allowance_mm,
-            mid_radius=mid_r,
-        )
-        return first,final,n1,n2
+        return _advance_same_source_uv(xy,first_axis,parameters)
     # All triangle vertices are moved through the same two actions and
     # retain exact source UV identity; there are no separately generated
     # side/bottom solids that can hide a seam tear.
@@ -387,6 +422,8 @@ def project_tail_same_sheet_sequential_fold_check(
             abs((b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0]))/2
             for a,b,c in source
         )),
+        source_material_polygon=v_cut_stock,
+        source_fold_parameters=parameters,
         first_stage_max_duplicate_vertex_jump_mm=float(continuity_first),
         final_stage_max_duplicate_vertex_jump_mm=float(continuity_final),
         stage1_shell_topology=top1,

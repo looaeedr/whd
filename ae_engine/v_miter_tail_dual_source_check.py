@@ -56,6 +56,7 @@ from .v_miter_seam_gap_trial import (
 )
 from .v_miter_tail_sequential_fold_check import (
     project_tail_same_sheet_sequential_fold_check,
+    project_tail_same_sheet_staged_source_point,
 )
 
 
@@ -166,6 +167,10 @@ class TailDualVFaceResult:
     sequential_second_bottom_cut_faces: tuple
     sequential_final_seam_sections: tuple
     sequential_final_full_seam_continuity: object | None
+    # Actual one-source inverse rechecked against present/removed CUTTING:
+    # (z, side_uv, side_retained, side_formed_xyz, side_residual_mm,
+    #     bottom_uv, bottom_retained, bottom_formed_xyz, bottom_residual_mm).
+    sequential_inverse_actual_source_trace_mm: tuple
     sequential_root_process_status: str
     # Physical Y-direction separation floor under the actual *disjoint*
     # finite-R/BA straight patches. Not an industrial tolerance or a
@@ -942,6 +947,32 @@ def project_tail_dual_v_same_source_check(
             if root_crossings else
             "ROOT_NEUTRAL_INVERSE_WITHOUT_NONAPEX_CROSSING_CHECK_ONLY"
         )
+        # The old analytic inverse assumes separate straight RBA planes.
+        # Verify it on the CURRENT single-blank staged physical map, and
+        # refuse any UV in stock removed by the real current V CUTTING.
+        # This is not a redesigned cut line or an automatic source repair.
+        seq_actual_inverse=[]
+        for z,sv,bv in zip(inverse_stations,side_inverse,bottom_inverse):
+            target=(float(joined_x),float(joined_y),float(z))
+            source_s=(float(sv.x),float(sv.y))
+            source_b=(float(bv.x),float(bv.y))
+            s_present=bool(corrected.covers(Point(*source_s)))
+            b_present=bool(corrected.covers(Point(*source_b)))
+            def reproject(uv,present):
+                if not present:
+                    return None,None
+                _,formed,_,_=project_tail_same_sheet_staged_source_point(
+                    sequential,uv,
+                )
+                return tuple(float(q) for q in formed),float(
+                    math.dist(formed,target)
+                )
+            s3,s_err=reproject(source_s,s_present)
+            b3,b_err=reproject(source_b,b_present)
+            seq_actual_inverse.append((
+                float(z),source_s,s_present,s3,s_err,
+                source_b,b_present,b3,b_err,
+            ))
         inverse_coverage = tuple((
             float(z),
             bool(restored.covers(Point(s.x, s.y))),
@@ -1035,6 +1066,7 @@ def project_tail_dual_v_same_source_check(
             sequential_second_bottom_cut_faces=seq_final_bottom,
             sequential_final_seam_sections=seq_sections,
             sequential_final_full_seam_continuity=seq_full_seam,
+            sequential_inverse_actual_source_trace_mm=tuple(seq_actual_inverse),
             sequential_root_process_status=sequential.root_process_status,
             straight_section_y_domain_witness_mm=straight_y_witness,
             side_cut_failure=side_error, bottom_cut_failure=bottom_error,

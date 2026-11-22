@@ -233,6 +233,21 @@ def test_tail_real_same_blank_dual_90_v_and_folded_contact(first_axis):
             assert corner.sequential_root_process_status == (
                 "FINITE_BEND_TIP_TRANSITION_KINEMATIC_ONLY"
             )
+            # A supposed side inverse can be inside the ORIGINAL
+            # reconstructed mother but physically absent after the
+            # CURRENT real V CUTTING. Do not invent it or assign bottom
+            # stock to the side lip. The bottom inverse is still present
+            # and truly forward-reprojects to the formed datum.
+            assert len(corner.sequential_inverse_actual_source_trace_mm)==4
+            for z,suv,exists_s,s3,s_err,buv,exists_b,b3,b_err in (
+                corner.sequential_inverse_actual_source_trace_mm
+            ):
+                assert z>0
+                assert not exists_s and s3 is None and s_err is None
+                assert exists_b and b3 is not None and b_err is not None
+                assert b_err < 1e-6, (
+                    "Same-source staged RBA inverse/forward bottom mismatch"
+                )
             assert corner.native_uncut_fold_endpoint_jump_max_mm is not None
             assert corner.native_uncut_fold_endpoint_jump_max_mm < 1e-3
             assert corner.native_uncut_fold_endpoint_status == (

@@ -641,6 +641,20 @@ def _model_report(check):
                 for z,status,gap,side,bottom
                 in row.sequential_final_seam_sections
             ],
+            "sequential_inverse_actual_retained_cutting_check":[
+                {"z":z,"proposed_side_uv":sideuv,
+                 "side_source_exists_on_actual_cutting":side_exists,
+                 "side_after_two_folds_xyz":side3,
+                 "side_formed_datum_error_mm":side_error,
+                 "proposed_bottom_uv":bottomuv,
+                 "bottom_source_exists_on_actual_cutting":bottom_exists,
+                 "bottom_after_two_folds_xyz":bottom3,
+                 "bottom_formed_datum_error_mm":bottom_error,
+                 "status":"CHECK_NOT_A_VALID_NEW_CUT_LINE"}
+                for z,sideuv,side_exists,side3,side_error,
+                    bottomuv,bottom_exists,bottom3,bottom_error
+                in row.sequential_inverse_actual_source_trace_mm
+            ],
             "sequential_root_process_status":
                 row.sequential_root_process_status,
             "sequential_final_full_seam":{
