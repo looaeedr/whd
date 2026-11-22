@@ -17,9 +17,7 @@ from .assembly_geometry import (
     detect_world_mesh_surface_interference,
     detect_world_mesh_enclosed_volume_witness,
 )
-from .assembly_geometry_primitives import (
-    thicken_triangle_surface, smoothed_surface_vertex_offsets,
-)
+from .assembly_geometry_primitives import thicken_triangle_surface
 from .contracts import EndCapPartSpec, PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES
 from .manufacturing_render_data import (
     PartRenderData, fold_guides_from_final_scene,
@@ -417,10 +415,7 @@ def project_tail_dual_v_same_source_check(
         thickness_mm=spec.thickness,
         second_fold_angle_deg=90.0, relief_mode="ROUND_R",
     )
-    def form(
-        patch, origin, axis, outside, reach, label, axial_min,
-        *, connected_bottom_tip=False,
-    ):
+    def form(patch, origin, axis, outside, reach, label, axial_min):
         if q.first_bend_allowance_mm >= reach - _TOL:
             raise GeometryError("V_MITER_TAIL_DUAL_RBA_CONSUMES_FLANGE")
         # The same Engine neutral axis and radial T/2 mesh as normal Factory
@@ -472,8 +467,7 @@ def project_tail_dual_v_same_source_check(
         "right": form(folded_domains["right"], right[0], e_right, n_right,
                       right[4], "RIGHT", 0.0),
         "bottom": form(folded_domains["bottom"], left[0], e_bottom, n_bottom,
-                       left[5], "BOTTOM", minx - left[0].x,
-                       connected_bottom_tip=True),
+                       left[5], "BOTTOM", minx - left[0].x),
     }
     V_lines = {
         name: (LineString(((row[0].x, row[0].y), (row[1].x, row[1].y))),
