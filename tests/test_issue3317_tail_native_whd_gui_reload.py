@@ -513,7 +513,7 @@ def test_actual_whd_main_gui_lower_v_preserves_existing_rect_clearance_roundtrip
         if not family_switch:
             chooser2._phase6_menu.invoke(0)
             root.update_idletasks()
-        root.update()
+            root.update()
             assert selected2.get() == "原樣"
             assert api.TAIL_LOWER_V_SNAPSHOT_KEY not in reopened._phase6_input_snapshot
             assert api.TAIL_LOWER_V_FIRST_BENDS_KEY not in reopened._phase6_input_snapshot
