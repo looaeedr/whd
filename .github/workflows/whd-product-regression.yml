@@ -155,39 +155,6 @@ jobs:
           set -euo pipefail
           xvfb-run -a python tools/quick_test.py --ci-pr
 
-      # #3317 Draft-only diagnostic deliverable, never a manufacturing export.
-      # The exact source-qualified adapter is executed only after focused
-      # acceptance, so no unverified candidate may be uploaded as a DXF.
-      - name: Generate scoped issue 3317 Ø4 CHECK_NOT_CNC DXF
-        if: success() && github.event.pull_request.number == 3405 && steps.fast-feedback.outputs.run == 'true'
-        shell: bash
-        run: |
-          set -euo pipefail
-          python - <<'PY'
-          import sys
-          from pathlib import Path
-          sys.path.insert(0, "tests")
-          from test_issue3317_tail_relief_root_check import _d4_revised_factory_source
-          from ae_engine.v_miter_tail_d4_check_dxf import save_tail_d4_check_dxf
-          output=Path("issue3317-d4-check-artifact")
-          output.mkdir(exist_ok=True)
-          for axis in ("x","y"):
-              result=save_tail_d4_check_dxf(
-                  _d4_revised_factory_source(),
-                  output/f"vault_tail_W620_D185_T2_D4_{axis}_CHECK_NOT_CNC.dxf",
-                  first_axis=axis,
-              )
-              print(f"ISSUE3317_D4_CHECK_ARTIFACT={result}")
-          PY
-      - name: Publish scoped issue 3317 CHECK DXF for AutoCAD
-        if: success() && github.event.pull_request.number == 3405 && steps.fast-feedback.outputs.run == 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: issue3317-d4-check-not-cnc-exact-source
-          path: issue3317-d4-check-artifact/*.dxf
-          if-no-files-found: error
-          retention-days: 7
-
   # Collect the full parameterized pytest inventory while the 18 test
   # runners execute. The final gate still reconciles every JUnit case,
   # but does not spend another ~40-70s collecting after all shards finish.
