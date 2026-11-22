@@ -57,6 +57,118 @@ def _error(name, *, uv=None, face=None, detail=None):
     )
 
 
+
+def _require_authored_cutting_source(flat, stock):
+    """Compare the EXACT authored Factory + resolved overlay, never hole count.
+
+    The primary Factory blank may be replaced by this D4 CHECK perimeter.
+    Every other original/overlay CUTTING must remain the *same source
+    primitive* and the same physical void in resolved material.
+    """
+    from shapely.geometry import Polygon
+    from .sheetmetal_drawing import CirclePrimitive, PolylinePrimitive
+
+    original = tuple(p for p in flat.original_scene.primitives
+                     if getattr(p, "layer", None) == "CUTTING")
+    actual = tuple(p for p in flat.result_scene.primitives
+                   if getattr(p, "layer", None) == "CUTTING")
+    source_outer = tuple(p for p in original
+        if isinstance(p, PolylinePrimitive) and p.closed
+        and Polygon([(q.x,q.y) for q in p.points]).symmetric_difference(
+            flat.original_factory_material).area <= _EPS)
+    active_outer = tuple(p for p in actual
+        if isinstance(p, PolylinePrimitive) and p.closed
+        and getattr(p, "semantic_id", None) == "OUTER_BOUNDARY")
+    if len(source_outer)!=1 or len(active_outer)!=1:
+        _error("TAIL_D4_CHECK_SOURCE_OUTER_NOT_UNIQUE")
+    inherited = tuple(flat.inherited_non_v_cutting_features)
+    expected = tuple(p for p in original if p is not source_outer[0])+inherited
+    observed = tuple(p for p in actual if p is not active_outer[0])
+    if (len(observed)!=len(expected)
+            or any(p is not q for p,q in zip(expected,observed))):
+        _error("TAIL_D4_CHECK_AUTHORED_CUTTING_IDENTITY_CHANGED",
+               detail=(len(expected),len(observed)))
+    # The source-keyed identity check also pins original circle center,
+    # radius, polyline points and user feature provenance. Verify their
+    # *actual physical holes* have not been silently filled by the resolver.
+    footprints=[]
+    for p in expected:
+        if isinstance(p, CirclePrimitive):
+            if not math.isfinite(p.radius) or p.radius<=0:
+                _error("TAIL_D4_CHECK_AUTHORED_CUTTING_INVALID")
+            footprint=Point(p.center.x,p.center.y).buffer(p.radius,quad_segs=32)
+        elif isinstance(p, PolylinePrimitive) and p.closed:
+            footprint=Polygon([(q.x,q.y) for q in p.points])
+        else:
+            _error("TAIL_D4_CHECK_AUTHORED_CUTTING_UNSUPPORTED",
+                   detail=type(p).__name__)
+        if not footprint.is_valid or footprint.is_empty:
+            _error("TAIL_D4_CHECK_AUTHORED_CUTTING_INVALID")
+        footprints.append(footprint)
+    holes=[Polygon(ring) for ring in stock.interiors]
+    if len(holes)!=len(footprints):
+        _error("TAIL_D4_CHECK_AUTHORED_HOLE_TOPOLOGY_CHANGED",
+               detail=(len(footprints),len(holes)))
+    remaining=list(holes)
+    for i,hole in enumerate(footprints):
+        matches=[j for j,actual_hole in enumerate(remaining)
+                 if hole.symmetric_difference(actual_hole).area<=_EPS]
+        if len(matches)!=1:
+            _error("TAIL_D4_CHECK_AUTHORED_HOLE_GEOMETRY_CHANGED",
+                   uv=hole.representative_point().coords[0],detail=i)
+        remaining.pop(matches[0])
+    return expected
+
+
+def _actual_opposed_v_contact_ignores(
+    local_ids, local_triangles, shell, boundary, source_uv, vertices, pairs
+):
+    """Only suppress duplicate faces from opposite REAL retained V legs.
+
+    All unrelated identical/opposed faces (including hole walls) stay in the
+    collision query, and source face IDs are kept through filtering.
+    """
+    fingerprint=defaultdict(list)
+    local_faces={face_id:tri for face_id,tri in zip(local_ids,local_triangles)}
+    for face_id in local_ids:
+        tri=local_faces[face_id]
+        key=tuple(sorted(tuple(round(v/_EPS) for v in p) for p in tri))
+        fingerprint[key].append(face_id)
+
+    ignored=set()
+    for lower_ids,upper_ids in pairs:
+        lower=set(lower_ids);upper=set(upper_ids)
+        for source_id in sorted(lower):
+            if source_id not in local_faces:
+                continue
+            source=local_faces[source_id]
+            key=tuple(sorted(tuple(round(v/_EPS) for v in p)
+                             for p in source))
+            candidates=tuple(other for other in fingerprint[key]
+                             if other in upper and other not in ignored)
+            if len(candidates)!=1:
+                continue
+            other=candidates[0]
+            target=local_faces[other]
+            n0=_unit(_cross(_v3sub(source[1],source[0]),
+                            _v3sub(source[2],source[0])))
+            n1=_unit(_cross(_v3sub(target[1],target[0]),
+                            _v3sub(target[2],target[0])))
+            if _dot(n0,n1) < -1.+_EPS:
+                ignored.add(other)
+    filtered_ids=tuple(fid for fid in local_ids if fid not in ignored)
+    return filtered_ids, tuple(local_faces[fid] for fid in filtered_ids)
+
+
+def _actual_interference_source_face_pair(filtered_ids, pair):
+    """Pair indices are local to FILTERED input, never unfiltered local_ids."""
+    if pair is None:
+        return None
+    if len(pair)!=2 or any(i<0 or i>=len(filtered_ids) for i in pair):
+        _error("TAIL_D4_CHECK_INVALID_COLLISION_FACE_REFERENCE",face=pair)
+    return tuple(filtered_ids[i] for i in pair)
+
+
 def project_tail_d4_source_keyed_t_check(flat, *, first_axis):
     """Produce a CHECK mesh only if every true source boundary is T-closed.
 
@@ -71,8 +183,9 @@ def project_tail_d4_source_keyed_t_check(flat, *, first_axis):
     if abs(float(flat.source_spec.thickness) - 2.) > _EPS:
         _error("TAIL_D4_CHECK_T2_SOURCE_REQUIRED")
     stock = material_polygon_from_final_scene(flat.result_scene)
-    if stock.geom_type != "Polygon" or not stock.is_valid or not stock.interiors:
+    if stock.geom_type != "Polygon" or not stock.is_valid:
         _error("TAIL_D4_CHECK_TRUE_CUTTING_WITH_HOLES_REQUIRED")
+    _require_authored_cutting_source(flat,stock)
     if len(flat.opening_source_points_xy) != 2:
         _error("TAIL_D4_CHECK_TWO_CORNER_SOURCE_REQUIRED")
 
@@ -212,6 +325,7 @@ def project_tail_d4_source_keyed_t_check(flat, *, first_axis):
 
     arc_counts=[]
     straight_counts=[]
+    true_v_face_pairs=[]
     for name,lower,apex,upper in flat.opening_source_points_xy:
         circle = next(r for key,r in circles if key==name)
         arc_edges=[]
@@ -234,6 +348,22 @@ def project_tail_d4_source_keyed_t_check(flat, *, first_axis):
         if not arc_edges or not straight_edges:
             _error("TAIL_D4_CHECK_MISSING_ARC_OR_SURVIVING_V_WALL",
                    uv=apex,detail=(len(arc_edges),len(straight_edges)))
+        # Provenance is the actual source UV boundary, not matching
+        # world-space positions of arbitrary opposite triangles.
+        lower_face_ids=set()
+        upper_face_ids=set()
+        for (a,b,_face) in boundary:
+            seg=LineString((source_uv[a],source_uv[b]))
+            for line,group in ((lines[0],lower_face_ids),
+                               (lines[1],upper_face_ids)):
+                if (seg.length>_EPS and
+                        seg.difference(line.buffer(_EPS*3)).length<_EPS):
+                    group.update(wall_by_edge[frozenset((a,b))])
+        if not lower_face_ids or not upper_face_ids:
+            _error("TAIL_D4_CHECK_REAL_V_WALL_PAIR_SOURCE_MISSING",uv=apex)
+        true_v_face_pairs.append((
+            name,tuple(sorted(lower_face_ids)),tuple(sorted(upper_face_ids))
+        ))
         arc_counts.append((name,len(arc_edges)))
         straight_counts.append((name,len(straight_edges)))
 
@@ -252,26 +382,13 @@ def project_tail_d4_source_keyed_t_check(flat, *, first_axis):
                               for j in local_ids)
         if len(local_triangles)<3:
             _error("TAIL_D4_CHECK_LOCAL_THICK_SHELL_MISSING",uv=apex)
-        # Exclude only pairs of *identical* actual opposite-normal V walls
-        # after their source identities were retained in the indexed shell.
-        # Global boolean is NOT implied even by zero local crossings.
-        fingerprint=defaultdict(list)
-        for local_i,tri in enumerate(local_triangles):
-            key=tuple(sorted(tuple(round(x/_EPS) for x in v)
-                             for v in tri))
-            fingerprint[key].append(local_i)
-        excluded=set()
-        for ids in fingerprint.values():
-            if len(ids)==2:
-                a,b=ids
-                na=_unit(_cross(_v3sub(local_triangles[a][1],local_triangles[a][0]),
-                                _v3sub(local_triangles[a][2],local_triangles[a][0])))
-                nb=_unit(_cross(_v3sub(local_triangles[b][1],local_triangles[b][0]),
-                                _v3sub(local_triangles[b][2],local_triangles[b][0])))
-                if _dot(na,nb)<-1.+_EPS:
-                    excluded.add(b)
-        check=tuple(face for j,face in enumerate(local_triangles)
-                    if j not in excluded)
+        # The ONLY legal contact exemption is between matching source
+        # CUTTING walls of the two actual surviving V legs of THIS corner.
+        side_pair=next((a,b) for key,a,b in true_v_face_pairs if key==name)
+        filtered_ids,check=_actual_opposed_v_contact_ignores(
+            local_ids,local_triangles,shell,boundary,source_uv,
+            all_vertices,(side_pair,),
+        )
         budget=max(1,len(check)*(len(check)-1)//2)
         status=diagnose_world_mesh_self_intersections(
             check,max_nonadjacent_pairs=budget)
@@ -279,8 +396,7 @@ def project_tail_d4_source_keyed_t_check(flat, *, first_axis):
                 or status.crossing_pair_count
                 or status.coplanar_overlap_pair_count):
             pair=status.first_source_triangle_pair
-            face_pair=(None if pair is None else
-                       tuple(local_ids[i] for i in pair))
+            face_pair=_actual_interference_source_face_pair(filtered_ids,pair)
             _error("TAIL_D4_CHECK_LOCAL_T_INTERFERENCE_UNRESOLVED",
                    uv=apex,face=face_pair,
                    detail=(status.crossing_pair_count,
