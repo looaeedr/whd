@@ -143,7 +143,7 @@ def _actual_obj(check, *, native=True):
             ("RBA_other_source_parts", check.remaining_flat_solid),
             ("RBA_left_physical_BEND_only", check.side_left_solid),
             ("RBA_right_physical_BEND_only", check.side_right_solid),
-            ("RBA_bottom_16_to_406_only", check.bottom_solid),
+            ("RBA_bottom_connected_corner_transition", check.bottom_solid),
         )
     )
     buf=io.StringIO()

@@ -63,8 +63,10 @@ def test_tail_real_same_blank_dual_90_v_and_folded_contact():
         for side,total,side_fold,bottom_fold,neither in check.restored_stock_ownership_mm2:
             assert side in ("bottom_left","bottom_right")
             assert total > 0
-            assert bottom_fold == pytest.approx(0,abs=1e-7), (
-                "Restored corner stock outside original bottom BEND cannot be folded by it"
+            assert bottom_fold > 0, (
+                "The attached source corner must travel with its bottom "
+                "flange through a finite-tip transition, without fabricating "
+                "a full-width BEND"
             )
             assert total == pytest.approx(side_fold+bottom_fold+neither,abs=1e-7)
         assert len(check.native_bottom_span_boundary_jump_samples_mm) == 2
@@ -100,6 +102,10 @@ def test_tail_real_same_blank_dual_90_v_and_folded_contact():
             ),),
         )
         assert check.native_original_fold_path_mesh == original_path
+        assert check.bottom_bend_span_x_mm == pytest.approx((16,406))
+        # The original hard-span mapping is discontinued for this V CHECK
+        # only; the new connected stock skin must be continuous without
+        # changing any source BEND endpoints or CUTTING holes.
         for corner in check.corners:
             assert corner.native_uncut_fold_endpoint_jump_max_mm is not None
             assert corner.native_uncut_fold_endpoint_jump_max_mm < 1e-3
