@@ -324,3 +324,85 @@ def test_d4_source_keyed_real_arc_full_t_shell_and_original_holes(first_axis,tmp
         i=matches[0]
         assert check.inner_xyz[i] == pytest.approx(inner_want,abs=1e-7)
         assert check.outer_xyz[i] == pytest.approx(outer_want,abs=1e-7)
+
+
+def _d4_revised_factory_source():
+    flat=_real_factory_with_fifth_original_cutting()
+    old=tuple(flat.result_scene.primitives)
+    outer=next(p for p in old if getattr(p,"semantic_id",None)=="OUTER_BOUNDARY")
+    removed=tuple(Polygon((lower,apex,upper)).union(
+        Point(*apex).buffer(2.,resolution=48))
+        for _,lower,apex,upper in flat.opening_source_points_xy)
+    stock=flat.original_factory_restored_mother.difference(unary_union(removed))
+    assert stock.geom_type=="Polygon" and stock.is_valid
+    updated=PolylinePrimitive(
+        points=tuple(Vec2(float(x),float(y))
+                     for x,y in stock.exterior.coords[:-1]),
+        layer="CUTTING",closed=True,semantic_id="OUTER_BOUNDARY",
+    )
+    scene=DrawingScene(tuple(updated if item is outer else item for item in old))
+    return replace(flat,result_scene=scene,result_material=stock)
+
+
+@pytest.mark.parametrize("kind",("delete_original","move_original_same_count"))
+def test_d4_must_reject_mutated_authored_hole_source_even_if_shell_still_closes(kind):
+    from ae_engine.v_miter_tail_d4_check import project_tail_d4_source_keyed_t_check
+    from ae_engine.sheetmetal_drawing import CirclePrimitive
+    flat=_d4_revised_factory_source()
+    old=tuple(flat.result_scene.primitives)
+    feature=next(p for p in old if isinstance(p,CirclePrimitive)
+                 and p.layer=="CUTTING")
+    if kind=="delete_original":
+        revised=tuple(p for p in old if p is not feature)
+    else:
+        changed=replace(feature,center=Vec2(
+            float(feature.center.x)+0.5,float(feature.center.y)))
+        revised=tuple(changed if p is feature else p for p in old)
+    altered=replace(flat,result_scene=DrawingScene(revised))
+    for order in ("x","y"):
+        with pytest.raises(GeometryError,
+            match=r"^TAIL_D4_CHECK_AUTHORED_CUTTING_IDENTITY_CHANGED"):
+            project_tail_d4_source_keyed_t_check(altered,first_axis=order)
+
+
+def test_d4_resolved_overlay_feature_requires_same_original_primitive():
+    from ae_engine.v_miter_tail_d4_check import project_tail_d4_source_keyed_t_check
+    from ae_engine.sheetmetal_drawing import CirclePrimitive
+    flat=_d4_revised_factory_source()
+    overlay=CirclePrimitive(center=Vec2(255.,135.),radius=2.,layer="CUTTING")
+    scene=DrawingScene((*flat.result_scene.primitives,overlay))
+    checked=replace(flat,result_scene=scene,
+                    inherited_non_v_cutting_features=(overlay,))
+    # Valid independent overlay is preserved and contributes its own wall.
+    result=project_tail_d4_source_keyed_t_check(checked,first_axis="x")
+    assert result.source_hole_count==6
+    dropped=replace(checked,
+        result_scene=DrawingScene(tuple(p for p in scene.primitives
+                                      if p is not overlay)))
+    with pytest.raises(GeometryError,
+        match=r"^TAIL_D4_CHECK_AUTHORED_CUTTING_IDENTITY_CHANGED"):
+        project_tail_d4_source_keyed_t_check(dropped,first_axis="x")
+
+
+def test_d4_only_true_retained_v_wall_pairs_are_exempt():
+    from ae_engine.v_miter_tail_d4_check import (
+        _actual_opposed_v_contact_ignores,
+        _actual_interference_source_face_pair,
+    )
+    # Two matched but UNRELATED opposite triangles must stay in the actual
+    # collision input. Only explicitly sourced lower/upper V faces can skip.
+    a=((0.,0.,0.),(1.,0.,0.),(0.,1.,0.))
+    b=(a[2],a[1],a[0])
+    local_ids=(101,102,103,104)
+    local_triangles=(a,b,a,b)
+    filtered,faces=_actual_opposed_v_contact_ignores(
+        local_ids,local_triangles,(),(),(),(),
+        (((101,),(102,)),),
+    )
+    assert filtered==(101,103,104)
+    assert faces==(a,a,b)
+    assert _actual_interference_source_face_pair(filtered,(1,2))==(103,104)
+    assert _actual_interference_source_face_pair(filtered,(0,1))==(101,103)
+    with pytest.raises(GeometryError,
+        match="^TAIL_D4_CHECK_INVALID_COLLISION_FACE_REFERENCE"):
+        _actual_interference_source_face_pair(filtered,(1,3))
