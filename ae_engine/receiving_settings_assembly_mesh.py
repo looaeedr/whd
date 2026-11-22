@@ -196,6 +196,7 @@ def resolve_receiving_settings_assembly_world_meshes(
         data = part.render_data
         pieces = tuple(getattr(data, "pieces", ()) or ())
         physical_world = ()
+        pre_thick = None
         if pieces:
             meshes = resolve_box_body_structure_mid_meshes(data, thickness=thickness)
             physical_world = resolve_box_body_true_world_piece_meshes(
