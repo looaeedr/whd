@@ -47,6 +47,18 @@ def _svg_flat(check):
     # by the original finite bottom BEND. Never paint a guessed rectangle:
     # these filled paths are sourced from Engine polygons themselves.
     rows = []
+    # A genuinely DIFFERENT mating proposal from ORIGINAL source:
+    # green area is existing bottom broad T skin's UV source, not a new
+    # V/CUTTING or side fold. Orange line remains real side V cutting.
+    for corner in check.corners:
+        trial=corner.alternative_existing_stock_contact_trial
+        for tri in trial.bottom_broad_source_triangles_xy:
+            pts=tuple((_finite(x),_finite(y)) for x,y in tri)
+            d="M "+" L ".join(f"{x:.6f},{y:.6f}" for x,y in pts)+" Z"
+            rows.append(
+                f'<path d="{d}" fill="#1a9b65" fill-opacity=".22" '
+                'stroke="none"/>'
+            )
     for source_region in check.out_of_bottom_span_corner_contours_xy:
         region=tuple(_src_point(p) for p in source_region)
         d="M "+" L ".join(f"{x:.6f},{y:.6f}" for x,y in region)+" Z"
@@ -104,6 +116,8 @@ def _svg_flat(check):
     annotation(bend_end-17,bend_y-9,"END")
     annotation(bend_start-15,bend_y-22,"NO Y FOLD")
     annotation(bend_end+2,bend_y-22,"NO Y FOLD")
+    annotation(bend_start-9,bend_y+33,
+               "GREEN: EXISTING BOTTOM T BROAD SURFACE SOURCE (NOT CUTTING)")
     # Real vertical side BEND starts at Y=49, not the nominal V apex Y=48.
     # Plot start/end guides from the authoritative FinalScene, never infer
     # from the candidate diagonal cut or from a stretched bbox.
@@ -307,6 +321,149 @@ def _svg_true_t_sections(check):
         '</text></svg>'
     ).encode("utf-8")
 
+
+
+
+def _svg_alternative_original_surface_sections(check):
+    """The NEW physical side-cut to retained-bottom T broad face on one sheet.
+
+    Each section is sliced from the paired actual Engine 3D T-solid, not a
+    CAD drawing guess, and is paired with the SAME source UV overlay.
+    """
+    rows=[]
+    for i,corner in enumerate(check.corners):
+        cand=corner.alternative_existing_stock_contact_trial
+        apex=check.left_apex if corner.corner=="bottom_left" else check.right_apex
+        x0=205+430*i
+        y0=211
+        scale=5.0
+        def pxy(point):
+            return (x0+(_finite(point[0])-_finite(apex.x))*scale,
+                    y0-(_finite(point[1])-_finite(apex.y))*scale)
+        def textxy(point):
+            x,y=pxy(point)
+            return f"{x:.4f},{y:.4f}"
+        measured=next(
+            (r for r in cand.sampled_section_z_gap_mm if r[1]=="MEASURED"),
+            None
+        )
+        gap_msg=("No common same-Z measured section"
+                 if measured is None else
+                 f"Z={measured[0]:.3f} mm gap={measured[2]:.3f} mm")
+        rows.append(
+            f'<text x="{12+430*i}" y="27" font-family="sans-serif" '
+            f'font-size="19" fill="#333">'
+            f'{escape(corner.corner)}: alternative physical-face pair</text>'
+            f'<text x="{12+430*i}" y="47" font-family="sans-serif" '
+            f'font-size="14" fill="#333">{escape(gap_msg)}</text>'
+            f'<text x="{12+430*i}" y="65" font-family="sans-serif" '
+            f'font-size="12" fill="#555">Orange: original side V CUT wall; '
+            f'green: retained bottom T broad outer skin</text>'
+            f'<line x1="{x0-135}" y1="{y0}" '
+            f'x2="{x0+130}" y2="{y0}" stroke="#bbb"/>'
+            f'<line x1="{x0}" y1="{y0-130}" '
+            f'x2="{x0}" y2="{y0+130}" stroke="#bbb"/>'
+            f'<circle cx="{x0}" cy="{y0}" r="3" fill="#333"/>'
+        )
+        if measured is None:
+            continue
+        z,_,gap,side_pt,bottom_pt,_shortcut=measured
+        for faces,color in (
+            (cand.side_true_t_faces,"#d16b23"),
+            (cand.bottom_true_t_broad_faces,"#16885b"),
+        ):
+            lines=_true_t_cut_section_segments(faces,z)
+            for a,b in lines:
+                rows.append(
+                    f'<path d="M {textxy(a)} L {textxy(b)}" '
+                    f'stroke="{color}" stroke-width="2" fill="none"/>'
+                )
+        if side_pt is not None and bottom_pt is not None:
+            ax,ay=pxy(side_pt)
+            bx,by=pxy(bottom_pt)
+            rows.append(
+                f'<path d="M {ax:.4f},{ay:.4f} L {bx:.4f},{by:.4f}" '
+                'stroke="#bb1535" stroke-width="2.2" '
+                'stroke-dasharray="5,3" fill="none"/>'
+            )
+        rows.append(
+            f'<text x="{12+430*i}" y="373" font-family="sans-serif" '
+            f'font-size="12" fill="#ad2539">CHECK only: not a new V CUTTING '
+            f'or machining acceptance</text>'
+        )
+    return (
+        '<svg xmlns="http://www.w3.org/2000/svg" '
+        'viewBox="0 0 860 410" width="1290" height="615">'
+        '<rect width="100%" height="100%" fill="white"/>'
+        '<title>WHD same-sheet original-side-V-wall to retained-bottom-outer-T '
+        'alternative source physical section CHECK</title>'
+        +''.join(rows)+'</svg>'
+    ).encode("utf-8")
+
+
+def _svg_alternative_original_overlay_and_section(check):
+    """Annotated original Factory + current V + NOT CUTTING candidate overlay."""
+    src=_svg_flat(check).decode("utf-8")
+    section=_svg_alternative_original_surface_sections(check).decode("utf-8")
+    def inside(document):
+        if not document.startswith("<svg ") or not document.endswith("</svg>"):
+            raise ValueError("WHD alternate CHECK requires source SVG")
+        return document.split(">",1)[1].rsplit("</svg>",1)[0]
+    orig=tuple(_src_point(p) for p in check.original_outline)
+    xmin=min(x for x,y in orig)
+    ymin=min(y for x,y in orig)
+    xmax=max(x for x,y in orig)
+    ymax=max(y for x,y in orig)
+    vbox=f"{xmin-16:.3f} {ymin-16:.3f} {xmax-xmin+32:.3f} {ymax-ymin+32:.3f}"
+    order=", ".join(
+        f"{name} FIRST {axis.upper()}"
+        for name,axis in check.operator_first_bend_axes
+    )
+    notes=[
+        "GREY: Factory original CUTTING; BLACK: current nominated V; "
+        "BLUE: actual finite BEND; GREEN: EXISTING bottom source patch.",
+        "ALTERNATIVE pair = real side upper V CUT WALL (orange) "
+        "versus existing bottom outer T BROAD FACE (green).",
+        "The green area is NOT assigned to the side fold, "
+        "and the proposal is NOT another approved V CUTTING outline.",
+        "No new stock, source point, tip, BEND, hole, 15/15/48, "
+        "kerf, clearance or manufacturing tolerance has been added.",
+        "Stage order only changes intermediate views: original UV is "
+        "exclusive to X or Y; final 3D remains same for both orders.",
+        "Seam / actual volume penetration / root process "
+        "are SEPARATE gates; see one-run JSON.",
+    ]
+    out=[
+        '<svg xmlns="http://www.w3.org/2000/svg" '
+        'viewBox="0 0 1910 860" width="1910" height="860">'
+        '<rect width="100%" height="100%" fill="white"/>'
+        '<title>WHD #3317 Factory original-current V vs source-proven '
+        'ALTERNATIVE real mating surfaces; CHECK only</title>'
+        '<text x="24" y="34" font-family="sans-serif" font-size="21" '
+        'fill="#282828">#3317: source-backed alternative surface '
+        'pair - candidate CHECK, NOT a new V</text>'
+        f'<text x="26" y="57" font-family="sans-serif" font-size="15" '
+        f'fill="#555">{escape(order)}</text>'
+        '<text x="23" y="99" font-family="sans-serif" font-size="19" '
+        'fill="#244b5d">Original Factory UV + current V + existing bottom skin</text>'
+        '<text x="956" y="99" font-family="sans-serif" font-size="19" '
+        'fill="#244b5d">Actual final T/R/BA face pair - both corners</text>'
+        f'<svg x="18" y="115" width="905" height="685" '
+        f'viewBox="{vbox}">{inside(src)}</svg>'
+        '<svg x="943" y="119" width="930" height="439" '
+        'viewBox="0 0 860 410">'
+        +inside(section)+'</svg>'
+        '<line x1="960" y1="572" x2="1880" y2="572" '
+        'stroke="#bbb" stroke-width="1"/>'
+    ]
+    for i,line in enumerate(notes):
+        out.append(
+            f'<text x="964" y="{594+i*39}" '
+            f'font-family="sans-serif" font-size="12.5" '
+            f'fill="#333">{escape(line)}</text>'
+        )
+    out.append("</svg>")
+    return "".join(out).encode("utf-8")
 
 
 def _svg_same_source_2d_and_true_t_sections(check):
@@ -627,6 +784,58 @@ def _model_report(check):
             return [min(z), max(z)] if z else None
         corners.append({
             "corner":row.corner,
+            "alternative_mating_pair":{
+                "candidate_id":
+                    row.alternative_existing_stock_contact_trial.candidate_id,
+                "candidate_is_already_approved_V":False,
+                "side_surface_original_source":
+                    row.alternative_existing_stock_contact_trial.side_surface_source,
+                "bottom_surface_original_source":
+                    row.alternative_existing_stock_contact_trial.bottom_surface_source,
+                "bottom_real_source_area_mm2":
+                    row.alternative_existing_stock_contact_trial.bottom_broad_source_area_mm2,
+                "bottom_source_triangle_count":
+                    len(row.alternative_existing_stock_contact_trial.bottom_broad_source_triangles_xy),
+                "side_cut_wall_triangle_count":
+                    len(row.alternative_existing_stock_contact_trial.side_true_t_faces),
+                "bottom_true_T_broad_skin_triangle_count":
+                    len(row.alternative_existing_stock_contact_trial.bottom_true_t_broad_faces),
+                "material_validity":
+                    row.alternative_existing_stock_contact_trial.source_validity_status,
+                "status":
+                    row.alternative_existing_stock_contact_trial.seam_mating_status,
+                "root_physical_status":
+                    row.alternative_existing_stock_contact_trial.root_physical_status,
+                "full_span_error":
+                    row.alternative_existing_stock_contact_trial.full_span_error,
+                "full_span":{
+                    "max_sampled_gap_mm":(
+                        row.alternative_existing_stock_contact_trial.full_span_coverage.max_sampled_cut_face_gap_mm
+                        if row.alternative_existing_stock_contact_trial.full_span_coverage else None
+                    ),
+                    "upper_bound_mm":(
+                        row.alternative_existing_stock_contact_trial.full_span_coverage.max_gap_upper_bound_mm
+                        if row.alternative_existing_stock_contact_trial.full_span_coverage else None
+                    ),
+                    "missing_face_intervals":(
+                        row.alternative_existing_stock_contact_trial.full_span_coverage.missing_face_interval_count
+                        if row.alternative_existing_stock_contact_trial.full_span_coverage else None
+                    ),
+                    "unresolved_events":(
+                        row.alternative_existing_stock_contact_trial.full_span_coverage.numerically_unresolved_vertex_event_count
+                        if row.alternative_existing_stock_contact_trial.full_span_coverage else None
+                    ),
+                },
+                "actual_Z_gap_and_nearest_xyz":[
+                    {"z":z,"status":status,"gap_mm":gap,
+                     "side_original_V_cut_wall_xyz":sidept,
+                     "bottom_existing_T_broad_skin_xyz":bottompt,
+                     "off_datum_shortcut":shortcut}
+                    for z,status,gap,sidept,bottompt,shortcut
+                    in row.alternative_existing_stock_contact_trial.sampled_section_z_gap_mm
+                ],
+                "actual_CUTTING_changes":"NONE",
+            },
             "same_sheet_stage_source_cut_tracks":[
                 {"leg":leg,"source_fraction":fraction,"source_uv":uv,
                  "after_first_xyz":first_xyz,"after_second_xyz":final_xyz,
@@ -812,6 +1021,15 @@ def _model_report(check):
              "source_triangle_count":len(seq.flat_source_triangles),
              "stage1_triangle_count":len(seq.first_formed_skin_triangles),
              "stage2_triangle_count":len(seq.second_formed_skin_triangles),
+             "source_fold_ownership":{
+                 "one_fold_per_source_point":seq.source_double_bend_vertices==0,
+                 "x_only_source_vertices":seq.source_x_only_vertices,
+                 "y_only_source_vertices":seq.source_y_only_vertices,
+                 "both_fold_source_vertices":seq.source_double_bend_vertices,
+                 "X_then_Y_vs_Y_then_X_final_xyz_max_difference_mm":
+                     seq.max_X_then_Y_vs_Y_then_X_final_delta_mm,
+                 "order_changes_last_stage_coordinates":False,
+             },
              "stage1_T_solid_triangle_count":len(seq.first_thick_solid_triangles),
              "stage2_T_solid_triangle_count":len(seq.second_thick_solid_triangles),
              "first_stage_max_same_source_vertex_jump_mm":
@@ -876,6 +1094,8 @@ def build_tail_dual_v_source_preview_zip(check) -> bytes:
     flat=_svg_flat(check)
     true_t_section=_svg_true_t_sections(check)
     combined=_svg_same_source_2d_and_true_t_sections(check)
+    alt_overlay=_svg_alternative_original_overlay_and_section(check)
+    alt_section=_svg_alternative_original_surface_sections(check)
     obj=_actual_obj(check,native=True)
     physical_obj=_actual_obj(check,native=False)
     stage_tracks=_svg_first_then_second_v_tracks(check)
@@ -897,6 +1117,8 @@ def build_tail_dual_v_source_preview_zip(check) -> bytes:
         out.writestr("WHD_tail_dual_V_same_source_2D.svg",flat)
         out.writestr("WHD_tail_dual_V_true_T_left_right_sections.svg",true_t_section)
         out.writestr("WHD_tail_dual_V_original_2D_and_folded_true_T_sections.svg",combined)
+        out.writestr("WHD_tail_dual_V_ALTERNATIVE_original_candidate_overlay_sections.svg",alt_overlay)
+        out.writestr("WHD_tail_dual_V_ALTERNATIVE_real_T_broad_face_sections.svg",alt_section)
         out.writestr("WHD_tail_dual_V_actual_folded_model.obj",obj)
         out.writestr("WHD_tail_dual_V_RBA_focused_fold_check.obj",physical_obj)
         out.writestr("WHD_tail_dual_V_same_sheet_AFTER_FIRST_T.obj",first_solid)

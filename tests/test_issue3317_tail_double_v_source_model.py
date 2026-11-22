@@ -75,6 +75,13 @@ def test_tail_real_same_blank_dual_90_v_and_folded_contact(first_axis):
         assert seq.source_area_mm2 == pytest.approx(
             seq.triangulated_area_mm2,rel=1e-7
         )
+        assert seq.source_x_only_vertices>0 and seq.source_y_only_vertices>0
+        assert seq.source_double_bend_vertices==0, (
+            "Same source UV must never be credited with two folds"
+        )
+        assert seq.max_X_then_Y_vs_Y_then_X_final_delta_mm < 1e-7, (
+            "Current exclusive UV ownership makes final fold order invariant"
+        )
         assert seq.first_stage_max_duplicate_vertex_jump_mm < 1e-7
         assert seq.final_stage_max_duplicate_vertex_jump_mm < 1e-7
         assert seq.root_process_status == (
@@ -233,6 +240,24 @@ def test_tail_real_same_blank_dual_90_v_and_folded_contact(first_axis):
             assert corner.sequential_root_process_status == (
                 "FINITE_BEND_TIP_TRANSITION_KINEMATIC_ONLY"
             )
+            alt=corner.alternative_existing_stock_contact_trial
+            assert alt.candidate_id == (
+                "SIDE_UPPER_V_WALL_TO_EXISTING_BOTTOM_OUTER_T_SKIN"
+            )
+            assert alt.corner == corner.corner
+            assert alt.first_axis == first_axis
+            assert alt.bottom_broad_source_area_mm2 > 0
+            assert alt.bottom_actual_t_outer_skin_verified
+            assert alt.source_validity_status == (
+                "BOTH_FACES_FROM_EXISTING_FACTORY_T_SHELL"
+            )
+            assert alt.side_true_t_faces and alt.bottom_true_t_broad_faces
+            assert alt.seam_mating_status in (
+                "ALTERNATE_BROAD_FACE_NOT_FULLY_MATING",
+                "ALTERNATE_BROAD_FACE_FIT_CANDIDATE_REQUIRES_ROOT_VERIFICATION",
+            )
+            assert len(alt.sampled_section_z_gap_mm)==4
+            assert alt.manufacturing_status=="CHECK_ONLY_NOT_APPROVED"
             # A supposed side inverse can be inside the ORIGINAL
             # reconstructed mother but physically absent after the
             # CURRENT real V CUTTING. Do not invent it or assign bottom
@@ -432,6 +457,8 @@ def test_tail_real_same_blank_dual_90_v_and_folded_contact(first_axis):
                 "WHD_tail_dual_V_same_source_2D.svg",
                 "WHD_tail_dual_V_true_T_left_right_sections.svg",
                 "WHD_tail_dual_V_original_2D_and_folded_true_T_sections.svg",
+                "WHD_tail_dual_V_ALTERNATIVE_original_candidate_overlay_sections.svg",
+                "WHD_tail_dual_V_ALTERNATIVE_real_T_broad_face_sections.svg",
                 "WHD_tail_dual_V_actual_folded_model.obj",
                 "WHD_tail_dual_V_RBA_focused_fold_check.obj",
                 "WHD_tail_dual_V_same_sheet_AFTER_FIRST_T.obj",
@@ -463,6 +490,16 @@ def test_tail_real_same_blank_dual_90_v_and_folded_contact(first_axis):
                 seq.source_area_mm2
             )
             assert traced["corners"][0]["same_sheet_stage_source_cut_tracks"]
+            assert traced["corners"][0]["alternative_mating_pair"]["bottom_real_source_area_mm2"] > 0
+            assert traced["corners"][0]["alternative_mating_pair"]["candidate_is_already_approved_V"] is False
+            assert traced["one_sheet_two_stage_models"][0]["source_fold_ownership"]["both_fold_source_vertices"] == 0
+            alt_svg=archive.read(
+                "WHD_tail_dual_V_ALTERNATIVE_original_candidate_overlay_sections.svg"
+            ).decode("utf-8")
+            assert "Factory original" in alt_svg
+            assert "GREEN" in alt_svg
+            assert "both corners" in alt_svg
+            assert "NOT a new V" in alt_svg
             stageview=archive.read(
                 "WHD_tail_dual_V_same_sheet_stage1_stage2_V_tracks.svg"
             ).decode("utf-8")
