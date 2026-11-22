@@ -45,7 +45,8 @@ class TailAlternativeMatingTrial:
     # or grant unapproved overlap/contact.
     bottom_actual_t_outer_skin_verified: bool
     sampled_section_z_gap_mm: tuple
-    full_span_coverage: object
+    full_span_coverage: object | None
+    full_span_error: str | None
     min_section_gap_mm: float | None
     max_section_gap_mm: float | None
     seam_mating_status: str
@@ -143,11 +144,20 @@ def project_tail_existing_bottom_broad_face_candidate(
         formed_seam_end=formed_seam_end,
         station_fractions=station_fractions,
     )
-    full=project_v_miter_true_cut_face_continuity_trial(
-        side_wall,tuple(broad),
-        formed_seam_start=formed_seam_start,
-        formed_seam_end=formed_seam_end,
-    )
+    full=None
+    full_error=None
+    try:
+        # The mathematical mesh-event interval algorithm works for BOTH
+        # genuine broad skin and cut-wall triangles; its class naming is
+        # historical. Do not label the broad skin a V CUTTING face.
+        full=project_v_miter_true_cut_face_continuity_trial(
+            side_wall,tuple(broad),
+            formed_seam_start=formed_seam_start,
+            formed_seam_end=formed_seam_end,
+        )
+    except GeometryError as exc:
+        full_error=str(exc)
+        # Unresolved math stays RED but station results remain observable.
     rows=tuple(
         (float(s.section_origin_xyz[2]),s.status,s.measured_gap_mm,
          s.nearest_first_xyz,s.nearest_second_xyz,
@@ -158,6 +168,7 @@ def project_tail_existing_bottom_broad_face_candidate(
     # Only an interval-complete upper bound at numerical geometry
     # tolerance can even qualify for further physical approval.
     qualified=(
+        full is not None and
         full.max_gap_upper_bound_mm is not None and
         full.max_gap_upper_bound_mm <= tol and
         full.missing_face_interval_count==0 and
@@ -183,6 +194,7 @@ def project_tail_existing_bottom_broad_face_candidate(
         bottom_actual_t_outer_skin_verified=True,
         sampled_section_z_gap_mm=rows,
         full_span_coverage=full,
+        full_span_error=full_error,
         min_section_gap_mm=samples.min_measured_gap_mm,
         max_section_gap_mm=samples.max_measured_gap_mm,
         seam_mating_status=status,

@@ -54,6 +54,13 @@ class TailSequentialFoldResult:
     triangulated_area_mm2: float
     source_material_polygon: Polygon
     source_fold_parameters: tuple
+    # Hard physical UV partition proof: current rules do not apply BOTH
+    # bends to any one source point. X/Y final geometries MUST be identical,
+    # even though first-stage XYZ genuinely differ.
+    source_x_only_vertices: int
+    source_y_only_vertices: int
+    source_double_bend_vertices: int
+    max_X_then_Y_vs_Y_then_X_final_delta_mm: float
     first_stage_max_duplicate_vertex_jump_mm: float
     final_stage_max_duplicate_vertex_jump_mm: float
     # Distinguish genuine non-neighbor T shell self-crossings from
@@ -283,11 +290,30 @@ def project_tail_same_sheet_sequential_fold_check(
     source_vertices_first={}
     source_vertices_final={}
     continuity_first=continuity_final=0.0
+    x_only=y_only=both=0
+    order_max_delta=0.0
+    unique_uv=set()
     for face in source:
         first_face=[]
         final_face=[]
         for uv in face:
             stage1,stage2,n1,n2=forward(uv)
+            opposite_final=_advance_same_source_uv(
+                uv,second_axis,parameters,
+            )[1]
+            order_max_delta=max(
+                order_max_delta,math.dist(stage2,opposite_final),
+            )
+            source_uv_key=tuple(round(float(q)/tol) for q in uv)
+            if source_uv_key not in unique_uv:
+                unique_uv.add(source_uv_key)
+                x,y=map(float,uv)
+                fold_x=(bottom-_EPS<=y<=float(lg.span_end)+_EPS and
+                        (x<left-_EPS or x>right+_EPS))
+                fold_y=(minx-_EPS<=x<=maxx+_EPS and y<bottom-_EPS)
+                x_only+=int(fold_x and not fold_y)
+                y_only+=int(fold_y and not fold_x)
+                both+=int(fold_x and fold_y)
             first_face.append(stage1)
             final_face.append(stage2)
             src_key=tuple(round(q/tol) for q in uv)
@@ -312,6 +338,11 @@ def project_tail_same_sheet_sequential_fold_check(
         all_final.append(tuple(final_face))
     if max(continuity_first,continuity_final)>tol:
         raise GeometryError("TAIL_SEQUENTIAL_UNCUT_SOURCE_TEAR")
+    if (not x_only or not y_only or both
+            or order_max_delta>tol):
+        raise GeometryError(
+            "TAIL_SEQUENTIAL_SOURCE_POINT_TWO_BENDS_OR_ORDER_DEPENDENT"
+        )
     thick1=thicken_triangle_surface(
         all_first,thickness_mm,smooth_vertex_normals=True,
         physical_vertex_offsets=offsets_first,tolerance=tol,
@@ -424,6 +455,10 @@ def project_tail_same_sheet_sequential_fold_check(
         )),
         source_material_polygon=v_cut_stock,
         source_fold_parameters=parameters,
+        source_x_only_vertices=x_only,
+        source_y_only_vertices=y_only,
+        source_double_bend_vertices=both,
+        max_X_then_Y_vs_Y_then_X_final_delta_mm=float(order_max_delta),
         first_stage_max_duplicate_vertex_jump_mm=float(continuity_first),
         final_stage_max_duplicate_vertex_jump_mm=float(continuity_final),
         stage1_shell_topology=top1,

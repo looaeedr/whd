@@ -58,6 +58,9 @@ from .v_miter_tail_sequential_fold_check import (
     project_tail_same_sheet_sequential_fold_check,
     project_tail_same_sheet_staged_source_point,
 )
+from .v_miter_tail_alternative_mating_check import (
+    project_tail_existing_bottom_broad_face_candidate,
+)
 
 
 _TOL = 1e-6
@@ -167,6 +170,7 @@ class TailDualVFaceResult:
     sequential_second_bottom_cut_faces: tuple
     sequential_final_seam_sections: tuple
     sequential_final_full_seam_continuity: object | None
+    alternative_existing_stock_contact_trial: object
     # Actual one-source inverse rechecked against present/removed CUTTING:
     # (z, side_uv, side_retained, side_formed_xyz, side_residual_mm,
     #     bottom_uv, bottom_retained, bottom_formed_xyz, bottom_residual_mm).
@@ -1029,6 +1033,17 @@ def project_tail_dual_v_same_source_check(
             formed_seam_start=physical_seam_start,
             formed_seam_end=physical_seam_end,
         )
+        # DIFFERENT physical pair from the old V-edge/V-edge trial:
+        # the actual SIDE upper V CUTTING wall versus the original
+        # BOTTOM material's +T broad outer skin. Source UV remains bottom-
+        # owned, never reassigned to side; this is a candidate lap contact,
+        # not an approved V miter or a change of CUTTING.
+        alternative = project_tail_existing_bottom_broad_face_candidate(
+            sequential,corner=corner,apex=row[0],
+            current_V_hits=(row[1],row[2]),
+            formed_seam_start=physical_seam_start,
+            formed_seam_end=physical_seam_end,
+        )
         seq_sample = project_v_miter_true_t_seam_section_gap_trial(
             seq_final_side if first_axis=="x" else seq_final_bottom,
             seq_final_bottom if first_axis=="x" else seq_final_side,
@@ -1066,6 +1081,7 @@ def project_tail_dual_v_same_source_check(
             sequential_second_bottom_cut_faces=seq_final_bottom,
             sequential_final_seam_sections=seq_sections,
             sequential_final_full_seam_continuity=seq_full_seam,
+            alternative_existing_stock_contact_trial=alternative,
             sequential_inverse_actual_source_trace_mm=tuple(seq_actual_inverse),
             sequential_root_process_status=sequential.root_process_status,
             straight_section_y_domain_witness_mm=straight_y_witness,
