@@ -97,3 +97,54 @@ def test_real_receiving_solve_reuses_meshes_without_changing_any_result(tmp_path
         assert _active_meshes.get() is None
     finally:
         root.destroy()
+
+
+def test_inactive_fold_tip_keeps_legacy_receiving_mesh_builder_contract_across_all_paths():
+    """An optional Tail-only kwarg must never reach an old receiving builder."""
+    from ae_engine.assembly_mesh_reuse import reuse_local_mesh
+    calls = []
+    def legacy(material, x_profile, y_profile, *,
+               fold_exemptions=(), fold_guides=()):
+        calls.append((material, x_profile, y_profile))
+        return object()
+    build = reuse_local_mesh(legacy)
+    stock = box(0, 0, 100, 80)
+    profile = ({'len': 20, 'angle': 90}, {'len': 80})
+    # Path 1: no active scope.
+    build(stock, profile, (), fold_tip_continuity=())
+    assert len(calls) == 1
+    with mesh_build_scope():
+        # Path 3: first cached build and same-key reuse.
+        first = build(stock, profile, (), fold_tip_continuity=())
+        assert build(stock, profile, ()) is first
+        assert len(calls) == 2
+        # Path 2: unusual unhashable profile forces uncached fallback.
+        unhashable = ({'len': 20, 'phase6_key': []}, {'len': 80})
+        build(stock, unhashable, (), fold_tip_continuity=())
+        assert len(calls) == 3
+
+
+def test_active_fold_tip_is_forwarded_and_separately_cached():
+    """Cache key must never confuse a connected-Tail tip with a legacy mesh."""
+    from ae_engine.assembly_mesh_reuse import reuse_local_mesh
+    calls = []
+    def aware(material, x_profile, y_profile, *,
+              fold_exemptions=(), fold_guides=(), fold_tip_continuity=()):
+        calls.append(tuple(fold_tip_continuity))
+        return object()
+    build = reuse_local_mesh(aware)
+    stock = box(0, 0, 100, 80)
+    profile = ({'len': 15, 'angle': 90}, {'len': 85})
+    tip = (('x', 15.0, 48.0, 290.0),)
+    # Without scope and in the unhashable profile fallback, enabled
+    # extensions must actually reach the new geometry builder.
+    build(stock, profile, (), fold_tip_continuity=tip)
+    with mesh_build_scope():
+        plain = build(stock, profile, ())
+        folded = build(stock, profile, (), fold_tip_continuity=tip)
+        assert build(stock, profile, (), fold_tip_continuity=tip) is folded
+        assert build(stock, profile, ()) is plain
+        assert folded is not plain
+        build(stock, ({'len': 15, 'phase6_key': []},), (),
+              fold_tip_continuity=tip)
+    assert calls == [tip, (), tip, tip]

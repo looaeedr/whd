@@ -25,13 +25,21 @@ def reuse_local_mesh(build):
         material, x_profile, y_profile, *,
         fold_exemptions=(), fold_guides=(), fold_tip_continuity=(),
     ):
+        # Old receiving/vault mesh builders accept only the original
+        # fold_exemptions/fold_guides contract. An *inactive* optional tip
+        # extension must not be passed to them at all. Enabled extensions
+        # still go exclusively to builders that implement that geometry.
+        tip_kwargs = (
+            {"fold_tip_continuity": fold_tip_continuity}
+            if fold_tip_continuity else {}
+        )
         cache = _active_meshes.get()
         if cache is None:
             return build(
                 material, x_profile, y_profile,
                 fold_exemptions=fold_exemptions,
                 fold_guides=fold_guides,
-                fold_tip_continuity=fold_tip_continuity,
+                **tip_kwargs,
             )
         from .assembly_geometry_folded_mesh import _segment_value
         xp, yp = tuple(x_profile or ()), tuple(y_profile or ())
@@ -54,12 +62,12 @@ def reuse_local_mesh(build):
             # Unusual extension profile values retain the uncached contract.
             return build(
                 material, xp, yp, fold_exemptions=exemptions,
-                fold_guides=guides, fold_tip_continuity=tip_continuity,
+                fold_guides=guides, **tip_kwargs,
             )
         if key not in cache:
             result = build(
                 material, xp, yp, fold_exemptions=exemptions,
-                fold_guides=guides, fold_tip_continuity=tip_continuity,
+                fold_guides=guides, **tip_kwargs,
             )
             # Bound temporary memory even for unusually large assemblies.
             if len(cache) < 256:
