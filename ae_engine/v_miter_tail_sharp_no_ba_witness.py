@@ -55,7 +55,6 @@ def project_tail_sharp_no_ba_v_witness(flat) -> TailSharpNoBAWitness:
     """
     from .v_miter_tail_user_image_source import TailIllustratedSideV90Flat
     from .endcap_factory_fold import build_endcap_xy_fold_profiles
-    from .endcap_xy_readback import fold_material_segment_outside_length
     from .assembly_geometry_folded_mesh import (
         _profile_geometry, _prepare_profile_mapper,
     )
@@ -95,12 +94,19 @@ def project_tail_sharp_no_ba_v_witness(flat) -> TailSharpNoBAWitness:
     p["Y"]=list(exact_tail_y_fold_profile_from_original_bends(flat,st))
     by_x={row.get("phase6_key"):row for row in p["X"]}
     by_y={row.get("phase6_key"):row for row in p["Y"]}
+    # The editor readback intentionally rounds operator DISPLAY lengths
+    # (e.g. 175.5 + 3.0 -> 178 via _ui_len). A physical T-skin
+    # measurement MUST retain those fractional millimetres. Reuse each
+    # segment's original adjacent-BEND ui_len_add; no new BA/R or 2nd
+    # compensation is introduced here.
+    def actual_outside(segment):
+        return float(segment["len"])+float(segment.get("ui_len_add",0.0))
     nominal=(
-        ("main_face_w",float(fold_material_segment_outside_length(by_x["endcap_w_core"]))),
-        ("main_face_d",float(fold_material_segment_outside_length(by_y["endcap_d_core"]))),
-        ("side_left",float(fold_material_segment_outside_length(by_x["yl1"]))),
-        ("side_right",float(fold_material_segment_outside_length(by_x["yr1"]))),
-        ("bottom",float(fold_material_segment_outside_length(by_y["ybottom1"]))),
+        ("main_face_w",actual_outside(by_x["endcap_w_core"])),
+        ("main_face_d",actual_outside(by_y["endcap_d_core"])),
+        ("side_left",actual_outside(by_x["yl1"])),
+        ("side_right",actual_outside(by_x["yr1"])),
+        ("bottom",actual_outside(by_y["ybottom1"])),
     )
     xb,xf=_profile_geometry(p["X"])
     yb,yf=_profile_geometry(p["Y"])
