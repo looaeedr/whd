@@ -200,6 +200,16 @@ def _snapshot_base_state(self):
         )
         if choice=="v90":
             snapshot[TAIL_LOWER_V_SNAPSHOT_KEY]=choice
+            # #3317 real physical first-fold BENDs are owned by the SAME
+            # Designer snapshot as the V choice. Main GUI Save As must
+            # preserve both corner identities; the old CHECK-only axis map
+            # is unrelated and is never used to reconstruct them.
+            first_key=manufacturing_api.TAIL_LOWER_V_FIRST_BENDS_KEY
+            if first_key in stored:
+                manufacturing_api.project_operator_tail_lower_v_first_bend_status(
+                    stored,
+                )
+                snapshot[first_key]=deepcopy(stored[first_key])
     # Engine alone decides whether this Family owns a physical BasePlate.
     # Only carry a detached *committed* source; never derive a pattern here.
     snapshot.update(manufacturing_api.project_operator_receiving_base_plate_snapshot_source(
