@@ -371,3 +371,56 @@ def test_tail_3317_sharp_no_ba_finite_bend_source_rejects_old_y49():
         project_tail_v90_no_ba_sequential_check(
             replace(flat,result_scene=render.scene),first_axis="y",
         )
+
+
+@pytest.mark.parametrize("first_axis",("x","y"))
+def test_tail_3317_no_ba_real_sharp_second_axis_carries_both_v_edges(first_axis):
+    """Real source Y0/X15 lower V corners; no imaginary R/BA or welded cut."""
+    from ae_engine.v_miter_tail_user_image_source import (
+        project_tail_illustrated_side_v90_flat,
+    )
+    from ae_engine.v_miter_tail_sharp_no_ba_witness import (
+        project_tail_sharp_no_ba_two_stage_v_edges,
+    )
+    spec,render=_image_sample_vault_tail()
+    original=tuple(render.scene.primitives)
+    flat=project_tail_illustrated_side_v90_flat(spec,render)
+    evidence=project_tail_sharp_no_ba_two_stage_v_edges(
+        flat,first_axis=first_axis,
+    )
+    assert tuple(render.scene.primitives)==original
+    assert evidence.first_axis==first_axis
+    assert evidence.manufacturing_approved is False
+    assert evidence.geometry_model.endswith("NO_BA_KINEMATIC_CHECK")
+    assert evidence.same_sheet_root_t_status=="UNSOLVED_T2_ROOT_TRANSITION"
+    assert len(evidence.edge_tracks)==28
+    assert evidence.max_target_midpoint_error_mm<1e-7
+    assert all(e.original_source_xy[1]<=63. for e in evidence.edge_tracks)
+    for name,red,blue in evidence.paired_mids_after_second_xyz:
+        x=15. if name=="bottom_left" else 507.
+        assert red==pytest.approx((x,55.5,7.5))
+        assert blue==pytest.approx((x,55.5,7.5))
+        assert red is not blue
+    red_low=next(e for e in evidence.edge_tracks
+                 if e.corner=="bottom_left" and e.leg=="LOWER_BLUE"
+                 and e.original_source_xy==(7.5,40.5))
+    if first_axis=="x":
+        assert red_low.after_first_xyz==pytest.approx((15.,40.5,7.5))
+    else:
+        assert red_low.after_first_xyz==pytest.approx((7.5,48.,7.5))
+    assert red_low.after_second_xyz==pytest.approx((15.,55.5,7.5))
+    # The original finite source guide remains x=16..506; no added guide.
+    from ae_engine.manufacturing_render_data import fold_guides_from_final_scene
+    gids=fold_guides_from_final_scene(flat.result_scene)
+    assert sum(g.axis=="y" and g.position==48. and
+               g.span_start==16. and g.span_end==506. for g in gids)==1
+
+
+def test_tail_3317_no_ba_two_stage_rejects_unselected_axis():
+    from ae_engine.v_miter_tail_user_image_source import project_tail_illustrated_side_v90_flat
+    from ae_engine.v_miter_tail_sharp_no_ba_witness import project_tail_sharp_no_ba_two_stage_v_edges
+    spec,render=_image_sample_vault_tail()
+    flat=project_tail_illustrated_side_v90_flat(spec,render)
+    for invalid in (None,True,"z"):
+        with pytest.raises(GeometryError,match="TWO_STAGE_CORRECTED_SOURCE_REQUIRED"):
+            project_tail_sharp_no_ba_two_stage_v_edges(flat,first_axis=invalid)

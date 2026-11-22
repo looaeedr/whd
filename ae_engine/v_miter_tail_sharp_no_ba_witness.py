@@ -154,3 +154,142 @@ def project_tail_sharp_no_ba_v_witness(flat) -> TailSharpNoBAWitness:
         nominal_outside_mm=nominal,
         physical_sheet_thickness_mm=float(spec.thickness),
     )
+
+
+@dataclass(frozen=True)
+class TailSharpNoBATwoStageVEdge:
+    corner: str
+    leg: str
+    original_source_xy: tuple
+    after_first_xyz: tuple
+    after_second_xyz: tuple
+
+
+@dataclass(frozen=True)
+class TailSharpNoBATwoStageVResult:
+    first_axis: str
+    corners: tuple
+    # Distinct red and blue source CUTTING lines may arrive at equal XYZ,
+    # but remain different source edges; NO mesh welding is performed.
+    edge_tracks: tuple[TailSharpNoBATwoStageVEdge,...]
+    paired_mids_after_second_xyz: tuple
+    max_target_midpoint_error_mm: float
+    geometry_model: str = "WHD_90_DEGREE_SHARP_CARRIED_SECOND_AXIS_NO_BA_KINEMATIC_CHECK"
+    same_sheet_root_t_status: str = "UNSOLVED_T2_ROOT_TRANSITION"
+    full_thickness_face_contact_status: str = "UNVERIFIED_NOT_DEDUCIBLE_FROM_MATCHED_MIDS"
+    manufacturing_approved: bool = False
+
+
+def project_tail_sharp_no_ba_two_stage_v_edges(flat, *, first_axis: str):
+    """Carry actual source V edges through two SHARP ninety-degree rotations.
+
+    The lower V leg is on material CONTINUOUS with the finite bottom lip.
+    Beyond the bottom BEND x=16..506 its corner stock is transported with
+    that lip, without inventing a longer BEND. A second axis MUST be carried
+    by the first bend: Y->X has lower side hinge now parallel to world Z;
+    X->Y rotates an already elevated corner about the unchanged world X
+    bottom crease. Only source cut-boundary points are returned here.
+    NO BA, fitted R, thickness offset, bevel or welding are introduced.
+    """
+    from shapely.geometry import box
+    from .v_miter_tail_user_image_source import TailIllustratedSideV90Flat
+    from .manufacturing_render_data import fold_guides_from_final_scene
+
+    if (type(first_axis) is not str or first_axis not in ("x","y")
+            or not isinstance(flat,TailIllustratedSideV90Flat)
+            or flat.manufacturing_approved
+            or len(flat.opening_source_points_xy)!=2
+            or tuple(map(float,flat.result_material.bounds))!=(0.,0.,522.,233.)):
+        raise GeometryError("TAIL_SHARP_NO_BA_TWO_STAGE_CORRECTED_SOURCE_REQUIRED")
+    # Reuse the previously audited corrected 2D/Factory profile witness;
+    # never silently substitute the old Y=49 short guide.
+    readback=project_tail_sharp_no_ba_v_witness(flat)
+    guides=fold_guides_from_final_scene(flat.result_scene)
+    # Physical Y BEND still ends at x16..506. Carrying the two connected
+    # outside tip regions is NOT extending that BEND in the source scene.
+    bottom=tuple(g for g in guides if g.axis=="y" and abs(g.position-48.)<1e-7)
+    if len(bottom)!=1 or abs(bottom[0].span_start-16.)>1e-7 or abs(bottom[0].span_end-506.)>1e-7:
+        raise GeometryError("TAIL_SHARP_NO_BA_FINITE_BOTTOM_BEND_CHANGED")
+    lower=flat.result_material.intersection(box(0.,0.,522.,48.))
+    if (lower.geom_type!="Polygon" or not lower.is_valid
+            or lower.area<=0
+            or not lower.covers(box(16.,0.,506.,33.))):
+        raise GeometryError("TAIL_SHARP_NO_BA_LOWER_LIP_SOURCE_NOT_CONNECTED")
+    tracks=[]
+    midpoints=[]
+    worst=0.
+    for original in flat.opening_source_points_xy:
+        name,low,apex,high=original
+        side=15. if name=="bottom_left" else 507.
+        outer=0. if name=="bottom_left" else 522.
+        if (tuple(apex)!=(side,48.) or tuple(low)!=(outer,33.)
+                or tuple(high)!=(outer,63.)):
+            raise GeometryError("TAIL_SHARP_NO_BA_V_SOURCE_EDGE_MISMATCH")
+        rows=[]
+        for leg,target in (("UPPER_RED",high),("LOWER_BLUE",low)):
+            vals=[]
+            for frac in (0.,.125,.25,.5,.75,.875,1.):
+                x=float(apex[0]+frac*(target[0]-apex[0]))
+                y=float(apex[1]+frac*(target[1]-apex[1]))
+                u=abs(side-x)
+                is_side=u>1e-9 and y<=190.
+                is_bottom=y<48.-1e-9
+                if first_axis=="x":
+                    # 1st fold: actual X=15/507 side crease -> world +Z.
+                    first=(side,y,u) if is_side else (x,y,0.)
+                    if is_bottom:
+                        # R_x(-90) about the intact finite Y=48 crease:
+                        # y_new = 48+z_old, z_new = 48-y_old.
+                        # Works on the corner already lifted by first X fold.
+                        final=(first[0],48.+first[2],48.-first[1])
+                    else:
+                        final=first
+                else:
+                    # 1st fold: bottom Y=48 -> world +Z; tip continuation
+                    # is proven connected to lower stock, NOT a new BEND.
+                    first=(x,48.,48.-y) if is_bottom else (x,y,0.)
+                    if is_side and is_bottom:
+                        # The X=15/507 hinge's lower segment has rotated
+                        # from world Y into world Z by the FIRST Y fold.
+                        # Rotate -90 (left) / +90 (right) around this
+                        # carried Z-axis, through (side,48,z_first).
+                        final=(side,48.+u,first[2])
+                    elif is_side:
+                        final=(side,first[1],u)
+                    else:
+                        final=first
+                vals.append(TailSharpNoBATwoStageVEdge(
+                    corner=name,leg=leg,original_source_xy=(x,y),
+                    after_first_xyz=tuple(map(float,first)),
+                    after_second_xyz=tuple(map(float,final)),
+                ))
+            rows.append(tuple(vals))
+            tracks.extend(vals)
+        red,blue=rows
+        if len(red)!=len(blue):
+            raise GeometryError("TAIL_SHARP_NO_BA_V_LEG_PAIR_MISSING")
+        # Compare *all* stations, never weld the red/blue source identity.
+        for a,b in zip(red,blue):
+            if a.original_source_xy==b.original_source_xy and a.leg==b.leg:
+                raise GeometryError("TAIL_SHARP_NO_BA_CUTTING_OWNERS_MERGED")
+            # The V's two endpoints move to the same nominal seam after
+            # the true carried-axis sharp sequence. Still NO T2 fit verdict.
+            error=math.dist(a.after_second_xyz,b.after_second_xyz)
+            worst=max(worst,error)
+            if error>1e-7:
+                raise GeometryError("TAIL_SHARP_NO_BA_TRUE_SECOND_AXIS_MITER_MISMATCH")
+        m_red=red[3]
+        m_blue=blue[3]
+        target=(side,55.5,7.5)
+        if (math.dist(m_red.after_second_xyz,target)>1e-7
+                or math.dist(m_blue.after_second_xyz,target)>1e-7):
+            raise GeometryError("TAIL_SHARP_NO_BA_USER_NOMINAL_MIDPOINT_NOT_MET")
+        midpoints.append((name,m_red.after_second_xyz,m_blue.after_second_xyz))
+    if len(tracks)!=28:
+        raise GeometryError("TAIL_SHARP_NO_BA_V_EDGE_TRACK_INCOMPLETE")
+    return TailSharpNoBATwoStageVResult(
+        first_axis=first_axis,corners=tuple(c.corner for c in readback.corners),
+        edge_tracks=tuple(tracks),
+        paired_mids_after_second_xyz=tuple(midpoints),
+        max_target_midpoint_error_mm=worst,
+    )
