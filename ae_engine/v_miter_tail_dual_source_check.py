@@ -20,7 +20,7 @@ from .assembly_geometry import (
 from .assembly_geometry_primitives import (
     thicken_triangle_surface, smoothed_surface_vertex_offsets,
 )
-from .contracts import EndCapPartSpec
+from .contracts import EndCapPartSpec, PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES
 from .manufacturing_render_data import (
     PartRenderData, fold_guides_from_final_scene,
 )
@@ -464,7 +464,9 @@ def project_tail_dual_v_same_source_check(
             skin = tuple(joined)
             offsets = smoothed_surface_vertex_offsets(
                 skin, q.thickness_mm,
-                tolerance=_TOL,
+                tolerance=float(
+                    PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES.boundary_separation_tolerance
+                ),
             )
         else:
             offsets = _measured_cylindrical_half_t_offsets(
@@ -475,6 +477,9 @@ def project_tail_dual_v_same_source_check(
         solid = tuple(thicken_triangle_surface(
             skin, q.thickness_mm, smooth_vertex_normals=True,
             physical_vertex_offsets=offsets,
+            tolerance=float(
+                PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES.boundary_separation_tolerance
+            ),
         ))
         if not solid:
             raise GeometryError("V_MITER_TAIL_DUAL_"+label+"_SOLID_EMPTY")
