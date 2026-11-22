@@ -44,6 +44,10 @@ def test_tail_full_t_has_four_original_through_holes_upper_fold_and_outer_dimens
     assert result.shell_nonmanifold_edge_count==0
     assert result.shell_winding_error_edge_count==0
     assert result.shell_signed_volume_mm3>0
+    assert result.forbidden_crossing_pair_count==0
+    assert result.unexpected_coplanar_overlap_pair_count==0
+    assert result.tested_nonadjacent_world_face_pairs>1000
+    assert result.volume_nonpenetration_status.startswith("NUMERICAL_WORLD_TRUE_T")
     assert result.formed_outer_extents_xyz_mm==pytest.approx((496.,148.,50.))
     assert result.formed_side_outside_reach_mm==pytest.approx(17.)
     assert result.actual_upper_fold_sample_xyz==pytest.approx((261.,181.,25.))

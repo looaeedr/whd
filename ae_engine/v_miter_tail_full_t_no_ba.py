@@ -44,6 +44,9 @@ class TailV90FullT2SolidCheck:
     shell_nonmanifold_edge_count: int
     shell_winding_error_edge_count: int
     shell_signed_volume_mm3: float
+    forbidden_crossing_pair_count: int
+    unexpected_coplanar_overlap_pair_count: int
+    tested_nonadjacent_world_face_pairs: int
     formed_outer_bounds_xyz_mm: tuple
     formed_outer_extents_xyz_mm: tuple
     formed_side_outside_reach_mm: float
@@ -56,7 +59,7 @@ class TailV90FullT2SolidCheck:
     thickness_mm: float
     hole_wall_status: str = "SAME_SOURCE_INNER_WALLS_PRESENT"
     root_topology_status: str = "SOURCE_KEYED_WATERTIGHT_SHELL"
-    volume_nonpenetration_status: str = "NOT_YET_CERTIFIED_BY_SOLID_INTERSECTION"
+    volume_nonpenetration_status: str = "NUMERICAL_WORLD_TRUE_T_NONCONTACT_SURFACE_CROSSING_CLEAR_NOT_BOOLEAN_CERTIFICATE"
     manufacturing_approved: bool = False
 
 
@@ -152,7 +155,7 @@ def project_tail_v90_full_t_no_ba(flat, *, first_axis: str):
         index_faces.append(tuple(face))
     inside=tuple(formed(uv) for uv in vertices_uv)
     face_normals=[]
-    average_normals=[[0.,0.,0.] for _ in vertices_uv]
+    source_plane_normals=[[] for _ in vertices_uv]
     skin=[]
     for a,b,c in index_faces:
         normal=_unit(_cross(
@@ -161,15 +164,25 @@ def project_tail_v90_full_t_no_ba(flat, *, first_axis: str):
         face_normals.append(normal)
         skin.append((inside[a],inside[b],inside[c]))
         for index in (a,b,c):
-            for component in range(3):
-                average_normals[index][component]+=normal[component]
-    # At a sharp hinge, use a single source-owned miter offset shared by
-    # all incident skin faces. Offset length is exactly T (one side), never
-    # +/- T/2. This gives an indexed closed shell without welding contact.
-    normal_at_source=tuple(_unit(n) for n in average_normals)
+            if not any(_dot(normal,prior)>=1.-1e-9
+                       for prior in source_plane_normals[index]):
+                source_plane_normals[index].append(normal)
+    # A T2 *sharp miter corner* is at the INTERSECTION of the unchanged
+    # source face's one-sided T offsets, not at a normalized average of
+    # their normals. At a perpendicular two-plane crease, move by T along
+    # BOTH normals; at the 3-plane physical root, move by all THREE.
+    # This uses no R, no BA and no invented CUTTING. It keeps the original
+    # one-sheet UV vertex shared, while exact outside faces meet without
+    # smoothed-normal outer-skin crossings at the finite-root corner.
+    if any(
+        abs(_dot(n,m))>1e-7 for normals in source_plane_normals
+        for i,n in enumerate(normals) for m in normals[i+1:]
+    ):
+        raise GeometryError("TAIL_V90_T2_FULL_NONORTHOGONAL_SHARP_ROOT")
     outside=tuple(
-        tuple(inside[i][component]-thickness*normal_at_source[i][component]
-              for component in range(3))
+        tuple(inside[i][component]-thickness*sum(
+            normal[component] for normal in source_plane_normals[i]
+        ) for component in range(3))
         for i in range(len(inside))
     )
     vertices=inside+outside
@@ -192,6 +205,7 @@ def project_tail_v90_full_t_no_ba(flat, *, first_axis: str):
     if nonmanifold or missing:
         raise GeometryError("TAIL_V90_T2_FULL_SOURCE_EDGE_NOT_CONTIGUOUS")
     physical_wall_faces_by_source_edge={}
+    physical_wall_face_ids_by_source_edge={}
     for a,b in boundary:
         # With source CCW the wall winding points toward missing
         # material (including the ORIGINAL through-holes). Two opposite
@@ -204,8 +218,12 @@ def project_tail_v90_full_t_no_ba(flat, *, first_axis: str):
             faces=((a,b+k,b),(a,a+k,b+k))
         else:
             faces=((b,a,a+k),(b,a+k,b+k))
+        face_start=len(shell)
         shell.extend(faces)
         physical_wall_faces_by_source_edge[frozenset((a,b))]=faces
+        physical_wall_face_ids_by_source_edge[frozenset((a,b))]=(
+            face_start,face_start+1,
+        )
 
     edge_faces=defaultdict(list)
     for a,b,c in shell:
@@ -260,31 +278,74 @@ def project_tail_v90_full_t_no_ba(flat, *, first_axis: str):
     # own original CUTTING source IDs. Compare their ENTIRE triangle sets,
     # including the physical outer face corners, not midpoint distances.
     cut_contacts=[]
+    # Only ONE of each source-proven coincident opposite-side V face is
+    # excluded from the GLOBAL self-intersection diagnostic. The genuine
+    # paired sidewall remains in the actual shell and in the contact proof.
+    # It must not be mistaken for positive-volume self-penetration.
+    duplicate_contact_faces_to_ignore=set()
     for corner,lower,apex,upper in flat.opening_source_points_xy:
         leg_walls=[]
+        leg_face_ids=[]
         for endpoint in (lower,upper):
             ideal=LineString((apex,endpoint))
             selected=[]
+            selected_ids=[]
             for a,b in boundary:
                 seg=LineString((vertices_uv[a],vertices_uv[b]))
                 if seg.length<=_EPS or seg.difference(ideal.buffer(_EPS*3)).length>_EPS:
                     continue
+                source_key=frozenset((a,b))
                 selected.extend(tuple(
                     tuple(vertices[vi] for vi in face)
-                    for face in physical_wall_faces_by_source_edge[frozenset((a,b))]
+                    for face in physical_wall_faces_by_source_edge[source_key]
                 ))
+                selected_ids.extend(
+                    physical_wall_face_ids_by_source_edge[source_key]
+                )
             if not selected:
                 raise GeometryError("TAIL_V90_T2_FULL_CUT_WALL_SOURCE_NOT_FOUND")
             leg_walls.append(tuple(selected))
+            leg_face_ids.append(tuple(selected_ids))
         lower_world,upper_world=leg_walls
         def canonical(tri):
             return tuple(sorted(
                 tuple(round(v/_EPS) for v in point)
                 for point in tri
             ))
-        if set(map(canonical,lower_world)) != set(map(canonical,upper_world)):
+        low_faces={canonical(tri):tri for tri in lower_world}
+        high_faces={canonical(tri):tri for tri in upper_world}
+        if set(low_faces)!=set(high_faces) or len(low_faces)!=len(lower_world) or len(high_faces)!=len(upper_world):
             raise GeometryError("TAIL_V90_T2_FULL_REAL_CUT_WALLS_NOT_COINCIDENT")
+        # Both walls physically meet over the *same area*, yet face in
+        # opposite directions. A same-direction duplicate is invalid.
+        for key in low_faces:
+            a,b,c=low_faces[key]
+            d,e,f=high_faces[key]
+            nlow=_unit(_cross(_v3sub(b,a),_v3sub(c,a)))
+            nhigh=_unit(_cross(_v3sub(e,d),_v3sub(f,d)))
+            if _dot(nlow,nhigh)>-1.+1e-7:
+                raise GeometryError("TAIL_V90_T2_FULL_V_WALL_NORMALS_NOT_OPPOSED")
+        duplicate_contact_faces_to_ignore.update(leg_face_ids[1])
         cut_contacts.append((corner,len(lower_world),len(upper_world),0.0,True))
+
+    # WORLD self-intersection is checked AFTER separating source-proven V
+    # face contact from the rest of the still-complete indexed shell.
+    # All actual hole walls, both outside skins, and the true root stay in
+    # the diagnostic. No old R/BA or in-plane midpoint gap is used.
+    from .assembly_geometry import diagnose_world_mesh_self_intersections
+    observed=diagnose_world_mesh_self_intersections(tuple(
+        tuple(vertices[v] for v in face) for j,face in enumerate(shell)
+        if j not in duplicate_contact_faces_to_ignore
+    ))
+    if (observed.numerical_budget_exhausted
+            or observed.crossing_pair_count
+            or observed.coplanar_overlap_pair_count):
+        raise GeometryError(
+            "TAIL_V90_T2_FULL_ROOT_FORBIDDEN_SURFACE_INTERSECTION:"
+            f" crossings={observed.crossing_pair_count}"
+            f" overlap={observed.coplanar_overlap_pair_count}"
+            f" exhausted={observed.numerical_budget_exhausted}"
+        )
     return TailV90FullT2SolidCheck(
         first_axis=first_axis,
         source_material_with_holes=stock,
@@ -299,6 +360,9 @@ def project_tail_v90_full_t_no_ba(flat, *, first_axis: str):
         shell_nonmanifold_edge_count=bad_edges,
         shell_winding_error_edge_count=bad_winding,
         shell_signed_volume_mm3=float(signed_volume),
+        forbidden_crossing_pair_count=observed.crossing_pair_count,
+        unexpected_coplanar_overlap_pair_count=observed.coplanar_overlap_pair_count,
+        tested_nonadjacent_world_face_pairs=observed.tested_nonadjacent_pairs,
         formed_outer_bounds_xyz_mm=bounds,
         formed_outer_extents_xyz_mm=extents,
         formed_side_outside_reach_mm=float(side_reach),
