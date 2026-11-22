@@ -184,6 +184,12 @@ class TailDualVFaceResult:
     # This is a HYPOTHETICAL R/BA plane-intersection inverse, not
     # proof that true finite-T cut walls already mate there.
     inverse_flat_source_coverage_mm: tuple = ()
+    # Hypothetical same-neutral-seam R/BA arc inverse (not a sequential
+    # whole-blank cut). A non-apex intersection means its two source
+    # legs cannot be used as one simple V opening without further work.
+    inverse_root_arc_source_traces_xy: tuple = ()
+    inverse_root_nonapex_crossings_xy: tuple = ()
+    inverse_root_candidate_status: str = "NOT_EVALUATED"
     interference_z_range_mm: tuple | None = None
     actual_joint_axis_xyz: tuple = ()
     native_uncut_fold_endpoint_jump_max_mm: float | None = None
@@ -856,6 +862,44 @@ def project_tail_dual_v_same_source_check(
         bottom_fit = _apex_ray_side_exit_least_squares(
             row[0], bottom_inverse, outer_x,
         )
+        # Invert the curved *root* branch of the SAME finite R/BA
+        # neutral-axis equations, rather than extrapolating the straight
+        # z>=R+T/2 inverse down through the physical bend. This is an
+        # inverse HYPOTHESIS; a true single-blank sequential root still
+        # needs physical ownership proof before any cutting is permitted.
+        neutral_r=q.first_bend_allowance_mm/(math.pi/2.0)
+        root_phi=tuple(math.pi*i/(2.0*64) for i in range(65))
+        source_side_root=tuple((
+            float(row[0].x+side_outside[0]*neutral_r*phi),
+            float(row[0].y+n_bottom[1]*mid_radius*math.sin(phi)),
+        ) for phi in root_phi)
+        source_bottom_root=tuple((
+            float(row[0].x+side_outside[0]*mid_radius*math.sin(phi)),
+            float(row[0].y+n_bottom[1]*neutral_r*phi),
+        ) for phi in root_phi)
+        if not all(restored.covers(Point(*point)) for point in (
+            *source_side_root,*source_bottom_root
+        )):
+            raise GeometryError("V_MITER_TAIL_INVERSE_ROOT_LEAVES_ORIGINAL_MOTHER")
+        root_cross_geometry=LineString(source_side_root).intersection(
+            LineString(source_bottom_root)
+        )
+        root_cross_candidates = (
+            (root_cross_geometry,)
+            if root_cross_geometry.geom_type == "Point"
+            else tuple(getattr(root_cross_geometry,"geoms",()))
+        )
+        root_crossings=tuple(
+            (float(pt.x),float(pt.y))
+            for pt in root_cross_candidates
+            if pt.geom_type == "Point"
+            and pt.distance(Point(row[0].x,row[0].y)) > 100*_TOL
+        )
+        root_inverse_status=(
+            "ROOT_NEUTRAL_INVERSE_CURVES_CROSS_OUTSIDE_APEX_CHECK_ONLY"
+            if root_crossings else
+            "ROOT_NEUTRAL_INVERSE_WITHOUT_NONAPEX_CROSSING_CHECK_ONLY"
+        )
         inverse_coverage = tuple((
             float(z),
             bool(restored.covers(Point(s.x, s.y))),
@@ -929,6 +973,11 @@ def project_tail_dual_v_same_source_check(
             inverse_unconstrained_outer_hits_mm=(*side_fit, *bottom_fit),
             inverse_source_fit_status=inverse_fit_status,
             inverse_flat_source_coverage_mm=inverse_coverage,
+            inverse_root_arc_source_traces_xy=(
+                source_side_root,source_bottom_root,
+            ),
+            inverse_root_nonapex_crossings_xy=root_crossings,
+            inverse_root_candidate_status=root_inverse_status,
             interference_z_range_mm=(
                 (min(interference_z), max(interference_z))
                 if interference_z else None
