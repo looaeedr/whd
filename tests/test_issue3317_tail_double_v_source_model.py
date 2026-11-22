@@ -433,7 +433,7 @@ def test_tail_real_same_blank_dual_90_v_and_folded_contact(first_axis):
             ).decode("utf-8")
             assert archive.read(
                 "WHD_tail_dual_V_same_sheet_FIRST_SECOND_3D.png"
-            ).startswith(b"\\x89PNG\\r\\n\\x1a\\n")
+            ).startswith(b"\x89PNG\r\n\x1a\n")
             assert "STAGE 1" in stageview and "STAGE 2" in stageview
             assert "bottom_left" in stageview and "bottom_right" in stageview
             assert traced["operator_first_bend_axes"] == [
