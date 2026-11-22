@@ -93,15 +93,60 @@ def test_actual_source_generates_two_v_and_one_same_source_2d_3d(
 
 
 
-def test_variable_t_is_not_whitelisted_but_upper_factory_profile_must_match():
-    # Real geometry / existing Fold Profile do not agree at this fractional
-    # T for the observed Factory source. This is a concrete source conflict,
-    # NOT an artificial T=2 or 522×233 white-list rejection.
+def test_fractional_t_original_bend_precision_is_not_rounded_and_v_works():
+    # Factory source carries a 175.5 mm material segment, even when the
+    # unchanged legacy UI Fold Profile happens to display it as 176.
+    from ae_engine.v_miter_tail_no_ba_sequential import (
+        stations_from_real_flat,exact_tail_y_fold_profile_from_original_bends,
+    )
     spec,render=_real_source(545.,180.,1.5,14.,17.,48.,25.)
     flat=project_tail_illustrated_side_v90_flat(spec,render)
+    before_scene=tuple(render.scene.primitives)
     assert len(flat.opening_source_points_xy)==2
-    with pytest.raises(GeometryError,match="UNCHANGED_UPPER_FOLD_TOPOLOGY_INVALID:.*current_CUTTING_Y=.*current_profile_Y="):
-        api.project_operator_tail_lower_v_preview_render(spec,render,choice="v90")
+    st=stations_from_real_flat(flat)
+    assert (st.bottom_y,st.upper_start,st.upper_crease,st.ymax)==pytest.approx(
+        (48.,223.5,248.5,264.5)
+    )
+    exact=exact_tail_y_fold_profile_from_original_bends(flat,st)
+    assert [row["len"] for row in exact]==pytest.approx((48.,175.5,25.,16.))
+    assert [row.get("angle") for row in exact]==[-90,-90,-90,None]
+    preview=api.project_operator_tail_lower_v_preview_render(spec,render,choice="v90")
+    assert tuple(render.scene.primitives)==before_scene
+    assert preview.metadata["tail_lower_v_physical_t"]==pytest.approx(1.5)
+    assert preview.scene==flat.result_scene
+    assert preview.material.bounds[3]==pytest.approx(264.5)
+    mesh=api.project_independent_part_view_mesh(
+        "tail",preview,x_profile=(),y_profile=(),thickness=1.5,
+    )
+    assert tuple(mesh.triangles)==api.tail_lower_v_preview_mesh(preview)
+    assert len(mesh.triangles)>500
+
+
+def test_fractional_t_real_upper_bend_shift_rejected_not_masked_by_precision_fix():
+    from ae_engine.sheetmetal_drawing import LinePrimitive, DrawingScene
+    from ae_engine.sheetmetal_geometry_core import Vec2
+    spec,render=_real_source(545.,180.,1.5,14.,17.,48.,25.)
+    # Change the physical source BEND only, not the matching stepped CUTTING.
+    moved=[]
+    for primitive in render.scene.primitives:
+        if (isinstance(primitive,LinePrimitive)
+                and primitive.layer=="BEND"
+                and abs(primitive.p1.y-223.5)<1e-7
+                and abs(primitive.p2.y-223.5)<1e-7):
+            primitive=LinePrimitive(
+                Vec2(primitive.p1.x,224.),Vec2(primitive.p2.x,224.),
+                layer=primitive.layer,color=primitive.color,
+            )
+        moved.append(primitive)
+    changed=PartRenderData(
+        scene=DrawingScene(moved),material=material_polygon_from_final_scene(DrawingScene(moved)),
+        fold_guides=fold_guides_from_final_scene(DrawingScene(moved)),
+    )
+    bad_flat=project_tail_illustrated_side_v90_flat(spec,changed)
+    with pytest.raises(GeometryError,match="UNCHANGED_UPPER_FOLD_TOPOLOGY_INVALID"):
+        api.project_operator_tail_lower_v_preview_render(
+            spec,changed,choice="v90",
+        )
 
 @pytest.mark.parametrize("w,d,t",((470.,148.,2.),(840.,230.,1.5)))
 def test_different_dimensions_do_not_fail_the_operator_selection_gate(w,d,t):

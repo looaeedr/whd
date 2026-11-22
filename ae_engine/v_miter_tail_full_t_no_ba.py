@@ -95,7 +95,9 @@ def project_tail_v90_full_t_no_ba(flat, *, first_axis: str):
     from .v_miter_tail_user_image_source import TailIllustratedSideV90Flat
     from .endcap_factory_fold import build_endcap_xy_fold_profiles
     from .assembly_geometry_folded_mesh import _profile_geometry, _profile_map
-    from .v_miter_tail_no_ba_sequential import stations_from_real_flat
+    from .v_miter_tail_no_ba_sequential import (
+        stations_from_real_flat,exact_tail_y_fold_profile_from_original_bends,
+    )
 
     st=stations_from_real_flat(flat)
 
@@ -179,8 +181,10 @@ def project_tail_v90_full_t_no_ba(flat, *, first_axis: str):
                   fw=s.frame_width,yl1=s.fold_left,yr1=s.fold_right,
                   ytop1=s.fold_top,ybottom1=s.fold_bottom)
     profiles=build_endcap_xy_fold_profiles(snapshot,part_key="tail")
-    _,yfold=_profile_geometry(profiles["Y"])
-    ybreak,_=_profile_geometry(profiles["Y"])
+    # The real Factory CUTTING/BEND is the precision authority, not the
+    # integer display lengths in the unchanged editor Fold Profile.
+    exact_y=exact_tail_y_fold_profile_from_original_bends(flat,st)
+    ybreak,yfold=_profile_geometry(exact_y)
     if len(ybreak)!=5 or any(abs(ybreak[i]-q)>_EPS for i,q in enumerate(
             (st.ymin,st.bottom_y,st.upper_start,st.upper_crease,st.ymax))):
         raise GeometryError("V_MITER_LOWER_UNCHANGED_UPPER_PROFILE_NOT_MATCHED")

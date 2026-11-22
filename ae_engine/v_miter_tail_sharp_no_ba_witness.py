@@ -64,7 +64,9 @@ def project_tail_sharp_no_ba_v_witness(flat) -> TailSharpNoBAWitness:
     if not isinstance(flat,TailIllustratedSideV90Flat) or flat.manufacturing_approved:
         raise GeometryError("TAIL_SHARP_NO_BA_VERIFIED_SOURCE_REQUIRED")
     spec=flat.source_spec
-    from .v_miter_tail_no_ba_sequential import stations_from_real_flat
+    from .v_miter_tail_no_ba_sequential import (
+        stations_from_real_flat,exact_tail_y_fold_profile_from_original_bends,
+    )
     st=stations_from_real_flat(flat)
     if (not math.isfinite(spec.thickness) or spec.thickness<=0
             or len(flat.opening_source_points_xy)!=2
@@ -88,6 +90,9 @@ def project_tail_sharp_no_ba_v_witness(flat) -> TailSharpNoBAWitness:
         "ybottom1":spec.fold_bottom,"ytop1":spec.fold_top,
     }
     p=build_endcap_xy_fold_profiles(snapshot,part_key="tail")
+    # Source-exact Y Fold is local to this V preview; the editor's legacy
+    # integer UI lengths and the original upper rule stay unchanged.
+    p["Y"]=list(exact_tail_y_fold_profile_from_original_bends(flat,st))
     by_x={row.get("phase6_key"):row for row in p["X"]}
     by_y={row.get("phase6_key"):row for row in p["Y"]}
     nominal=(

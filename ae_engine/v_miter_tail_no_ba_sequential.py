@@ -57,7 +57,6 @@ def stations_from_real_flat(flat) -> LowerDualVStations:
     """
     from .manufacturing_render_data import fold_guides_from_final_scene
     from .endcap_factory_fold import build_endcap_xy_fold_profiles
-    from .assembly_geometry_folded_mesh import _profile_geometry
     from .sheetmetal_geometry_core import GeometryError
 
     xmin,ymin,xmax,ymax=map(float,flat.result_material.bounds)
@@ -89,18 +88,55 @@ def stations_from_real_flat(flat) -> LowerDualVStations:
                   t=spec.thickness,fw=spec.frame_width,yl1=spec.fold_left,
                   yr1=spec.fold_right,ytop1=spec.fold_top,
                   ybottom1=spec.fold_bottom)
-    y_profile=build_endcap_xy_fold_profiles(snapshot,part_key="tail")["Y"]
-    breaks,_=_profile_geometry(y_profile)
-    if (len(breaks)!=5 or abs(breaks[0]-ymin)>_TOL
-            or abs(breaks[1]-ly)>_TOL
-            or abs(breaks[-1]-ymax)>_TOL
-            or breaks[2] <= ly+_TOL or breaks[3]<=breaks[2]+_TOL):
+    owner=build_endcap_xy_fold_profiles(snapshot,part_key="tail")["Y"]
+    if (len(owner)!=4
+            or tuple(row.get("phase6_key") for row in owner)!=(
+                "ybottom1","endcap_d_core","fw","ytop1")
+            or any(
+                "angle" not in row if i<3 else "angle" in row
+                for i,row in enumerate(owner)
+            )):
+        raise GeometryError("V_MITER_LOWER_UNCHANGED_UPPER_FOLD_TOPOLOGY_INVALID:OWNER")
+    # Same original finite BEND geometry as the real factory; no copied
+    # rounded UI segment lengths are allowed in this physical V check.
+    source_y=sorted(
+        (g for g in fold_guides_from_final_scene(flat.original_scene)
+         if g.axis=="y"),key=lambda g:g.position
+    )
+    result_y=sorted((g for g in guides if g.axis=="y"),key=lambda g:g.position)
+    if (len(source_y)!=3 or len(result_y)!=3
+            or any(
+                abs(a.position-b.position)>_TOL
+                or abs(a.span_start-b.span_start)>_TOL
+                or abs(a.span_end-b.span_end)>_TOL
+                for a,b in zip(source_y,result_y)
+            )):
+        raise GeometryError("V_MITER_LOWER_UNCHANGED_UPPER_FOLD_TOPOLOGY_INVALID:BEND_CHANGED")
+    breaks=(ymin,)+tuple(float(g.position) for g in source_y)+(ymax,)
+    if (abs(breaks[1]-ly)>_TOL
+            or any(b<=a+_TOL for a,b in zip(breaks,breaks[1:]))):
+        raise GeometryError("V_MITER_LOWER_UNCHANGED_UPPER_FOLD_TOPOLOGY_INVALID:FINITE_GUIDES")
+    # Validate upper BEND against the ORIGINAL upper stepped CUTTING,
+    # independently of the editor's rounded core segment value. The first
+    # upper crease bisects the pair of factory notch shelf levels; the last
+    # upper crease leaves exactly the unaltered terminal fold material.
+    # A moved BEND with unchanged CUTTING must still be rejected.
+    upper_levels=sorted({
+        float(y) for _,y in flat.original_factory_material.exterior.coords
+        if float(y)>max(float(lend),float(rend))+_TOL
+    })
+    if (abs(float(lend)-float(rend))>_TOL or
+            len(upper_levels)<2 or
+            abs((float(lend)+upper_levels[0])/2.-breaks[2])>_TOL or
+            not breaks[2]+_TOL<upper_levels[0]<breaks[3]-_TOL or
+            abs(ymax-breaks[3]-float(spec.fold_top))>_TOL):
         raise GeometryError(
             "V_MITER_LOWER_UNCHANGED_UPPER_FOLD_TOPOLOGY_INVALID:"
             f" current_CUTTING_Y={ymax:.6f}"
-            f" current_profile_Y={breaks[-1]:.6f}"
-            f" lower_bend_Y={ly:.6f} profile_lower_Y={breaks[1]:.6f}"
+            f" current_BEND_Y={breaks[1:4]}"
+            f" upper_CUTTING_STEP={tuple(upper_levels)}"
         )
+    y_profile=owner
     # A 90-degree sharp root requires actual perpendicular source rays.
     if any(row.get("angle") is not None and abs(abs(float(row["angle"]))-90.)>_TOL
            for row in y_profile):
@@ -110,6 +146,34 @@ def stations_from_real_flat(flat) -> LowerDualVStations:
         float(segment.span_start),float(segment.span_end),
         float(lend),float(rend),float(breaks[2]),float(breaks[3]),
     )
+
+
+def exact_tail_y_fold_profile_from_original_bends(flat, stations=None):
+    """Unrounded material segments from the same CUTTING and real finite BEND.
+
+    Only the #3317 V projection uses this source-exact view. All four
+    segments retain the existing Engine-owned phase6_key/angle/UI metadata;
+    the canonical editor Fold Profile and original scene are not mutated.
+    """
+    from .endcap_factory_fold import build_endcap_xy_fold_profiles
+    from .assembly_geometry_folded_mesh import _profile_geometry
+    st=stations if stations is not None else stations_from_real_flat(flat)
+    spec=flat.source_spec
+    snapshot=dict(model=spec.model_name,w=spec.width,d=spec.depth,
+                  t=spec.thickness,fw=spec.frame_width,yl1=spec.fold_left,
+                  yr1=spec.fold_right,ytop1=spec.fold_top,
+                  ybottom1=spec.fold_bottom)
+    owned=build_endcap_xy_fold_profiles(snapshot,part_key="tail")["Y"]
+    physical=(st.ymin,st.bottom_y,st.upper_start,st.upper_crease,st.ymax)
+    exact=tuple(
+        {**dict(row),"len":float(b-a)}
+        for row,a,b in zip(owned,physical,physical[1:])
+    )
+    readback,_=_profile_geometry(exact)
+    if (len(exact)!=4 or len(readback)!=5
+            or any(abs(a-b)>_TOL for a,b in zip(readback,physical))):
+        raise GeometryError("V_MITER_LOWER_EXACT_SOURCE_BEND_RECONSTRUCTION_FAILED")
+    return exact
 
 
 def _rotate(v, axis, theta):
