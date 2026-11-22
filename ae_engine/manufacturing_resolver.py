@@ -331,7 +331,7 @@ def resolve(request):
             if source is None or source.part_spec is None:
                 raise ValueError("下方左右 V 型缺少已確認封尾 PartSpec；不支援")
             preview=project_operator_tail_lower_v_preview_render(
-                source.part_spec,choice=choice,
+                source.part_spec,source.render_data,choice=choice,
             )
             projected.append(replace(part,render_data=preview))
         parts=projected
