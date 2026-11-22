@@ -54,6 +54,9 @@ from .v_miter_cut_face_continuity_trial import (
 from .v_miter_seam_gap_trial import (
     project_v_miter_true_t_seam_section_gap_trial,
 )
+from .v_miter_tail_sequential_fold_check import (
+    project_tail_same_sheet_sequential_fold_check,
+)
 
 
 _TOL = 1e-6
@@ -154,6 +157,15 @@ class TailDualVFaceResult:
     model_interference_segments: tuple
     root_intersection_topology: str
     model_volume_status: str
+    # Two actual stages from ONE source-meshed sheet, not renamed static
+    # flange meshes. Each track: source UV, after first, after second.
+    sequential_source_cut_edge_tracks: tuple
+    sequential_first_side_cut_faces: tuple
+    sequential_first_bottom_cut_faces: tuple
+    sequential_second_side_cut_faces: tuple
+    sequential_second_bottom_cut_faces: tuple
+    sequential_final_seam_sections: tuple
+    sequential_root_process_status: str
     # Physical Y-direction separation floor under the actual *disjoint*
     # finite-R/BA straight patches. Not an industrial tolerance or a
     # proof that every alternative single-blank fold sequence is impossible.
@@ -240,6 +252,7 @@ class TailDualVSourceCheck:
     native_bottom_span_boundary_jump_samples_mm: tuple
     native_side_span_boundary_jump_samples_mm: tuple
     corners: tuple[TailDualVFaceResult, TailDualVFaceResult]
+    sequential_same_sheet_stage_models: tuple
     geometry_status: str = "TAIL_DOUBLE_V_CHECK_ONLY_UNVERIFIED"
 
 
@@ -601,6 +614,25 @@ def project_tail_dual_v_same_source_check(
         thickness_mm=spec.thickness,
         second_fold_angle_deg=90.0, relief_mode="ROUND_R",
     )
+    # Never substitute three independently static flange previews for
+    # the operator's two-stage process. Each trial transports the ONE
+    # exact restored-and-V-cut Factory blank and its source UV triangles
+    # through the physical first bend, THEN the second in its moved frame.
+    # Distinct per-corner first-axis choices get separately labeled whole-
+    # sheet CHECK shadows; no implicit order is assigned to the other corner.
+    sequential_models = {
+        axis: project_tail_same_sheet_sequential_fold_check(
+            restored, corrected,
+            left_apex=left[0], right_apex=right[0],
+            left_v_hits=(left[1],left[2]),
+            right_v_hits=(right[1],right[2]),
+            guides=guides, first_axis=axis,
+            thickness_mm=q.thickness_mm,
+            inner_r_mm=q.first_inner_radius_mm,
+            bend_allowance_mm=q.first_bend_allowance_mm,
+        )
+        for axis in ("x","y") if axis in first_bend_axes.values()
+    }
     def form(patch, origin, axis, outside, reach, label, axial_min):
         if q.first_bend_allowance_mm >= reach - _TOL:
             raise GeometryError("V_MITER_TAIL_DUAL_RBA_CONSUMES_FLANGE")
@@ -680,6 +712,15 @@ def project_tail_dual_v_same_source_check(
         row = corner_data[corner]
         first_axis = first_bend_axes[corner]
         second_axis = "y" if first_axis == "x" else "x"
+        sequential = sequential_models[first_axis]
+        source_tracks = tuple(track for track in
+                              sequential.source_cut_edge_tracks
+                              if track[0] == corner)
+        seq_face_row = next(item for item in
+                            sequential.true_t_cut_faces_by_corner
+                            if item[0] == corner)
+        (_,seq_first_side,seq_first_bottom,
+         seq_final_side,seq_final_bottom) = seq_face_row
         first_mesh = models[side] if first_axis == "x" else models["bottom"]
         second_mesh = models["bottom"] if first_axis == "x" else models[side]
         collision = detect_world_mesh_surface_interference(
@@ -946,6 +987,25 @@ def project_tail_dual_v_same_source_check(
                  section.status)
                 for frac, section in zip(fractions, sampled.sections)
             )
+        # This is the NEW one-blank sequential T-wall evidence.
+        # It is measured independently of the earlier three-patch shadow.
+        # Its first-stage cut walls are present even before the second
+        # fold; final walls come from the SAME source triangle IDs.
+        seq_sample = project_v_miter_true_t_seam_section_gap_trial(
+            seq_final_side if first_axis=="x" else seq_final_bottom,
+            seq_final_bottom if first_axis=="x" else seq_final_side,
+            formed_seam_start=physical_seam_start,
+            formed_seam_end=physical_seam_end,
+            station_fractions=(.25,.50,.75,.95),
+        )
+        seq_sections=tuple((
+            float(section.section_origin_xyz[2]),
+            section.status,section.measured_gap_mm,
+            (section.nearest_first_xyz if first_axis=="x"
+             else section.nearest_second_xyz),
+            (section.nearest_second_xyz if first_axis=="x"
+             else section.nearest_first_xyz),
+        ) for section in seq_sample.sections)
         interference_z = tuple(
             float(point[2])
             for segment in collision.intersection_segments
@@ -961,6 +1021,13 @@ def project_tail_dual_v_same_source_check(
             model_interference_segments=collision.intersection_segments,
             root_intersection_topology=root_contact,
             model_volume_status=volume_status,
+            sequential_source_cut_edge_tracks=source_tracks,
+            sequential_first_side_cut_faces=seq_first_side,
+            sequential_first_bottom_cut_faces=seq_first_bottom,
+            sequential_second_side_cut_faces=seq_final_side,
+            sequential_second_bottom_cut_faces=seq_final_bottom,
+            sequential_final_seam_sections=seq_sections,
+            sequential_root_process_status=sequential.root_process_status,
             straight_section_y_domain_witness_mm=straight_y_witness,
             side_cut_failure=side_error, bottom_cut_failure=bottom_error,
             seam_continuity=seam, seam_failure=seam_error,
@@ -1050,4 +1117,8 @@ def project_tail_dual_v_same_source_check(
         native_bottom_span_boundary_jump_samples_mm=tuple(boundary_jumps),
         native_side_span_boundary_jump_samples_mm=tuple(side_boundary_jumps),
         corners=(reports[0], reports[1]),
+        sequential_same_sheet_stage_models=tuple(
+            (axis,sequential_models[axis]) for axis in ("x","y")
+            if axis in sequential_models
+        ),
     )

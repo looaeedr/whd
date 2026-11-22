@@ -195,8 +195,8 @@ def project_tail_same_sheet_sequential_fold_check(
     if (not (bottom<float(lg.span_start)<=float(lg.span_end)
              and bottom<float(rg.span_start)<=float(rg.span_end))
             or abs(float(lg.span_end)-float(rg.span_end))>_EPS
-            or not(minx<float(bg.span_start)<left<right
-                   <float(bg.span_end)<maxx)):
+            or not(minx<left<float(bg.span_start)
+                   <float(bg.span_end)<right<maxx)):
         raise GeometryError("TAIL_SEQUENTIAL_FINITE_BEND_SOURCE_DISAGREES")
     if bend_allowance_mm>=min(left-minx,maxx-right,bottom-miny):
         raise GeometryError("TAIL_SEQUENTIAL_BA_CONSUMES_FLANGE")
