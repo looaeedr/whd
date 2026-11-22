@@ -163,3 +163,25 @@ def test_real_vault_box_body_w620_h600_d185_t2_d4_native_bottom_world():
         native_bends=tuple(p for p in flat.result_scene.primitives
                            if p.layer=="BEND")
         assert len(original_cut)==5 and len(native_bends)==5
+
+
+@pytest.mark.parametrize("first_axis", ("x","y"))
+def test_d4_same_factory_source_is_one_2d_and_3d_preview_not_manufacturing(first_axis):
+    from ae_engine.v_miter_tail_d4_delivery import (
+        default_vault_tail_d4_spec,build_tail_d4_check_preview_render,
+    )
+    flat,checks=build_tail_d4_check_from_original(
+        default_vault_tail_d4_spec()
+    )
+    preview=build_tail_d4_check_preview_render(flat,first_axis=first_axis)
+    assert preview.scene is flat.result_scene
+    assert preview.metadata["tail_lower_v_d4_check_only"] is True
+    assert preview.metadata["tail_lower_v_preview_only"] is True
+    assert preview.metadata["manufacturing_approved"] is False
+    assert len(preview.material.interiors)==4
+    assert len(tuple(p for p in preview.scene.primitives if p.layer=="BEND"))==5
+    assert len(api.tail_lower_v_preview_mesh(preview))==len(
+        checks[first_axis].shell_faces
+    )
+    with pytest.raises(ValueError,match="禁止加工 DXF"):
+        api.reject_tail_lower_v_preview_for_dxf(preview)
