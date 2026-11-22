@@ -536,47 +536,10 @@ def project_tail_dual_v_same_source_check(
         # never receives this bottom Y fold. The earlier bbox-wide model
         # and its 6.6875mm impossibility certificate were invalid.
         # Do not infer geometric impossibility from that stale proof.
-        topological_floor = q.first_inner_radius_mm
-        side_upper_hit = row[2]
-        side_mouth_horizontal_reach = abs(side_upper_hit.x - row[0].x)
-        side_mouth_vertical_rise = side_upper_hit.y - row[0].y
-        if side_mouth_horizontal_reach <= _TOL:
-            raise GeometryError("V_MITER_TAIL_DUAL_UPPER_MOUTH_HAS_NO_HORIZONTAL_REACH")
-        upper_ray_slope = side_mouth_vertical_rise / side_mouth_horizontal_reach
-        # In the straight 90-degree region, the FLAT transverse distance
-        # is u=BA+(Z-(R+T/2)). On this same source-cut leg Y=apexY+
-        # upper_ray_slope*u, while the bottom solid can reach no farther
-        # than Y=apexY-R. Their signed separation is therefore at least
-        # R + slope*u, independent of the near-face nearest-point sample.
-        # This is a physically sourced *lower bound*, not a kerf/tolerance.
-        def source_contact_gap_floor(z):
-            u = q.first_bend_allowance_mm + (z - mid_radius)
-            return q.first_inner_radius_mm + upper_ray_slope * u
-        floor_start = source_contact_gap_floor(straight_start)
-        floor_end = source_contact_gap_floor(contact_reach)
-        # A=(outerX, bendY-d), B=(outerX,bendY+h), apex=(bendX,bendY)
-        # are the only two legs of the prescribed 90-degree V. Their
-        # dot product is dx*dx-d*h=0; hence d*h=dx^2. Since the lower
-        # endpoint cannot leave the original 48-mm bottom flange,
-        # d<=bottom_height, so h>=dx^2/bottom_height. Thus even an
-        # arbitrarily ASYMMETRIC 90 V cannot bring the upper side cut
-        # down to the lower bottom-fold contact plane. This certificate
-        # uses source sizes, not guessed miter clearance or a Door trim.
-        if row[5] <= _TOL:
-            raise GeometryError("V_MITER_TAIL_DUAL_NO_BOTTOM_FLANGE_FOR_V")
-        minimum_asymmetric_upper_rise = (
-            side_mouth_horizontal_reach * side_mouth_horizontal_reach
-            / row[5]
-        )
-        u_at_far_end = q.first_bend_allowance_mm + (
-            contact_reach - mid_radius
-        )
-        all_asymmetry_far_gap_floor = (
-            q.first_inner_radius_mm
-            + minimum_asymmetric_upper_rise
-              * u_at_far_end / side_mouth_horizontal_reach
-        )
-        physical_no_solution = False
+        # The old whole-width-bottom-fold 6.6875-mm certificate must NOT
+        # be evaluated for finite-guide geometry: it assigned restored
+        # stock outside the real BEND to a bottom flange that does not
+        # exist. Keep only measured/certified geometry evidence below.
         topo_failure = None
         seam = None
         seam_error = None
