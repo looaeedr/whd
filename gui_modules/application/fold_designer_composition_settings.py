@@ -418,23 +418,31 @@ def select_tail_lower_v_choice(self, namespace, choice_var):
         next_snapshot=manufacturing_api.commit_operator_tail_lower_v_choice(
             app._phase6_input_snapshot,requested,tail_scene_values=values,
         )
-        if requested=="v90":
-            # The two existing app callbacks deliver the exact current
-            # immutable Factory PartSpec and FinalScene. Engine then verifies
-            # real CUTTING/BEND, holes, thick root and 2D/3D contact BEFORE
-            # any operator choice mutates saved state.
+        if requested=="v90" and current!="v90":
+            # Validate the *same already-resolved* Tail that the normal
+            # manufacturing/2D/3D path uses. Checking only the raw Factory
+            # render accepts a V even when a saved EndCap/USER_ADDED clearance
+            # overlaps it, and leaves a broken selection in project state.
+            # All geometry reconciliation stays in the public Engine API.
             part_source=getattr(app,"_part_spec_query_callback",None)
             render_source=getattr(app,"_scene_query_callback",None)
-            if not callable(part_source) or not callable(render_source):
-                raise ValueError("V 型缺少同一板件的 Engine PartSpec／FinalScene 來源")
+            resolver=getattr(app,"_phase6_resolve_manufacturing_geometry",None)
+            if (not callable(part_source) or not callable(render_source)
+                    or not callable(resolver)):
+                raise ValueError("V 型缺少同一板件的 Engine 原始及已解析避空來源")
             original_values=dict(values)
             original_values["_use_committed_relief"]=False
             spec_context=part_source("tail",dict(original_values))
             if not isinstance(spec_context,tuple) or len(spec_context)!=2:
                 raise ValueError("V 型封尾 PartSpec 來源不完整")
             preview_input=render_source("tail",dict(original_values))
+            resolved=resolver()
+            resolved_tail=resolved.part("tail") if resolved is not None else None
+            if resolved_tail is None or getattr(resolved_tail,"render_data",None) is None:
+                raise ValueError("V 型封尾原有避空未能由 Engine 解算；不更新選擇")
             manufacturing_api.project_operator_tail_lower_v_preview_render(
                 spec_context[0],preview_input,choice=requested,
+                resolved_render_data=resolved_tail.render_data,
             )
     except (ValueError,TypeError) as exc:
         choice_var.set("V 型" if current=="v90" else "原樣")
