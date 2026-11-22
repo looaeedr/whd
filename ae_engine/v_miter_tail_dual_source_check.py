@@ -139,6 +139,11 @@ class TailDualVFaceResult:
     # (side_ray_y, side_ray_max_residual, bottom_ray_y, bottom_ray_max_residual).
     inverse_unconstrained_outer_hits_mm: tuple = ()
     inverse_source_fit_status: str = "NOT_EVALUATED"
+    # z, side_in_original_mother, side_in_own_folded_patch,
+    # bottom_in_original_mother, bottom_in_own_folded_patch.
+    # This is a HYPOTHETICAL R/BA plane-intersection inverse, not
+    # proof that true finite-T cut walls already mate there.
+    inverse_flat_source_coverage_mm: tuple = ()
     interference_z_range_mm: tuple | None = None
     actual_joint_axis_xyz: tuple = ()
     native_uncut_fold_endpoint_jump_max_mm: float | None = None
@@ -767,6 +772,13 @@ def project_tail_dual_v_same_source_check(
         bottom_fit = _apex_ray_side_exit_least_squares(
             row[0], bottom_inverse, outer_x,
         )
+        inverse_coverage = tuple((
+            float(z),
+            bool(restored.covers(Point(s.x, s.y))),
+            bool(folded_domains[side].covers(Point(s.x, s.y))),
+            bool(restored.covers(Point(b.x, b.y))),
+            bool(folded_domains["bottom"].covers(Point(b.x, b.y))),
+        ) for z,s,b in zip(inverse_stations,side_inverse,bottom_inverse))
         # The projected V rays must have a *real* upper and lower exterior
         # exit and lie on both inverse straight seams; the physical side
         # flange cannot silently extend below its source BEND start.
@@ -822,6 +834,7 @@ def project_tail_dual_v_same_source_check(
             inverse_straight_contact_flat_trace_mm=inverse_trace,
             inverse_unconstrained_outer_hits_mm=(*side_fit, *bottom_fit),
             inverse_source_fit_status=inverse_fit_status,
+            inverse_flat_source_coverage_mm=inverse_coverage,
             interference_z_range_mm=(
                 (min(interference_z), max(interference_z))
                 if interference_z else None

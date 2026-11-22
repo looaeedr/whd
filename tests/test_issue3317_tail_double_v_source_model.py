@@ -132,6 +132,15 @@ def test_tail_real_same_blank_dual_90_v_and_folded_contact():
             assert len(corner.sampled_cut_face_nearest_xyz) == 4
             assert corner.model_status != "MODEL_PASS"
             assert len(corner.inverse_straight_contact_flat_trace_mm) == 4
+            assert len(corner.inverse_flat_source_coverage_mm) == 4
+            # Real Factory mother can contain a point that is not owned by
+            # the actual side fold. Such a point cannot define an upper V cut.
+            for z, side_mother, side_owned, bottom_mother, bottom_owned in (
+                corner.inverse_flat_source_coverage_mm
+            ):
+                assert z > 0 and side_mother and bottom_mother
+                assert not side_owned
+                assert bottom_owned
             assert corner.inverse_source_fit_status in (
                 "INVERSE_SOURCE_RAYS_NOT_COMPATIBLE",
                 "INVERSE_SOURCE_RAYS_COMPATIBLE",
@@ -203,6 +212,9 @@ def test_tail_real_same_blank_dual_90_v_and_folded_contact():
                 "inverse_unconstrained_outer_hits_mm":
                     row.inverse_unconstrained_outer_hits_mm,
                 "inverse_source_fit_status":row.inverse_source_fit_status,
+                "inverse_datum_type":"HYPOTHETICAL_RBA_STRAIGHT_PLANE_INTERSECTION",
+                "inverse_flat_source_coverage_mm":
+                    row.inverse_flat_source_coverage_mm,
                 "seam_span_mm":continuity.seam_length_mm if continuity else None,
                 "gap_max_sample_mm":continuity.max_sampled_cut_face_gap_mm if continuity else None,
                 "gap_upper_bound_mm":continuity.max_gap_upper_bound_mm if continuity else None,
