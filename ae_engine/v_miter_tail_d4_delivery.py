@@ -77,10 +77,38 @@ def build_tail_d4_check_from_original(
     if resolved_render_data is not None:
         if not isinstance(resolved_render_data,PartRenderData):
             raise GeometryError("TAIL_D4_CHECK_DELIVERY_RESOLVED_RENDER_INVALID")
-        from .v_miter_tail_relief_replay import replay_independent_lower_v_relief
-        flat,_=replay_independent_lower_v_relief(
-            flat,original_render=base,resolved_render=resolved_render_data,
+        from .v_miter_tail_relief_replay import (
+            replay_independent_lower_v_relief, _extra_features,
+            _outer, _stock, _cutting_except,
         )
+        raw_stock=_stock(base,"SOURCE")
+        resolved_stock=_stock(resolved_render_data,"RESOLVED")
+        original_outer=_outer(base.scene,raw_stock,role="SOURCE")
+        resolved_outer=_outer(
+            resolved_render_data.scene,resolved_stock,role="RESOLVED",
+        )
+        extra_cutting,extra_marks=_extra_features(
+            base,resolved_render_data,
+            structural_outer=original_outer,solved_outer=resolved_outer,
+        )
+        original_features=_cutting_except(base.scene,original_outer)
+        # Some canonical resolver snapshots repeat a Factory FIXED CUTTING
+        # primitive twice (same exact dataclass/source identity) even when
+        # both underlying stocks are geometrically IDENTICAL. That is not
+        # another through-hole. Keep the original single authored primitive,
+        # but ONLY when EVERY redundant resolved entry equals an original,
+        # there are NO new markings, and the physical material is unchanged.
+        # Any real new cut, moved hole or marking goes through strict replay.
+        redundant_exact_source=(
+            raw_stock.symmetric_difference(resolved_stock).area<=1e-7
+            and not extra_marks
+            and all(p in original_features for p in extra_cutting)
+        )
+        if not redundant_exact_source:
+            flat,_=replay_independent_lower_v_relief(
+                flat,original_render=base,
+                resolved_render=resolved_render_data,
+            )
     items=tuple(flat.result_scene.primitives)
     outer=tuple(p for p in items if isinstance(p,PolylinePrimitive)
                 and p.layer=="CUTTING" and p.closed
