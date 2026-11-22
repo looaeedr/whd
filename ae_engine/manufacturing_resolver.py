@@ -330,8 +330,13 @@ def resolve(request):
             source=_request_part(request,"tail")
             if source is None or source.part_spec is None:
                 raise ValueError("下方左右 V 型缺少已確認封尾 PartSpec；不支援")
+            # At this point the canonical Tail already owns solved
+            # EndCap/USER_ADDED clearances. Their physical CUTTING delta
+            # must be replayed into BOTH the V scene and T shell; using
+            # only source.render_data silently discards resolved geometry.
             preview=project_operator_tail_lower_v_preview_render(
                 source.part_spec,source.render_data,choice=choice,
+                resolved_render_data=part.render_data,
             )
             projected.append(replace(part,render_data=preview))
         parts=projected

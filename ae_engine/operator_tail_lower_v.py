@@ -97,7 +97,9 @@ def commit_operator_tail_lower_v_choice(
     return result
 
 
-def project_operator_tail_lower_v_preview_render(spec, render_data=None, *, choice: str):
+def project_operator_tail_lower_v_preview_render(
+    spec, render_data=None, *, choice: str, resolved_render_data=None,
+):
     """One Factory source: 2D FinalScene + same-source T2 preview mesh.
 
     Never project onto the original generic endcap render as a 'nearby'
@@ -131,6 +133,14 @@ def project_operator_tail_lower_v_preview_render(spec, render_data=None, *, choi
     else:
         base=render_data
     flat=project_tail_illustrated_side_v90_flat(spec,base)
+    preserved_relief=()
+    if resolved_render_data is not None:
+        from .v_miter_tail_relief_replay import (
+            replay_independent_lower_v_relief,
+        )
+        flat,preserved_relief=replay_independent_lower_v_relief(
+            flat,original_render=base,resolved_render=resolved_render_data,
+        )
     solid=project_tail_v90_full_t_no_ba(flat,first_axis="x")
     if solid.manufacturing_approved:
         raise GeometryError("V_MITER_LOWER_PREVIEW_UNEXPECTED_EXPORT_APPROVAL")
@@ -138,11 +148,19 @@ def project_operator_tail_lower_v_preview_render(spec, render_data=None, *, choi
         tuple(solid.vertices_xyz[i] for i in indices)
         for indices in solid.indexed_triangle_faces
     )
+    # Solved independent relief metadata must survive the preview toggle.
+    # The V-specific preview keys below always override release status.
+    inherited_meta=dict(
+        getattr(resolved_render_data,"metadata",{}) or {}
+    ) if resolved_render_data is not None else dict(base.metadata or {})
     return PartRenderData(
         scene=flat.result_scene,
         material=solid.source_material_with_holes,
         fold_guides=fold_guides_from_final_scene(flat.result_scene),
         metadata={
+            **inherited_meta,
+            "tail_lower_v_independent_relief_replayed":bool(preserved_relief),
+            "tail_lower_v_independent_relief_source_count":len(preserved_relief),
             "source":"WHD_ACTUAL_FACTORY_CUTTING_AND_FINITE_BEND",
             "tail_lower_v_choice":"v90",
             "tail_lower_v_preview_only":True,
