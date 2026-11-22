@@ -290,3 +290,22 @@ def test_d4_source_keyed_real_arc_full_t_shell_and_original_holes(first_axis):
     assert not check.bad_incidence_edges and not check.bad_winding_edges
     assert len(check.shell_faces) > len(check.source_triangle_faces)*2
     assert len(check.local_interference_by_corner) == 2
+    # Same UV is ONE indexed inner vertex and ONE original-owner outer
+    # vertex, even at true intersecting X/Y finite-crease domains.
+    # These are the six measured D4 source CUTTING/real BEND crossings,
+    # NOT endpoints guessed from a radius or normal-offset gap.
+    physical = (
+        ((15.,46.), (15.,48.,2.), (13.,46.,2.)),
+        ((15.,50.), (15.,50.,0.), (13.,50.,-2.)),
+        ((17.,48.), (17.,48.,0.), (17.,46.,-2.)),
+        ((627.,46.), (627.,48.,2.), (629.,46.,2.)),
+        ((627.,50.), (627.,50.,0.), (629.,50.,-2.)),
+        ((625.,48.), (625.,48.,0.), (625.,46.,-2.)),
+    )
+    for uv,inner_want,outer_want in physical:
+        matches=tuple(i for i,p in enumerate(check.source_uv)
+                      if math.dist(p,uv)<1e-7)
+        assert len(matches)==1, ("D4_UV_SOURCE_NOT_UNIQUE",uv,matches)
+        i=matches[0]
+        assert check.inner_xyz[i] == pytest.approx(inner_want,abs=1e-7)
+        assert check.outer_xyz[i] == pytest.approx(outer_want,abs=1e-7)
