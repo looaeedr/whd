@@ -106,7 +106,7 @@ def diagnose_tail_double_v_source_root(flat, stages) -> TailDoubleVRootAudit:
             else:
                 # Analytic transported normal, not a normal inferred from
                 # the possibly self-folded WORLD triangle.
-                normal_index=2 if formed is final else 3
+                normal_index=3 if formed is final else 2
                 analytic=_advance_same_source_uv(
                     triuv[0],stages.first_axis,
                     (15.,507.,48.,0.,522.,190.,

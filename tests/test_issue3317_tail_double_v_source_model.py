@@ -416,6 +416,7 @@ def test_tail_corrected_nominal_and_stages_reject_old_y49_and_unselected_axis():
 def test_tail_3317_real_source_root_alias_and_second_axis_transport_audit(axis):
     """Catch erroneous world-welding without calling it volume interference."""
     import json
+    import math
     from ae_engine.v_miter_tail_user_image_source import (
         project_tail_illustrated_side_v90_flat,
         project_tail_illustrated_side_v90_nominal_and_stages,
