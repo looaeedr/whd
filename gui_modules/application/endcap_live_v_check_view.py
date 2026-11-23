@@ -5,9 +5,7 @@ from __future__ import annotations
 import tkinter as tk
 from tkinter import ttk
 
-from ae_engine.sheetmetal_drawing import (
-    CirclePrimitive, LinePrimitive, PolylinePrimitive, DrawingScene,
-)
+
 from gui_modules.drawing import render_drawing_scene
 
 WINDOW_ATTR = "_endcap_live_saved_check_window"
@@ -31,11 +29,11 @@ class _ReadOnlyViewport:
     def __init__(self, scene, width, height):
         points = []
         for row in scene.primitives:
-            if isinstance(row, PolylinePrimitive):
+            if hasattr(row, "points"):
                 points.extend((p.x, p.y) for p in row.points)
-            elif isinstance(row, LinePrimitive):
+            elif hasattr(row, "p1") and hasattr(row, "p2"):
                 points.extend(((row.p1.x, row.p1.y), (row.p2.x, row.p2.y)))
-            elif isinstance(row, CirclePrimitive):
+            elif hasattr(row, "center") and hasattr(row, "radius"):
                 x, y, r = row.center.x, row.center.y, row.radius
                 points.extend(((x-r, y-r), (x+r, y+r)))
         if not points:
@@ -66,7 +64,7 @@ def show_saved_endcap_live_check_window(host, replayed, saved_record):
         raise ValueError("ENDCAP_SAVED_CHECK_REPLAY_SCOPE_INVALID")
     scene = replayed.full_sheet_check_scene
     true_t = replayed.factory_true_t_check
-    if (not isinstance(scene, DrawingScene) or not scene.primitives
+    if (scene is None or not getattr(scene, "primitives", None)
             or any(row.layer not in ("CHECK", "DATUM") for row in scene.primitives)):
         raise ValueError("ENDCAP_SAVED_CHECK_2D_SOURCE_UNAVAILABLE")
     if (true_t is None or not true_t.first_thick_solid_triangles
@@ -140,7 +138,7 @@ def show_saved_endcap_live_check_window(host, replayed, saved_record):
         axis.set_ylabel("Y mm")
         axis.set_zlabel("Z mm")
         axis.view_init(elev=25, azim=-55)
-        axis.set_title("未認證折後真 T 候選｜紅線＝名義接縫")
+        axis.set_title("CHECK formed true T (uncertified) | red: ideal seam")
         figure.tight_layout()
         canvas = FigureCanvasTkAgg(figure, master=body)
         canvas.get_tk_widget().grid(row=1, column=1, sticky="nsew", padx=6)

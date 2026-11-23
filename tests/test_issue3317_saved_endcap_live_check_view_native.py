@@ -81,7 +81,8 @@ def test_native_saved_head_2d3d_reopen_ignores_unsaved_live_switch(tmp_path, mes
         assert view._saved_endcap_check_replay == replay
         assert replay.first_bend_axis == "x"
         assert replay.factory_bottom_relief_check.relief_mode.value == saved_mode
-        assert view._saved_endcap_check_scene is replay.full_sheet_check_scene
+        assert view._saved_endcap_check_scene is view._saved_endcap_check_replay.full_sheet_check_scene
+        assert view._saved_endcap_check_scene.primitives == replay.full_sheet_check_scene.primitives
         assert {p.layer for p in view._saved_endcap_check_scene.primitives} <= {"CHECK", "DATUM"}
         assert len(view._saved_endcap_check_2d_canvas.find_all()) >= 5
         assert len(view._saved_endcap_check_3d_figure.axes) == 1
