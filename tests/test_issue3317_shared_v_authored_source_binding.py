@@ -373,3 +373,13 @@ def test_real_multifold_head_fold_binding_detects_stale_return_without_faking_en
             relief_mode="RELIEF_HOLE", relief_t_factor=1,
             part_spec=spec, corner_key="bottom_left",
         )
+
+def test_duplicate_authored_fold_role_is_ambiguous_even_if_only_one_has_angle():
+    spec, render, _, _, _ = _named_head_tail_source()
+    rows = list(spec.fold_profile_y)
+    rows[-1] = replace(rows[-1], phase6_key="fw")
+    corrupted = replace(spec, fold_profile_y=tuple(rows))
+    with pytest.raises(GeometryError, match="DUPLICATE_AUTHORED_FOLD_ROLE"):
+        api.project_operator_v_miter_live_corner_check(
+            corrupted, render, "bottom_left", first_bend_axis="x",
+        )
