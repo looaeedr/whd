@@ -245,7 +245,8 @@ def test_d4_left_relief_side_collar_inner_skin_no_double_material(first_axis):
     flat,_=build_tail_d4_check_from_original(default_vault_tail_d4_spec())
     body=_real_w620_body()
     original=project_tail_d4_shared_original_fold_candidate(
-        flat,first_axis=first_axis,box_body_world=body,
+        flat,first_axis=first_axis,box_body_world=body,nominal_hinge=True,
+        nominal_side_collar=False,
     )
     repaired=project_tail_d4_shared_original_fold_candidate(
         flat,first_axis=first_axis,box_body_world=body,nominal_hinge=True,
