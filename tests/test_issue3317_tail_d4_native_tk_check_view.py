@@ -488,6 +488,37 @@ def test_actual_whd_gui_d4_check_window_four_factory_holes_and_native_world(
                 flat,first_axis=axis,box_body_world=body,
             )
             assert not trial["manufacturing_approved"]
+            # Source-UV identity separates truly adjacent T faces from mere
+            # XYZ contact across the two mated V walls. Every two-incidence
+            # directed edge must cancel, including CUTTING walls and hinge
+            # bridges. Keep four-way contact and 56 residual root edges
+            # visible: winding repair must not weld/cap the unresolved root.
+            from collections import defaultdict
+            directed = defaultdict(list)
+            for tri, ids in zip(
+                trial["v_solid"], trial["v_solid_source_ids"],
+                strict=True,
+            ):
+                for j in range(3):
+                    p, q = tri[j], tri[(j + 1) % 3]
+                    a, b = ids[j], ids[(j + 1) % 3]
+                    start = (tuple(round(float(t), 7) for t in p), a)
+                    end = (tuple(round(float(t), 7) for t in q), b)
+                    edge = tuple(sorted((start, end)))
+                    directed[edge].append((start, end))
+            paired = tuple(rows for rows in directed.values()
+                           if len(rows) == 2)
+            assert len(paired) == 4328, (
+                "D4_SOURCE_UV_T_SHELL_PAIRED_EDGE_COUNT_CHANGED",
+                axis, len(paired),
+            )
+            bad_winding = tuple(rows for rows in paired
+                                if rows[0] != tuple(reversed(rows[1])))
+            assert not bad_winding, (
+                "D4_SOURCE_UV_T_SHELL_WINDING_INCONSISTENT",
+                axis, len(bad_winding), bad_winding[:3],
+            )
+
             ordered=trial["ordered_corner_motion"]
             assert ordered and {r["corner"] for r in ordered}=={
                 "left","right",
