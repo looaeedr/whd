@@ -1,3 +1,4 @@
+# #3415 clean localX diagnostic: comment-only PR trigger; all jobs/commands/tools unchanged.
 name: WHD #1959 WHD to CADCraft Fresh Drawing Command Proof
 
 on:
