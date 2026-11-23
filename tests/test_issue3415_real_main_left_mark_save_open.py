@@ -133,14 +133,32 @@ def test_real_main_left_committed_mark_saveas_new_root_open_designer_export(
                 assert editor.winfo_exists() and editor._manual_marking_controls
                 canvas = host.last_hole_editor_canvas
                 drawing_button = editor._manual_marking_controls[0]
+                # Use the *actual* Tk renderer's established transform;
+                # never guess pixel layout or manufacture a Feature in test.
+                bound = dict(zip(
+                    editor._manual_marking_place.__code__.co_freevars,
+                    (cell.cell_contents
+                     for cell in editor._manual_marking_place.__closure__),
+                ))
+                state = bound["s"]
+                assert canvas.winfo_width() > 100 and canvas.winfo_height() > 100, (
+                    "GUI_CANVAS_NOT_LAID_OUT"
+                )
+                from ae_engine.sheetmetal_features import Vec2
+                cx, cy = state.canvas_view.transform.world_to_canvas(
+                    Vec2(state.live_context.width / 2, state.live_context.height / 2)
+                )
                 drawing_button.invoke()
-                # Click in the middle of the actual rendered physical sheet;
-                # the Engine creates endpoints, validates all true material.
+                assert state.manual_mark_mode[0], "GUI_MARK_DRAW_MODE_NOT_ENTERED"
                 canvas.event_generate(
-                    "<Button-1>", x=canvas.winfo_width() // 2,
-                    y=canvas.winfo_height() // 2,
+                    "<Button-1>", x=round(cx), y=round(cy),
                 )
                 root.update()
+                assert len(tuple(item for item in state.live_context.feature_list
+                                 if api.is_manual_mark(item))) == 1, (
+                    "GUI_CANVAS_MARK_NOT_INSERTED: " +
+                    editor._manual_marking_controls[2].cget("text")
+                )
                 assert editor._manual_marking_controls[2].cget("text") == ""
                 _actual_editor_confirm(editor)
                 root.update()
