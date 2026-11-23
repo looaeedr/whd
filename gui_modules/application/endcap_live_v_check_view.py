@@ -226,16 +226,23 @@ def show_saved_endcap_live_bottom_pair_window(
         scenes[key] = scene
 
     if one_sheet_check is not None:
+        from ae_engine.sheetmetal_drawing import PolylinePrimitive
         combined_scene = one_sheet_check.scene
         if (not one_sheet_check.manufacturing_status.endswith("UNCERTIFIED")
                 or not combined_scene.primitives
                 or any(row.layer not in ("CHECK", "DATUM")
                        for row in combined_scene.primitives)
                 or sum(
-                    isinstance(row, type(scenes[targets[0]].primitives[0]))
-                    and row.layer == "CHECK"
+                    isinstance(row, PolylinePrimitive)
+                    and row.closed and row.layer == "CHECK"
                     for row in combined_scene.primitives
-                ) != 1):
+                ) != 1
+                or any(
+                    row.layer == "CHECK" and (
+                        not isinstance(row, PolylinePrimitive) or not row.closed
+                    )
+                    for row in combined_scene.primitives
+                )):
             raise ValueError("ENDCAP_SAVED_TAIL_PAIR_SINGLE_2D_UNVERIFIED")
     else:
         combined_scene = None
