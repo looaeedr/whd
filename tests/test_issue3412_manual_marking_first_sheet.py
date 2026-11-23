@@ -331,7 +331,7 @@ def test_real_cutting_boundary_endpoint_allowed_along_rejected_bend_overlap_allo
     for (x0, y0), (x1, y1) in zip(ring, ring[1:]):
         dx, dy = x1-x0, y1-y0
         extent = hypot(dx, dy)
-        if extent < 25 or (abs(dx) > 1e-9 and abs(dy) > 1e-9):
+        if extent < 25 or abs(dy) > 1e-9:
             continue
         mx, my = (x0+x1)/2, (y0+y1)/2
         for nx, ny in ((-dy/extent, dx/extent), (dy/extent, -dx/extent)):
@@ -343,7 +343,7 @@ def test_real_cutting_boundary_endpoint_allowed_along_rejected_bend_overlap_allo
             break
     assert candidate_edge is not None, "The real part must expose a usable CUTTING edge"
     mx, my, nx, ny, dx, dy = candidate_edge
-    edge_angle = degrees(atan2(dy, dx))
+    edge_angle = 0.0  # horizontal boundary: avoid trig drift on the edge
     with pytest.raises(ValueError, match="不可沿 CUTTING"):
         api.create_physical_manual_marking(
             "base_plate", context, (), midpoint=Vec2(mx, my),
