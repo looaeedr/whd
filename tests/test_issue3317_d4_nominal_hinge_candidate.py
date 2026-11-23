@@ -432,7 +432,18 @@ def test_d4_y225_same_source_skin_edge_gap_is_explicit_unresolved(first_axis,sid
     )
     assert rows,("D4_UPPER_SHARED_UV_GAP_DISAPPEARED_RECHECK",first_axis,side)
     mismatch=max(max(p,m) for _,ends in rows for _,p,m in ends)
-    expected=candidate["nominal_hinge_width_mm"]-flat.source_spec.thickness/2.
+    # Real source endpoint at s=|UV.X - original X-side crease|.
+    # Under the nominal map the extra neighbor-normal contribution is
+    # (T/2)*(1-s/h), NOT h-T/2. At the other endpoint s=h it vanishes.
+    crease=st.left_x if side=="left" else st.right_x
+    closest_source_s=min(
+        abs(uv[0]-crease) for edge,_ in rows for uv in edge
+    )
+    h=candidate["nominal_hinge_width_mm"]
+    expected=(flat.source_spec.thickness/2.)*(
+        1.-closest_source_s/h
+    )
+    assert expected>1e-7
     assert mismatch==pytest.approx(expected,abs=1e-6),(
         "D4_UPPER_SOURCE_EDGE_NOT_SAME_DOCUMENTED_GAP",
         first_axis,side,rows[:4],
