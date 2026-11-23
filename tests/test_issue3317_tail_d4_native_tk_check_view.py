@@ -482,11 +482,20 @@ def test_actual_whd_gui_d4_check_window_four_factory_holes_and_native_world(
         from ae_engine.v_miter_tail_d4_delivery import (
             project_tail_d4_shared_original_fold_candidate,
         )
+        ordered_by_axis={}
         for axis in ("x","y"):
             trial=project_tail_d4_shared_original_fold_candidate(
                 flat,first_axis=axis,box_body_world=body,
             )
             assert not trial["manufacturing_approved"]
+            ordered=trial["ordered_corner_motion"]
+            assert ordered and {r["corner"] for r in ordered}=={
+                "left","right",
+            }
+            ordered_by_axis[axis]={r["source_face_id"]:r for r in ordered}
+            assert all(r["first_face_normal"] is not None
+                       and r["second_face_normal"] is not None
+                       for r in ordered)
             walls=trial["straight_v_wall_sets"]
             assert len(walls)==2
             import warnings
@@ -520,6 +529,28 @@ def test_actual_whd_gui_d4_check_window_four_factory_holes_and_native_world(
                        "ROOT_SELF_CONTACT_UNVERIFIED")),
                 RuntimeWarning,stacklevel=1,
             )
+        common=sorted(
+            set(ordered_by_axis["x"]) & set(ordered_by_axis["y"])
+        )
+        assert common, "TAIL_D4_NO_COMMON_SOURCE_UV_FOR_ORDER_COMPARISON"
+        changed_first=tuple(fid for fid in common if any(
+            sum((a-b)**2 for a,b in zip(p,q))>1e-10
+            for p,q in zip(
+                ordered_by_axis["x"][fid]["first_xyz"],
+                ordered_by_axis["y"][fid]["first_xyz"],
+            )
+        ))
+        assert changed_first, "TAIL_D4_FIRST_ORDER_ONLY_A_LABEL"
+        import warnings
+        warnings.warn(
+            "ISSUE3317_ORDERED_V_CORNER_MOTION="+repr({
+                "common_source_faces":len(common),
+                "different_first_stage_faces":len(changed_first),
+                "first_different_id":changed_first[0],
+                "x":ordered_by_axis["x"][changed_first[0]],
+                "y":ordered_by_axis["y"][changed_first[0]],
+            }),RuntimeWarning,stacklevel=1,
+        )
         # Integral Body's corrected outside datum now has no side
         # interior overlap at either stationary material sample, for both
         # fold orders. Existing rear overlap is NOT thereby certified clear.
