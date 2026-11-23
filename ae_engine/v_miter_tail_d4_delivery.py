@@ -455,15 +455,26 @@ def project_tail_d4_shared_original_fold_candidate(
     ordered_corner_motion=_d4_ordered_corner_motion(
         source_mapped,st,first_axis,
     )
-    walls=_original_fold_v_wall_sets(
-        flat,source_mapped,candidate.formed_surface,spec.thickness,
+    from .v_miter_tail_d4_shared_uv_solid import (
+        project_d4_original_owner_uv_solid,
     )
+    developed=project_d4_original_owner_uv_solid(
+        flat,source,st,first_axis,owned["X"],exact_y,
+        original_bends,baseline_surface,box_body_world,spec.thickness,
+    )
+    walls=developed["straight_v_wall_sets"]
     return {
         "first_axis":first_axis,
         "original_surface":baseline.formed_surface,
         "original_solid":baseline.solid_triangles,
-        "v_surface":candidate.formed_surface,
-        "v_solid":candidate.solid_triangles,
+        "v_surface":developed["v_surface"],
+        "v_solid":developed["v_solid"],
+        "v_source_uv":developed["source_uv"],
+        "v_source_faces":developed["source_faces"],
+        "v_world_open_edges":developed["open_world_edges"],
+        "v_world_four_edges":developed["four_world_edges"],
+        "v_world_multi_edges":developed["multi_world_edges"],
+        "v_seam_uv_positions":developed["seam_uv_positions"],
         "original_material":material_polygon_from_final_scene(
             flat.original_scene,
         ),
