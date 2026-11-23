@@ -125,6 +125,7 @@ def _wall_contact(groups,corner):
 def project_d4_original_owner_uv_solid(
     flat,stock,st,first_axis,x_profile,y_profile,original_bends,
     original_surface,box_body_world,thickness,*,nominal_hinge=False,
+    nominal_side_collar=True,
 ):
     """Form the actual FinalScene sheet with sourced two-stage lower corners.
 
@@ -223,6 +224,7 @@ def project_d4_original_owner_uv_solid(
         nominal_skins=nominal_adjacent_source_skins(
             faces,source_uv,world_surface,t,st,nominal_h,stock,
             flat.opening_source_points_xy,
+            extend_side_collar=nominal_side_collar,
         )
     else:
         nominal_skins=None
