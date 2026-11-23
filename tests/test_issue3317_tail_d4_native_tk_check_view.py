@@ -508,7 +508,7 @@ def test_actual_whd_gui_d4_check_window_four_factory_holes_and_native_world(
                 diagnose_world_mesh_self_intersections,
             )
             candidate_local=diagnose_world_mesh_self_intersections(
-                trial["v_solid"],max_nonadjacent_pairs=100000,
+                trial["v_solid"],max_nonadjacent_pairs=3000,
             )
             warnings.warn(
                 "ISSUE3317_SHARED_ORIGINAL_FOLD_CANDIDATE="
