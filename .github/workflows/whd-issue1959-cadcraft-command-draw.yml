@@ -285,7 +285,19 @@ jobs:
           print("WINDOWS_NATIVE_VENDOR_GUI_TCP_UNSAVED_WHD_SESSION_GREEN")
           '@ | python -
           if ($LASTEXITCODE -ne 0) { throw "WINDOWS_NATIVE_GUI_TCP_RECEIPT_INVALID" }
+      # #3415 isolated A/B only: run B with the same real Button.invoke and
+      # complete verification in a short-lived child, then ALWAYS run the
+      # original A unchanged even when B fails. Never merge this workflow.
+      - name: DIAGNOSTIC B - native Tk Button.invoke with full DXF proof in child
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $env:CADCRAFT_CONFIG_DIR = Join-Path $env:RUNNER_TEMP "issue1959-native-button-proof-B"
+          python -m pytest -q -s tests/test_issue3415_windows_native_proof_ab.py
+          if ($LASTEXITCODE -ne 0) { throw "WHD_3415_NATIVE_PROOF_CHILD_B_RED" }
+          Write-Host "WHD_3415_NATIVE_PROOF_CHILD_B_FULL_E2E_GREEN"
       - name: Real WHD Tk button opens native CADCraft GUI live unsaved Confirm Cancel Undo
+        if: ${{ !cancelled() }}
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
