@@ -298,7 +298,7 @@ def resolved_features_to_primitives(features) -> tuple[DrawingPrimitive, ...]:
                 and same_closed_primary(points, closed)
                 for layer, points, closed in layers
             )
-            if len(primary) >= 2 and feature.source_type != "WHD_MANUAL_MARKING_V1" and (not layers or (
+            if len(primary) >= 2 and feature.source_type not in ("WHD_MANUAL_MARKING_V1", "WHD_MANUAL_MARKING_GROUP_V1") and (not layers or (
                 str(feature.layer).upper() != "FROM_DXF" and not represented
             )):
                 color = {"MARKING": 211, "BLIND_HOLE": 1, "DATUM": 6}.get(feature.layer, 3)
@@ -313,7 +313,7 @@ def resolved_features_to_primitives(features) -> tuple[DrawingPrimitive, ...]:
                     primitives.append(PolylinePrimitive(
                         points=tuple(points), layer=layer, closed=closed, color=color,
                         semantic_id=("WHD_MANUAL_MARKING_V1" if
-                                     feature.source_type == "WHD_MANUAL_MARKING_V1" else None),
+                                     feature.source_type in ("WHD_MANUAL_MARKING_V1", "WHD_MANUAL_MARKING_GROUP_V1") else None),
                     ))
         else:
             raise TypeError(f"Unsupported resolved feature: {type(feature)!r}")

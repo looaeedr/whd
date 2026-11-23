@@ -359,6 +359,11 @@ from .operator_manual_marking import (
     create_physical_manual_marking, validate_physical_manual_markings,
     first_sheet_manual_marking_supported,
 )
+from .operator_manual_marking_groups import (
+    MANUAL_GROUP_SOURCE, is_manual_group, group_parameters,
+    group_member_world_points, nearest_group_member,
+    create_physical_manual_marking_group, edit_physical_manual_group,
+)
 from .indicator_editor_geometry import (
     resolve_indicator_editor_components,
     resolve_indicator_box_editor_geometry,

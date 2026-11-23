@@ -123,8 +123,12 @@ def verify_manual_marking_output(render):
     if not all(is_manual_mark(f) for f in authored):
         raise ValueError("MANUAL_MARKING_V1_MISSING_AUTHORED_STROKE")
     validate_physical_manual_markings(part_id, render, authored)
-    expected = tuple((tuple(points), closed) for mark in authored
-                     for layer, points, closed in mark.layered_profiles)
+    from .operator_manual_marking_groups import is_manual_group
+    expected = tuple((
+        tuple(Vec2(point.x + mark.offset.x, point.y + mark.offset.y)
+              for point in points) if is_manual_group(mark) else tuple(points),
+        closed,
+    ) for mark in authored for layer, points, closed in mark.layered_profiles)
     actual = tuple((tuple(row.points), row.closed) for row in marked
                    if isinstance(row, PolylinePrimitive)
                    and row.semantic_id == MANUAL_MARK_SOURCE)
@@ -134,9 +138,10 @@ def verify_manual_marking_output(render):
 
 
 def is_manual_mark(feature):
+    from .operator_manual_marking_groups import MANUAL_GROUP_SOURCE
     if isinstance(feature, Mapping):
-        return feature.get("source_type") == MANUAL_MARK_SOURCE
-    return getattr(feature, "source_type", None) == MANUAL_MARK_SOURCE
+        return feature.get("source_type") in (MANUAL_MARK_SOURCE, MANUAL_GROUP_SOURCE)
+    return getattr(feature, "source_type", None) in (MANUAL_MARK_SOURCE, MANUAL_GROUP_SOURCE)
 
 
 def _finite(raw, label, *, positive=False):
@@ -262,27 +267,37 @@ def validate_physical_manual_markings(part_key, render, features, *,
     material, blind = _real_material_and_blind_holes(
         render, normalized, surface, width, height,
     )
+    from .operator_manual_marking_groups import is_manual_group, source_group
     seen = []
     for mark in marks:
-        pattern, full = _source_pattern(mark)
-        if not material.covers(full):
-            raise ValueError("手動打標完整筆畫穿過切孔、留白或無材料區")
-        if float(material.boundary.intersection(full).length) > _EPS:
-            raise ValueError("手動打標不可沿 CUTTING 邊界")
-        if any(full.intersects(hole) for hole in blind):
-            raise ValueError("手動打標完整筆畫碰觸孔位（含虛線留白）")
-        if any(prior_pattern == pattern and full.equals(prior_full)
-               for prior_pattern, prior_full in seen):
+        if is_manual_group(mark):
+            _kind, pattern, full_strokes = source_group(mark)
+        else:
+            pattern, full = _source_pattern(mark)
+            full_strokes = (full,)
+        # Each full arm remains hazardous even where its dashed ink is absent.
+        for full in full_strokes:
+            if not material.covers(full):
+                raise ValueError("手動打標完整筆畫穿過切孔、留白或無材料區")
+            if float(material.boundary.intersection(full).length) > _EPS:
+                raise ValueError("手動打標不可沿 CUTTING 邊界")
+            if any(full.intersects(hole) for hole in blind):
+                raise ValueError("手動打標完整筆畫碰觸孔位（含虛線留白）")
+        if any(prior_pattern == pattern and len(prior_strokes) == len(full_strokes)
+               and all(one.equals(two) for one, two in zip(prior_strokes, full_strokes))
+               for prior_pattern, prior_strokes in seen):
             raise ValueError("手動打標不可完全重複同線型")
         # The complete stroke is the gate.  Independently audit actual ink too.
         for layer, points, _ in mark.layered_profiles:
-            segment = LineString(((points[0].x, points[0].y),
-                                  (points[1].x, points[1].y)))
+            translated = tuple(Vec2(pt.x + mark.offset.x, pt.y + mark.offset.y)
+                               for pt in points) if is_manual_group(mark) else points
+            segment = LineString(((translated[0].x, translated[0].y),
+                                  (translated[1].x, translated[1].y)))
             if not material.covers(segment) or float(material.boundary.intersection(segment).length) > _EPS:
                 raise ValueError("手動打標有實段落在無材料區")
             if any(segment.intersects(hole) for hole in blind):
                 raise ValueError("手動打標實段碰觸孔位")
-        seen.append((pattern, full))
+        seen.append((pattern, full_strokes))
     return marks
 
 

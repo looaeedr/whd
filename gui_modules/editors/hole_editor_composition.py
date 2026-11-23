@@ -268,6 +268,69 @@ def _build_sidebar_workspace_state(s):
             s.manual_mark_draw_button, s.manual_mark_select_button,
             s.manual_mark_status,
         )
+        # Second-stage group tools. Only operator dimensions are gathered
+        # here; all corner/arm geometry belongs to the Engine public API.
+        s.manual_group_tool = ["select"]
+        s.manual_group_arm_x = d.tk.StringVar(master=s.editor, value="20")
+        s.manual_group_arm_y = d.tk.StringVar(master=s.editor, value="20")
+        s.manual_group_spacing_x = d.tk.StringVar(master=s.editor, value="")
+        s.manual_group_spacing_y = d.tk.StringVar(master=s.editor, value="")
+        s.manual_group_angle = d.tk.StringVar(master=s.editor, value="0")
+        s.manual_group_member = d.tk.StringVar(master=s.editor, value="")
+        s.manual_group_offset_x = d.tk.StringVar(master=s.editor, value="0")
+        s.manual_group_offset_y = d.tk.StringVar(master=s.editor, value="0")
+        s.manual_group_tools = {}
+        group_bar = d.tk.Frame(s.center, bg=host.COLOR_PANEL)
+        group_bar.pack(before=s.canvas, fill=d.tk.X, padx=4, pady=(0, 2))
+        for kind, label in (
+            ("cross", "十字：交點"), ("l", "L：轉角"),
+            ("pair_l", "一對L：群組中心"), ("quad_l", "四角L：群組中心"),
+        ):
+            button = d.tk.Button(group_bar, text=label, bg="#3a3a44", fg="white")
+            button.pack(side=d.tk.LEFT, padx=2)
+            s.manual_group_tools[kind] = button
+        for label, var in (
+            ("水平臂 mm", s.manual_group_arm_x),
+            ("垂直臂 mm", s.manual_group_arm_y),
+            ("角間距 X", s.manual_group_spacing_x),
+            ("角間距 Y", s.manual_group_spacing_y),
+            ("角度 °", s.manual_group_angle),
+        ):
+            d.tk.Label(group_bar, text=label, bg=host.COLOR_PANEL,
+                       fg=host.COLOR_TEXT).pack(side=d.tk.LEFT, padx=(5, 1))
+            d.tk.Entry(group_bar, textvariable=var, width=5).pack(side=d.tk.LEFT)
+        edit_bar = d.tk.Frame(s.center, bg=host.COLOR_PANEL)
+        edit_bar.pack(before=s.canvas, fill=d.tk.X, padx=4, pady=(0, 2))
+        d.tk.Label(edit_bar, text="雙擊角點選成員：", bg=host.COLOR_PANEL,
+                   fg=host.COLOR_TEXT).pack(side=d.tk.LEFT)
+        d.tk.Label(edit_bar, textvariable=s.manual_group_member,
+                   bg=host.COLOR_PANEL, fg="#ff9f0a").pack(side=d.tk.LEFT, padx=3)
+        for label, var in (("局部 ΔX mm", s.manual_group_offset_x),
+                           ("局部 ΔY mm", s.manual_group_offset_y)):
+            d.tk.Label(edit_bar, text=label, bg=host.COLOR_PANEL,
+                       fg=host.COLOR_TEXT).pack(side=d.tk.LEFT, padx=(4, 1))
+            d.tk.Entry(edit_bar, textvariable=var, width=6).pack(side=d.tk.LEFT)
+        s.manual_group_apply_offset = d.tk.Button(
+            edit_bar, text="套用單角偏移", bg="#0a84ff", fg="white",
+        )
+        s.manual_group_apply_offset.pack(side=d.tk.LEFT, padx=2)
+        s.manual_group_apply_size = d.tk.Button(
+            edit_bar, text="套用 X/Y・雙臂", bg="#3a3a44", fg="white",
+        )
+        s.manual_group_apply_size.pack(side=d.tk.LEFT, padx=2)
+        s.manual_group_rotate = d.tk.Button(
+            edit_bar, text="群組旋轉", bg="#3a3a44", fg="white",
+        )
+        s.manual_group_rotate.pack(side=d.tk.LEFT, padx=2)
+        s.manual_group_mirror = d.tk.Button(
+            edit_bar, text="鏡射（群組中心垂直軸）", bg="#3a3a44", fg="white",
+        )
+        s.manual_group_mirror.pack(side=d.tk.LEFT, padx=2)
+        s.editor._manual_group_controls = (
+            *s.manual_group_tools.values(), s.manual_group_apply_offset,
+            s.manual_group_apply_size, s.manual_group_rotate,
+            s.manual_group_mirror,
+        )
     s.dragging = [False]
     s.editor_closed = [False]
     s.suppress_entry_events = [False]
@@ -828,20 +891,23 @@ def _guard_manual_marking_sync(s):
 
 
 def _install_manual_marking_actions(s):
-    """Only the real physical-sheet editor gets this drawing interaction.
+    """Engine-owned physical MARKING; one ProfileFeature per group.
 
-    The GUI never computes the stroke endpoints, clearance or Fold.  Each
-    click passes the raw input and midpoint to the public Engine candidate.
+    Single click selects the whole group, double click chooses a stable
+    member for its local offset, and dragging moves the group center only.
+    No member-level deletion or GUI-owned geometry.
     """
-    if getattr(s, 'manual_marking_context', None) is None:
+    if getattr(s, "manual_marking_context", None) is None:
         return
     from phase6_hole_editor_session import HoleEditorAction
+    from math import hypot
     d = s.d
+    api = d.manufacturing_api
     real_redraw = s.redraw
 
     def checked_redraw():
         try:
-            d.manufacturing_api.propose_operator_physical_sheet_hole_features(
+            api.propose_operator_physical_sheet_hole_features(
                 s.part_key, s.manual_marking_context,
                 tuple(s.live_context.feature_list),
             )
@@ -860,33 +926,132 @@ def _install_manual_marking_actions(s):
 
     def select_mode():
         s.manual_mark_mode[0] = False
+        s.manual_group_tool[0] = "select"
         s.manual_mark_draw_button.configure(relief=d.tk.RAISED)
         s.manual_mark_select_button.configure(relief=d.tk.SUNKEN)
+        for button in s.manual_group_tools.values():
+            button.configure(relief=d.tk.RAISED)
 
-    def draw_mode():
-        s.set_insert_mode(False)  # do not manufacture a hole while marking
+    def draw_mode(kind="line"):
+        s.set_insert_mode(False)
         s.manual_mark_mode[0] = True
-        s.manual_mark_draw_button.configure(relief=d.tk.SUNKEN)
+        s.manual_group_tool[0] = kind
+        s.manual_mark_draw_button.configure(
+            relief=d.tk.SUNKEN if kind == "line" else d.tk.RAISED)
         s.manual_mark_select_button.configure(relief=d.tk.RAISED)
+        for key, button in s.manual_group_tools.items():
+            button.configure(relief=d.tk.SUNKEN if kind == key else d.tk.RAISED)
 
-    original_down = s.on_canvas_down
-    original_drag = s.on_canvas_drag
+    def selected_group():
+        idx = s.hole_session.selected_index
+        items = s.live_context.feature_list
+        if 0 <= idx < len(items) and api.is_manual_group(items[idx]):
+            return items[idx]
+        return None
+
+    def publish_group_change(**values):
+        old = selected_group()
+        if old is None:
+            return False
+        try:
+            changed = api.edit_physical_manual_group(
+                old, part_key=s.part_key, context=s.manual_marking_context,
+                existing_features=tuple(s.live_context.feature_list), **values,
+            )
+        except (ValueError, TypeError, RuntimeError) as exc:
+            s.manual_mark_status.configure(
+                text="群組編輯被拒絕：" + str(exc), fg="#ff453a")
+            return False
+        s.hole_session.execute(HoleEditorAction.replace_selected_committed(changed))
+        s.refresh_created()
+        s.sync_all()
+        s.redraw()
+        return True
+
+    def edit_selected_member():
+        group = selected_group()
+        member_id = s.manual_group_member.get()
+        if group is None or not member_id:
+            return False
+        return publish_group_change(
+            member_id=member_id,
+            offset_x=s.manual_group_offset_x.get(),
+            offset_y=s.manual_group_offset_y.get(),
+        )
+
+    def edit_group_size():
+        group = selected_group()
+        if group is None:
+            return False
+        p = api.group_parameters(group)
+        values = {
+            "arm_x": s.manual_group_arm_x.get(),
+            "arm_y": s.manual_group_arm_y.get(),
+        }
+        if p["kind"] in ("pair_l", "quad_l"):
+            values["spacing_x"] = s.manual_group_spacing_x.get()
+        if p["kind"] == "quad_l":
+            values["spacing_y"] = s.manual_group_spacing_y.get()
+        return publish_group_change(**values)
+
+    def rotate_group():
+        group = selected_group()
+        if group is None:
+            return False
+        return publish_group_change(angle=s.manual_group_angle.get())
+
+    def mirror_group():
+        group = selected_group()
+        if group is None:
+            return False
+        return publish_group_change(
+            mirror_vertical=not api.group_parameters(group)["mirror_vertical"])
 
     def mark_down(event):
-        if not s.manual_mark_mode[0]:
-            return original_down(event)
-        midpoint = s.canvas_view.canvas_to_world(event.x, event.y)
-        if midpoint is None:
+        point = s.canvas_view.canvas_to_world(event.x, event.y)
+        if point is None:
             return
+        if not s.manual_mark_mode[0]:
+            # Whole group selection also works at its nominal center or a
+            # member corner, not only on an ink stroke. No single L identity.
+            for idx, item in enumerate(s.live_context.feature_list):
+                if not api.is_manual_group(item):
+                    continue
+                corners = api.group_member_world_points(item)
+                if (hypot(point.x-item.offset.x, point.y-item.offset.y) <= 5
+                    or any(hypot(point.x-p.x, point.y-p.y) <= 5 for _, p in corners)):
+                    s.hole_session.execute(HoleEditorAction.select(idx))
+                    s.dragging[0] = True
+                    s.refresh_created()
+                    s.redraw()
+                    return "break"
+            return original_down(event)
         try:
-            mark = d.manufacturing_api.create_physical_manual_marking(
-                s.part_key, s.manual_marking_context,
-                tuple(s.live_context.feature_list),
-                midpoint=midpoint, length=s.manual_mark_length.get(),
-                angle_deg=s.manual_mark_angle.get(),
-                pattern=s.manual_mark_pattern.get(),
-                dash=s.manual_mark_dash.get(), gap=s.manual_mark_gap.get(),
-            )
+            if s.manual_group_tool[0] == "line":
+                mark = api.create_physical_manual_marking(
+                    s.part_key, s.manual_marking_context,
+                    tuple(s.live_context.feature_list),
+                    midpoint=point, length=s.manual_mark_length.get(),
+                    angle_deg=s.manual_mark_angle.get(),
+                    pattern=s.manual_mark_pattern.get(),
+                    dash=s.manual_mark_dash.get(), gap=s.manual_mark_gap.get(),
+                )
+            else:
+                kind = s.manual_group_tool[0]
+                # Group X/Y have NO default: an operator explicitly enters
+                # their corner spacing before pair/four-corner placement.
+                sx = s.manual_group_spacing_x.get() if kind in ("pair_l", "quad_l") else 0
+                sy = s.manual_group_spacing_y.get() if kind == "quad_l" else 0
+                mark = api.create_physical_manual_marking_group(
+                    s.part_key, s.manual_marking_context,
+                    tuple(s.live_context.feature_list),
+                    kind=kind, center=point,
+                    arm_x=s.manual_group_arm_x.get(), arm_y=s.manual_group_arm_y.get(),
+                    spacing_x=sx, spacing_y=sy,
+                    angle=s.manual_group_angle.get(),
+                    pattern=s.manual_mark_pattern.get(),
+                    dash=s.manual_mark_dash.get(), gap=s.manual_mark_gap.get(),
+                )
         except (ValueError, TypeError, RuntimeError) as exc:
             s.manual_mark_status.configure(
                 text="打標位置不合法：" + str(exc), fg="#ff453a",
@@ -906,19 +1071,48 @@ def _install_manual_marking_actions(s):
         s.redraw()
         return "break"
 
+    original_down = s.on_canvas_down
+    original_drag = s.on_canvas_drag
+
     def safe_drag(event):
-        index = s.hole_session.selected_index
-        if (0 <= index < len(s.live_context.feature_list) and
-                d.manufacturing_api.is_manual_mark(s.live_context.feature_list[index])):
+        idx = s.hole_session.selected_index
+        items = s.live_context.feature_list
+        if 0 <= idx < len(items) and api.is_manual_mark(items[idx]):
+            if not api.is_manual_group(items[idx]) or not s.dragging[0]:
+                return "break"
+            point = s.canvas_view.canvas_to_world(event.x, event.y)
+            if point is None:
+                return "break"
+            try:
+                moved = api.edit_physical_manual_group(
+                    items[idx], center=point, part_key=s.part_key,
+                    context=s.manual_marking_context,
+                    existing_features=tuple(items),
+                )
+            except (ValueError, TypeError, RuntimeError):
+                return "break"
+            s.hole_session.execute(HoleEditorAction.replace_selected(moved))
+            s.redraw()
             return "break"
         return original_drag(event)
 
-    s.manual_mark_select_button.configure(command=select_mode)
-    s.manual_mark_draw_button.configure(command=draw_mode)
-    select_mode()
-    s.on_canvas_down = mark_down
-    s.on_canvas_drag = safe_drag
-    original_escape = s.on_escape if hasattr(s, "on_escape") else None
+    def mark_double(event):
+        point = s.canvas_view.canvas_to_world(event.x, event.y)
+        group = selected_group()
+        if point is None or group is None:
+            return "break"
+        member = api.nearest_group_member(group, point)
+        p = api.group_parameters(group)
+        dx, dy = next((x, y) for mid, x, y in p["members"] if mid == member)
+        s.manual_group_member.set(member)
+        s.manual_group_offset_x.set(str(dx))
+        s.manual_group_offset_y.set(str(dy))
+        s.manual_group_arm_x.set(str(p["arm_x"]))
+        s.manual_group_arm_y.set(str(p["arm_y"]))
+        s.manual_group_spacing_x.set(str(p["spacing_x"]))
+        s.manual_group_spacing_y.set(str(p["spacing_y"]))
+        s.manual_group_angle.set(str(p["angle"]))
+        return "break"
 
     def mark_escape(event=None):
         if s.manual_mark_mode[0]:
@@ -926,10 +1120,55 @@ def _install_manual_marking_actions(s):
             return "break"
         if original_escape is not None:
             return original_escape(event)
+
+    original_escape = s.on_escape if hasattr(s, "on_escape") else None
+    original_toggle = s.toggle_created_process
+    original_right = s.on_canvas_right
+    original_rotate = s.rotate_selected
+
+    def safe_toggle(event=None):
+        # Existing auto marks are readonly and manual groups are indivisible.
+        chosen = selected_feature()
+        if chosen is not None and api.is_manual_mark(chosen):
+            return "break"
+        return original_toggle(event)
+
+    def selected_feature():
+        idx = s.hole_session.selected_index
+        rows = s.live_context.feature_list
+        return rows[idx] if 0 <= idx < len(rows) else None
+
+    def safe_right(event):
+        if selected_group() is not None:
+            return "break"  # prevents legacy 90-degree Feature-only rotation
+        return original_right(event)
+
+    def rotate_selected(angle):
+        group = selected_group()
+        if group is not None:
+            return publish_group_change(
+                angle=api.group_parameters(group)["angle"] + angle)
+        return original_rotate(angle)
+
+    s.toggle_created_process = safe_toggle
+    s.on_canvas_right = safe_right
+    s.rotate_selected = rotate_selected
+    s.manual_mark_select_button.configure(command=select_mode)
+    s.manual_mark_draw_button.configure(command=lambda: draw_mode("line"))
+    for kind, button in s.manual_group_tools.items():
+        button.configure(command=lambda key=kind: draw_mode(key))
+    s.manual_group_apply_offset.configure(command=edit_selected_member)
+    s.manual_group_apply_size.configure(command=edit_group_size)
+    s.manual_group_rotate.configure(command=rotate_group)
+    s.manual_group_mirror.configure(command=mirror_group)
+    select_mode()
+    s.on_canvas_down = mark_down
+    s.on_canvas_drag = safe_drag
     s.manual_mark_escape = mark_escape
     s.editor._manual_marking_place = mark_down
     s.editor._manual_marking_select = select_mode
-
+    s.editor._manual_group_double = mark_double
+    s.canvas.bind("<Double-Button-1>", mark_double)
 
 def _bind_editor_events(s):
     # CADCraft is an opt-in external inspection only. Re-resolve the active
