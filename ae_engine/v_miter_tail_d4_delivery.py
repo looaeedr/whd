@@ -278,6 +278,71 @@ def _original_fold_v_wall_sets(flat, source_mapped, world_mid, thickness):
     return tuple(results)
 
 
+
+def _d4_ordered_corner_motion(source_mapped, stations, first_axis):
+    """Actual first/second lower-V rotations of the SAME source UV faces.
+
+    This is a source-local kinematic witness, NOT a second physical skin or
+    a replacement for the original Factory world assembly. It detects a
+    candidate which simply superposes independent X and Y Fold maps and
+    calls their identical results different operator orders.
+    """
+    from .v_miter_tail_no_ba_sequential import _stages
+    from .v_miter_tail_full_t_no_ba import _cross,_dot,_unit,_v3sub
+
+    observed=[]
+    for face_id,row in enumerate(source_mapped):
+        uv=tuple(row.flat)
+        if max(q[1] for q in uv)>stations.upper_start+1e-7:
+            continue
+        cx=sum(q[0] for q in uv)/3.
+        cy=sum(q[1] for q in uv)/3.
+        if cy>stations.bottom_y+20.:
+            continue
+        near_left=cx<=stations.bottom_guide_start+20.
+        near_right=cx>=stations.bottom_guide_end-20.
+        if not near_left and not near_right:
+            continue
+        stages=tuple(_stages(q,first_axis,stations) for q in uv)
+        first=tuple(v[0] for v in stages)
+        final=tuple(v[1] for v in stages)
+        def face_normal(face):
+            n=_cross(_v3sub(face[1],face[0]),
+                     _v3sub(face[2],face[0]))
+            return _unit(n) if _dot(n,n)>1e-14 else None
+        n1=face_normal(first)
+        n2=face_normal(final)
+        # A real source triangle must not flatten at either sequential
+        # stage. Do not repair a collapse by inventing a connecting face.
+        if n1 is None or n2 is None:
+            raise GeometryError(
+                "TAIL_D4_ORDERED_CONNECTED_FACE_COLLAPSED:"
+                f"face={face_id}:uv={uv}:order={first_axis}"
+            )
+        centroid=(cx,cy)
+        _,_,normal1,normal2,carried=_stages(
+            centroid,first_axis,stations,
+        )
+        observed.append({
+            "source_face_id":face_id,
+            "corner":"left" if near_left else "right",
+            "source_uv":uv,
+            "first_xyz":first,
+            "second_xyz":final,
+            "first_face_normal":n1,
+            "second_face_normal":n2,
+            "source_normal_first":normal1,
+            "source_normal_second":normal2,
+            "transported_second_axis":carried,
+        })
+    if not any(r["corner"]=="left" for r in observed) or not any(
+        r["corner"]=="right" for r in observed
+    ):
+        raise GeometryError("TAIL_D4_ORDERED_CORNER_UV_SOURCE_MISSING")
+    return tuple(observed)
+
+
+
 def project_tail_d4_shared_original_fold_candidate(
     flat, *, first_axis, box_body_world,
 ):
@@ -387,6 +452,9 @@ def project_tail_d4_shared_original_fold_candidate(
         raise GeometryError("TAIL_D4_SHARED_FACTORY_PHYSICAL_T_MISSING")
     if len(source_mapped)!=len(surface):
         raise GeometryError("TAIL_D4_SHARED_FACTORY_UV_FACE_IDENTITY_CHANGED")
+    ordered_corner_motion=_d4_ordered_corner_motion(
+        source_mapped,st,first_axis,
+    )
     walls=_original_fold_v_wall_sets(
         flat,source_mapped,candidate.formed_surface,spec.thickness,
     )
@@ -401,6 +469,7 @@ def project_tail_d4_shared_original_fold_candidate(
         ),
         "v_material":source,
         "straight_v_wall_sets":walls,
+        "ordered_corner_motion":ordered_corner_motion,
         "manufacturing_approved":False,
         "status":"D4_SHARED_ORIGINAL_FOLD_CANDIDATE_UNVERIFIED",
     }
