@@ -221,6 +221,53 @@ def _build_sidebar_workspace_state(s):
         disabled_state=d.tk.DISABLED,
     )
     s.validate_current_indicator_fit = indicator_fit_validation.validate
+    s.manual_mark_mode = [False]
+    s.manual_mark_length = None
+    s.manual_mark_angle = None
+    s.manual_mark_pattern = None
+    s.manual_mark_dash = None
+    s.manual_mark_gap = None
+    s.manual_mark_status = None
+    if s.manual_marking_context is not None:
+        mark_bar = d.tk.Frame(s.center, bg=host.COLOR_PANEL)
+        mark_bar.pack(before=s.canvas, fill=d.tk.X, padx=4, pady=3)
+        s.manual_mark_length = d.tk.StringVar(master=s.editor, value="60")
+        s.manual_mark_angle = d.tk.StringVar(master=s.editor, value="0")
+        s.manual_mark_pattern = d.tk.StringVar(master=s.editor, value="solid")
+        s.manual_mark_dash = d.tk.StringVar(master=s.editor, value="10")
+        s.manual_mark_gap = d.tk.StringVar(master=s.editor, value="5")
+        for name, var, width in (
+            ("長度 mm", s.manual_mark_length, 6),
+            ("角度 °", s.manual_mark_angle, 5),
+            ("實段 mm", s.manual_mark_dash, 5),
+            ("留白 mm", s.manual_mark_gap, 5),
+        ):
+            d.tk.Label(mark_bar, text=name, fg=host.COLOR_TEXT,
+                       bg=host.COLOR_PANEL).pack(side=d.tk.LEFT, padx=(6, 1))
+            d.tk.Entry(mark_bar, textvariable=var, width=width).pack(side=d.tk.LEFT)
+        for label, value in (("實線", "solid"), ("虛線", "dashed")):
+            d.tk.Radiobutton(
+                mark_bar, text=label, value=value,
+                variable=s.manual_mark_pattern, bg=host.COLOR_PANEL,
+                fg=host.COLOR_TEXT, selectcolor=host.COLOR_INPUT_BG,
+            ).pack(side=d.tk.LEFT, padx=2)
+        s.manual_mark_draw_button = d.tk.Button(
+            mark_bar, text="打標：中點放置", bg="#0a84ff", fg="white",
+        )
+        s.manual_mark_draw_button.pack(side=d.tk.LEFT, padx=5)
+        s.manual_mark_select_button = d.tk.Button(
+            mark_bar, text="選取", bg="#636366", fg="white",
+        )
+        s.manual_mark_select_button.pack(side=d.tk.LEFT, padx=2)
+        s.manual_mark_status = d.tk.Label(
+            s.center, text="", fg="#ff453a", bg=host.COLOR_PANEL,
+            anchor="w",
+        )
+        s.manual_mark_status.pack(before=s.canvas, fill=d.tk.X, padx=10)
+        s.editor._manual_marking_controls = (
+            s.manual_mark_draw_button, s.manual_mark_select_button,
+            s.manual_mark_status,
+        )
     s.dragging = [False]
     s.editor_closed = [False]
     s.suppress_entry_events = [False]
@@ -736,6 +783,105 @@ def _build_navigation_and_lifecycle(s):
     s.cancel_all_btn.configure(command=s.cancel_all)
 
 
+
+def _install_manual_marking_actions(s):
+    """Only the real physical-sheet editor gets this drawing interaction.
+
+    The GUI never computes the stroke endpoints, clearance or Fold.  Each
+    click passes the raw input and midpoint to the public Engine candidate.
+    """
+    if s.manual_marking_context is None:
+        return
+    from phase6_hole_editor_session import HoleEditorAction
+    d = s.d
+    real_redraw = s.redraw
+
+    def checked_redraw():
+        try:
+            d.manufacturing_api.propose_operator_physical_sheet_hole_features(
+                s.part_key, s.manual_marking_context,
+                tuple(s.live_context.feature_list),
+            )
+        except (ValueError, TypeError, RuntimeError) as exc:
+            s.manual_mark_status.configure(
+                text="打標／孔位無法確認：" + str(exc), fg="#ff453a",
+            )
+            s.confirm_all_btn.configure(state=d.tk.DISABLED)
+        else:
+            s.manual_mark_status.configure(text="", fg="#ff453a")
+            s.confirm_all_btn.configure(state=d.tk.NORMAL)
+        return real_redraw()
+
+    s.redraw = checked_redraw
+    s.indicator_redraw[0] = checked_redraw
+
+    def select_mode():
+        s.manual_mark_mode[0] = False
+        s.manual_mark_draw_button.configure(relief=d.tk.RAISED)
+        s.manual_mark_select_button.configure(relief=d.tk.SUNKEN)
+
+    def draw_mode():
+        s.set_insert_mode(False)  # do not manufacture a hole while marking
+        s.manual_mark_mode[0] = True
+        s.manual_mark_draw_button.configure(relief=d.tk.SUNKEN)
+        s.manual_mark_select_button.configure(relief=d.tk.RAISED)
+
+    original_down = s.on_canvas_down
+    original_drag = s.on_canvas_drag
+
+    def mark_down(event):
+        if not s.manual_mark_mode[0]:
+            return original_down(event)
+        midpoint = s.canvas_view.canvas_to_world(event.x, event.y)
+        if midpoint is None:
+            return
+        try:
+            mark = d.manufacturing_api.create_physical_manual_marking(
+                s.part_key, s.manual_marking_context,
+                tuple(s.live_context.feature_list),
+                midpoint=midpoint, length=s.manual_mark_length.get(),
+                angle_deg=s.manual_mark_angle.get(),
+                pattern=s.manual_mark_pattern.get(),
+                dash=s.manual_mark_dash.get(), gap=s.manual_mark_gap.get(),
+            )
+        except (ValueError, TypeError, RuntimeError) as exc:
+            s.manual_mark_status.configure(
+                text="打標位置不合法：" + str(exc), fg="#ff453a",
+            )
+            s.confirm_all_btn.configure(state=d.tk.DISABLED)
+            return "break"
+        s.hole_session.execute(HoleEditorAction.insert(mark))
+        s.hole_session.execute(HoleEditorAction.commit_active())
+        s.refresh_created()
+        s.sync_all()
+        s.redraw()
+        return "break"
+
+    def safe_drag(event):
+        index = s.hole_session.selected_index
+        if (0 <= index < len(s.live_context.feature_list) and
+                d.manufacturing_api.is_manual_mark(s.live_context.feature_list[index])):
+            return "break"
+        return original_drag(event)
+
+    s.manual_mark_select_button.configure(command=select_mode)
+    s.manual_mark_draw_button.configure(command=draw_mode)
+    select_mode()
+    s.on_canvas_down = mark_down
+    s.on_canvas_drag = safe_drag
+    original_escape = s.on_escape if hasattr(s, "on_escape") else None
+
+    def mark_escape(event=None):
+        if s.manual_mark_mode[0]:
+            select_mode()
+            return "break"
+        if original_escape is not None:
+            return original_escape(event)
+    s.manual_mark_escape = mark_escape
+    s.editor._manual_marking_place = mark_down
+    s.editor._manual_marking_select = select_mode
+
+
 def _bind_editor_events(s):
     # CADCraft is an opt-in external inspection only. Re-resolve the active
     # editor context on click (including inner-door context switches); never
@@ -1045,7 +1191,9 @@ def _bind_editor_events(s):
     s.editor.bind("<F11>", s.toggle_fullscreen)
     s.editor.bind("<Control-z>", s.undo_last_action)
     s.editor.bind("<Control-Z>", s.undo_last_action)
-    s.editor.bind("<Escape>", s.on_escape)
+    s.editor.bind("<Escape>", (
+        s.manual_mark_escape if s.manual_marking_context is not None else s.on_escape
+    ))
     s.editor.protocol("WM_DELETE_WINDOW", s.cancel_all)
     s.catalog_list.bind(
         "<<ListboxSelect>>", lambda event: s.on_catalog_select(event, s.catalog_list)
@@ -1081,7 +1229,7 @@ def open_unified_hole_editor(
     on_close=None, on_confirm=None, on_confirm_features=None,
     baseline_scene=None, baseline_status_text=None,
     indicator_component_context_provider=None, cabinet_reference_guide=None,
-    local_reference_guide=None, *, dependencies,
+    local_reference_guide=None, manual_marking_context=None, *, dependencies,
 ):
     s = SimpleNamespace(
         host=host, d=dependencies, part_key=part_key, title=title, surface=surface,
@@ -1098,6 +1246,7 @@ def open_unified_hole_editor(
         on_confirm_features=on_confirm_features, baseline_scene=baseline_scene,
         baseline_status_text=baseline_status_text,
         indicator_component_context_provider=indicator_component_context_provider,
+        manual_marking_context=manual_marking_context,
     )
     _prepare_model(s)
     _build_shell_and_indicator(s)
@@ -1107,4 +1256,5 @@ def open_unified_hole_editor(
     _build_pointer_and_created_actions(s)
     _build_reference_selection_actions(s)
     _build_navigation_and_lifecycle(s)
+    _install_manual_marking_actions(s)
     _bind_editor_events(s)

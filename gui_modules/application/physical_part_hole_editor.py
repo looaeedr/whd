@@ -35,9 +35,23 @@ def open_workspace_sheet_editor(host, key):
             app._load_part_holes(key)
         app.submit_update_intent('geometry', commit=True)
 
+    def safe_sync():
+        # Pending invalid marks remain in the editor for repair/Undo, but
+        # cannot enter Workspace or reach the established DXF exporter.
+        try:
+            commit()
+        except (ValueError, TypeError, RuntimeError):
+            pass
+
+    def validate_before_confirm(pending):
+        manufacturing_api.propose_operator_physical_sheet_hole_features(
+            key, context, pending,
+        )
+
     return host._open_unified_hole_editor(
         key, operator_part_label(key, snapshot=payload),
         context.feature_surface, context.width, context.height,
         reference_guide=context.reference_guide, feature_list_override=features,
-        sync_callback=commit, baseline_scene=context.render_data.scene,
+        sync_callback=safe_sync, on_confirm_features=validate_before_confirm,
+        baseline_scene=context.render_data.scene, manual_marking_context=context,
     ) or getattr(host, 'last_unified_hole_editor', None)
