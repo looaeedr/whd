@@ -83,7 +83,8 @@ def _edge_counts(triangles, source_face_ids=(), source_uv=(), seam=None):
     return (len(open_rows),
             sum(len(v)==4 for v in counts.values()),
             sum(len(v)>2 for v in counts.values()),
-            seam_open)
+            seam_open,
+            frozenset(edge for edge,_ in open_rows))
 
 
 def _wall_contact(groups,corner):
@@ -251,7 +252,7 @@ def project_d4_original_owner_uv_solid(
                 for corner,_,_,_ in flat.opening_source_points_xy)
     if len(solid)!=len(solid_source_ids):
         raise GeometryError("TAIL_D4_SHARED_UV_PHYSICAL_FACE_IDENTITY_LOST")
-    open_count,four_count,multi_count,seam_open=_edge_counts(
+    open_count,four_count,multi_count,seam_open,open_keys=_edge_counts(
         solid,solid_source_ids,source_uv,seam,
     )
     return {
@@ -261,6 +262,7 @@ def project_d4_original_owner_uv_solid(
         "v_solid":tuple(solid),
         "straight_v_wall_sets":seams,
         "open_world_edges":open_count,
+        "open_world_edge_keys":open_keys,
         "four_world_edges":four_count,
         "multi_world_edges":multi_count,
         "open_seam_world_edges":seam_open,
