@@ -326,42 +326,50 @@ def test_named_multifold_roles_bind_all_four_corners_not_nearest_return(tail, co
     assert tuple(render.scene.primitives) == original
 
 
-def test_real_multifold_head_bound_snapshot_reopens_and_refuses_stale_return_source():
+def test_real_multifold_head_fold_binding_detects_stale_return_without_faking_endpoints():
     from copy import deepcopy
 
-    # With X left at 41, the real Head lower fw crease at 16+25=41 has
-    # equal physical flange reaches; the ideal 90-degree CHECK rays actually
-    # reach the genuine rectangular CUTTING perimeter.
+    # The true Head lower fw crease is at y=16+25, and the return at y=16.
+    # A real finite BEND may *cross* that corner station in its interior;
+    # the legacy ideal relief solver requires intersection at its endpoint.
+    # Do not alter that production CHECK geometry requirement merely to
+    # make a source-binding regression pass.
     spec, render, real_x, real_y, return_y = _named_head_tail_source(
         x_left=41,
     )
     assert real_y is not return_y
-    args = dict(
-        thickness_mm=2, first_flange_height_mm=41,
-        second_flange_height_mm=41, second_fold_angle_deg=90,
-        relief_mode="RELIEF_HOLE", relief_t_factor=1,
+    source_args = dict(
+        second_angle_deg=90, thickness_mm=2,
+        first_flange_height_mm=41, second_flange_height_mm=41,
     )
-    saved = api.capture_v_miter_relief_trial_snapshot(
-        render.scene, real_x, real_y, **args,
-        part_spec=spec, corner_key="bottom_left",
+    signature = _bound_endcap_fold_sha256(
+        spec, render.scene, real_x, real_y, "bottom_left", **source_args,
     )
-    reloaded = deepcopy(render.scene)
-    assert reloaded.primitives[1] is not real_x
-    replay = api.replay_v_miter_relief_trial_snapshot(
-        reloaded, saved, part_spec=spec,
+    reopened = deepcopy(render.scene)
+    rebuilt_sig = _bound_endcap_fold_sha256(
+        spec, reopened, reopened.primitives[1], reopened.primitives[4],
+        "bottom_left", **source_args,
     )
-    assert replay.manufacturing_status.endswith("UNCERTIFIED")
-    # Head's Y16 return is physically unrelated to the chosen Y41 corner.
-    # A change to this nonselected original BEND must still stale the saved
-    # source digest; it may never reselect the nearest fold.
-    drifted = deepcopy(reloaded)
+    assert rebuilt_sig == signature
+    drifted = deepcopy(reopened)
     old_return = drifted.primitives[3]
     drifted.primitives[3] = LinePrimitive(
-        Vec2(old_return.p1.x, old_return.p1.y + 0.5),
-        Vec2(old_return.p2.x, old_return.p2.y + 0.5),
-        "BEND",
+        Vec2(old_return.p1.x, old_return.p1.y + .5),
+        Vec2(old_return.p2.x, old_return.p2.y + .5), "BEND",
     )
-    with pytest.raises(GeometryError, match="source geometry has changed"):
-        api.replay_v_miter_relief_trial_snapshot(
-            drifted, saved, part_spec=spec,
+    assert _bound_endcap_fold_sha256(
+        spec, drifted, drifted.primitives[1], drifted.primitives[4],
+        "bottom_left", **source_args,
+    ) != signature
+    with pytest.raises(GeometryError, match="SELECTED_BEND_IDENTITY_MISMATCH"):
+        _bound_endcap_fold_sha256(
+            spec, render.scene, real_x, return_y, "bottom_left", **source_args,
+        )
+    with pytest.raises(GeometryError, match="intersection at a bend endpoint"):
+        api.capture_v_miter_relief_trial_snapshot(
+            render.scene, real_x, real_y,
+            thickness_mm=2, first_flange_height_mm=41,
+            second_flange_height_mm=41, second_fold_angle_deg=90,
+            relief_mode="RELIEF_HOLE", relief_t_factor=1,
+            part_spec=spec, corner_key="bottom_left",
         )
