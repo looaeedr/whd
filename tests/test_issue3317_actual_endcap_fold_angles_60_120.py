@@ -67,7 +67,7 @@ def test_real_head_tail_actual_fold_60_120_preserves_factory_source_and_T(
             fold_profile_y=tuple(new_y),
         )
         live = api.project_operator_v_miter_live_corner_check(
-            edited, render, corner,
+            edited, render, corner, first_bend_axis="x",
         )
         assert live.second_fold_angle_deg == pytest.approx(
             requested_second_angle,
