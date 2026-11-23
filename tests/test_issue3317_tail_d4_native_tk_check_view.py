@@ -769,9 +769,13 @@ def test_actual_whd_gui_d4_check_window_four_factory_holes_and_native_world(
         root.destroy()
 
 
-@pytest.mark.parametrize("first_axis",("x","y"))
+@pytest.mark.parametrize("first_axis,record_selection",(
+    ("x",False),  # legacy display-only, no stored first-bend record
+    ("x",True),   # authentic fresh X/X finite BEND identity
+    ("y",True),   # authentic fresh Y/Y finite BEND identity
+))
 def test_real_tk_w620_d4_check_button_uses_exact_preplaced_lower_v_solid(
-    first_axis,record_property,monkeypatch,tmp_path,
+    first_axis,record_selection,record_property,monkeypatch,tmp_path,
 ):
     """Real GUI click; world mesh & source triplets are Engine-owned.
 
@@ -825,7 +829,7 @@ def test_real_tk_w620_d4_check_button_uses_exact_preplaced_lower_v_solid(
         assert before["assembly_relief"]["source"]["ybottom1"]==pytest.approx(48.)
         # Real native selection, not a test-supplied fold label. Both X/X
         # and Y/Y must invoke the native Settings button with its true state.
-        if first_axis=="y":
+        if record_selection:
             from phase6_manufacturing_adapter import build_scene_payload_for_app
             payload=dict(build_scene_payload_for_app(designer,"tail"))
             payload["_use_committed_relief"]=False
