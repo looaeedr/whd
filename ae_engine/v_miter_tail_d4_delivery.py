@@ -336,6 +336,7 @@ def project_tail_d4_shared_original_fold_candidate(
         "original_solid":baseline.solid_triangles,
         "v_surface":developed["v_surface"],
         "v_solid":developed["v_solid"],
+        "v_solid_source_ids":developed["v_solid_source_ids"],
         "v_source_uv":developed["source_uv"],
         "v_source_faces":developed["source_faces"],
         "v_world_open_edges":developed["open_world_edges"],
