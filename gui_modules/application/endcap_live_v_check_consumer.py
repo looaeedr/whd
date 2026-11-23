@@ -4,6 +4,8 @@ Do not store derived 2D or triangles here. Legacy V1/V2 remain separate.
 """
 from collections.abc import Mapping
 from copy import deepcopy
+from dataclasses import dataclass
+from types import MappingProxyType
 
 from ae_engine import manufacturing_api as engine
 
@@ -34,6 +36,22 @@ def validate_live_sources(snapshot):
 
 
 TAIL_BOTTOM_PAIR = ("bottom_left", "bottom_right")
+
+
+@dataclass(frozen=True)
+class _TailBottomPairReplayEnvelope:
+    """One GUI View transaction with one exact Engine-owned physical source.
+
+    Neither saved rows nor transient CHECK projections are project state.
+    The typed PartSpec, PartRenderData and source BEND object identities are
+    retained together for the entire view call, including one-sheet 2D.
+    """
+    part: str
+    target: str
+    part_spec: object
+    render_data: object
+    replays: Mapping
+    saved_rows: Mapping
 
 
 def _selected_corners(host, part, target):
@@ -147,7 +165,7 @@ def capture_current(host):
     return row
 
 
-def replay_current(host, snapshot):
+def replay_current(host, snapshot, *, frozen_pair_source=False):
     records = getattr(host, ATTR, {})
     if not records:
         return None  # old files keep read-only legacy V1/V2 metadata view
@@ -173,8 +191,26 @@ def replay_current(host, snapshot):
             for key in targets
         ):
             raise ValueError("V_MITER_TAIL_PAIR_SAVED_SELECTION_CHANGED")
-        return engine.replay_endcap_live_v_miter_bottom_pair_snapshots(
-            spec, native, {key: saved[key] for key in targets},
+        # Both rows are source-checked against THIS SINGLE owned RenderData.
+        # Ordinary callers keep their historical dict result, whereas the
+        # actual main GUI needs the full bound source for its subsequent
+        # one-piece 2D projection. Never rebuild a new RenderData just to
+        # compare identity of real finite BEND objects.
+        selected_rows = {key: deepcopy(saved[key]) for key in targets}
+        replays = engine.replay_endcap_live_v_miter_bottom_pair_snapshots(
+            spec, native, selected_rows,
+        )
+        if not frozen_pair_source:
+            return replays
+        return _TailBottomPairReplayEnvelope(
+            part=part,
+            target=corner,
+            part_spec=spec,
+            render_data=native,
+            replays=MappingProxyType(dict(replays)),
+            saved_rows=MappingProxyType({
+                key: MappingProxyType(row) for key, row in selected_rows.items()
+            }),
         )
     row = records.get(part, {}).get(corner)
     if row is None:
@@ -188,6 +224,17 @@ def project_current_tail_pair_one_sheet_2d(host, snapshot, replays):
     Caller must already have replayed both saved source records; this method
     does not create/store a second part or manufacture a merged source.
     """
+    if isinstance(replays, _TailBottomPairReplayEnvelope):
+        if (replays.part != "tail" or replays.target != "bottom"
+                or set(replays.replays) != set(TAIL_BOTTOM_PAIR)
+                or set(replays.saved_rows) != set(TAIL_BOTTOM_PAIR)):
+            raise ValueError("V_MITER_TAIL_PAIR_2D_PAIR_SELECTION_REQUIRED")
+        # Crucial: this MUST be the same exact PartSpec/PartRenderData already
+        # bound by grouped replay. Engine retains its strict identity guard.
+        return engine.project_v_miter_custom_tail_bottom_pair_one_sheet_2d_check(
+            replays.part_spec, replays.render_data, replays.replays,
+        )
+    # Existing dict-based callers retain the old projection behavior.
     part, target, spec, native = _selected_source(host, snapshot)
     if (part != "tail" or target != "bottom"
             or _selected_corners(host, part, target) != TAIL_BOTTOM_PAIR):

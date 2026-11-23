@@ -271,3 +271,202 @@ def test_pair_2d_forged_or_repeated_delta_is_not_accepted():
             )
     finally:
         root.destroy()
+
+
+def _turn_off_real_factory_render_cache(app, monkeypatch):
+    """Use the existing WHD Factory on EVERY query, without cache reuse."""
+    original_query = app._query_fold_designer_render_data
+    owner_reads, builds = [], []
+
+    def real_cold_factory(spec, context=None):
+        # Exactly the public Engine builder used by the original cache
+        # implementation. This deliberately creates a fresh PartRenderData.
+        native = api.build_operator_part_render_data(spec, context)
+        builds.append((spec, context, native))
+        return native
+
+    def counted_real_query(part, payload):
+        native = original_query(part, payload)
+        if part == "tail":
+            owner_reads.append(native)
+        return native
+
+    monkeypatch.setattr(app, "_authoritative_render_data", real_cold_factory)
+    monkeypatch.setattr(app, "_query_fold_designer_render_data", counted_real_query)
+    return owner_reads, builds
+
+
+@pytest.mark.parametrize("mode,has_one_sheet", (
+    ("ROUND_R", True),
+    ("RELIEF_HOLE", False),
+))
+def test_real_main_saved_tail_view_cold_factory_rebuilds_source_once(
+    tmp_path, monkeypatch, mode, has_one_sheet,
+):
+    """#3422 independent RED: no RenderData cache, true Save/Open/button.
+
+    The original broken viewer rebuilt the SAME native scene twice.
+    Those values matched but the new BEND objects made Engine correctly
+    refuse the combined candidate as REPLAY_SOURCE_CHANGED. The new GUI
+    route must retain the FIRST exact owned render through both projections.
+    """
+    messages = []
+    monkeypatch.setattr(
+        messagebox, "showinfo", lambda *a, **k: messages.append(("info", a))
+    )
+    monkeypatch.setattr(
+        messagebox, "showerror", lambda *a, **k: messages.append(("error", a))
+    )
+    path = tmp_path / f"custom-tail-cold-cache-{mode}.p6fold"
+    monkeypatch.setattr(filedialog, "asksaveasfilename", lambda **k: str(path))
+    monkeypatch.setattr(filedialog, "askopenfilename", lambda **k: str(path))
+    root = tk.Tk()
+    root.withdraw()
+    new_root = None
+    try:
+        old = BoxCalculatorGUI(root)
+        _make_tail_pair(old, mode)
+        messages.clear()
+        old.v_miter_capture_live_source_button.invoke()
+        assert not any(k == "error" for k, _ in messages), messages
+        original_records = deepcopy(getattr(old, ATTR)["tail"])
+        messages.clear()
+        old.project_save_as_button.invoke()
+        assert path.is_file() and not any(k == "error" for k, _ in messages)
+        saved_bytes = path.read_bytes()
+        assert read_project(path)["snapshot"][KEY]["tail"] == original_records
+
+        new_root = tk.Tk()
+        new_root.withdraw()
+        fresh = BoxCalculatorGUI(new_root)
+        messages.clear()
+        fresh.project_open_button.invoke()
+        assert not any(k == "error" for k, _ in messages), messages
+        fresh.workspace_controller.set_active_part("tail")
+        fresh.select_manual_corner("bottom")
+
+        # Patch the actual render owner, NOT _selected_source or Engine CHECK.
+        # Every call executes the real public Factory; unlike the ordinary
+        # GUI, no cache or prior RenderData instance is reused.
+        reads, builds = _turn_off_real_factory_render_cache(fresh, monkeypatch)
+        messages.clear()
+        fresh.v_miter_check_source_button.invoke()
+        assert not any(k == "error" for k, _ in messages), messages
+        assert len(reads) == len(builds) == 1, (
+            "one Main View must read Tail exactly once even with cache OFF",
+            len(reads), len(builds),
+        )
+        win = fresh._endcap_live_saved_check_window
+        assert win is not None
+        win.update()
+        assert win.winfo_viewable() == 1 and win.grab_status() == "local"
+        envelope = win._saved_endcap_pair_source_envelope
+        assert envelope is not None
+        assert envelope.render_data is reads[0] is builds[0][2]
+        assert set(envelope.replays) == set(CORNERS)
+        assert set(envelope.saved_rows) == set(CORNERS)
+        for side in CORNERS:
+            assert dict(envelope.saved_rows[side]) == original_records[side]
+            with pytest.raises(TypeError):
+                envelope.saved_rows[side]["source_fold_sha256"] = "0" * 64
+
+        first = envelope.render_data
+        # Two fresh Factory runs do have identical values but distinct
+        # BEND owners, proving this test actually disables source reuse.
+        second = api.build_operator_part_render_data(builds[0][0], builds[0][1])
+        assert first is not second
+        assert first.scene == second.scene
+        first_bends = [
+            p for p in first.scene.primitives
+            if isinstance(p, LinePrimitive) and p.layer == "BEND"
+        ]
+        next_bends = [
+            p for p in second.scene.primitives
+            if isinstance(p, LinePrimitive) and p.layer == "BEND"
+        ]
+        assert len(first_bends) == len(next_bends) >= 3
+        assert all(a is not b and (a.p1, a.p2) == (b.p1, b.p2)
+                   for a, b in zip(first_bends, next_bends))
+        left, right = (envelope.replays[key] for key in CORNERS)
+        assert left.first_physical_bend is not right.first_physical_bend
+        assert left.second_physical_bend is right.second_physical_bend
+        assert sum(p is left.second_physical_bend for p in first_bends) == 1
+        assert not any(p is left.second_physical_bend for p in next_bends)
+        assert len(win._saved_endcap_pair_2d_canvases) == 2
+        assert (win._saved_endcap_pair_combined_check is not None) is has_one_sheet
+        assert (win._saved_endcap_pair_combined_canvas is not None) is has_one_sheet
+        if has_one_sheet:
+            assert len(win._saved_endcap_pair_2d_notebook.tabs()) == 2
+            result = win._saved_endcap_pair_combined_check
+            assert tuple(result.original_finite_bends) == tuple(first_bends)
+            contour = _check_polygon(win._saved_endcap_pair_combined_scene)
+            assert contour.area == pytest.approx(result.combined_area_mm2, abs=1e-6)
+            datum_lines = [
+                p for p in win._saved_endcap_pair_combined_scene.primitives
+                if isinstance(p, LinePrimitive) and p.layer == "DATUM"
+            ]
+            assert len(datum_lines) == len(first_bends)
+            assert [(p.p1, p.p2) for p in datum_lines] == [
+                (p.p1, p.p2) for p in first_bends
+            ]
+        else:
+            assert len(win._saved_endcap_pair_2d_notebook.tabs()) == 1
+        assert win._saved_endcap_pair_3d_figure is None
+        assert "不提供雙角合成 3D" in win._saved_endcap_pair_3d_warning.cget("text")
+        assert path.read_bytes() == saved_bytes
+        close_saved_live_check_window(fresh)
+
+        # Source drift still rejects both records, never an old single page.
+        fresh.w_var.set("410")
+        messages.clear()
+        fresh.v_miter_check_source_button.invoke()
+        assert any(k == "error" for k, _ in messages)
+        assert getattr(fresh, "_endcap_live_saved_check_window", None) is None
+        assert path.read_bytes() == saved_bytes
+    finally:
+        if new_root is not None:
+            new_root.destroy()
+        root.destroy()
+
+
+def test_grouped_replay_plain_dict_and_legacy_view_still_supported(monkeypatch):
+    """An ordinary pre-envelope dict caller remains exactly the old API."""
+    from gui_modules.application.endcap_live_v_check_consumer import (
+        replay_current, project_current_tail_pair_one_sheet_2d,
+    )
+    from gui_modules.application.endcap_live_v_check_view import (
+        show_saved_endcap_live_bottom_pair_window,
+    )
+    messages = []
+    monkeypatch.setattr(
+        messagebox, "showinfo", lambda *a, **k: messages.append(("info", a))
+    )
+    monkeypatch.setattr(
+        messagebox, "showerror", lambda *a, **k: messages.append(("error", a))
+    )
+    root = tk.Tk()
+    root.withdraw()
+    try:
+        app = BoxCalculatorGUI(root)
+        _make_tail_pair(app, "ROUND_R")
+        app.v_miter_capture_live_source_button.invoke()
+        assert not any(k == "error" for k, _ in messages), messages
+        snapshot = app._make_original_fold_designer_snapshot()
+        plain = replay_current(app, snapshot)
+        assert type(plain) is dict and set(plain) == set(CORNERS)
+        # Old helper keeps its old direct dict caller behavior with the
+        # normal authoritative cache; it must not require a new envelope.
+        candidate = project_current_tail_pair_one_sheet_2d(
+            app, snapshot, plain,
+        )
+        assert candidate.manufacturing_status.endswith("UNCERTIFIED")
+        legacy = show_saved_endcap_live_bottom_pair_window(
+            app, plain, getattr(app, ATTR)["tail"],
+        )
+        assert legacy._saved_endcap_pair_source_envelope is None
+        assert len(legacy._saved_endcap_pair_2d_canvases) == 2
+        assert legacy._saved_endcap_pair_combined_canvas is None
+        close_saved_live_check_window(app)
+        assert not legacy.winfo_exists()
+    finally:
+        root.destroy()

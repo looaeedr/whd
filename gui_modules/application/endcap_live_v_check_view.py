@@ -195,7 +195,7 @@ def show_saved_endcap_live_check_window(host, replayed, saved_record):
 
 
 def show_saved_endcap_live_bottom_pair_window(
-    host, replays, saved_records, *,
+    host, replays, saved_records=None, *,
     one_sheet_check=None, one_sheet_unavailable=None,
 ):
     """Keep both individual CHECK scenes; optionally show Engine-proven ONE 2D.
@@ -205,6 +205,17 @@ def show_saved_endcap_live_bottom_pair_window(
     unsupported even when this strictly unmanufacturable 2D is valid.
     """
     from collections.abc import Mapping
+    from gui_modules.application.endcap_live_v_check_consumer import (
+        _TailBottomPairReplayEnvelope,
+    )
+
+    source_envelope = None
+    if isinstance(replays, _TailBottomPairReplayEnvelope):
+        if saved_records is not None:
+            raise ValueError("ENDCAP_SAVED_TAIL_PAIR_DUPLICATE_SOURCE_ROWS")
+        source_envelope = replays
+        saved_records = source_envelope.saved_rows
+        replays = source_envelope.replays
 
     targets = ("bottom_left", "bottom_right")
     if (not isinstance(replays, Mapping) or not isinstance(saved_records, Mapping)
@@ -342,6 +353,7 @@ def show_saved_endcap_live_bottom_pair_window(
             ),
         )
         warning.pack(anchor="w", padx=16, pady=(2, 10))
+        win._saved_endcap_pair_source_envelope = source_envelope
         win._saved_endcap_pair_replays = dict(replays)
         win._saved_endcap_pair_scenes = scenes
         win._saved_endcap_pair_2d_canvases = canvases

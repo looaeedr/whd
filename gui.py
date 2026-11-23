@@ -1035,6 +1035,7 @@ class Phase6ApplicationHost:
         from tkinter import messagebox
         from gui_modules.application.endcap_live_v_check_consumer import (
             ATTR, replay_current, project_current_tail_pair_one_sheet_2d,
+            _TailBottomPairReplayEnvelope,
         )
         from gui_modules.application.endcap_live_v_check_view import (
             close_saved_live_check_window, show_saved_endcap_live_check_window,
@@ -1045,18 +1046,20 @@ class Phase6ApplicationHost:
         close_saved_live_check_window(self)
         try:
             snapshot = self._make_original_fold_designer_snapshot()
-            replayed = replay_current(self, snapshot)
+            replayed = replay_current(
+                self, snapshot, frozen_pair_source=True,
+            )
             if replayed is None:
                 detail = _v_miter_check_source_summary_impl(snapshot)
                 messagebox.showinfo("V 型斜接｜CHECK 試算來源", detail)
                 return detail
             part = self._current_manual_corner_part_key()
             corner = self.manual_active_corner_var.get()
-            if corner == "bottom" and part == "tail" and isinstance(replayed, dict):
-                # First replay BOTH saved records with their strict physical
-                # digest; only then ask the Engine for a single-piece 2D
-                # CHECK. If the material proof fails, the existing two
-                # *independent* corner views remain usable. No fake merge.
+            if (corner == "bottom" and part == "tail"
+                    and isinstance(replayed, (dict, _TailBottomPairReplayEnvelope))):
+                # Replay and combine on the ONE exact Engine-owned RenderData,
+                # including when the genuine Factory cache is cold/disabled.
+                # Legacy dict inputs keep their old separate-view contract.
                 one_sheet = None
                 unavailable = None
                 try:
@@ -1066,9 +1069,11 @@ class Phase6ApplicationHost:
                 except (TypeError, ValueError) as exc:
                     unavailable = str(exc)
                 return show_saved_endcap_live_bottom_pair_window(
-                    self, replayed, getattr(self, ATTR)[part],
+                    self, replayed,
                     one_sheet_check=one_sheet,
                     one_sheet_unavailable=unavailable,
+                    **({} if isinstance(replayed, _TailBottomPairReplayEnvelope)
+                       else {"saved_records": getattr(self, ATTR)[part]}),
                 )
             record = getattr(self, ATTR)[part][corner]
             return show_saved_endcap_live_check_window(self, replayed, record)
