@@ -243,6 +243,13 @@ def _source_rows(panels, *, preserve_input_order=False, box_body_owner_by_panel=
                 raise ValueError("COMPOSED_DXF_BOX_BODY_TOPOLOGY_ID_MISMATCH")
             if not isinstance(render, PartRenderData) or render.scene is None:
                 raise ValueError("COMPOSED_DXF_PHYSICAL_FLAT_SCENE_REQUIRED")
+            # #3412: the composed DXF has independent per-piece/combined
+            # save_scene_dxf writers. They must not bypass the same original
+            # complete-stroke + source-cohort gate as ordinary PartRenderData
+            # exports. Check every selected canonical physical flat *before*
+            # staging or publishing; no-mark scenes remain unchanged.
+            from .operator_manual_marking import verify_manual_marking_output
+            verify_manual_marking_output(render)
         # The incoming flattened physical rows may be in arbitrary order.
         # When the canonical BoxBody owner supplies piece topology, it must
         # determine LEFT/BACK/RIGHT (or LEFT/MIDDLE/RIGHT) in the packer.
