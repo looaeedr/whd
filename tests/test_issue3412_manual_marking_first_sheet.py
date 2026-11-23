@@ -318,3 +318,57 @@ def test_real_tk_mark_button_middlepoint_red_warning_undo_and_escape(actual_shee
         assert confirm_button.cget("state") == tk.NORMAL
     finally:
         root.destroy()
+
+
+def test_real_cutting_boundary_endpoint_allowed_along_rejected_bend_overlap_allowed(actual_sheet):
+    from math import atan2, degrees
+    _source, render, context, center, angle = actual_sheet
+    material = render.material
+    polygon = (max(material.geoms, key=lambda poly: poly.area)
+               if hasattr(material, "geoms") else material)
+    ring = list(polygon.exterior.coords)
+    candidate_edge = None
+    for (x0, y0), (x1, y1) in zip(ring, ring[1:]):
+        dx, dy = x1-x0, y1-y0
+        extent = hypot(dx, dy)
+        if extent < 25 or (abs(dx) > 1e-9 and abs(dy) > 1e-9):
+            continue
+        mx, my = (x0+x1)/2, (y0+y1)/2
+        for nx, ny in ((-dy/extent, dx/extent), (dy/extent, -dx/extent)):
+            inward = LineString(((mx, my), (mx+nx*8, my+ny*8)))
+            if material.covers(inward):
+                candidate_edge = mx, my, nx, ny, dx, dy
+                break
+        if candidate_edge is not None:
+            break
+    assert candidate_edge is not None, "The real part must expose a usable CUTTING edge"
+    mx, my, nx, ny, dx, dy = candidate_edge
+    edge_angle = degrees(atan2(dy, dx))
+    with pytest.raises(ValueError, match="不可沿 CUTTING"):
+        api.create_physical_manual_marking(
+            "base_plate", context, (), midpoint=Vec2(mx, my),
+            length=8, angle_deg=edge_angle,
+        )
+    accepted = api.create_physical_manual_marking(
+        "base_plate", context, (),
+        midpoint=Vec2(mx+nx*4, my+ny*4), length=8,
+        angle_deg=degrees(atan2(ny, nx)),
+    )
+    assert material.covers(LineString([(p.x, p.y) for p in accepted.points]))
+    with pytest.raises(ValueError, match="完整筆畫"):
+        api.create_physical_manual_marking(
+            "base_plate", context, (),
+            midpoint=Vec2(mx-nx*4, my-ny*4),
+            length=6, angle_deg=degrees(atan2(ny, nx)),
+        )
+
+    bends = [row for row in render.scene.primitives
+             if isinstance(row, LinePrimitive) and row.layer == "BEND"]
+    bend = bends[0]
+    overlap = api.create_physical_manual_marking(
+        "base_plate", context, (), midpoint=center, length=8,
+        angle_deg=degrees(atan2(
+            bend.p2.y-bend.p1.y, bend.p2.x-bend.p1.x,
+        )),
+    )
+    assert overlap.layer == "MARKING"
