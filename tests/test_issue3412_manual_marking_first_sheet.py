@@ -195,9 +195,8 @@ def test_real_p6fold_reopen_dxf_mm_and_form_marking_finite_fold(actual_sheet, tm
     assert len(raw_marks) == len(mark.layered_profiles)
     assert all(e.dxftype() == "LWPOLYLINE" and len(e) == 2 for e in raw_marks)
     for actual, (_layer, expected, _closed) in zip(raw_marks, mark.layered_profiles):
-        assert [tuple(p) for p in actual.get_points("xy")] == pytest.approx([
-            (p.x, p.y) for p in expected
-        ])
+        for measured, canonical in zip(actual.get_points("xy"), expected):
+            assert tuple(measured) == pytest.approx((canonical.x, canonical.y))
     base_entities = [
         e for e in drawing.modelspace() if e.dxf.layer in {"CUTTING", "BEND"}
     ]
