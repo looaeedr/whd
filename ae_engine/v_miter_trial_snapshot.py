@@ -176,6 +176,10 @@ def _bound_endcap_fold_sha256(
         first_height, second_height = y_height, x_height
     else:
         raise GeometryError("V_MITER_SNAPSHOT_SELECTED_BEND_IDENTITY_MISMATCH")
+    if (type(second_angle_deg) not in (int, float)
+            or not math.isfinite(second_angle_deg)
+            or not 0 < second_angle_deg < 180):
+        raise GeometryError("V_MITER_SNAPSHOT_SECOND_FOLD_ANGLE_INVALID")
     if (abs(abs(first_angle) - 90) > 1e-8
             or first_angle * second_angle <= 0
             or abs(abs(second_angle) - second_angle_deg) > 1e-8):
@@ -305,6 +309,21 @@ def capture_v_miter_relief_trial_snapshot(
     part_spec=None, corner_key: str | None = None,
 ) -> dict[str, object]:
     """Capture validated operator source only, excluding computed geometry."""
+    if (part_spec is None) != (corner_key is None):
+        raise GeometryError("V_MITER_SNAPSHOT_PARTSPEC_AND_CORNER_REQUIRED")
+    # Prove original physical T / two flange reaches / signed Fold before any
+    # candidate ray or relief solver. Otherwise a wrong height can first
+    # become a different ideal contact and hide the actual stale source.
+    bound_fold = (
+        {"source_fold_sha256": _bound_endcap_fold_sha256(
+            part_spec, scene, v_edge_bend, second_bend, corner_key,
+            second_angle_deg=second_fold_angle_deg,
+            thickness_mm=thickness_mm,
+            first_flange_height_mm=first_flange_height_mm,
+            second_flange_height_mm=second_flange_height_mm,
+        ), "source_corner_key": corner_key}
+        if part_spec is not None else {}
+    )
     trial = project_v_miter_relief_mating_trial(
         scene, v_edge_bend, second_bend,
         thickness_mm=thickness_mm,
@@ -317,18 +336,6 @@ def capture_v_miter_relief_trial_snapshot(
     q = trial.relief.source_trial.ideal.source
     first_role = _owned_index(scene, v_edge_bend)
     second_role = _owned_index(scene, second_bend)
-    if (part_spec is None) != (corner_key is None):
-        raise GeometryError("V_MITER_SNAPSHOT_PARTSPEC_AND_CORNER_REQUIRED")
-    bound_fold = (
-        {"source_fold_sha256": _bound_endcap_fold_sha256(
-            part_spec, scene, v_edge_bend, second_bend, corner_key,
-            second_angle_deg=q.second_fold_angle_deg,
-            thickness_mm=q.thickness_mm,
-            first_flange_height_mm=q.first_flange_height_mm,
-            second_flange_height_mm=q.second_flange_height_mm,
-        ), "source_corner_key": corner_key}
-        if part_spec is not None else {}
-    )
     return {
         **bound_fold,
         "contract": _TRIAL_CONTRACT,
