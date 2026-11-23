@@ -501,22 +501,15 @@ def test_actual_whd_gui_d4_check_window_four_factory_holes_and_native_world(
                     "D4_CANDIDATE_UNCHANGED_FACTORY_FACE_DRIFT",
                     axis,label,original_hits,candidate_hits,
                 )
-            # Any physically registered V skin must still be checked for
-            # self-overlap and root continuity before replacing old CHECK.
+            # Compare baseline source and V change in the same physical
+            # owner before any costly global collision solver. This phase
+            # is NOT a pass for root continuity or full V walls.
             import warnings
-            from ae_engine.assembly_geometry import (
-                diagnose_world_mesh_self_intersections,
-            )
-            candidate_local=diagnose_world_mesh_self_intersections(
-                trial["v_solid"],max_nonadjacent_pairs=3000,
-            )
             warnings.warn(
                 "ISSUE3317_SHARED_ORIGINAL_FOLD_CANDIDATE="
                 +repr((axis,len(trial["v_surface"]),
                        len(trial["v_solid"]),
-                       candidate_local.crossing_pair_count,
-                       candidate_local.coplanar_overlap_pair_count,
-                       candidate_local.numerical_budget_exhausted)),
+                       "ROOT_SELF_CONTACT_UNVERIFIED")),
                 RuntimeWarning,stacklevel=1,
             )
         # Integral Body's corrected outside datum now has no side
