@@ -169,6 +169,25 @@ def test_actual_whd_gui_d4_check_window_four_factory_holes_and_native_world(
             if float(point[2])>90.
         }
         assert 90.5 in front_skin_z and 92.5 in front_skin_z
+        front_body=probe_native_world_mesh_axis_faces(
+            body,axis=2,fixed_xyz=(290.,-275.,0.),
+        )
+        for value in (-92.5,-90.5,90.5,92.5):
+            assert any(abs(z-value)<1e-4 for z in front_body),(
+                "BODY_ACTUAL_FRONT_FRAME_PROBE",value,front_body,
+            )
+        # The real lower left front-frame corner is not the empty x100
+        # opening. Use this exact local ray instead of a made-up front wall.
+        front_corner_body=probe_native_world_mesh_axis_faces(
+            body,axis=2,fixed_xyz=(-294.,-297.,0.),
+        )
+        front_corner_tail=probe_native_world_mesh_axis_faces(
+            placed,axis=2,fixed_xyz=(-294.,-297.,0.),
+        )
+        assert front_corner_body and front_corner_tail,(
+            "D4_REAL_FRONT_FRAME_SOURCE_MISSING",
+            front_corner_body,front_corner_tail,
+        )
         for value in (-91.5,-89.5):
             assert any(abs(z-value)<1e-4 for z in rear_tail),(
                 "TAIL_REAR_PROBE",value,rear_tail,
