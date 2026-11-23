@@ -110,7 +110,11 @@ def test_actual_whd_gui_d4_check_window_four_factory_holes_and_native_world(
         body_bounds=triangle_bounds(body)
         assert body_bounds[0]==pytest.approx((-310.,310.),abs=1e-7)
         assert body_bounds[2]==pytest.approx((-92.5,92.5),abs=1e-7)
-        assert body_bounds[1][0]==pytest.approx(-298.,abs=1e-7)
+        assert body_bounds[1]==pytest.approx((-298.,298.),abs=1e-7)
+        tail_bounds=triangle_bounds(placed)
+        assert tail_bounds[0]==pytest.approx((-308.,308.),abs=1e-7)
+        assert tail_bounds[2]==pytest.approx((-91.5,91.5),abs=1e-7)
+        assert tail_bounds[1][0]==pytest.approx(-300.,abs=1e-7)
         assert designer._phase6_input_snapshot==before
         actual=win._tail_d4_assembly_check
         assert actual.body_triangle_count==len(body)==308
@@ -152,7 +156,7 @@ def test_actual_whd_gui_d4_check_window_four_factory_holes_and_native_world(
         rear_tail=probe_native_world_mesh_axis_faces(
             placed,axis=2,fixed_xyz=(100.,-275.,0.),
         )
-        for value in (-92.5,-90.5):
+        for value in (-92.5,-90.5,90.5,92.5):
             assert any(abs(z-value)<1e-4 for z in rear_body),(
                 "BODY_REAR_PROBE",value,rear_body,
             )
