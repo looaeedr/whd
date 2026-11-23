@@ -57,7 +57,6 @@ def test_real_sheet_midpoint_solid_and_dash_are_full_strokes(actual_sheet):
     solid = _mark(actual_sheet)
     dashed = _mark(actual_sheet, pattern="dashed")
     assert solid.source_type == api.MANUAL_MARK_SOURCE
-    assert tuple(solid.points[0] + solid.points[1]) if False else True
     assert len(solid.layered_profiles) == 1
     assert len(dashed.layered_profiles) == 3
     for mark in (solid, dashed):
