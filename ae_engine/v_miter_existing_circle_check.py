@@ -27,6 +27,19 @@ UNSUPPORTED_HOLE_3D = "V_MITER_LIVE_EXISTING_CUTTING_HOLE_3D_UNSUPPORTED"
 _SOURCE_ERROR = "V_MITER_EXISTING_HOLE_SOURCE_UNVERIFIED"
 
 
+def _authentic_custom_endcap_fold_source(part_spec):
+    """Custom GUI's normalized model is None; it is not a literal '自訂'.
+
+    None alone is insufficient: require both actual authored Fold chains and
+    a physical manual CornerType policy before narrowly accepting this hole.
+    Exact original Factory/FinalScene/material rebuild is checked below.
+    """
+    return (part_spec.model_name is None
+            and part_spec.corner_policy is not None
+            and bool(part_spec.fold_profile_x)
+            and bool(part_spec.fold_profile_y))
+
+
 def qualify_live_endcap_circle_source(part_spec, render_data):
     """Return (detached solid-only CHECK input, original CirclePrimitive, void).
 
@@ -49,13 +62,12 @@ def qualify_live_endcap_circle_source(part_spec, render_data):
     if not circles:
         # Existing zero-hole source still uses the original strict path.
         # Do not accept a silently missing hole in a mismatched Custom input.
-        if (part_spec.model_name == "自訂"
-                and (getattr(render_data.material, "interiors", ())
-                     or any(isinstance(p, CircleFeature) and p.layer == "CUTTING"
-                            for p in part_spec.holes))):
+        if (getattr(render_data.material, "interiors", ())
+                or any(isinstance(p, CircleFeature) and p.layer == "CUTTING"
+                       for p in part_spec.holes)):
             raise GeometryError(_SOURCE_ERROR)
         return render_data, None, None
-    if (part_spec.model_name != "自訂"
+    if (not _authentic_custom_endcap_fold_source(part_spec)
             or len(cutting) != 2 or len(circles) != 1
             or len(part_spec.holes) != 1
             or not isinstance(part_spec.holes[0], CircleFeature)

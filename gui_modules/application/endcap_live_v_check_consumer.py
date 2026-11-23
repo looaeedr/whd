@@ -41,8 +41,26 @@ def _selected_source(host, snapshot):
     pair = host._pair_for_corner_target(corner)
     if corner not in CORNERS or host.manual_corner_pair_same[part].get(pair):
         raise ValueError("請指定實際單一角落，不代選成對截角")
-    spec, _context = host._fold_designer_part_spec_from_payload(part, snapshot)
-    native = host._query_fold_designer_render_data(part, snapshot)
+    # The main GUI snapshot owns *per-physical-part* Features and Fold.
+    # The canonical PartSpec/FinalScene adapters consume selected-payload
+    # `features` / `fold_profiles`, NOT root `part_features` maps.
+    # Use one identical detached payload for capture and saved replay.
+    if not isinstance(snapshot, Mapping):
+        raise ValueError("ENDCAP_LIVE_V_CANONICAL_SNAPSHOT_REQUIRED")
+    payload = deepcopy(dict(snapshot))
+    part_features = snapshot.get("part_features")
+    if part_features is not None:
+        if not isinstance(part_features, Mapping):
+            raise ValueError("ENDCAP_LIVE_V_PART_FEATURES_INVALID")
+        payload["features"] = deepcopy(part_features.get(part, ()))
+    part_profiles = snapshot.get("part_profiles")
+    if part_profiles is not None:
+        if not isinstance(part_profiles, Mapping):
+            raise ValueError("ENDCAP_LIVE_V_PART_PROFILES_INVALID")
+        if part in part_profiles:
+            payload["fold_profiles"] = deepcopy(part_profiles[part])
+    spec, _context = host._fold_designer_part_spec_from_payload(part, payload)
+    native = host._query_fold_designer_render_data(part, payload)
     if spec is None or native is None:
         raise ValueError("ENDCAP_LIVE_V_CURRENT_NATIVE_SOURCE_UNAVAILABLE")
     return part, corner, spec, native
