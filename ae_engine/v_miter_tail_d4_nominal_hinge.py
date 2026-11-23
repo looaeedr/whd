@@ -95,7 +95,7 @@ def nominal_section_map(s,signed_t,h,*,panel):
 
 def nominal_adjacent_source_skins(
     faces,source_uv,world_surface,t,st,h,stock,flat_openings,
-    *,extend_side_collar=True,
+    *,extend_side_collar=True,upper_taper=False,
 ):
     """Face-vertex +/-T/2 locations from real source-adjacent crease faces.
 
@@ -214,6 +214,36 @@ def nominal_adjacent_source_skins(
     used_hinges=set()
     layers=[]
     upper_cutoff=max(st.left_side_end,st.right_side_end)
+    taper_start=upper_cutoff-h
+    if upper_taper:
+        if not isfinite(upper_cutoff) or taper_start<=st.bottom_y:
+            raise GeometryError("TAIL_D4_NOMINAL_TAPER_SOURCE_SPAN_INVALID")
+        # The real source X-crease tangent, not an arbitrary world axis.
+        # Source edges are oriented in ascending source Y; along the fold
+        # they give the true world movement direction in either order.
+        tangents={}
+        for (a,b),neighbor in source_edges.items():
+            ua,ub=source_uv[a],source_uv[b]
+            if abs(ua[0]-ub[0])>1e-7 or abs(ua[1]-ub[1])<=1e-8:
+                continue
+            crease=ua[0]
+            if not any(abs(crease-c)<1e-7
+                       for c in (st.left_x,st.right_x)):
+                continue
+            fid=neighbor[0][0]
+            face=faces[fid]
+            tri=world_surface[fid]
+            pa=tri[face.index(a)]
+            pb=tri[face.index(b)]
+            tangent=_sub(pb,pa) if ub[1]>ua[1] else _sub(pa,pb)
+            length=sqrt(_dot(tangent,tangent))
+            if length>1e-8:
+                tangent=_mul(tangent,1./length)
+                if crease in tangents and _dot(tangents[crease],tangent)<1.-1e-6:
+                    raise GeometryError("TAIL_D4_NOMINAL_TAPER_TANGENT_NOT_SHARED")
+                tangents[crease]=tangent
+        if not all(c in tangents for c in (st.left_x,st.right_x)):
+            raise GeometryError("TAIL_D4_NOMINAL_TAPER_TRUE_HINGE_AXIS_MISSING")
     for fid,(face,tri,n) in enumerate(zip(faces,world_surface,normals)):
         # Do not deform the ORIGINAL upper cap side of the finite X-BEND
         # endpoint. The lower-to-upper transition may remain physically
@@ -246,13 +276,26 @@ def nominal_adjacent_source_skins(
                     +repr((uv,tuple(sorted(unique))))
                 )
             shift=n
+            tangent_adjust=(0.,0.,0.)
             if candidates:
                 axis,station,other,s=candidates[0]
-                blend=max(0.,min(1.,1.-s/h))
+                local_h=h
+                if upper_taper and axis==0 and uv[1]>=taper_start-1e-7:
+                    progression=max(0.,min(1.,(uv[1]-taper_start)/h))
+                    local_h=h-(h-t/2.)*progression
+                blend=max(0.,min(1.,1.-s/local_h))
                 shift=_add(n,_mul(other,blend))
                 used_hinges.add((axis,round(station,7)))
+                if upper_taper and axis==0 and uv[1]>=taper_start-1e-7:
+                    # Only the inward (negative) physical skin receives
+                    # the longitudinal relief. It is tangent to the real
+                    # source X crease, so nominal plane-normal T stays fixed.
+                    tangent_adjust=_mul(
+                        tangents[station],(h-local_h)*blend,
+                    )
             offset=_mul(shift,t/2.)
-            vlayers.append((_add(p,offset),_sub(p,offset)))
+            vlayers.append((_add(p,offset),
+                            _add(_sub(p,offset),tangent_adjust)))
         layers.append(tuple(vlayers))
     if not {(0,round(st.left_x,7)),(0,round(st.right_x,7)),
             (1,round(st.bottom_y,7))}.issubset(used_hinges):
