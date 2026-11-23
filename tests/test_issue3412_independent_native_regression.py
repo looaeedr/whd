@@ -212,10 +212,180 @@ def test_cancel_of_stale_saved_mark_destroys_editor_without_sync_or_validation(
         )
         controller.cancel_all()
         assert live == original_features
-        assert root.winfo_exists() == 0
+        assert not root.tk.call("info", "commands", "winfo")
         assert sync_calls == []
         assert on_closes == ["closed"]
         controller.cancel_all()  # already closed is an inert repeat
     finally:
-        if root.winfo_exists():
+        if root.tk.call("info", "commands", "destroy"):
             root.destroy()
+
+
+def test_native_tk_canvas_place_confirm_save_new_instance_open_and_normal_dxf(
+    actual_sheet, tmp_path, monkeypatch,
+):
+    """True native Tk canvas click -> confirm -> .p6fold -> a new GUI adapter
+    instance -> normal Engine generate_part -> independently reopened DXF.
+    """
+    import tkinter as tk
+    import phase6_project_file as project
+    from phase6_hole_editor_canvas_view import (
+        Phase6HoleEditorCanvasView, HoleEditorCanvasFrame,
+    )
+    from phase6_hole_editor_session import Phase6HoleEditorSession
+    from gui_modules.editors.hole_editor_composition import _install_manual_marking_actions
+    from gui_modules.editors.hole_editor import HoleEditorModalLifecycle
+    from gui_modules.application.physical_part_hole_editor import open_workspace_sheet_editor
+    from tests.test_issue2517_baseplate_alias_snapshot_finalscene_dxf_parity import _part_spec
+
+    source, baseline, context, midpoint, _angle = actual_sheet
+    tk_root = tk.Tk()
+    tk_root.geometry("1100x850+0+0")
+    canvas = tk.Canvas(tk_root, width=1000, height=700)
+    canvas.pack(fill="both", expand=True)
+    tk_root.update()
+    live = []
+    session = Phase6HoleEditorSession("base_plate", live)
+    view = Phase6HoleEditorCanvasView(
+        canvas, draw_grid=lambda *_a: None,
+        render_secondary_scene=lambda *_a: None,
+        render_resolved_features=lambda *_a, **_kw: None,
+    )
+
+    def redraw():
+        view.render(HoleEditorCanvasFrame(
+            surface=context.feature_surface, features=live,
+            width=context.width, height=context.height,
+            reference_guide=context.reference_guide, selected_index=-1,
+            baseline_scene=baseline.scene,
+        ))
+
+    redraw()
+    cx, cy = view.transform.world_to_canvas(Vec2(midpoint.x, 20.37))
+    assert 0 <= cx <= canvas.winfo_width()
+    assert 0 <= cy <= canvas.winfo_height()
+
+    def button(title):
+        return tk.Button(tk_root, text=title)
+
+    confirm = button("確定")
+    drawing = button("打標")
+    selection = button("選取")
+    warning = tk.Label(tk_root, text="")
+    staged = []
+    editor = SimpleNamespace(
+        part_key="base_plate", editor=tk_root, manual_marking_context=context,
+        live_context=SimpleNamespace(feature_list=live),
+        d=SimpleNamespace(tk=tk, manufacturing_api=api),
+        manual_mark_mode=[False],
+        manual_mark_length=tk.StringVar(master=tk_root, value="12"),
+        manual_mark_angle=tk.StringVar(master=tk_root, value="90"),
+        manual_mark_pattern=tk.StringVar(master=tk_root, value="dashed"),
+        manual_mark_dash=tk.StringVar(master=tk_root, value="2"),
+        manual_mark_gap=tk.StringVar(master=tk_root, value="2"),
+        manual_mark_status=warning, confirm_all_btn=confirm,
+        manual_mark_draw_button=drawing, manual_mark_select_button=selection,
+        hole_session=session, indicator_redraw=[None],
+        on_canvas_down=lambda _e: None, on_canvas_drag=lambda _e: None,
+        on_escape=lambda _e: "unhandled", canvas_view=view,
+        set_insert_mode=lambda _value: None,
+        redraw=redraw, refresh_created=lambda: None,
+        sync_all=lambda: None,
+    )
+    try:
+        _install_manual_marking_actions(editor)
+        canvas.bind("<Button-1>", editor.on_canvas_down)
+        drawing.invoke()
+        canvas.event_generate("<Button-1>", x=round(cx), y=round(cy))
+        tk_root.update()
+        assert len(live) == 1 and api.is_manual_mark(live[0])
+        assert drawing.cget("relief") == tk.SUNKEN
+        assert confirm.cget("state") == tk.NORMAL
+        original_mark = live[0]
+        assert abs((original_mark.points[0].y + original_mark.points[1].y) / 2 - 20.37) < 0.5
+
+        lifecycle = HoleEditorModalLifecycle(
+            hole_session=session, has_selected_feature=lambda: False,
+            position_authority=[None], commit_active_edit=lambda **kw: None,
+            sync_all=lambda: None, validate_current_indicator_fit=lambda show_error=False: True,
+            door_indicator_state=None, collect_indicator_state=lambda: None,
+            door_indicator_commit=None, editor_closed=[False],
+            editor=tk_root, on_close=lambda: None, insert_mode=[False],
+            set_insert_mode=lambda value: None, cancel_active_edit=lambda: None,
+            before_commit=lambda: staged.append(
+                api.propose_operator_physical_sheet_hole_features(
+                    "base_plate", context, tuple(live),
+                )
+            ), sync_on_cancel=False,
+        )
+        lifecycle.confirm_all()
+        assert len(staged) == 1 and staged[0] == (original_mark,)
+    finally:
+        if tk_root.tk.call("info", "commands", "destroy"):
+            tk_root.destroy()
+
+    saved_source = dict(source)
+    saved_source["workspace"] = dict(saved_source.get("workspace") or {})
+    saved_source["workspace"]["part_features"] = dict(
+        saved_source["workspace"].get("part_features") or {}
+    )
+    saved_source["workspace"]["part_features"]["base_plate"] = list(staged[0])
+    saved_path = project.write_project(
+        tmp_path / "real-native-3412.p6fold",
+        {"schema": project.PROJECT_SCHEMA, "snapshot": saved_source},
+    )
+
+    # The next GUI request is a fresh workspace/app/window adapter instance.
+    loaded = project.read_project(saved_path)["snapshot"]
+    reopened = loaded["workspace"]["part_features"]["base_plate"]
+    assert tuple(reopened) == staged[0]
+    ctx = ManufacturingContext(resource_root=Path(__file__).resolve().parents[1])
+    _values, spec = _part_spec(loaded)
+    clean = api.build_part_render_data(spec, ctx)
+    captured = {}
+    writes = []
+    workspace = SimpleNamespace(
+        available_parts=("base_plate",), active_part="base_plate",
+        features_for=lambda _key: reopened,
+        stash_features=lambda *_args: writes.append(_args),
+    )
+    app = SimpleNamespace(
+        designer_workspace=workspace, _load_part_holes=lambda _key: None,
+        submit_update_intent=lambda *_a, **_kw: None,
+    )
+    host = SimpleNamespace(
+        fold_designer_app=app,
+        _query_fold_designer_render_data=lambda *_a: clean,
+        _open_unified_hole_editor=lambda *_a, **kw: captured.update(kw) or object(),
+    )
+    monkeypatch.setattr(
+        "phase6_manufacturing_adapter.build_scene_payload_for_app",
+        lambda *_a: dict(loaded),
+    )
+    monkeypatch.setattr(
+        "phase6_part_navigation.operator_part_label",
+        lambda *_a, **_kw: "真受電箱底板",
+    )
+    open_workspace_sheet_editor(host, "base_plate")
+    assert captured["feature_list_override"] is reopened
+    assert captured["manual_marking_context"] is not None
+    assert captured["defer_workspace_sync"] is True
+    assert captured["skip_cancel_sync"] is True
+    assert writes == []
+
+    whole_spec = replace(spec, features=tuple(reopened))
+    whole = api.build_part_render_data(whole_spec, ctx)
+    output_path = tmp_path / "normal-public-generate-part.dxf"
+    result = api.generate_part(whole_spec, output_path, ctx)
+    assert result.output_path == str(output_path)
+    assert api.verify_saved_part_render_data_dxf(whole, output_path).ok
+    from_disk = ezdxf.readfile(output_path)
+    assert from_disk.header["$INSUNITS"] == 4
+    lines = [e for e in from_disk.modelspace() if e.dxf.layer == "MARKING"]
+    assert len(lines) == len(original_mark.layered_profiles)
+    assert {e.dxf.layer for e in from_disk.modelspace()} >= {
+        "CUTTING", "BEND", "MARKING",
+    }
+    paths = _formed_paths(whole, loaded)
+    assert len(paths) == len(lines)
+    assert all(len(path) >= 2 for path in paths)
