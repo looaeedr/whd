@@ -1034,7 +1034,7 @@ class Phase6ApplicationHost:
         """Show the saved Engine replay as read-only 2D + formed 3D CHECK."""
         from tkinter import messagebox
         from gui_modules.application.endcap_live_v_check_consumer import (
-            ATTR, replay_current,
+            ATTR, replay_current, project_current_tail_pair_one_sheet_2d,
         )
         from gui_modules.application.endcap_live_v_check_view import (
             close_saved_live_check_window, show_saved_endcap_live_check_window,
@@ -1053,9 +1053,22 @@ class Phase6ApplicationHost:
             part = self._current_manual_corner_part_key()
             corner = self.manual_active_corner_var.get()
             if corner == "bottom" and part == "tail" and isinstance(replayed, dict):
-                # Engine already replayed BOTH on the same physical source.
+                # First replay BOTH saved records with their strict physical
+                # digest; only then ask the Engine for a single-piece 2D
+                # CHECK. If the material proof fails, the existing two
+                # *independent* corner views remain usable. No fake merge.
+                one_sheet = None
+                unavailable = None
+                try:
+                    one_sheet = project_current_tail_pair_one_sheet_2d(
+                        self, snapshot, replayed,
+                    )
+                except (TypeError, ValueError) as exc:
+                    unavailable = str(exc)
                 return show_saved_endcap_live_bottom_pair_window(
                     self, replayed, getattr(self, ATTR)[part],
+                    one_sheet_check=one_sheet,
+                    one_sheet_unavailable=unavailable,
                 )
             record = getattr(self, ATTR)[part][corner]
             return show_saved_endcap_live_check_window(self, replayed, record)

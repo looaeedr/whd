@@ -3309,3 +3309,9 @@ from .v_miter_endcap_live_snapshot import (
     capture_endcap_live_v_miter_bottom_pair_snapshots,
     replay_endcap_live_v_miter_bottom_pair_snapshots,
 )
+
+# Source-verified two-bottom-V Custom Tail one-piece FLAT CHECK (never DXF/3D).
+from .v_miter_tail_pair_sheet_check import (
+    VMiterTailPairOneSheet2DCheck,
+    project_v_miter_custom_tail_bottom_pair_one_sheet_2d_check,
+)

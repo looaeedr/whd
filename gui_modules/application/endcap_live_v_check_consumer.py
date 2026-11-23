@@ -180,3 +180,18 @@ def replay_current(host, snapshot):
     if row is None:
         raise ValueError("ENDCAP_LIVE_V_SOURCE_NOT_SAVED_FOR_SELECTION")
     return engine.replay_endcap_live_v_miter_check_snapshot(spec, native, row)
+
+
+def project_current_tail_pair_one_sheet_2d(host, snapshot, replays):
+    """One verified Engine projection from the SAME fresh saved-pair source.
+
+    Caller must already have replayed both saved source records; this method
+    does not create/store a second part or manufacture a merged source.
+    """
+    part, target, spec, native = _selected_source(host, snapshot)
+    if (part != "tail" or target != "bottom"
+            or _selected_corners(host, part, target) != TAIL_BOTTOM_PAIR):
+        raise ValueError("V_MITER_TAIL_PAIR_2D_PAIR_SELECTION_REQUIRED")
+    return engine.project_v_miter_custom_tail_bottom_pair_one_sheet_2d_check(
+        spec, native, replays,
+    )

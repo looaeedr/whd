@@ -194,13 +194,15 @@ def show_saved_endcap_live_check_window(host, replayed, saved_record):
         raise
 
 
-def show_saved_endcap_live_bottom_pair_window(host, replays, saved_records):
-    """Show two SEPARATE source-checked bottom-corner 2D scenes on one Tail.
+def show_saved_endcap_live_bottom_pair_window(
+    host, replays, saved_records, *,
+    one_sheet_check=None, one_sheet_unavailable=None,
+):
+    """Keep both individual CHECK scenes; optionally show Engine-proven ONE 2D.
 
-    Each canvas is its own original Engine full-sheet *single-corner* CHECK;
-    no contours, folds or triangles from two independent solutions are ever
-    merged. A simultaneous single-sheet V cut and sequential 3D with one
-    shared physical Y BEND have NOT been proven by the existing solver.
+    The new single-sheet scene is a separate Engine source/material delta
+    result, NEVER an overlay of the two full-sheet corner scenes. 3D remains
+    unsupported even when this strictly unmanufacturable 2D is valid.
     """
     from collections.abc import Mapping
 
@@ -223,6 +225,21 @@ def show_saved_endcap_live_bottom_pair_window(host, replays, saved_records):
             raise ValueError("ENDCAP_SAVED_TAIL_PAIR_UNVERIFIED_SCENE")
         scenes[key] = scene
 
+    if one_sheet_check is not None:
+        combined_scene = one_sheet_check.scene
+        if (not one_sheet_check.manufacturing_status.endswith("UNCERTIFIED")
+                or not combined_scene.primitives
+                or any(row.layer not in ("CHECK", "DATUM")
+                       for row in combined_scene.primitives)
+                or sum(
+                    isinstance(row, type(scenes[targets[0]].primitives[0]))
+                    and row.layer == "CHECK"
+                    for row in combined_scene.primitives
+                ) != 1):
+            raise ValueError("ENDCAP_SAVED_TAIL_PAIR_SINGLE_2D_UNVERIFIED")
+    else:
+        combined_scene = None
+
     parent = getattr(host, "root", None)
     win = tk.Toplevel(parent)
     try:
@@ -238,9 +255,13 @@ def show_saved_endcap_live_bottom_pair_window(host, replays, saved_records):
         ).pack(anchor="w")
         ttk.Label(
             header, text=(
-                "左右各自以相同原生 PartRenderData 計算，但尚未證明雙 V "
-                "切割後的單一母材／共享折線只折一次及完整 3D。"
-                "下方是兩角分開的 2D，不能相疊或當成已完成的全板展開圖。"
+                "Engine 已獨立證明真 Factory 角料的互斥 signed deltas，"
+                "保留原始全部有限 BEND；新增一張真正同片雙角 2D CHECK。"
+                "另可切換查看原左右各自的獨立 CHECK。"
+                if combined_scene is not None else
+                "同片完整雙 V 2D 物理證據未通過；只可查看左右獨立單角 CHECK，"
+                "不可把兩張全板圖相疊冒充單片。拒絕原因：" +
+                str(one_sheet_unavailable or "來源未通過 Factory/物理 BEND 核驗")
             ), wraplength=1370,
         ).pack(anchor="w", pady=(3, 4))
         ttk.Button(
@@ -248,8 +269,43 @@ def show_saved_endcap_live_bottom_pair_window(host, replays, saved_records):
             command=lambda: close_saved_live_check_window(host),
         ).pack(anchor="e")
 
-        pair_area = ttk.Frame(win)
-        pair_area.pack(fill=tk.BOTH, expand=True, padx=8, pady=6)
+        notebook = ttk.Notebook(win)
+        notebook.pack(fill=tk.BOTH, expand=True, padx=8, pady=6)
+        combined_canvas = None
+        if combined_scene is not None:
+            merged_area = ttk.Frame(notebook)
+            notebook.add(merged_area, text="單片雙角 2D CHECK（非加工）")
+            merged_area.columnconfigure(0, weight=1)
+            merged_area.rowconfigure(1, weight=1)
+            signed = dict(one_sheet_check.corner_signed_area_deltas_mm2)
+            ttk.Label(
+                merged_area,
+                text=(
+                    "同一原生 Custom 封尾｜下方左右雙 V，單一有效外輪廓"
+                    "｜Factory 理論淨保留面積（左／右）"
+                    f" {signed['bottom_left']:+.9f} / "
+                    f"{signed['bottom_right']:+.9f} mm²；"
+                    "非實際已切板補料，禁止加工"
+                ), wraplength=1380,
+            ).grid(row=0, column=0, sticky="w", padx=10, pady=4)
+            combined_canvas = tk.Canvas(
+                merged_area, width=1380, height=585, bg="#162534",
+                highlightthickness=0,
+            )
+            combined_canvas.grid(row=1, column=0, sticky="nsew", padx=8)
+            render_drawing_scene(
+                combined_canvas, combined_scene,
+                _ReadOnlyViewport(combined_scene, 1380, 585),
+            )
+            combined_canvas.create_text(
+                12, 567, anchor="w", fill="#dadfe6",
+                text=(
+                    "單片雙角候選外輪廓 CHECK｜原 CUTTING／有限 BEND DATUM"
+                    "｜mm｜非加工，無雙角成形 3D／R／BA 認證"
+                ),
+            )
+        pair_area = ttk.Frame(notebook)
+        notebook.add(pair_area, text="左右獨立單角 CHECK")
         pair_area.columnconfigure(0, weight=1)
         pair_area.columnconfigure(1, weight=1)
         pair_area.rowconfigure(1, weight=1)
@@ -275,8 +331,8 @@ def show_saved_endcap_live_bottom_pair_window(host, replays, saved_records):
 
         warning = ttk.Label(
             win, text=(
-                "折後 3D：不提供雙角合成 3D（共用 Y 折線只折一次及"
-                "雙角成形厚板／R／BA 尚未求解驗證）。"
+                "折後 3D：不提供雙角合成 3D（同片 2D 不等於完整折後厚板"
+                "／R／BA／兩折及接面驗收）。"
                 "禁止把兩個單角 3D mesh 疊成同一片。"
             ),
         )
@@ -284,6 +340,10 @@ def show_saved_endcap_live_bottom_pair_window(host, replays, saved_records):
         win._saved_endcap_pair_replays = dict(replays)
         win._saved_endcap_pair_scenes = scenes
         win._saved_endcap_pair_2d_canvases = canvases
+        win._saved_endcap_pair_combined_check = one_sheet_check
+        win._saved_endcap_pair_combined_scene = combined_scene
+        win._saved_endcap_pair_combined_canvas = combined_canvas
+        win._saved_endcap_pair_2d_notebook = notebook
         win._saved_endcap_pair_3d_figure = None
         win._saved_endcap_pair_3d_warning = warning
         if parent is not None and parent.winfo_viewable():
