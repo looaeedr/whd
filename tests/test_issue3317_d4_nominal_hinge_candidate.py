@@ -476,9 +476,15 @@ def test_d4_isolated_y225_source_taper_keeps_original_cutting_and_lower_solid(fi
     assert old["nominal_upper_taper"] is False
     assert not trial["manufacturing_approved"]
     assert trial["v_source_uv"] != old["v_source_uv"]
-    assert trial["v_source_area_mm2"]==pytest.approx(
-        old["v_source_area_mm2"],abs=1e-7,
+    assert trial["v_material"].area==pytest.approx(
+        old["v_material"].area,abs=1e-7,
     )
+    assert trial["v_material"].symmetric_difference(
+        old["v_material"],
+    ).area<=1e-8
+    assert trial["v_material"].symmetric_difference(
+        flat.result_material,
+    ).area<=1e-8
     assert trial["v_world_four_edges"]==8
     assert trial["v_world_open_seam_edges"]==0
     assert trial["v_world_open_edges"]==16
