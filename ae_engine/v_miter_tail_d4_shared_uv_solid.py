@@ -56,7 +56,7 @@ def _make_wall(a,b,normal,t):
     off=_scale(normal,t/2.)
     pa,pb,ma,mb=(_plus(a,off),_plus(b,off),
                  _diff(a,off),_diff(b,off))
-    return ((pa,pb,mb),(pa,mb,ma))
+    return ((pa,mb,pb),(pa,ma,mb))
 
 
 def _edge_counts(triangles, source_face_ids=(), source_uv=(), seam=None):
@@ -230,7 +230,7 @@ def project_d4_original_owner_uv_solid(
         if len(neighbors)==1:
             walls=_make_wall(pa,pb,n,t)
             solid.extend(walls)
-            solid_source_ids.extend(((a,b,b),(a,b,a)))
+            solid_source_ids.extend(((a,b,b),(a,a,b)))
             line=LineString((source_uv[a],source_uv[b]))
             if line.length>1e-7:
                 for corner,lower,apex,upper in flat.opening_source_points_xy:
@@ -246,9 +246,9 @@ def project_d4_original_owner_uv_solid(
             cplus,dplus=_plus(pa,ob),_plus(pb,ob)
             aminus,bminus=_diff(pa,oa),_diff(pb,oa)
             cminus,dminus=_diff(pa,ob),_diff(pb,ob)
-            solid.extend(((aplus,bplus,dplus),(aplus,dplus,cplus),
-                          (aminus,cminus,dminus),(aminus,dminus,bminus)))
-            solid_source_ids.extend(((a,b,b),(a,b,a),(a,a,b),(a,b,b)))
+            solid.extend(((aplus,dplus,bplus),(aplus,cplus,dplus),
+                          (aminus,dminus,cminus),(aminus,bminus,dminus)))
+            solid_source_ids.extend(((a,b,b),(a,a,b),(a,b,a),(a,b,b)))
     seams=tuple(_wall_contact(groups,corner)
                 for corner,_,_,_ in flat.opening_source_points_xy)
     if len(solid)!=len(solid_source_ids):
@@ -261,6 +261,7 @@ def project_d4_original_owner_uv_solid(
         "source_faces":tuple(faces),
         "v_surface":tuple(world_surface),
         "v_solid":tuple(solid),
+        "v_solid_source_ids":tuple(solid_source_ids),
         "straight_v_wall_sets":seams,
         "open_world_edges":open_count,
         "open_world_edge_keys":open_keys,
