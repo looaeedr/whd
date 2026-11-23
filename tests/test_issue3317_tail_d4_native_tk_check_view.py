@@ -773,6 +773,8 @@ def test_actual_whd_gui_d4_check_window_four_factory_holes_and_native_world(
     ("x",False,620.,600.,185.,48.),  # legacy display-only
     ("x",True,620.,600.,185.,48.),   # genuine saved X/X identity
     ("y",True,620.,600.,185.,48.),   # genuine saved Y/Y identity
+    ("x",True,620.,600.,185.,35.),   # real non-default lower-fold source
+    ("y",True,620.,600.,185.,35.),
     ("x",True,620.,600.,185.,55.),
     ("y",True,620.,600.,185.,55.),
     ("x",True,670.,640.,205.,55.),
@@ -1111,10 +1113,11 @@ def test_native_tk_d4_check_refuses_stale_saved_bend_identity_same_axis(
 
 
 @pytest.mark.parametrize("first_axis",("x","y"))
-def test_real_tk_d4_check_bottom31_original_square_hole_collision_refuses(
-    first_axis,
+@pytest.mark.parametrize("bottom",(31.,34.))
+def test_real_tk_d4_check_original_square_hole_collision_refuses(
+    first_axis,bottom,
 ):
-    """Operator enters 31, CHECK must not fall back to 48 or remove square."""
+    """Real 31/34 mm colliding lower folds cannot move the square or fall back."""
     if os.name!="nt" and not os.environ.get("DISPLAY"):
         pytest.skip("requires real Tk/Xvfb GUI")
     from copy import deepcopy
@@ -1143,7 +1146,7 @@ def test_real_tk_d4_check_bottom31_original_square_hole_collision_refuses(
         index=next(i for i,row in enumerate(rows)
                    if row.get("phase6_key")=="ybottom1")
         revised=[dict(row) for row in rows]
-        revised[index]["len"]=31.
+        revised[index]["len"]=bottom
         displayed=api.project_operator_fold_editor_display_rows(
             revised,getattr(designer.state,"phase6_thickness",2.),
         )
@@ -1154,7 +1157,7 @@ def test_real_tk_d4_check_bottom31_original_square_hole_collision_refuses(
         root.update_idletasks();root.update()
         assert designer._phase6_input_snapshot[
             "assembly_relief"
-        ]["source"]["ybottom1"]==pytest.approx(31.)
+        ]["source"]["ybottom1"]==pytest.approx(bottom)
         page=designer.settings_panel.render_context("tail")
         button=page["extension_state"]["tail_d4_check_widget"]
         before=deepcopy(designer._phase6_input_snapshot)
