@@ -107,6 +107,10 @@ def test_native_saved_head_2d3d_reopen_ignores_unsaved_live_switch(tmp_path, mes
                 "issue3317_saved_native_tk_png_base64",
                 base64.b64encode(image_data.getvalue()).decode("ascii"),
             )
+            # Temporary same-run screenshot handoff for the requested image.
+            import warnings
+            warnings.warn("WHD3317_SAVED_GUI_PNG_BASE64=" +
+                          base64.b64encode(image_data.getvalue()).decode("ascii"))
         assert (replay.first_physical_bend.p1.x == 15
                 and replay.first_physical_bend.p2.x == 15)
         assert (replay.second_physical_bend.p1.y == 41
