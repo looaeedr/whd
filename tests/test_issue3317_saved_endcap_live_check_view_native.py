@@ -5,7 +5,9 @@ import json
 import pytest
 
 from ae_engine import manufacturing_api
-from gui_modules.application.endcap_live_v_check_consumer import ATTR, KEY
+from gui_modules.application.endcap_live_v_check_consumer import (
+    ATTR, KEY, _selected_source,
+)
 from phase6_project_file import PROJECT_SCHEMA_V1, write_project, read_project
 
 
@@ -87,8 +89,19 @@ def test_native_saved_head_2d3d_reopen_ignores_unsaved_live_switch(tmp_path, mes
             view._saved_endcap_check_3d_figure.axes[0].get_title()
         )
         model = fresh._make_original_fold_designer_snapshot()
-        spec, _ = fresh._fold_designer_part_spec_from_payload("head", model)
-        source = fresh._query_fold_designer_render_data("head", model)
+        # The root snapshot is NOT the selected Head's physical payload.
+        # Prove the Engine still rejects this mismatched SHA; never relax
+        # replay's strict saved-source guard to make a test pass.
+        raw_spec, _ = fresh._fold_designer_part_spec_from_payload("head", model)
+        raw_source = fresh._query_fold_designer_render_data("head", model)
+        with pytest.raises(ValueError, match="V_MITER_LIVE_SOURCE_CHANGED"):
+            manufacturing_api.replay_endcap_live_v_miter_check_snapshot(
+                raw_spec, raw_source, record,
+            )
+        # Match the exact canonical Head source selected by the real toolbar,
+        # including per-part features and authored/linked physical Fold.
+        part, corner, spec, source = _selected_source(fresh, model)
+        assert (part, corner) == ("head", "bottom_left")
         replay = manufacturing_api.replay_endcap_live_v_miter_check_snapshot(
             spec, source, record)
         assert view._saved_endcap_check_replay == replay
