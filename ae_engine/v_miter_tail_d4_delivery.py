@@ -470,6 +470,12 @@ def project_tail_d4_shared_original_fold_candidate(
     shared_open_keys=original_open_keys & candidate_open_keys
     new_v_open_keys=candidate_open_keys - original_open_keys
     original_removed_open_keys=original_open_keys - candidate_open_keys
+    new_open_uv=tuple((
+        tuple(developed["source_uv"][i] for i in uv_pair)
+    ) for world_edge,uv_pair in developed["open_world_edge_uv"]
+        if world_edge in new_v_open_keys and uv_pair is not None)
+    if len(new_open_uv)!=len(new_v_open_keys):
+        raise GeometryError("TAIL_D4_SHARED_UV_OPEN_EDGE_PROVENANCE_LOST")
     return {
         "first_axis":first_axis,
         "original_surface":baseline.formed_surface,
@@ -483,6 +489,7 @@ def project_tail_d4_shared_original_fold_candidate(
         # A change in CUTTING can REMOVE some original open edges while
         # creating new ones. Subtracting counts (56-40) loses identity.
         "v_extra_world_open_edges":len(new_v_open_keys),
+        "v_extra_world_open_edge_uv":new_open_uv,
         "shared_original_world_open_edges":len(shared_open_keys),
         "original_removed_world_open_edges":len(original_removed_open_keys),
         "v_world_four_edges":developed["four_world_edges"],
