@@ -257,6 +257,10 @@ def project_tail_d4_shared_original_fold_candidate(
         surface,placement="bottom",
         box_body_world=box_body_world,thickness=spec.thickness,
         preserve_core_origin=False,
+        # CUTTING-only edits must NOT redefine the original mating datum.
+        # This uses the true original factory mesh through the SAME
+        # EndCap placement primitive, not an invented +24 correction.
+        reference_triangles=baseline_surface,
     )
     if not candidate.solid_triangles or not baseline.solid_triangles:
         raise GeometryError("TAIL_D4_SHARED_FACTORY_PHYSICAL_T_MISSING")
