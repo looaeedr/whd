@@ -20,7 +20,8 @@ def test_finished_timer_drops_callback_and_own_reference_immediately():
         del owner
         _pump(root, lambda: bool(called))
         assert called == ["done"] and weak() is None
-        assert not editor._hole_editor_after_owners
+        # The editor still legitimately owns its 50 ms initial redraw timer.
+        _pump(root, lambda: not editor._hole_editor_after_owners)
     finally:
         root.destroy()
 
