@@ -12,7 +12,7 @@ No generated CUTTING/BEND/MARKING, manufacturing DXF, or 3D is authorized.
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from math import isfinite
 
 from shapely.geometry import LineString, Polygon, box
@@ -20,7 +20,7 @@ from shapely.geometry import LineString, Polygon, box
 from .contracts import EndCapPartSpec
 from .manufacturing_render_data import PartRenderData
 from .sheetmetal_drawing import (
-    DrawingScene, LinePrimitive, PolylinePrimitive,
+    DrawingScene, LinePrimitive, PolylinePrimitive, CirclePrimitive, TextPrimitive,
 )
 from .sheetmetal_geometry_core import GeometryError, Vec2
 from .v_miter_factory_mother_check import (
@@ -83,11 +83,16 @@ def project_v_miter_custom_tail_bottom_pair_one_sheet_2d_check(
             or set(replays) != set(_CORNERS)):
         raise GeometryError("V_MITER_TAIL_PAIR_2D_AUTHENTIC_SOURCE_REQUIRED")
 
-    original = _single_source_material(render_data.scene)
     actual = render_data.material
+    # Prior to requiring one CUTTING polyline, diagnose actual original
+    # CUTTING circles/inner voids as an explicit UNSUPPORTED feature.
     if (part_spec.holes or not isinstance(actual, Polygon)
             or actual.is_empty or not actual.is_valid or actual.interiors
-            or actual.symmetric_difference(original).area > _AREA_TOL):
+            or any(isinstance(row, CirclePrimitive)
+                   for row in render_data.scene.primitives)):
+        raise GeometryError("V_MITER_TAIL_PAIR_2D_EXISTING_HOLE_OR_MATERIAL_UNSUPPORTED")
+    original = _single_source_material(render_data.scene)
+    if actual.symmetric_difference(original).area > _AREA_TOL:
         raise GeometryError("V_MITER_TAIL_PAIR_2D_EXISTING_HOLE_OR_MATERIAL_UNSUPPORTED")
 
     # The typed Factory builder, not a chosen pixel-size box, is the
@@ -249,9 +254,12 @@ def project_v_miter_custom_tail_bottom_pair_one_sheet_2d_check(
                 raise GeometryError("V_MITER_TAIL_PAIR_2D_UNSUPPORTED_SOURCE_BEND")
             scene.add(LinePrimitive(row.p1, row.p2, "DATUM", color=6))
         else:
-            # Reject unsupported non-original source geometry rather than
-            # silently dropping a feature or pretending it is in the new 2D.
-            raise GeometryError("V_MITER_TAIL_PAIR_2D_EXTRA_SOURCE_GEOMETRY_UNSUPPORTED")
+            # Preserve the geometry of actual existing non-CUTTING/BEND
+            # source strokes/annotations as read-only DATUM; no original
+            # MARKING is re-issued or new manufacturing geometry inferred.
+            if not isinstance(row, (LinePrimitive, PolylinePrimitive, TextPrimitive)):
+                raise GeometryError("V_MITER_TAIL_PAIR_2D_EXTRA_SOURCE_GEOMETRY_UNSUPPORTED")
+            scene.add(replace(row, layer="DATUM", color=6))
 
     return VMiterTailPairOneSheet2DCheck(
         scene=scene,
