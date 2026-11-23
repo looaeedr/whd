@@ -318,37 +318,37 @@ def test_real_integral_body_plain_main_3d_matches_source_formed_outside_and_coll
         )
         assert physical_collision==tuple(actual)
 
-    # Moving the entire cabinet cannot flip an outside skin. The exact
-    # triangles, normals, UV and source primitive order must translate.
-    from dataclasses import replace as dataclass_replace
-    from ae_engine.assembly_geometry import _has_integral_dwd_fold_owner
-    assert _has_integral_dwd_fold_owner(plain)
-    for delta in ((400.,0.,0.),(0.,0.,200.),(400.,0.,200.)):
-        moved=dataclass_replace(plain,offset=delta)
-        shifted=api.build_joint_world_geometry(
-            (moved,),(620.,600.,185.),2.,
-        )["world_triangles_by_part"]["box_body"]
-        assert len(shifted)==len(expected)
-        for original,shifted_face in zip(expected,shifted):
-            for point,moved_point in zip(original,shifted_face):
-                assert moved_point==pytest.approx(
-                    tuple(point[k]+delta[k] for k in range(3)),abs=1e-7
-                )
-        shifted_bounds=triangle_bounds(shifted)
-        assert shifted_bounds[0]==pytest.approx(
-            (-310.+delta[0],310.+delta[0]),abs=1e-7,
-        )
-        assert shifted_bounds[2]==pytest.approx(
-            (-92.5+delta[2],92.5+delta[2]),abs=1e-7,
-        )
+        # Moving the entire cabinet cannot flip an outside skin. The exact
+        # triangles, normals, UV and source primitive order must translate.
+        from dataclasses import replace as dataclass_replace
+        from ae_engine.assembly_geometry import _has_integral_dwd_fold_owner
+        assert _has_integral_dwd_fold_owner(plain)
+        for delta in ((400.,0.,0.),(0.,0.,200.),(400.,0.,200.)):
+            moved=dataclass_replace(plain,offset=delta)
+            shifted=api.build_joint_world_geometry(
+                (moved,),(620.,600.,185.),2.,
+            )["world_triangles_by_part"]["box_body"]
+            assert len(shifted)==len(expected)
+            for original,shifted_face in zip(expected,shifted):
+                for point,moved_point in zip(original,shifted_face):
+                    assert moved_point==pytest.approx(
+                        tuple(point[k]+delta[k] for k in range(3)),abs=1e-7
+                    )
+            shifted_bounds=triangle_bounds(shifted)
+            assert shifted_bounds[0]==pytest.approx(
+                (-310.+delta[0],310.+delta[0]),abs=1e-7,
+            )
+            assert shifted_bounds[2]==pytest.approx(
+                (-92.5+delta[2],92.5+delta[2]),abs=1e-7,
+            )
 
-    # An arbitrary one-piece profile does NOT gain the integral outside
-    # rule just because it is named box_body or has source geometry.
-    other_profile=tuple(
-        {**dict(row),**({"core":"OTHER"} if row.get("core")=="W" else {})}
-        for row in profile
-    )
-    unqualified=dataclass_replace(plain,x_profile=other_profile)
-    assert not _has_integral_dwd_fold_owner(unqualified)
+        # An arbitrary one-piece profile does NOT gain the integral outside
+        # rule just because it is named box_body or has source geometry.
+        other_profile=tuple(
+            {**dict(row),**({"core":"OTHER"} if row.get("core")=="W" else {})}
+            for row in profile
+        )
+        unqualified=dataclass_replace(plain,x_profile=other_profile)
+        assert not _has_integral_dwd_fold_owner(unqualified)
     finally:
         fig.clear()
