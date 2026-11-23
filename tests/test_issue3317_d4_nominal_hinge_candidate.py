@@ -171,6 +171,26 @@ def test_w620_nominal_hinge_trial_keeps_true_v_and_native_assembly(first_axis):
     for uv,point in upper_original.items():
         assert uv in trial_uv
         assert trial_uv[uv]==pytest.approx(point,abs=1e-7)
+    from ae_engine.v_miter_tail_no_ba_sequential import stations_from_real_flat
+    st=stations_from_real_flat(flat)
+    upper_end=max(st.left_side_end,st.right_side_end)
+    upper_source_samples=[]
+    for ids in original["v_source_faces"]:
+        xyz=tuple(original["v_source_uv"][i] for i in ids)
+        if min(p[1] for p in xyz)>=upper_end-1e-7:
+            uv=(sum(p[0] for p in xyz)/3.,
+                sum(p[1] for p in xyz)/3.)
+            upper_source_samples.append(uv)
+    assert upper_source_samples
+    # Source-index and tessellation may differ; compare the actual
+    # interpolated +/-T/2 points of the same upper source material.
+    for uv in upper_source_samples[:30]:
+        old_skins=_source_thickness_segment(original,uv)
+        new_skins=_source_thickness_segment(trial,uv)
+        for old,new in zip(old_skins,new_skins):
+            assert old==pytest.approx(new,abs=1e-6),(
+                "D4_NOMINAL_UPPER_PHYSICAL_FACE_MOVED",first_axis,uv,
+            )
     for label,where in (
         ("rear",(100.,-275.,0.)),
         ("front_frame",(-294.,-297.,0.)),
