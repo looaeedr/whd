@@ -271,6 +271,26 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                     )
                 if not placed:
                     continue
+                integral_body_physical=False
+                if (
+                    part_key=="box_body"
+                    and not getattr(part_data,"pieces",None)
+                    and tuple(getattr(part,"x_profile",()) or ())
+                ):
+                    # The original D-W-D Fold is the INSIDE material datum.
+                    # Render the exact Engine-owned formed true-T Body, not
+                    # a raw mid-surface subsequently thickened +/-T/2.
+                    # Neither FinalScene CUTTING nor mesh coordinates are
+                    # stretched or altered by this view adapter.
+                    physical=manufacturing_api.build_joint_world_geometry(
+                        (part,),request.finished_dimensions,request.thickness,
+                    )["world_triangles_by_part"].get("box_body",())
+                    if not physical:
+                        raise ValueError(
+                            "BOX_BODY_INTEGRAL_PHYSICAL_WORLD_REQUIRED"
+                        )
+                    placed=tuple(physical)
+                    integral_body_physical=True
                 if part_key.startswith("box_body:divider:"):
                     # The certified FW contact uses physical sheet skins.
                     # Display that same T-thick solid rather than the
@@ -314,6 +334,7 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                                 placed_piece_meshes=placed_piece_meshes,
                                 physical_piece_world=physical_piece_world,
                                 thickness=request.thickness,
+                                integral_world_is_physical=integral_body_physical,
                             )
                         )
                     if getattr(part_data, "pieces", None):
