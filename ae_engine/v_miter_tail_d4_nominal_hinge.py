@@ -226,6 +226,12 @@ def nominal_adjacent_source_skins(
             ua,ub=source_uv[a],source_uv[b]
             if abs(ua[0]-ub[0])>1e-7 or abs(ua[1]-ub[1])<=1e-8:
                 continue
+            # The lower Y fold rotates the side crease below Y48.
+            # Its tangent is NOT the upper-side source tangent at Y225.
+            # Restrict the ownership to the actual native upper-side
+            # longitudinal branch, without moving the original BEND.
+            if min(ua[1],ub[1])<st.bottom_y+h-1e-7:
+                continue
             crease=ua[0]
             if not any(abs(crease-c)<1e-7
                        for c in (st.left_x,st.right_x)):
