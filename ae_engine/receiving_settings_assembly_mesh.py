@@ -133,11 +133,18 @@ def resolve_assembled_endcap_world_skins(
     """
     # A saved operator flag must never be coerced with bool('false').
     preserve_core_origin = normalize_operator_settings_boolean(preserve_core_origin)
+    mating_kwargs = {
+        "sheet_thickness": thickness,
+        "preserve_core_origin": preserve_core_origin,
+    }
+    # Keep the pre-existing callback invocation exactly unchanged when the
+    # caller supplies no independent source reference. In particular, do
+    # not forward an explicit None to legacy/Receiving mating adapters.
+    if reference_triangles is not None:
+        mating_kwargs["reference_triangles"] = reference_triangles
     surface = place_endcap_against_box_body(
         local_triangles, placement, box_body_world, offset,
-        sheet_thickness=thickness,
-        preserve_core_origin=preserve_core_origin,
-        reference_triangles=reference_triangles,
+        **mating_kwargs,
     )
     return AssembledEndcapWorldSkins(
         formed_surface=tuple(surface),
