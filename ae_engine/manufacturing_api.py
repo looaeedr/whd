@@ -824,7 +824,7 @@ from .assembly_collision import (
     serialize_joint_relief_polygons, restore_joint_relief_cut_geometry,
 )
 from .endcap_verified_replay import replay_resolved_endcap_render
-from .assembly_geometry import build_joint_world_geometry
+from .assembly_geometry import (build_joint_world_geometry, _has_integral_dwd_fold_owner as project_integral_box_body_formed_skin_eligible)
 from .assembly_geometry_folded_mesh import (
     expand_box_body_fw_world_mid, shift_multistage_terminal_fold_world_mid,
     fit_receiving_left_zl1_world_mid,
