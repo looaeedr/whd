@@ -498,7 +498,27 @@ def test_d4_isolated_y225_source_taper_keeps_original_cutting_and_lower_solid(fi
         assert Polygon(ring_a).symmetric_difference(
             Polygon(ring_b),
         ).area<=1e-8
-    assert trial["v_world_four_edges"]==8
+    from collections import defaultdict
+    world_edges=defaultdict(list)
+    for fid,triangle in enumerate(trial["v_solid"]):
+        keys=trial["v_solid_source_ids"][fid]
+        for j in range(3):
+            a,b=triangle[j],triangle[(j+1)%3]
+            edge=tuple(sorted(tuple(round(v,7) for v in p) for p in (a,b)))
+            world_edges[edge].append(
+                (fid,tuple(trial["v_source_uv"][keys[k]]
+                           for k in (j,(j+1)%3))),
+            )
+    illegal=tuple(
+        (edge,tuple(origins)) for edge,origins in world_edges.items()
+        if len(origins)==4
+        and not (min(abs(p[1]-48.) for p in edge)<1e-6)
+    )
+    assert trial["v_world_four_edges"]==8,(
+        "D4_Y225_TAPER_NEW_FOUR_EDGE_SOURCE",
+        trial["v_world_four_edges"],
+        tuple((edge,origin) for edge,origin in illegal[:8]),
+    )
     assert trial["v_world_open_seam_edges"]==0
     assert trial["v_world_open_edges"]==16
     assert all(x["full_face_contact_proven"] for x in trial["straight_v_wall_sets"])
