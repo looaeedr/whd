@@ -153,6 +153,34 @@ def project_d4_original_owner_uv_solid(
         )
     else:
         source,area=_single_sheet_triangles(stock,st)
+    if nominal_hinge and nominal_upper_taper:
+        # The tapered T displacement is not affine over the final narrow
+        # source triangle. Preserve its actual perimeter and every source
+        # UV vertex; insert genuine UV-interior material samples and apply
+        # the same native midline and nominal two-skin map to each piece.
+        # This does not add BEND, move a CUTTING edge, stitch, or make caps.
+        taper_start=max(st.left_side_end,st.right_side_end)-nominal_h
+        taper_end=max(st.left_side_end,st.right_side_end)
+        subdivided=[]
+        for tri in source:
+            near_endpoint=(
+                min(v[1] for v in tri)>=taper_start-1e-7
+                and max(v[1] for v in tri)<=taper_end+1e-7
+                and any(
+                    abs(v[0]-crease)<=nominal_h+1e-7
+                    for v in tri
+                    for crease in (st.left_x,st.right_x)
+                )
+            )
+            if not near_endpoint:
+                subdivided.append(tri)
+                continue
+            a,b,c=tri
+            center=tuple(sum(v[i] for v in tri)/3. for i in (0,1))
+            subdivided.extend((
+                (a,b,center),(b,c,center),(c,a,center),
+            ))
+        source=tuple(subdivided)
     if abs(area-stock.area)>1e-5:
         raise GeometryError("TAIL_D4_SHARED_UV_MATERIAL_AREA_LOST")
     # Y threshold is authored by the actual two V cut legs, not by a
