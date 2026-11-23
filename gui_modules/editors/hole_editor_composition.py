@@ -1077,7 +1077,8 @@ def _install_manual_marking_actions(s):
     def safe_drag(event):
         idx = s.hole_session.selected_index
         items = s.live_context.feature_list
-        if 0 <= idx < len(items) and api.is_manual_mark(items[idx]):
+        if (0 <= idx < len(items)
+                and getattr(items[idx], "layer", None) == "MARKING"):
             if not api.is_manual_group(items[idx]) or not s.dragging[0]:
                 return "break"
             point = s.canvas_view.canvas_to_world(event.x, event.y)
@@ -1127,9 +1128,13 @@ def _install_manual_marking_actions(s):
     original_rotate = s.rotate_selected
 
     def safe_toggle(event=None):
-        # Existing auto marks are readonly and manual groups are indivisible.
-        chosen = selected_feature()
-        if chosen is not None and api.is_manual_mark(chosen):
+        # Both automatic MARKING and manual group features are non-process
+        # contours; double-click must not turn them into CUTTING/BLIND_HOLE.
+        chosen_index = s.created_list.curselection()
+        idx = chosen_index[0] if chosen_index else s.hole_session.selected_index
+        features = s.live_context.feature_list
+        if (0 <= idx < len(features)
+                and getattr(features[idx], "layer", None) == "MARKING"):
             return "break"
         return original_toggle(event)
 
@@ -1139,19 +1144,34 @@ def _install_manual_marking_actions(s):
         return rows[idx] if 0 <= idx < len(rows) else None
 
     def safe_right(event):
-        if selected_group() is not None:
-            return "break"  # prevents legacy 90-degree Feature-only rotation
+        chosen = selected_feature()
+        if chosen is not None and getattr(chosen, "layer", None) == "MARKING":
+            return "break"  # legacy rotation may corrupt authored MARKING
         return original_right(event)
+
+    original_delete = s.delete_selected
+
+    def safe_delete():
+        chosen = selected_feature()
+        if (chosen is not None and getattr(chosen, "layer", None) == "MARKING"
+                and not api.is_manual_mark(chosen)):
+            return "break"  # source-owned automatic marking is readonly
+        return original_delete()
 
     def rotate_selected(angle):
         group = selected_group()
         if group is not None:
             return publish_group_change(
                 angle=api.group_parameters(group)["angle"] + angle)
+        chosen = selected_feature()
+        if chosen is not None and getattr(chosen, "layer", None) == "MARKING":
+            return "break"
         return original_rotate(angle)
 
     s.toggle_created_process = safe_toggle
     s.on_canvas_right = safe_right
+    s.delete_selected = safe_delete
+    s.delete_btn.configure(command=safe_delete)
     s.rotate_selected = rotate_selected
     s.manual_mark_select_button.configure(command=select_mode)
     s.manual_mark_draw_button.configure(command=lambda: draw_mode("line"))

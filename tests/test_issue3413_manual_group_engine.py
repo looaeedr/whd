@@ -106,6 +106,32 @@ def test_one_atomic_profile_per_tool_and_real_ink_only(actual_sheet, kind, expec
         "base_plate", ctx, (group,)) == (group,)
 
 
+def test_any_angle_keeps_two_arms_and_same_member_ids(actual_sheet):
+    group = _group(actual_sheet, kind="l", arm_x=16, arm_y=9,
+                   spacing_x=0, spacing_y=0)
+    rotated = _validated_change(actual_sheet, group, angle=37.5)
+    _kind, _pattern, full = source_group(rotated)
+    assert tuple(x.length for x in full) == pytest.approx((16, 9))
+    assert tuple(_points(rotated)) == ("corner",)
+    assert _points(rotated)["corner"] == Vec2(100, 100)
+    assert api.group_parameters(rotated)["group_id"] == api.group_parameters(group)["group_id"]
+
+
+def test_duplicate_whole_group_rejected_partial_overlap_allowed(actual_sheet):
+    _source, _render, context, _, _ = actual_sheet
+    first = _group(actual_sheet, kind="l", spacing_x=0, spacing_y=0)
+    duplicate = _group(actual_sheet, kind="l", spacing_x=0, spacing_y=0)
+    with pytest.raises(ValueError, match="重複"):
+        api.propose_operator_physical_sheet_hole_features(
+            "base_plate", context, (first, duplicate),
+        )
+    shifted = _group(actual_sheet, kind="l", center=Vec2(102, 100),
+                     spacing_x=0, spacing_y=0)
+    assert api.propose_operator_physical_sheet_hole_features(
+        "base_plate", context, (first, shifted),
+    ) == (first, shifted)
+
+
 def test_pair_and_four_corner_require_explicit_spacing(actual_sheet):
     with pytest.raises(ValueError, match="SPACING_X_REQUIRED"):
         _group(actual_sheet, kind="pair_l", spacing_x=0)

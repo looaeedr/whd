@@ -167,6 +167,35 @@ def test_primary_group_four_l_member_edit_rotate_mirror_undo_save_reopen_dxf_b(
         state.manual_group_spacing_y.set("30")
         state.manual_group_arm_x.set("12")
         state.manual_group_arm_y.set("12")
+        # Native placement semantics for the other three tools before
+        # the committed four-corner group: cross at intersection, single L at
+        # corner, pair L at group center. Delete each whole group with the
+        # original button so final project contains only the four-corner case.
+        placement = Vec2(state.live_context.width / 2, state.live_context.height / 2)
+        for kind in ("cross", "l", "pair_l"):
+            state.manual_group_tools[kind].invoke()
+            canvas.event_generate("<Button-1>", x=round(x), y=round(y))
+            canvas.event_generate("<ButtonRelease-1>", x=round(x), y=round(y))
+            root.update()
+            interim = tuple(f for f in state.live_context.feature_list if api.is_manual_group(f))
+            assert len(interim) == 1, ("PRIMARY_GROUP_TOOL_PLACEMENT_FAILED", kind)
+            assert api.group_parameters(interim[0])["kind"] == kind
+            corners = dict(api.group_member_world_points(interim[0]))
+            if kind == "cross":
+                assert corners["cross"] == placement
+            if kind == "l":
+                assert corners["corner"] == placement
+            if kind == "pair_l":
+                assert (corners["left"].x + corners["right"].x) / 2 == pytest.approx(placement.x)
+                assert corners["left"].y == corners["right"].y == pytest.approx(placement.y)
+            state.manual_mark_select_button.invoke()
+            canvas.event_generate("<Button-1>", x=round(x), y=round(y))
+            canvas.event_generate("<ButtonRelease-1>", x=round(x), y=round(y))
+            root.update()
+            assert state.hole_session.selected_index >= 0
+            state.delete_btn.invoke()
+            root.update()
+            assert not any(api.is_manual_group(f) for f in state.live_context.feature_list)
         state.manual_group_tools["quad_l"].invoke()
         canvas.event_generate("<Button-1>", x=round(x), y=round(y))
         canvas.event_generate("<ButtonRelease-1>", x=round(x), y=round(y))
