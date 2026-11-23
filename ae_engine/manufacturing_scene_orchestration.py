@@ -254,6 +254,25 @@ def build_part_scene(
                 baseline is not None and abs(float(resolved.depth_comp_t) - 3.0) <= 1e-9
             )
             if used_stretched_baseline:
+                # Only an authored Vault Tail bottom Fold may replace its
+                # stretched baseline station; all other EndCaps stay original.
+                authored_tail_bottom = (
+                    bool(resolved.is_tail)
+                    and cabinet_family_policy.canonical_family_name(
+                        resolved.model_name
+                    ) == "金庫型"
+                    and (
+                        spec.fold_bottom is not None
+                        or any(
+                            row.phase6_key == "ybottom1"
+                            for row in tuple(spec.fold_profile_y or ())
+                        )
+                    )
+                )
+                bottom_override = (
+                    {"target_fold_bottom": resolved.fold_bottom}
+                    if authored_tail_bottom else {}
+                )
                 data = _call(
                     ae._build_stretched_end_cap_scene,
                     resolved.model_name, resolved.width, resolved.height or resolved.depth, resolved.depth,
@@ -263,6 +282,7 @@ def build_part_scene(
                     box_body_formed_fw_right=resolved.box_body_formed_fw_right,
                     draw_stock=ctx.draw_stock, is_tail=resolved.is_tail, holes=common["holes"],
                     corner_policy=resolved.corner_policy,
+                    **bottom_override,
                 )
                 scene = data.scene
             elif resolved.corner_policy is not None:

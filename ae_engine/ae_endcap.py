@@ -430,6 +430,7 @@ def _build_stretched_end_cap_scene(
     model_name, W_val, H_val, D_val, T_val, FW_val=None, *,
     x_topology="folded", draw_stock=False, is_tail=False, holes=None, corner_policy=None,
     box_body_formed_fw_left=None, box_body_formed_fw_right=None,
+    target_fold_bottom=None,
 ):
     """Assemble one complete stretched End Cap scene and normalize head orientation once.
 
@@ -439,6 +440,7 @@ def _build_stretched_end_cap_scene(
     scene_data = get_stretched_end_cap_data(
         model_name, W_val, H_val, D_val, T_val, FW_val, is_tail, corner_policy, x_topology,
         box_body_formed_fw_left, box_body_formed_fw_right,
+        target_fold_bottom=target_fold_bottom,
     )
     p = scene_data.params
     total_width = p['total_width']
