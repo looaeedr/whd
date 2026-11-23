@@ -475,6 +475,50 @@ def test_actual_whd_gui_d4_check_window_four_factory_holes_and_native_world(
                 ),
                 RuntimeWarning,stacklevel=1,
             )
+        # Candidate is isolated from production and CHECK rendering:
+        # the EXACT original EndCap Engine folds the changed CUTTING.
+        # Non-V factory source must retain unchanged physical front/rear
+        # skins, not be moved globally by 1 mm or thickened from a new datum.
+        from ae_engine.v_miter_tail_d4_delivery import (
+            project_tail_d4_shared_original_fold_candidate,
+        )
+        for axis in ("x","y"):
+            trial=project_tail_d4_shared_original_fold_candidate(
+                flat,first_axis=axis,box_body_world=body,
+            )
+            assert not trial["manufacturing_approved"]
+            for label,pos in (
+                ("rear",(100.,-275.,0.)),
+                ("front_frame",(-294.,-297.,0.)),
+            ):
+                original_hits=probe_native_world_mesh_axis_faces(
+                    trial["original_solid"],axis=2,fixed_xyz=pos,
+                )
+                candidate_hits=probe_native_world_mesh_axis_faces(
+                    trial["v_solid"],axis=2,fixed_xyz=pos,
+                )
+                assert original_hits==candidate_hits,(
+                    "D4_CANDIDATE_UNCHANGED_FACTORY_FACE_DRIFT",
+                    axis,label,original_hits,candidate_hits,
+                )
+            # Any physically registered V skin must still be checked for
+            # self-overlap and root continuity before replacing old CHECK.
+            import warnings
+            from ae_engine.assembly_geometry import (
+                diagnose_world_mesh_self_intersections,
+            )
+            candidate_local=diagnose_world_mesh_self_intersections(
+                trial["v_solid"],max_nonadjacent_pairs=100000,
+            )
+            warnings.warn(
+                "ISSUE3317_SHARED_ORIGINAL_FOLD_CANDIDATE="
+                +repr((axis,len(trial["v_surface"]),
+                       len(trial["v_solid"]),
+                       candidate_local.crossing_pair_count,
+                       candidate_local.coplanar_overlap_pair_count,
+                       candidate_local.numerical_budget_exhausted)),
+                RuntimeWarning,stacklevel=1,
+            )
         # Integral Body's corrected outside datum now has no side
         # interior overlap at either stationary material sample, for both
         # fold orders. Existing rear overlap is NOT thereby certified clear.
