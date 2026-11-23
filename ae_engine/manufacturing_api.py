@@ -3234,13 +3234,14 @@ from .v_miter_tail_d4_check_dxf import (
 def project_operator_tail_d4_check_native_world(
     flat, *, first_axis, box_body_world,
 ):
-    """#3317 CHECK-only already-assembled W620 true-T source projection.
+    """CHECK-only true-T lower V from authenticated live Factory dimensions.
 
-    Only the exact native Factory W620/D185/T2/FW25/H600/bottom48 vault
-    specimen with the authenticated original Ø4 source is opted in.
-    Other products return None and keep their existing CHECK preview.
-    The supplied Body must be the caller's actual Engine world geometry.
-    This never changes an export, factory profile, project or DXF.
+    The W620/D185/H600/bottom48 specimen is regression evidence, not a
+    manufacturing size restriction. Preserve the verified Vault Tail T2,
+    FW25, left/right15, top16 source-profile scope. All four remaining
+    physical dimensions come from the caller's actual finite input.
+    Unsupported profiles retain their legacy CHECK; invalid physical sizes
+    fail closed, never silently use an example/default.
     """
     from math import isfinite
     spec=flat.source_spec
@@ -3250,17 +3251,21 @@ def project_operator_tail_d4_check_native_world(
     if (
         spec.model_name!="金庫型"
         or not spec.is_tail
-        or not exact(spec.width,620.)
-        or not exact(spec.depth,185.)
         or not exact(spec.thickness,2.)
         or not exact(spec.frame_width,25.)
-        or not exact(spec.height,600.)
-        or not exact(spec.fold_bottom,48.)
         or not exact(spec.fold_left,15.)
         or not exact(spec.fold_right,15.)
         or not exact(spec.fold_top,16.)
     ):
         return None
+    for name in ("width","depth","height","fold_bottom"):
+        value=getattr(spec,name,None)
+        if (type(value) not in (int,float)
+                or not isfinite(value) or value<=0):
+            raise ValueError(
+                "TAIL_D4_CHECK_NATIVE_PHYSICAL_DIMENSIONS_INVALID:"+name
+            )
+
     if first_axis not in ("x","y") or not box_body_world:
         raise ValueError("TAIL_D4_CHECK_NATIVE_WORLD_SOURCE_REQUIRED")
     from .v_miter_tail_d4_delivery import (
@@ -3278,7 +3283,9 @@ def project_operator_tail_d4_check_native_world(
             or candidate["v_world_four_edges"]!=8
             or candidate["v_world_open_seam_edges"]!=0
             or candidate["v_extra_world_open_edges"]!=0
-            or candidate["v_world_open_edges"]!=24
+            or candidate["v_world_open_edges"]!=candidate[
+                "shared_original_world_open_edges"
+            ]
             or len(candidate["straight_v_wall_sets"])!=2
             or not all(
                 row["full_face_contact_proven"]
