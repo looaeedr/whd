@@ -93,7 +93,9 @@ def nominal_section_map(s,signed_t,h,*,panel):
     raise GeometryError("TAIL_D4_NOMINAL_SECTION_PANEL_INVALID")
 
 
-def nominal_adjacent_source_skins(faces,source_uv,world_surface,t,st,h,stock):
+def nominal_adjacent_source_skins(
+    faces,source_uv,world_surface,t,st,h,stock,flat_openings,
+):
     """Face-vertex +/-T/2 locations from real source-adjacent crease faces.
 
     The only input neighbors are two faces sharing a genuine source UV
@@ -163,14 +165,49 @@ def nominal_adjacent_source_skins(faces,source_uv,world_surface,t,st,h,stock):
             raise GeometryError(
                 "TAIL_D4_NOMINAL_XY_INFLUENCE_MATERIAL_INTERSECTS"
             )
-    # Normal provenance remains the actual adjacent source Y faces.
-    # Only T influence extends from that genuine span to the two real
-    # X side crease stations, conditional on actual stock clearance.
-    hinge_segments=[
-        (axis,station,st.left_x,st.right_x,na,nb)
-        if axis==1 else (axis,station,lo,hi,na,nb)
-        for axis,station,lo,hi,na,nb in hinge_segments
-    ]
+    # Nominal relief radius is read from the authorized *actual* Ø4
+    # perimeter. The apex is the signed-circle centre and the closest
+    # exterior vertex is on its physical relieved arc. Do not derive a
+    # radius from model name, T, a DXF display label, or a hardcoded Ø4.
+    # The original CUTTING guard has already authenticated this contour.
+    relief_radii=[]
+    exterior=tuple(stock.exterior.coords)
+    for corner,lower,apex,upper in flat_openings:
+        radius=min(dist((float(x),float(y)),apex) for x,y in exterior)
+        if (not isfinite(radius) or radius<=0.
+                or radius>=min(dist(apex,lower),dist(apex,upper))):
+            raise GeometryError("TAIL_D4_NOMINAL_RELIEF_RADIUS_NOT_SOURCED")
+        # A relieved circle cannot contain actual stock. Use the same
+        # tessellation convention as the authorized original Ø4 source.
+        if stock.intersection(Point(*apex).buffer(
+                radius, resolution=48,
+        )).area>1e-5:
+            raise GeometryError("TAIL_D4_NOMINAL_RELIEF_DISK_STILL_HAS_STOCK")
+        relief_radii.append(radius)
+    if (len(relief_radii)!=2
+            or abs(relief_radii[0]-relief_radii[1])>1e-7):
+        raise GeometryError("TAIL_D4_NOMINAL_RELIEF_RADII_DIFFER")
+    relieved_radius=min(relief_radii)
+
+    # For the *existing* source-adjacent X hinge only: its true leg ends
+    # at a relief circle while material remains in the small adjacent
+    # collar. Carry thickness influence (not the BEND/action) to the
+    # existing Y bottom crease on both sides of the relief.
+    # The source-validated empty X/Y stock square above is mandatory.
+    extended=[]
+    for axis,station,lo,hi,na,nb in hinge_segments:
+        if axis==1:
+            extended.append((
+                axis,station,st.left_x,st.right_x,na,nb,
+            ))
+            continue
+        if axis==0:
+            if (0.<=st.bottom_y-hi<=relieved_radius+1e-7):
+                hi=st.bottom_y
+            if (0.<=lo-st.bottom_y<=relieved_radius+1e-7):
+                lo=st.bottom_y
+        extended.append((axis,station,lo,hi,na,nb))
+    hinge_segments=extended
     used_hinges=set()
     layers=[]
     upper_cutoff=max(st.left_side_end,st.right_side_end)
