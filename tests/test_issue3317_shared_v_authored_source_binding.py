@@ -306,3 +306,62 @@ def test_bound_snapshot_rejects_changed_physical_T_or_flange_on_capture_and_repl
             render.scene, first, second, **bad_args,
             part_spec=spec, corner_key="bottom_left",
         )
+
+
+@pytest.mark.parametrize("tail", (False, True))
+@pytest.mark.parametrize("corner", ("bottom_left", "bottom_right", "top_left", "top_right"))
+def test_named_multifold_roles_bind_all_four_corners_not_nearest_return(tail, corner):
+    spec, render, _, lower, return_bend = _named_head_tail_source(tail=tail)
+    original = tuple(render.scene.primitives)
+    live = api.project_operator_v_miter_live_corner_check(
+        spec, render, corner, first_bend_axis="x",
+    )
+    expected_x = original[1] if corner.endswith("left") else original[2]
+    expected_y = lower if corner.startswith("bottom") else original[5]
+    assert live.first_physical_bend is expected_x
+    assert live.second_physical_bend is expected_y
+    assert live.second_physical_bend is not return_bend
+    assert live.first_signed_fold_angle_deg == -90
+    assert live.second_signed_fold_angle_deg == -90
+    assert tuple(render.scene.primitives) == original
+
+
+def test_real_multifold_head_bound_snapshot_reopens_and_refuses_stale_return_source():
+    from copy import deepcopy
+
+    # With X left at 41, the real Head lower fw crease at 16+25=41 has
+    # equal physical flange reaches; the ideal 90-degree CHECK rays actually
+    # reach the genuine rectangular CUTTING perimeter.
+    spec, render, real_x, real_y, return_y = _named_head_tail_source(
+        x_left=41,
+    )
+    assert real_y is not return_y
+    args = dict(
+        thickness_mm=2, first_flange_height_mm=41,
+        second_flange_height_mm=41, second_fold_angle_deg=90,
+        relief_mode="RELIEF_HOLE", relief_t_factor=1,
+    )
+    saved = api.capture_v_miter_relief_trial_snapshot(
+        render.scene, real_x, real_y, **args,
+        part_spec=spec, corner_key="bottom_left",
+    )
+    reloaded = deepcopy(render.scene)
+    assert reloaded.primitives[1] is not real_x
+    replay = api.replay_v_miter_relief_trial_snapshot(
+        reloaded, saved, part_spec=spec,
+    )
+    assert replay.manufacturing_status.endswith("UNCERTIFIED")
+    # Head's Y16 return is physically unrelated to the chosen Y41 corner.
+    # A change to this nonselected original BEND must still stale the saved
+    # source digest; it may never reselect the nearest fold.
+    drifted = deepcopy(reloaded)
+    old_return = drifted.primitives[3]
+    drifted.primitives[3] = LinePrimitive(
+        Vec2(old_return.p1.x, old_return.p1.y + 0.5),
+        Vec2(old_return.p2.x, old_return.p2.y + 0.5),
+        "BEND",
+    )
+    with pytest.raises(GeometryError, match="source geometry has changed"):
+        api.replay_v_miter_relief_trial_snapshot(
+            drifted, saved, part_spec=spec,
+        )
