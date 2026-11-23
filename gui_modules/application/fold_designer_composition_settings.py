@@ -584,7 +584,16 @@ def show_tail_d4_check(self, namespace):
     except (ValueError,TypeError,OSError) as exc:
         status=getattr(app,"settings_status_var",None)
         if status is not None:
-            status.set("Ø4 CHECK 無法安全產生："+str(exc))
+            error=str(exc)
+            if ("V_MITER_FIRST_BEND_SOURCE_CHANGED_RESELECT_REQUIRED" in error
+                    or "V_MITER_FIRST_BEND_STORED_SOURCE_INVALID" in error
+                    or "V_MITER_FIRST_BEND_PARTIAL_SELECTION_FORBIDDEN" in error):
+                status.set(
+                    "Ø4 CHECK 來源折線身分已變更或無效，請重新選擇第一道折線："
+                    +error
+                )
+            else:
+                status.set("Ø4 CHECK 無法安全產生："+error)
         return None
 
 
