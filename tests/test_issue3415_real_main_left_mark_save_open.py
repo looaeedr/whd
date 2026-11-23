@@ -610,5 +610,14 @@ def test_primary_confirm_scoped_reference_edges_without_gc(tmp_path, monkeypatch
     del living
     after_scope = remaining()
     print("WHD_3415_AFTER_SINGLE_EDITOR_STATE_RELEASE", after_scope, flush=True)
+    # pytest intentionally captures successful stdout; report the four
+    # exact weakref snapshots through its normal warnings summary instead.
+    from warnings import warn
+    warn("WHD_3415_NAMED_REFERENCE_PROBE " + repr({
+        "after_root_destroy": after_real_destroy,
+        "after_identity_host_detach": after_alias,
+        "after_named_redraw_sync_detach": after_named,
+        "after_single_editor_state_release": after_scope,
+    }), UserWarning, stacklevel=1)
     # Do not invent a GREEN memory-release verdict or force collection.
     # Printed exact weakref survivors are this probe's observable result.
