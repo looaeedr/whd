@@ -46,6 +46,45 @@ def _real_w620_body():
     )["world_triangles_by_part"]["box_body"])
 
 
+
+
+def _source_thickness_segment(candidate, xy):
+    """Interpolate only REAL same-source T faces; ignore V wall world aliases."""
+    from shapely.geometry import Point, Polygon
+    uv=candidate["v_source_uv"]
+    point=Point(xy)
+    for fid,indices in enumerate(candidate["v_source_faces"]):
+        coords=tuple(uv[i] for i in indices)
+        tri=Polygon(coords)
+        if tri.area<=1e-12 or not tri.buffer(1e-8).covers(point):
+            continue
+        (ax,ay),(bx,by),(cx,cy)=coords
+        den=(by-cy)*(ax-cx)+(cx-bx)*(ay-cy)
+        a=((by-cy)*(xy[0]-cx)+(cx-bx)*(xy[1]-cy))/den
+        b=((cy-ay)*(xy[0]-cx)+(ax-cx)*(xy[1]-cy))/den
+        weights=(a,b,1.-a-b)
+        # First two triangles of each source face are its outward/inward
+        # skins. The minus triangle is intentionally ordered 0,2,1.
+        plus=candidate["v_solid"][2*fid]
+        minus_raw=candidate["v_solid"][2*fid+1]
+        minus=(minus_raw[0],minus_raw[2],minus_raw[1])
+        def interp(face):
+            return tuple(sum(weights[j]*face[j][k] for j in range(3))
+                         for k in range(3))
+        return interp(plus),interp(minus)
+    raise AssertionError(("D4_TRUE_SOURCE_MATERIAL_POINT_MISSING",xy))
+
+
+def _distance_to_segment(point,a,b):
+    from math import dist
+    v=tuple(y-x for x,y in zip(a,b))
+    w=tuple(x-y for x,y in zip(point,a))
+    den=sum(x*x for x in v)
+    assert den>0
+    k=max(0.,min(1.,sum(x*y for x,y in zip(v,w))/den))
+    projected=tuple(a[i]+k*v[i] for i in range(3))
+    return dist(point,projected)
+
 def test_nominal_partition_is_injective_and_area_preserving_at_t2():
     h=(1.+sqrt(2.))/2.
     assert h==pytest.approx(1.2071067811865475)
@@ -90,6 +129,23 @@ def test_w620_nominal_hinge_trial_keeps_true_v_and_native_assembly(first_axis):
     assert trial["v_world_open_seam_edges"]==0
     assert trial["v_world_four_edges"]==8
     assert trial["v_world_open_edges"]<=original["v_world_open_edges"]
+    witness=(-305.5,-298.520084,-87.4)
+    source_points=((14.520084,50.1),(15.5,50.1))
+    before=tuple(_distance_to_segment(
+        witness,*_source_thickness_segment(original,xy),
+    ) for xy in source_points)
+    after=tuple(_distance_to_segment(
+        witness,*_source_thickness_segment(trial,xy),
+    ) for xy in source_points)
+    assert max(before)<2e-3,(
+        "D4_APPROVED_SOURCE_ORIGINAL_ROOT_WITNESS_NOT_REPRODUCED",
+        first_axis,before,
+    )
+    assert max(after)>1e-3,(
+        "D4_NOMINAL_HINGE_STILL_DOUBLE_OCCUPIES_ORIGINAL_WITNESS",
+        first_axis,after,
+    )
+
     for o_interval,n_interval in zip(
         triangle_bounds(original["v_surface"]),
         triangle_bounds(trial["v_surface"]),
