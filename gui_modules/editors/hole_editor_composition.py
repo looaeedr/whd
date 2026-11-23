@@ -1098,6 +1098,12 @@ def _install_manual_marking_actions(s):
         return original_drag(event)
 
     def mark_double(event):
+        # Tk may classify quick successive operator clicks at the same
+        # canvas point as Double even after switching cross -> L tools.
+        # While placing, the current tool owns that click; only selection
+        # mode may interpret a double-click as "edit this member".
+        if s.manual_mark_mode[0]:
+            return mark_down(event)
         point = s.canvas_view.canvas_to_world(event.x, event.y)
         group = selected_group()
         if point is None or group is None:
