@@ -248,6 +248,78 @@ class Phase6SettingsPanelOwnedRenderMixin:
         state["bottom_wrap_widget"] = box
         return start_row + 1
 
+    def _render_tail_lower_v_choice(self, frame, context, projection, state):
+        lower=projection.get("tail_lower_v")
+        if not isinstance(lower,dict):
+            return
+        # One row INSIDE the existing CornerType group, not a new type.
+        row=ttk.Frame(frame)
+        row.pack(fill=tk.X,pady=(5,3))
+        ttk.Label(row,text="下方左右截角：").pack(side=tk.LEFT,padx=(0,6))
+        var=tk.StringVar(master=row,value=("V 型" if lower.get("choice")=="v90" else "原樣"))
+        state["tail_lower_v_choice_var"]=var
+        chooser=build_choice_menubutton(
+            row,variable=var,values=("原樣","V 型"),width=9,
+            command=(lambda c=context,v=var: self._tail_lower_v_selected(c,v))
+            if self._tail_lower_v_selected is not None else None,
+        )
+        chooser.pack(side=tk.LEFT)
+        state["tail_lower_v_choice_widget"]=chooser
+        # An independent source-qualified Ø4 inspection, not a third
+        # CornerType, a machine export, or a change to V90 operator input.
+        if self._tail_d4_check_requested is not None:
+            action=ttk.Button(
+                row,text="Ø4 看圖／3D CHECK（不加工）",
+                command=self._tail_d4_check_requested,
+            )
+            action.pack(side=tk.LEFT,padx=(9,0))
+            state["tail_d4_check_widget"]=action
+        choices=lower.get("first_bend_options")
+        if not isinstance(choices,dict):
+            note=lower.get("first_bend_source_error") or "未取得原始實體折線"
+            ttk.Label(frame,text="首折來源不可選："+str(note),
+                      wraplength=850).pack(anchor=tk.W)
+            return
+        selected=dict(lower.get("first_bend_status") or {})
+        active={}
+        for corner,title in (
+            ("bottom_left","左下首折"),
+            ("bottom_right","右下首折"),
+        ):
+            options=choices.get(corner)
+            if not isinstance(options,dict):
+                raise ValueError("V_MITER_FIRST_BEND_MISSING_CORNER_LINES")
+            names=tuple(options[axis]["label"] for axis in ("x","y"))
+            axis=selected.get(corner)
+            if axis not in (None,"x","y"):
+                raise ValueError("V_MITER_FIRST_BEND_SAVED_AXIS_INVALID")
+            row=ttk.Frame(frame)
+            row.pack(fill=tk.X,pady=(2,1))
+            ttk.Label(row,text=title+"（實際 BEND）：").pack(side=tk.LEFT)
+            var=tk.StringVar(master=row,value=(
+                options[axis]["label"] if axis is not None else "未指定"
+            ))
+            chooser=build_choice_menubutton(
+                row,variable=var,values=("未指定",)+names,width=61,
+            )
+            chooser.pack(side=tk.LEFT)
+            state["tail_lower_v_first_"+corner+"_var"]=var
+            state["tail_lower_v_first_"+corner+"_widget"]=chooser
+            active[corner]=var
+        action=ttk.Button(
+            frame,text="確認左右兩角首折",
+            command=(lambda l=active["bottom_left"],r=active["bottom_right"]:
+                     self._tail_lower_v_first_bends_selected(l,r))
+            if self._tail_lower_v_first_bends_selected is not None else None,
+        )
+        action.pack(anchor=tk.W,pady=(4,3))
+        state["tail_lower_v_first_confirm_widget"]=action
+        ttk.Label(
+            frame,text="兩角必須各自選真實折線；未指定仍是名義 V 預覽，"
+                       "不同向／只選一角不可視為已確認首折。",
+            wraplength=850,
+        ).pack(anchor=tk.W)
+
     def _render_owned_corner(self, parent, context, start_row, projection, state):
         fixed_summary_var = state["fixed_corner_summary_var"]
         mode = str(projection.get("mode") or "none")
@@ -261,6 +333,7 @@ class Phase6SettingsPanelOwnedRenderMixin:
             box.grid(row=start_row, column=0, columnspan=5, sticky="ew", padx=3, pady=(6, 2))
             fixed_summary_var.set(summary)
             ttk.Label(box, textvariable=fixed_summary_var, wraplength=900).pack(anchor=tk.W)
+            self._render_tail_lower_v_choice(box,context,projection,state)
             return start_row + 1
 
         type_editable = bool(projection.get("type_editable", False))
@@ -416,6 +489,7 @@ class Phase6SettingsPanelOwnedRenderMixin:
                         for entry in (primary, retain, depth):
                             entry.bind("<Return>", lambda _e, p=context, t=target_key: self._corner_target_changed(p, t))
                             entry.bind("<FocusOut>", lambda _e, p=context, t=target_key: self._corner_target_changed(p, t))
+        self._render_tail_lower_v_choice(box,context,projection,state)
         return start_row + 1
 
     def _render_owned_receiving_base_plate(self, parent, start_row, projection, state):
@@ -583,6 +657,8 @@ class Phase6SettingsPanelOwnedRenderMixin:
             "corner_secondary_depth_vars": {},
             "corner_detail_frames": {},
             "fixed_corner_summary_var": tk.StringVar(master=parent, value=""),
+            "tail_lower_v_choice_var": None,
+            "tail_lower_v_choice_widget": None,
             "corner_param_lock_button": None,
             "endcap_fw_follow_var": None,
             "endcap_fw_value_var": None,
