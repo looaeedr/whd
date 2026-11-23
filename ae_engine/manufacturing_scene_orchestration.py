@@ -254,9 +254,17 @@ def build_part_scene(
                 baseline is not None and abs(float(resolved.depth_comp_t) - 3.0) <= 1e-9
             )
             if used_stretched_baseline:
-                # Only an authored Vault Tail bottom Fold may replace its
-                # stretched baseline station; all other EndCaps stay original.
-                authored_tail_bottom = (
+                # #3317: this baseline override is only for a deliberately
+                # changed Vault Tail lower Fold. The shared stretched EndCap
+                # builder must continue using its existing source folds for
+                # Vault Head, untouched Tail and Receiving EndCap. Do not
+                # forward all four resolved folds across that boundary.
+                # An authored Fold is authoritative regardless of the
+                # mutable GUI/INI default. The real baseline has its own
+                # CUTTING/BEND stations; only a non-authored legacy Tail uses
+                # those stations without an override. Passing an authored
+                # 15-mm bottom is geometry-identical to the original baseline.
+                authored_tail_lower_fold = (
                     bool(resolved.is_tail)
                     and cabinet_family_policy.canonical_family_name(
                         resolved.model_name
@@ -269,9 +277,9 @@ def build_part_scene(
                         )
                     )
                 )
-                bottom_override = (
+                tail_lower_override = (
                     {"target_fold_bottom": resolved.fold_bottom}
-                    if authored_tail_bottom else {}
+                    if authored_tail_lower_fold else {}
                 )
                 data = _call(
                     ae._build_stretched_end_cap_scene,
@@ -282,7 +290,7 @@ def build_part_scene(
                     box_body_formed_fw_right=resolved.box_body_formed_fw_right,
                     draw_stock=ctx.draw_stock, is_tail=resolved.is_tail, holes=common["holes"],
                     corner_policy=resolved.corner_policy,
-                    **bottom_override,
+                    **tail_lower_override,
                 )
                 scene = data.scene
             elif resolved.corner_policy is not None:
