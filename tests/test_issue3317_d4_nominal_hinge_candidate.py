@@ -584,6 +584,7 @@ def test_d4_lower_v_tip_2h_taper_stays_original_upper_source(first_axis):
 
 @pytest.mark.parametrize("first_axis",("x","y"))
 @pytest.mark.parametrize("dimensions",(
+    (620.,600.,185.,35.),
     (620.,600.,185.,48.),
     (620.,600.,185.,55.),
     (670.,640.,205.,55.),
@@ -642,13 +643,14 @@ def test_native_check_uses_actual_factory_dimensions_and_original_holes(
 
 
 @pytest.mark.parametrize("first_axis",("x","y"))
-def test_native_check_rejects_real_original_square_hole_at_bottom31(
-    first_axis,
+@pytest.mark.parametrize("bottom",(31.,34.))
+def test_native_check_rejects_real_original_square_hole_collision(
+    first_axis,bottom,
 ):
     """Original x3..7/y18..22 square has nonzero overlap with V wedge."""
     from dataclasses import replace
     from ae_engine.sheetmetal_geometry_core import GeometryError
-    spec=replace(default_vault_tail_d4_spec(),fold_bottom=31.)
+    spec=replace(default_vault_tail_d4_spec(),fold_bottom=bottom)
     with pytest.raises(GeometryError,match=(
         "V_MITER_LOWER_CUTTING_CONFLICTS_WITH_ORIGINAL_HOLE"
     )):
