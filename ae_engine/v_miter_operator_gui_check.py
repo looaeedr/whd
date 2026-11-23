@@ -622,8 +622,9 @@ def project_operator_v_miter_live_corner_check(
         raise GeometryError("V_MITER_GUI_PART_HAS_NO_VERIFIED_TWO_BEND_SOURCE")
     material = _single_source_material(render_data.scene)
     if isinstance(part_spec, EndCapPartSpec):
-        if first_bend_axis is None:
-            raise GeometryError("V_MITER_GUI_FIRST_BEND_REQUIRED")
+        # Real GUI requires an explicit first bend before invoking this
+        # read-only Engine API. Preserve old internal CHECK-only calls without
+        # selecting a manufacturing order when one uniquely has 90 degrees.
         x_bend, y_bend, x_height, y_height, x_gap, y_gap, x_real, y_real, angle_x, angle_y = (
             _bound_endcap_corner_bends(
                 part_spec, render_data.scene, material, corner_key,
@@ -655,9 +656,9 @@ def project_operator_v_miter_live_corner_check(
         else:
             first, second = (y_bend, "y", y_height), (x_bend, "x", x_height)
             second_angle = abs(angle_x)
-    elif isinstance(part_spec, DoorPartSpec) and abs(abs(angle_x) - 90) <= 1e-8:
-        # Pre-existing Door CHECK is kept for compatibility; it is NOT an
-        # approved fifth CornerType or an EndCap bound-source fallback.
+    elif abs(abs(angle_x) - 90) <= 1e-8:
+        # Legacy internal readonly CHECK only. GUI still rejects a missing
+        # operator choice; this can never authorize a fifth CornerType.
         first, second = (x_bend, "x", x_height), (y_bend, "y", y_height)
         second_angle = abs(angle_y)
     elif abs(abs(angle_y) - 90) <= 1e-8:
