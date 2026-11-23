@@ -76,8 +76,9 @@ def _dxf_entities(path):
         if e.dxftype() in ("CIRCLE", "LWPOLYLINE")
     ))
     assert any(layer == "MARKING" for _, layer, _ in entities)
-    assert any(layer == "BEND" for _, layer, _ in entities)
-    assert any(layer == "CUTTING" for _, layer, _ in entities)
+    # Finite BEND is a DXF LINE, not necessarily a LWPOLYLINE.
+    assert any(item.dxf.layer == "BEND" for item in drawing.modelspace())
+    assert any(item.dxf.layer == "CUTTING" for item in drawing.modelspace())
     return entities
 
 
