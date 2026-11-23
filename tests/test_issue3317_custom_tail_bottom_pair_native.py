@@ -160,15 +160,56 @@ def test_custom_tail_native_pair_save_new_main_gui_open_view_and_fail_closed(
         assert not window.winfo_exists()
 
         # A current selection change in EITHER half invalidates the pair.
-        fresh.v_miter_gui_check_corners["tail"].pop("bottom_right")
+        for side in CORNERS:
+            fresh.v_miter_gui_check_corners["tail"].pop(side)
+            messages.clear()
+            fresh.v_miter_check_source_button.invoke()
+            assert any(kind == "error" for kind, _ in messages)
+            assert getattr(fresh, "_endcap_live_saved_check_window", None) is None
+            fresh.v_miter_gui_check_corners["tail"][side] = "V_MITER_CHECK"
+        # A changed per-corner relief choice also rejects both, rather
+        # than silently rendering an obsolete local R/hole selection.
+        changed_mode = "RELIEF_HOLE" if mode == "ROUND_R" else "ROUND_R"
+        fresh.v_miter_gui_relief_modes["tail"]["bottom_right"] = changed_mode
         messages.clear()
         fresh.v_miter_check_source_button.invoke()
-        assert any(kind == "error" for kind, _ in messages)
+        assert any(kind == "error" and "SELECTION_CHANGED" in args[1]
+                   for kind, args in messages)
         assert getattr(fresh, "_endcap_live_saved_check_window", None) is None
-        fresh.v_miter_gui_check_corners["tail"]["bottom_right"] = "V_MITER_CHECK"
+        fresh.v_miter_gui_relief_modes["tail"]["bottom_right"] = mode
 
         # A changed original physical Tail W/BEND invalidates both views.
         fresh.w_var.set("410")
+        messages.clear()
+        fresh.v_miter_check_source_button.invoke()
+        assert any(kind == "error" and "V_MITER_LIVE_SOURCE_CHANGED" in args[1]
+                   for kind, args in messages), messages
+        assert getattr(fresh, "_endcap_live_saved_check_window", None) is None
+        assert getattr(fresh, ATTR)["tail"] == records
+        assert project.read_bytes() == original_bytes
+
+        # Restore physical width and verify old source is valid again before
+        # editing its real authored Tail lower Y Fold (not the CHECK draft).
+        fresh.w_var.set("400")
+        messages.clear()
+        fresh.v_miter_check_source_button.invoke()
+        assert not any(kind == "error" for kind, _ in messages), messages
+        close_saved_live_check_window(fresh)
+        profiles = fresh.workspace_controller.part_profiles_snapshot()
+        authored = deepcopy(profiles["tail"])
+        lower = [row for row in authored["Y"]
+                 if row.get("phase6_key") == "ybottom1"]
+        assert len(lower) == 1 and lower[0]["angle"] == pytest.approx(-90)
+        lower[0]["angle"] = -75.5
+        profiles["tail"] = authored
+        workspace = fresh.workspace_controller.workspace_snapshot()
+        workspace["part_profiles"] = profiles
+        fresh.workspace_controller.commit_workspace(workspace)
+        _, _, modified_spec, _ = _selected_source(
+            fresh, fresh._make_original_fold_designer_snapshot()
+        )
+        assert any(row.phase6_key == "ybottom1" and row.angle == -75.5
+                   for row in modified_spec.fold_profile_y)
         messages.clear()
         fresh.v_miter_check_source_button.invoke()
         assert any(kind == "error" and "V_MITER_LIVE_SOURCE_CHANGED" in args[1]

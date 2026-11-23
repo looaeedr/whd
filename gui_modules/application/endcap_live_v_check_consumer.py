@@ -118,10 +118,10 @@ def capture_current(host):
         saved_modes = engine.normalize_operator_v_miter_gui_relief_modes(
             snapshot.get("v_miter_gui_relief_modes"), selections,
         )
-        relief_var = getattr(host, "v_miter_relief_mode_var", None)
-        default_mode = relief_var.get() if relief_var is not None else "ROUND_R"
+        # Only the committed per-corner mode is authoritative. An absent
+        # map means the original ROUND_R default, not an unsaved Tk switch.
         modes = {
-            key: saved_modes.get(part, {}).get(key, default_mode)
+            key: saved_modes.get(part, {}).get(key, "ROUND_R")
             for key in targets
         }
         # Public Engine checks shared source and BOTH local results before
@@ -169,8 +169,7 @@ def replay_current(host, snapshot):
         if any(
             selected.get(part, {}).get(key) != "V_MITER_CHECK"
             or axes.get(part, {}).get(key) != saved[key]["first_bend_axis"]
-            or (key in modes.get(part, {})
-                and modes[part][key] != saved[key]["relief_mode"])
+            or modes.get(part, {}).get(key, "ROUND_R") != saved[key]["relief_mode"]
             for key in targets
         ):
             raise ValueError("V_MITER_TAIL_PAIR_SAVED_SELECTION_CHANGED")
