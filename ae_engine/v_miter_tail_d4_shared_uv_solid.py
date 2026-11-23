@@ -221,7 +221,7 @@ def project_d4_original_owner_uv_solid(
     if nominal_hinge:
         from .v_miter_tail_d4_nominal_hinge import nominal_adjacent_source_skins
         nominal_skins=nominal_adjacent_source_skins(
-            faces,source_uv,world_surface,t,st,nominal_h,
+            faces,source_uv,world_surface,t,st,nominal_h,stock,
         )
     else:
         nominal_skins=None
