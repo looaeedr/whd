@@ -240,24 +240,36 @@ def _stages(uv,first_axis,stations=None):
     return p1,p2,n1,n2,(origin,axis,theta)
 
 
-def _single_sheet_triangles(stock,stations=None,*,extra_x=(),extra_y=()):
-    """Triangulate actual CUTTING at derived physical crease/endpoint stations."""
+def _single_sheet_triangles(
+    stock,stations=None,*,extra_x=(),extra_y=(),extra_x_max_y=None,
+):
+    """Triangulate actual CUTTING at source crease/endpoint stations.
+
+    Optional nominal T-shell splits are confined to the requested source Y
+    rows, preserving the entire unmodified upper source triangulation.
+    Default call has identical stations and behavior as the original Engine.
+    """
     st=stations or LowerDualVStations.regression_522x233()
     left_delta=st.left_x-st.xmin
     right_delta=st.xmax-st.right_x
-    xs=tuple(sorted(set((st.xmin,st.left_x,st.bottom_guide_start,
-                         st.bottom_guide_end,st.right_x,st.xmax)
-                        +tuple(float(x) for x in extra_x))))
-    ys=tuple(sorted(set((st.ymin,st.bottom_y-left_delta,
-                         st.bottom_y-right_delta,st.bottom_y,
-                         st.bottom_y+left_delta,st.bottom_y+right_delta,
-                         st.left_side_end,st.right_side_end,
-                         st.upper_start,st.upper_crease,st.ymax)
-                        +tuple(float(y) for y in extra_y))))
+    base_x=tuple(sorted(set((
+        st.xmin,st.left_x,st.bottom_guide_start,
+        st.bottom_guide_end,st.right_x,st.xmax,
+    ))))
+    lower_x=tuple(sorted(set(base_x+tuple(float(x) for x in extra_x))))
+    ys=tuple(sorted(set((
+        st.ymin,st.bottom_y-left_delta,
+        st.bottom_y-right_delta,st.bottom_y,
+        st.bottom_y+left_delta,st.bottom_y+right_delta,
+        st.left_side_end,st.right_side_end,
+        st.upper_start,st.upper_crease,st.ymax,
+    )+tuple(float(y) for y in extra_y))))
     out=[]
     area=0.
-    for xl,xr in zip(xs,xs[1:]):
-        for yl,yr in zip(ys,ys[1:]):
+    for yl,yr in zip(ys,ys[1:]):
+        xs=(lower_x if extra_x_max_y is None
+            or yr<=float(extra_x_max_y)+_TOL else base_x)
+        for xl,xr in zip(xs,xs[1:]):
             cut=stock.intersection(box(xl,yl,xr,yr))
             parts=[cut] if cut.geom_type=="Polygon" else [
                 g for g in getattr(cut,"geoms",())
