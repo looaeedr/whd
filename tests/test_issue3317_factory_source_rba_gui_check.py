@@ -55,13 +55,13 @@ def test_opt_in_real_factory_v_uses_original_part_and_default_rba(part_key):
     try:
         source = tuple(render.scene.primitives)
         no_trial = api.project_operator_v_miter_live_corner_check(
-            spec, render, "bottom_left",
+            spec, render, "bottom_left", first_bend_axis="x",
         )
         assert no_trial.factory_true_t_check is not None
         assert no_trial.factory_radius_ba_check is None
         assert no_trial.factory_radius_ba_failure is None
         calculated = api.project_operator_v_miter_live_corner_check(
-            spec, render, "bottom_left", run_radius_ba_trial=True,
+            spec, render, "bottom_left", first_bend_axis="x", run_radius_ba_trial=True,
         )
         assert calculated.factory_true_t_check is not None
         assert calculated.trial_defaults is not None
@@ -111,7 +111,7 @@ def test_factory_rba_bridge_rejects_forged_default_and_real_bend_provenance():
     root, app, spec, render = _real_factory_v_gui()
     try:
         live = api.project_operator_v_miter_live_corner_check(
-            spec, render, "bottom_left",
+            spec, render, "bottom_left", first_bend_axis="x",
         )
         mat = _single_source_material(render.scene)
         x, y, _, _, _, _, real_x, real_y = _physical_corner_bends(
@@ -150,7 +150,7 @@ def test_factory_curved_t_stage_uses_actual_post_v_stock_without_fabricating_con
     root, app, spec, render = _real_factory_v_gui()
     try:
         live = api.project_operator_v_miter_live_corner_check(
-            spec, render, "bottom_left",
+            spec, render, "bottom_left", first_bend_axis="x",
         )
         mat = _single_source_material(render.scene)
         x, y, _, _, _, _, real_x, real_y = _physical_corner_bends(
