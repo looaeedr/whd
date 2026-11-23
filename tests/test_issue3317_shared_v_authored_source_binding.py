@@ -103,6 +103,14 @@ def test_no_explicit_first_and_bad_direction_are_rejected():
 
 def test_decoy_and_drift_cannot_reselect_nearest_or_ambiguous_bend():
     spec, render, real_x, real_y = _source(60)
+    # Adding an extra finite BEND makes keyless source ambiguous by design.
+    # This test instead supplies the true X role to prove the decoy cannot
+    # steal a *named* source. Separate test asserts keyless 3+ is rejected.
+    spec = replace(spec, fold_profile_x=tuple(
+        replace(row, phase6_key=key) for row, key in zip(
+            spec.fold_profile_x, ("yl1", "endcap_w_core", "yr1"),
+        )
+    ))
     decoy = LinePrimitive(Vec2(19.9, 20), Vec2(19.9, 180), "BEND")
     render.scene.primitives.append(decoy)
     live = api.project_operator_v_miter_live_corner_check(
