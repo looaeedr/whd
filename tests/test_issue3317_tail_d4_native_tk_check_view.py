@@ -920,10 +920,27 @@ def test_real_tk_w620_d4_check_button_uses_exact_preplaced_lower_v_solid(
             actual["v_world_open_edges"],actual["v_extra_world_open_edges"],
             assembly.crossing_pair_count,
         )))
+        # Capture the actual mapped Tk check window when the runner
+        # permits ImageGrab. Fallback is exactly the Figure painted by
+        # this Tk canvas, labelled distinctly (not a fabricated mock).
+        root.update_idletasks();root.update()
         raw=BytesIO()
-        fig.savefig(raw,format="png",dpi=75)
-        record_property("ISSUE3317_NATIVE_D4_LOWER_V_TK_FIGURE_PNG",
-                        base64.b64encode(raw.getvalue()).decode("ascii"))
+        evidence_kind="REAL_TK_WINDOW"
+        try:
+            from PIL import ImageGrab
+            x=win.winfo_rootx();y=win.winfo_rooty()
+            w=win.winfo_width();h=win.winfo_height()
+            if w<600 or h<350:
+                raise RuntimeError("native Tk D4 window not fully mapped")
+            ImageGrab.grab(bbox=(x,y,x+w,y+h)).save(raw,format="PNG")
+        except (ImportError,RuntimeError,OSError):
+            evidence_kind="TK_CANVAS_FIGURE_ONLY"
+            fig.savefig(raw,format="png",dpi=85)
+        record_property(
+            "ISSUE3317_NATIVE_D4_LOWER_V_TK_CAPTURE",
+            first_axis+":"+evidence_kind+":"+
+            base64.b64encode(raw.getvalue()).decode("ascii"),
+        )
         assert len(raw.getvalue())>3000
     finally:
         if win is not None:
