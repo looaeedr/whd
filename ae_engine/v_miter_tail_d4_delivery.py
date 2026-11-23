@@ -237,7 +237,7 @@ def _d4_ordered_corner_motion(source_uv, source_faces, stations, first_axis):
 
 def project_tail_d4_shared_original_fold_candidate(
     flat, *, first_axis, box_body_world, nominal_hinge=False,
-    nominal_side_collar=True,
+    nominal_side_collar=True, nominal_upper_taper=False,
 ):
     """Isolated development candidate: original EndCap owner, V CUTTING only.
 
@@ -317,6 +317,7 @@ def project_tail_d4_shared_original_fold_candidate(
         original_bends,baseline_surface,box_body_world,spec.thickness,
         nominal_hinge=nominal_hinge,
         nominal_side_collar=nominal_side_collar,
+        nominal_upper_taper=nominal_upper_taper,
     )
     ordered_corner_motion=_d4_ordered_corner_motion(
         developed["source_uv"],developed["source_faces"],st,first_axis,
@@ -340,6 +341,7 @@ def project_tail_d4_shared_original_fold_candidate(
         "v_surface":developed["v_surface"],
         "v_solid":developed["v_solid"],
         "nominal_hinge_width_mm":developed["nominal_hinge_width_mm"],
+        "nominal_upper_taper":developed["nominal_upper_taper"],
         "v_solid_source_ids":developed["v_solid_source_ids"],
         "v_source_uv":developed["source_uv"],
         "v_source_faces":developed["source_faces"],
