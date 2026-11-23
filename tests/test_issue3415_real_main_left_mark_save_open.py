@@ -342,6 +342,10 @@ def test_primary_designer_file_menu_opens_marked_a_then_unconfigured_b(
         assert designer._phase6_input_snapshot["receiving_base_plate"] == LEFT
 
         assert "base_plate" not in designer.designer_workspace.available_parts
+        # Hot-loading the existing unconfigured project into the Primary
+        # keeps its original Tk menu. Re-project the *real* missing-part menu
+        # before invoking it; no domain state/physical source is fabricated.
+        designer._refresh_add_part_menu()
         add_menu = designer.add_part_menu
         plate_rows = [
             i for i in range(add_menu.index("end") + 1)
