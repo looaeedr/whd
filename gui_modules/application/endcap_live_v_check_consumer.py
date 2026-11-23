@@ -54,11 +54,22 @@ def _selected_source(host, snapshot):
             raise ValueError("ENDCAP_LIVE_V_PART_FEATURES_INVALID")
         payload["features"] = deepcopy(part_features.get(part, ()))
     part_profiles = snapshot.get("part_profiles")
-    if part_profiles is not None:
-        if not isinstance(part_profiles, Mapping):
-            raise ValueError("ENDCAP_LIVE_V_PART_PROFILES_INVALID")
-        if part in part_profiles:
-            payload["fold_profiles"] = deepcopy(part_profiles[part])
+    if part_profiles is not None and not isinstance(part_profiles, Mapping):
+        raise ValueError("ENDCAP_LIVE_V_PART_PROFILES_INVALID")
+    if part_profiles is not None and part in part_profiles:
+        payload["fold_profiles"] = deepcopy(part_profiles[part])
+    # Main GUI Project Open uses this *existing public Engine owner* to
+    # relink the physical Head/Tail Fold against the canonical BoxBody chain.
+    # Capture must solve from that exact same normalized physical source
+    # before Save; otherwise a legitimate Save→Open can appear to be drift.
+    box_profile = snapshot.get("box_body_profile")
+    if box_profile:
+        linked = engine.build_linked_endcap_xy_fold_profiles(
+            snapshot, box_profile,
+        )
+        if part not in linked or not isinstance(linked[part], Mapping):
+            raise ValueError("ENDCAP_LIVE_V_LINKED_FOLD_SOURCE_UNAVAILABLE")
+        payload["fold_profiles"] = deepcopy(linked[part])
     spec, _context = host._fold_designer_part_spec_from_payload(part, payload)
     native = host._query_fold_designer_render_data(part, payload)
     if spec is None or native is None:
