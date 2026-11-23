@@ -843,7 +843,8 @@ def test_real_tk_w620_d4_check_button_uses_exact_preplaced_lower_v_solid(
                 api.TAIL_LOWER_V_SNAPSHOT_KEY:"v90",
             }
             selected=api.commit_operator_tail_lower_v_first_bends(
-                ephemeral,{"bottom_left":"y","bottom_right":"y"},
+                ephemeral,{"bottom_left":first_axis,
+                           "bottom_right":first_axis},
                 spec=spec_ctx[0],render_data=raw,
             )
             designer._phase6_input_snapshot[
