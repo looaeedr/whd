@@ -987,6 +987,7 @@ def folded_mesh_with_flat_uv_from_polygon(
     *,
     fold_exemptions=(),
     fold_guides=(),
+    fold_tip_continuity=(),
 ):
     """Fold material exactly like :func:`folded_mesh_from_polygon`, preserving 2D UV.
 
@@ -1000,8 +1001,18 @@ def folded_mesh_with_flat_uv_from_polygon(
 
     xb, xf = _profile_geometry(x_profile)
     yb, yf = _profile_geometry(y_profile)
-    x_mapper = _prepare_profile_mapper(x_profile, axis="x", fold_guides=fold_guides, geometry=(xb, xf))
-    y_mapper = _prepare_profile_mapper(y_profile, axis="y", fold_guides=fold_guides, geometry=(yb, yf))
+    tip_kwargs = (
+        {"fold_tip_continuity": fold_tip_continuity}
+        if fold_tip_continuity else {}
+    )
+    x_mapper = _prepare_profile_mapper(
+        x_profile,axis="x",fold_guides=fold_guides,
+        geometry=(xb,xf),**tip_kwargs,
+    )
+    y_mapper = _prepare_profile_mapper(
+        y_profile,axis="y",fold_guides=fold_guides,
+        geometry=(yb,yf),**tip_kwargs,
+    )
     total_x, total_y = float(xb[-1]), float(yb[-1])
     display_material = material.simplify(0.05, preserve_topology=True)
     clipped_material = display_material.intersection(box(0.0, 0.0, total_x, total_y))
@@ -1028,6 +1039,24 @@ def folded_mesh_with_flat_uv_from_polygon(
             for value in (float(guide.span_start), float(guide.span_end)):
                 if 0.0 < value < total_y:
                     y_cuts.add(value)
+    # Mirror the existing folded_mesh_from_polygon finite-tip
+    # tessellation EXACTLY. This only subdivides connected V stock; it
+    # neither extends nor edits the operator's real source BEND.
+    for axis, station, outer_min, outer_max in tuple(fold_tip_continuity or ()):
+        dest = x_cuts if str(axis) == "y" else y_cuts
+        matched = [guide for guide in tuple(fold_guides or ())
+                   if str(guide.axis) == str(axis)
+                   and abs(float(guide.position)-float(station))<=1e-6]
+        if len(matched)!=1:
+            raise ValueError("WHD_FOLD_TIP_TESSELLATION_BEND_MISSING")
+        for start,stop in (
+            (float(outer_min),float(matched[0].span_start)),
+            (float(matched[0].span_end),float(outer_max)),
+        ):
+            for step in range(1,8):
+                point=start+(stop-start)*step/8.
+                if 0.<point<(total_x if str(axis)=="y" else total_y):
+                    dest.add(point)
     x_cuts = sorted(x_cuts)
     y_cuts = sorted(y_cuts)
 
