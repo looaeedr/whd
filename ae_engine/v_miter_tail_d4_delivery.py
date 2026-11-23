@@ -456,8 +456,9 @@ def project_tail_d4_shared_original_fold_candidate(
         source_mapped,st,first_axis,
     )
     from .v_miter_tail_d4_shared_uv_solid import (
-        project_d4_original_owner_uv_solid,
+        project_d4_original_owner_uv_solid,_edge_counts,
     )
+    original_open_edges=_edge_counts(baseline.solid_triangles)[0]
     developed=project_d4_original_owner_uv_solid(
         flat,source,st,first_axis,owned["X"],exact_y,
         original_bends,baseline_surface,box_body_world,spec.thickness,
@@ -472,6 +473,10 @@ def project_tail_d4_shared_original_fold_candidate(
         "v_source_uv":developed["source_uv"],
         "v_source_faces":developed["source_faces"],
         "v_world_open_edges":developed["open_world_edges"],
+        "original_world_open_edges":original_open_edges,
+        "v_extra_world_open_edges":(
+            developed["open_world_edges"]-original_open_edges
+        ),
         "v_world_four_edges":developed["four_world_edges"],
         "v_world_multi_edges":developed["multi_world_edges"],
         "v_world_open_seam_edges":developed["open_seam_world_edges"],
