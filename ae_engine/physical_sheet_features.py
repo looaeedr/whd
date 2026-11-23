@@ -22,8 +22,20 @@ def with_physical_sheet_features(key, render, features):
     surface, width, height, _ = physical_sheet_feature_context(key, render)
     normalized = tuple(legacy_hole_to_feature(dict(f)) if isinstance(f, Mapping) else f
                        for f in features)
+    from .operator_manual_marking import is_manual_mark, validate_physical_manual_markings
+    validate_physical_manual_markings(
+        key, render, normalized, surface=surface, width=width, height=height,
+    )
     resolved = ae.resolve_surface_features(surface, normalized, width, height)
     scene = DrawingScene()
     scene.extend(render.scene.primitives)
     scene.extend(resolved_features_to_primitives(resolved))
-    return replace(render, scene=scene, material=material_polygon_from_final_scene(scene))
+    marked = tuple(feature for feature in normalized if is_manual_mark(feature))
+    material = material_polygon_from_final_scene(scene)
+    if not marked:
+        # Existing readonly/legacy render types need no metadata field.
+        # No manual intent => preserve their original replace contract.
+        return replace(render, scene=scene, material=material)
+    metadata = dict(getattr(render, "metadata", None) or {})
+    metadata["manual_marking_v1_features"] = marked
+    return replace(render, scene=scene, material=material, metadata=metadata)
