@@ -458,12 +458,18 @@ def project_tail_d4_shared_original_fold_candidate(
     from .v_miter_tail_d4_shared_uv_solid import (
         project_d4_original_owner_uv_solid,_edge_counts,
     )
-    original_open_edges=_edge_counts(baseline.solid_triangles)[0]
+    original_open_record=_edge_counts(baseline.solid_triangles)
+    original_open_edges=original_open_record[0]
     developed=project_d4_original_owner_uv_solid(
         flat,source,st,first_axis,owned["X"],exact_y,
         original_bends,baseline_surface,box_body_world,spec.thickness,
     )
     walls=developed["straight_v_wall_sets"]
+    original_open_keys=original_open_record[4]
+    candidate_open_keys=developed["open_world_edge_keys"]
+    shared_open_keys=original_open_keys & candidate_open_keys
+    new_v_open_keys=candidate_open_keys - original_open_keys
+    original_removed_open_keys=original_open_keys - candidate_open_keys
     return {
         "first_axis":first_axis,
         "original_surface":baseline.formed_surface,
@@ -474,9 +480,11 @@ def project_tail_d4_shared_original_fold_candidate(
         "v_source_faces":developed["source_faces"],
         "v_world_open_edges":developed["open_world_edges"],
         "original_world_open_edges":original_open_edges,
-        "v_extra_world_open_edges":(
-            developed["open_world_edges"]-original_open_edges
-        ),
+        # A change in CUTTING can REMOVE some original open edges while
+        # creating new ones. Subtracting counts (56-40) loses identity.
+        "v_extra_world_open_edges":len(new_v_open_keys),
+        "shared_original_world_open_edges":len(shared_open_keys),
+        "original_removed_world_open_edges":len(original_removed_open_keys),
         "v_world_four_edges":developed["four_world_edges"],
         "v_world_multi_edges":developed["multi_world_edges"],
         "v_world_open_seam_edges":developed["open_seam_world_edges"],
