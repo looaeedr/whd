@@ -456,130 +456,105 @@ def test_d4_y225_same_source_skin_edge_gap_is_explicit_unresolved(first_axis,sid
     assert not candidate["manufacturing_approved"]
 
 
+
 @pytest.mark.parametrize("first_axis",("x","y"))
-def test_d4_isolated_y225_source_taper_keeps_original_cutting_and_lower_solid(first_axis):
-    """Experimental 3D taper is never a CHECK/CNC or a changed FinalScene."""
-    from ae_engine.assembly_geometry import diagnose_world_mesh_self_intersections
+def test_d4_lower_v_tip_2h_taper_stays_original_upper_source(first_axis):
+    """W620-only source-tip taper.  It must not alter Y225 or original CUTTING."""
+    from ae_engine.v_miter_tail_no_ba_sequential import stations_from_real_flat
+    from ae_engine.assembly_geometry import (
+        diagnose_world_mesh_self_intersections,
+    )
     from ae_engine.v_miter_tail_d4_shared_uv_solid import _normal,_dot
+    from shapely.geometry import Polygon
     from math import dist
 
     flat,_=build_tail_d4_check_from_original(default_vault_tail_d4_spec())
     body=_real_w620_body()
-    old=project_tail_d4_shared_original_fold_candidate(
-        flat,first_axis=first_axis,box_body_world=body,nominal_hinge=True,
+    st=stations_from_real_flat(flat)
+    native=project_tail_d4_shared_original_fold_candidate(
+        flat,first_axis=first_axis,box_body_world=body,
+    )
+    baseline=project_tail_d4_shared_original_fold_candidate(
+        flat,first_axis=first_axis,box_body_world=body,
+        nominal_hinge=True,
     )
     trial=project_tail_d4_shared_original_fold_candidate(
         flat,first_axis=first_axis,box_body_world=body,
-        nominal_hinge=True,nominal_upper_taper=True,
+        nominal_hinge=True,nominal_lower_v_taper=True,
     )
-    assert trial["nominal_upper_taper"] is True
-    assert old["nominal_upper_taper"] is False
+    tip_rows=tuple(float(upper[1]) for _,_,_,upper
+                   in flat.opening_source_points_xy)
+    assert len(tip_rows)==2
+    assert tip_rows[0]==pytest.approx(tip_rows[1],abs=1e-8)
+    h=trial["nominal_hinge_width_mm"]
+    end=tip_rows[0]+2.*h
+    assert end<min(st.left_side_end,st.right_side_end)
+    assert trial["nominal_lower_v_taper"] is True
     assert not trial["manufacturing_approved"]
-    assert trial["v_source_uv"] != old["v_source_uv"]
-    assert trial["v_material"].area==pytest.approx(
-        old["v_material"].area,abs=1e-7,
-    )
+    assert baseline["nominal_lower_v_taper"] is False
+    # Whole manufactured CUTTING stock (including four source holes) is
+    # identical, not just a union of triangulated synthetic outlines.
     assert trial["v_material"].symmetric_difference(
-        old["v_material"],
-    ).area<=1e-8
-    from shapely.geometry import Polygon
-    # flat.result_material is the authorized *outer* D4 perimeter.
-    # v_material is the fully resolved material with all four Factory
-    # CUTTING holes removed. Compare boundaries independently, not the
-    # area of the legal Factory holes against a hole-free perimeter.
+        baseline["v_material"],
+    ).area<1e-8
+    assert trial["v_material"].symmetric_difference(
+        native["v_material"],
+    ).area<1e-8
+    assert len(trial["v_material"].interiors)==4
     assert Polygon(trial["v_material"].exterior).symmetric_difference(
         Polygon(flat.result_material.exterior),
-    ).area<=1e-8
-    assert len(trial["v_material"].interiors)==4
-    assert len(old["v_material"].interiors)==4
-    for ring_a,ring_b in zip(
-        trial["v_material"].interiors,old["v_material"].interiors,
-    ):
-        assert Polygon(ring_a).symmetric_difference(
-            Polygon(ring_b),
-        ).area<=1e-8
-    from collections import defaultdict
-    world_edges=defaultdict(list)
-    for fid,triangle in enumerate(trial["v_solid"]):
-        keys=trial["v_solid_source_ids"][fid]
-        for j in range(3):
-            a,b=triangle[j],triangle[(j+1)%3]
-            edge=tuple(sorted(tuple(round(v,7) for v in p) for p in (a,b)))
-            world_edges[edge].append(
-                (fid,tuple(trial["v_source_uv"][keys[k]]
-                           for k in (j,(j+1)%3))),
-            )
-    illegal=tuple(
-        (edge,tuple(origins)) for edge,origins in world_edges.items()
-        if len(origins)==4 and max(point[2] for point in edge)>80.
-    )
-    assert trial["v_world_four_edges"]==8,(
-        "D4_Y225_TAPER_NEW_FOUR_EDGE_SOURCE",
-        trial["v_world_four_edges"],
-        tuple(
-            (
-                edge,
-                ";".join(
-                    f"face{fid}/"+
-                    ("skin+" if fid%2==0 else "skin-")
-                    +"/"+str(tuple(tuple(round(x,6) for x in uv)
-                                   for uv in pair))
-                    for fid,pair in origins
-                )
-            )
-            for edge,origins in illegal
-        ),
-    )
+    ).area<1e-8
+    assert trial["v_world_four_edges"]==8
     assert trial["v_world_open_seam_edges"]==0
-    assert trial["v_world_open_edges"]==16
-    assert all(x["full_face_contact_proven"] for x in trial["straight_v_wall_sets"])
-    for bound_a,bound_b in zip(
-        triangle_bounds(old["v_surface"]),triangle_bounds(trial["v_surface"]),
-    ):
-        assert bound_a==pytest.approx(bound_b,abs=1e-7)
-    # Two T faces per true material triangle, never a wall or a forged cap.
-    for fid,tri in enumerate(trial["v_surface"]):
+    assert trial["v_extra_world_open_edges"]==0
+    assert trial["v_world_open_edges"]==24
+    assert len(trial["straight_v_wall_sets"])==4
+    assert all(x["full_face_contact_proven"]
+               for x in trial["straight_v_wall_sets"])
+    # The original midline/assembly reference and actual upper native
+    # T skins are untouched even where upper Fold is already imperfect.
+    for oa,ob in zip(triangle_bounds(native["v_surface"]),
+                     triangle_bounds(trial["v_surface"])):
+        assert oa==pytest.approx(ob,abs=1e-7)
+    upper_samples=[]
+    for face in trial["v_source_faces"]:
+        points=tuple(trial["v_source_uv"][i] for i in face)
+        if min(uv[1] for uv in points)>end+1e-7:
+            upper_samples.append(tuple(
+                sum(uv[k] for uv in points)/3. for k in (0,1)
+            ))
+    assert upper_samples
+    for uv in upper_samples:
+        native_skins=_source_thickness_segment(native,uv)
+        tapered_skins=_source_thickness_segment(trial,uv)
+        for before,after in zip(native_skins,tapered_skins):
+            assert before==pytest.approx(after,abs=1e-6),(
+                "D4_LOWER_TAPER_MOVED_NATIVE_UPPER",uv,
+            )
+    # True normal thickness remains T, not a moved midplane or shrink.
+    positive_skin_count=0
+    for fid,midline in enumerate(trial["v_surface"]):
         positive,negative=trial["v_solid"][fid*2:fid*2+2]
-        n=_normal(tri)
-        for j,point in enumerate(tri):
-            p=positive[j]
-            m=negative[(0,2,1)[j]]
-            assert _dot(tuple(p[k]-m[k] for k in range(3)),n)==pytest.approx(
+        n=_normal(midline)
+        for j in range(3):
+            plus=positive[j]
+            minus=negative[(0,2,1)[j]]
+            diff=tuple(plus[k]-minus[k] for k in range(3))
+            assert _dot(diff,n)==pytest.approx(
                 flat.source_spec.thickness,abs=1e-6,
             )
-        assert len(set(tuple(round(q,7) for q in p) for p in positive))==3
-        assert len(set(tuple(round(q,7) for q in p) for p in negative))==3
-    # Upper original skin positions are preserved above source side end.
-    from ae_engine.v_miter_tail_no_ba_sequential import stations_from_real_flat
-    st=stations_from_real_flat(flat)
-    source_samples=[]
-    for face in old["v_source_faces"]:
-        points=tuple(old["v_source_uv"][i] for i in face)
-        if min(p[1] for p in points)>=max(st.left_side_end,st.right_side_end)+1e-6:
-            source_samples.append(tuple(sum(p[k] for p in points)/3.
-                                        for k in (0,1)))
-    assert source_samples
-    for uv in source_samples[:60]:
-        a=_source_thickness_segment(old,uv)
-        b=_source_thickness_segment(trial,uv)
-        for pa,pb in zip(a,b):
-            assert pa==pytest.approx(pb,abs=1e-6)
-    for label,where in (
-        ("rear",(100.,-275.,0.)),
-        ("front_frame",(-294.,-297.,0.)),
-    ):
-        before=probe_native_world_mesh_axis_faces(
-            old["v_solid"],axis=2,fixed_xyz=where,
-        )
-        after=probe_native_world_mesh_axis_faces(
-            trial["v_solid"],axis=2,fixed_xyz=where,
-        )
-        assert before==pytest.approx(after,abs=1e-6),(label,before,after)
+        for skin in (positive,negative):
+            u=tuple(skin[1][k]-skin[0][k] for k in range(3))
+            v=tuple(skin[2][k]-skin[0][k] for k in range(3))
+            cross=(u[1]*v[2]-u[2]*v[1],
+                   u[2]*v[0]-u[0]*v[2],
+                   u[0]*v[1]-u[1]*v[0])
+            magnitude=sum(c*c for c in cross)**.5
+            assert magnitude>1e-8,("D4_TAPER_DEGENERATE_SKIN",fid)
+            assert _dot(cross,n)>1e-8 if skin is positive else _dot(cross,n)<-1e-8
+            positive_skin_count+=1
+    assert positive_skin_count==2*len(trial["v_source_faces"])
     for side in ("left","right"):
-        # Same-source Y225 edges on both +/- T skins must now agree.
-        assert not _source_shared_upper_skin_discontinuities(
-            trial,station=st.left_side_end,side=side,
-        ),("D4_TAPER_Y225_SHARED_SOURCE_SKINS_DISCONTINUOUS",side,first_axis)
         skins,ids=_source_local_side_skin_faces(trial,side)
         check=diagnose_world_mesh_self_intersections(
             skins,max_nonadjacent_pairs=len(skins)*(len(skins)-1)//2,
@@ -587,3 +562,18 @@ def test_d4_isolated_y225_source_taper_keeps_original_cutting_and_lower_solid(fi
         assert not check.numerical_budget_exhausted
         assert check.crossing_pair_count==0
         assert check.coplanar_overlap_pair_count==0
+        # The former Y225 source-edge defect must not be "repaired" by
+        # manipulating the original finite side bend terminal.
+        assert _source_shared_upper_skin_discontinuities(
+            trial,station=st.left_side_end,side=side,
+        )==_source_shared_upper_skin_discontinuities(
+            native,station=st.left_side_end,side=side,
+        )
+    for location in ((100.,-275.,0.),(-294.,-297.,0.)):
+        before=probe_native_world_mesh_axis_faces(
+            native["v_solid"],axis=2,fixed_xyz=location,
+        )
+        after=probe_native_world_mesh_axis_faces(
+            trial["v_solid"],axis=2,fixed_xyz=location,
+        )
+        assert before==pytest.approx(after,abs=1e-6)
