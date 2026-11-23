@@ -1173,3 +1173,77 @@ def test_real_tk_d4_check_bottom31_original_square_hole_collision_refuses(
             try:designer.root.destroy()
             except tk.TclError:pass
         root.destroy()
+
+
+def test_real_tk_d4_check_unverified_top_fold_keeps_legacy_view():
+    """Real top17 Factory source: CHECK visible, no new nominal world adapter."""
+    if os.name!="nt" and not os.environ.get("DISPLAY"):
+        pytest.skip("requires real Tk/Xvfb GUI")
+    from copy import deepcopy
+    root=tk.Tk()
+    root.withdraw()
+    designer=None
+    win=None
+    try:
+        main=gui.BoxCalculatorGUI(root)
+        main.baseline_var.set("金庫型")
+        main.w_var.set("620")
+        main.h_var.set("600")
+        main.d_var.set("185")
+        if hasattr(main,"t_var"):
+            main.t_var.set("2")
+        main._apply_existing_parts_from_fold_workspace(
+            ["box_body","head","tail"],
+        )
+        designer=main.open_original_fold_designer()
+        root.update_idletasks();root.update()
+        designer.activate_part("tail")
+        editor=designer.bend_ui
+        editor.nb.select(editor.tabs.index("Y"))
+        root.update_idletasks();root.update()
+        editor.on_tab(None);editor.render()
+        rows=editor.get_active_dict()["Y"]
+        updates=[dict(row) for row in rows]
+        for key,value in (("ybottom1",48.),("ytop1",17.)):
+            index=next(i for i,row in enumerate(updates)
+                       if row.get("phase6_key")==key)
+            updates[index]["len"]=value
+        displayed=api.project_operator_fold_editor_display_rows(
+            updates,getattr(designer.state,"phase6_thickness",2.),
+        )
+        for key in ("ybottom1","ytop1"):
+            index=next(i for i,row in enumerate(updates)
+                       if row.get("phase6_key")==key)
+            editor.controls[index]["len"].set(str(displayed[index]["len"]))
+        editor.save()
+        designer._save_current_part(notify=False)
+        designer._phase6_update_scheduler.flush_now()
+        root.update_idletasks();root.update()
+        page=designer.settings_panel.render_context("tail")
+        button=page["extension_state"]["tail_d4_check_widget"]
+        before=deepcopy(designer._phase6_input_snapshot)
+        assert before["assembly_relief"]["source"]["ytop1"]==pytest.approx(17.)
+        button.invoke()
+        root.update_idletasks();root.update()
+        windows=[
+            w for w in designer.root.winfo_children()
+            if isinstance(w,tk.Toplevel) and "CHECK_NOT_CNC" in w.title()
+        ]
+        assert len(windows)==1,designer.settings_status_var.get()
+        win=windows[0]
+        assert win._tail_d4_check_world_candidate is None
+        assert len(win._tail_d4_check_placed_world)==len(
+            win._tail_d4_check_shell.shell_faces
+        )
+        assert win._tail_d4_check_world_source_faces==(
+            win._tail_d4_check_shell.shell_faces
+        )
+        assert designer._phase6_input_snapshot==before
+    finally:
+        if win is not None:
+            try:win.destroy()
+            except tk.TclError:pass
+        if designer is not None:
+            try:designer.root.destroy()
+            except tk.TclError:pass
+        root.destroy()
