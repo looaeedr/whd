@@ -487,6 +487,14 @@ def test_actual_whd_gui_d4_check_window_four_factory_holes_and_native_world(
                 flat,first_axis=axis,box_body_world=body,
             )
             assert not trial["manufacturing_approved"]
+            walls=trial["straight_v_wall_sets"]
+            assert len(walls)==2
+            import warnings
+            warnings.warn(
+                "ISSUE3317_SHARED_ORIGINAL_FOLD_V_WALLS="
+                +repr((axis,walls)),
+                RuntimeWarning,stacklevel=1,
+            )
             for label,pos in (
                 ("rear",(100.,-275.,0.)),
                 ("front_frame",(-294.,-297.,0.)),
