@@ -569,7 +569,10 @@ def show_tail_d4_check(self, namespace):
             app.root,flat=flat,check=check,body_world=body_world,
             placed_world=placed,first_axis=axis,save_dxf=save_view_dxf,
             assembly_check=assembly_check,
-            world_source_faces=source_face_ids,world_source_uv=source_uv,
+            world_source_faces=(
+                source_face_ids if candidate is not None else None
+            ),
+            world_source_uv=source_uv if candidate is not None else None,
             world_candidate=candidate,
         )
     except (ValueError,TypeError,OSError) as exc:
