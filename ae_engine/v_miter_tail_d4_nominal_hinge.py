@@ -9,7 +9,7 @@ welded.  This is a nominal section trial, not a plastic bend law, R or BA.
 from collections import defaultdict
 from math import dist, isfinite, sqrt
 
-from shapely.geometry import LineString, Point
+from shapely.geometry import LineString, Point, box
 
 from .sheetmetal_geometry_core import GeometryError
 
@@ -93,7 +93,7 @@ def nominal_section_map(s,signed_t,h,*,panel):
     raise GeometryError("TAIL_D4_NOMINAL_SECTION_PANEL_INVALID")
 
 
-def nominal_adjacent_source_skins(faces,source_uv,world_surface,t,st,h):
+def nominal_adjacent_source_skins(faces,source_uv,world_surface,t,st,h,stock):
     """Face-vertex +/-T/2 locations from real source-adjacent crease faces.
 
     The only input neighbors are two faces sharing a genuine source UV
@@ -143,6 +143,34 @@ def nominal_adjacent_source_skins(faces,source_uv,world_surface,t,st,h):
         hinge_segments.append((axis,station,lo,hi,na,nb))
     if not hinge_segments:
         raise GeometryError("TAIL_D4_NOMINAL_SOURCE_ADJACENT_HINGE_MISSING")
+    # A real Y48 source hinge ends before the Ø4 cut-out. Extend ONLY
+    # its thickness influence over the surviving sheet collar, never
+    # the source BEND/CUTTING, if both X/Y influence bands are empty.
+    y_segments=[row for row in hinge_segments if row[0]==1]
+    if not y_segments:
+        raise GeometryError("TAIL_D4_NOMINAL_SOURCE_Y_HINGE_MISSING")
+    y_lo=min(row[2] for row in y_segments)
+    y_hi=max(row[3] for row in y_segments)
+    if (y_lo<st.bottom_guide_start-1e-7
+            or y_hi>st.bottom_guide_end+1e-7
+            or y_lo>st.left_x+h+1e-7
+            or y_hi<st.right_x-h-1e-7):
+        raise GeometryError("TAIL_D4_NOMINAL_Y_SOURCE_HINGE_NOT_ACTUAL_SPAN")
+    for crease in (st.left_x,st.right_x):
+        overlap_band=box(crease-h,st.bottom_y-h,
+                         crease+h,st.bottom_y+h)
+        if stock.intersection(overlap_band).area>1e-7:
+            raise GeometryError(
+                "TAIL_D4_NOMINAL_XY_INFLUENCE_MATERIAL_INTERSECTS"
+            )
+    # Normal provenance remains the actual adjacent source Y faces.
+    # Only T influence extends from that genuine span to the two real
+    # X side crease stations, conditional on actual stock clearance.
+    hinge_segments=[
+        (axis,station,st.left_x,st.right_x,na,nb)
+        if axis==1 else (axis,station,lo,hi,na,nb)
+        for axis,station,lo,hi,na,nb in hinge_segments
+    ]
     used_hinges=set()
     layers=[]
     upper_cutoff=max(st.left_side_end,st.right_side_end)
