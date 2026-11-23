@@ -20,9 +20,6 @@ from ae_engine import manufacturing_api as api
 from ae_engine.contracts import ManufacturingContext
 from ae_engine.sheetmetal_part_adapters import RECEIVING_BASE_PATTERN_LEFT
 from phase6_project_file import read_project
-from tests.test_issue1502_receiving_gui_base_bridge import (
-    _open_legacy_unconfigured_base_settings,
-)
 
 ROOT = Path(__file__).resolve().parents[1]
 LEFT = {
@@ -110,14 +107,26 @@ def test_real_main_left_committed_mark_saveas_new_root_open_designer_export(
         try:
             host = gui.BoxCalculatorGUI(root)
             if roundtrip == 0:
-                host.baseline_var.set("受電箱")
+                # Enter by the actual Main "Open" toolbar action using the
+                # repo's EXISTING legacy unconfigured Receiving project.
+                # No test-built/synthetic snapshot or mode reducer injection.
+                unconfigured = (
+                    ROOT / "tests" / "fixtures" /
+                    "issue1503_legacy_receiving_without_nfb_base.p6fold"
+                )
+                assert unconfigured.is_file()
+                monkeypatch.setattr(
+                    filedialog, "askopenfilename",
+                    lambda **kw: str(unconfigured),
+                )
+                host.project_open_button.invoke()
                 root.update()
+                assert host.project_controller.project_path == str(unconfigured)
+                assert host.baseline_var.get() == "受電箱"
+                assert "receiving_base_plate" not in read_project(unconfigured)["snapshot"]
                 designer = host.open_original_fold_designer()
                 root.update()
-                # Supported Receiving manual BasePlate settings mode; selects
-                # the mode, not a fabricated BasePlate profile or saved state.
-                _open_legacy_unconfigured_base_settings(designer)
-                root.update()
+                assert designer._phase6_input_snapshot.get("nfb_config_submitted") is not True
                 panel = designer.settings_panel
                 panel.invalidate_context("base_plate")
                 rendered = panel.render_context("base_plate")
