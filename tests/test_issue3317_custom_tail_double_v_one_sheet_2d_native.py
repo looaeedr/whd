@@ -352,9 +352,18 @@ def test_real_main_saved_tail_view_cold_factory_rebuilds_source_once(
         messages.clear()
         fresh.v_miter_check_source_button.invoke()
         assert not any(k == "error" for k, _ in messages), messages
-        assert len(reads) == len(builds) == 1, (
-            "one Main View must read Tail exactly once even with cache OFF",
-            len(reads), len(builds),
+        # Only the selected Tail source read belongs to the View
+        # transaction. Other GUI background view projections may also
+        # invoke the uncached Factory; they must not count as a second
+        # _selected_source read or a repeated Engine pair-replay.
+        assert len(reads) == 1, (
+            "one Main View must select one authoritative Tail source",
+            len(reads),
+        )
+        owned_builds = [row for row in builds if row[2] is reads[0]]
+        assert len(owned_builds) == 1
+        assert len({id(row[2]) for row in builds}) == len(builds), (
+            "every real Factory invocation must return a fresh RenderData",
         )
         win = fresh._endcap_live_saved_check_window
         assert win is not None
@@ -362,7 +371,7 @@ def test_real_main_saved_tail_view_cold_factory_rebuilds_source_once(
         assert win.winfo_viewable() == 1 and win.grab_status() == "local"
         envelope = win._saved_endcap_pair_source_envelope
         assert envelope is not None
-        assert envelope.render_data is reads[0] is builds[0][2]
+        assert envelope.render_data is reads[0] is owned_builds[0][2]
         assert set(envelope.replays) == set(CORNERS)
         assert set(envelope.saved_rows) == set(CORNERS)
         for side in CORNERS:
@@ -373,7 +382,9 @@ def test_real_main_saved_tail_view_cold_factory_rebuilds_source_once(
         first = envelope.render_data
         # Two fresh Factory runs do have identical values but distinct
         # BEND owners, proving this test actually disables source reuse.
-        second = api.build_operator_part_render_data(builds[0][0], builds[0][1])
+        second = api.build_operator_part_render_data(
+            owned_builds[0][0], owned_builds[0][1],
+        )
         assert first is not second
         assert first.scene == second.scene
         first_bends = [
