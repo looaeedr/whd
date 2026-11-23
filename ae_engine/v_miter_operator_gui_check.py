@@ -505,6 +505,9 @@ def _partspec_corner_fold_station(
         boundaries.append((at, float(angle), key))
     if not boundaries:
         raise GeometryError("V_MITER_GUI_BEND_NOT_LINKED_TO_FOLD")
+    named_roles = [key for key in keyed if key is not None]
+    if len(named_roles) != len(set(named_roles)):
+        raise GeometryError("V_MITER_GUI_DUPLICATE_AUTHORED_FOLD_ROLE")
     if phase6_role is not None and any(keyed):
         matches = [(at, angle) for at, angle, key in boundaries if key == phase6_role]
         if len(matches) != 1:
