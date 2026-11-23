@@ -432,3 +432,143 @@ def test_primary_group_four_l_member_edit_rotate_mirror_undo_save_reopen_dxf_b(
     finally:
         if root.winfo_exists():
             root.destroy()
+
+
+
+def test_primary_group_double_hit_and_stale_a_to_b_member_apply_is_inert():
+    """Regression: two real independently authored Tk groups share top_right.
+
+    Only the currently double-hit (group_id, member_id) may accept offsets.
+    A prior double on A must never authorize applying stale fields to B.
+    """
+    import gui
+    from ae_engine.sheetmetal_features import Vec2
+    from gui_modules.application.physical_part_hole_editor import (
+        open_workspace_sheet_editor,
+    )
+
+    initial = ROOT / "tests" / "fixtures" / "issue1503_legacy_receiving_without_nfb_base.p6fold"
+    root = tk.Tk()
+    root.geometry("1400x900+0+0")
+    root.update_idletasks()
+    root.update()
+    try:
+        host = gui.Phase6PrimaryApplication(root)
+        designer = host.fold_designer_app
+        host.load_phase6_project(initial, open_designer=True)
+        panel = designer.settings_panel
+        panel.invalidate_context("base_plate")
+        fields = panel.render_context("base_plate")["extension_state"]
+        for key, value in LEFT.items():
+            fields["receiving_base_plate_vars"][key].set(str(value))
+        fields["receiving_base_plate_apply_button"].invoke()
+        designer._refresh_add_part_menu()
+        items = designer.add_part_menu
+        matches = [i for i in range(items.index("end") + 1)
+                   if items.type(i) == "command" and "底板" in items.entrycget(i, "label")]
+        assert len(matches) == 1
+        items.invoke(matches[0])
+        root.update()
+
+        open_workspace_sheet_editor(host, "base_plate")
+        editor = host.last_unified_hole_editor
+        root.update()
+        state = dict(zip(
+            editor._manual_marking_place.__code__.co_freevars,
+            (cell.cell_contents for cell in editor._manual_marking_place.__closure__),
+        ))["s"]
+        canvas = state.canvas
+        center = Vec2(state.live_context.width / 2, state.live_context.height / 2)
+
+        def click(point):
+            x, y = state.canvas_view.transform.world_to_canvas(point)
+            canvas.event_generate("<ButtonPress-1>", x=round(x), y=round(y))
+            canvas.event_generate("<ButtonRelease-1>", x=round(x), y=round(y))
+            root.update()
+
+        def double(point):
+            # Real Tk sequence, not calling the callback directly.
+            click(point)
+            click(point)
+
+        def group_by_id(identity):
+            return next(f for f in state.live_context.feature_list
+                        if api.is_manual_group(f)
+                        and api.group_parameters(f)["group_id"] == identity)
+
+        # Real Canvas placement; A and B have the SAME member names.
+        state.manual_group_spacing_x.set("40")
+        state.manual_group_spacing_y.set("30")
+        state.manual_group_arm_x.set("12")
+        state.manual_group_arm_y.set("12")
+        state.manual_group_tools["quad_l"].invoke()
+        click(Vec2(center.x - 80, center.y))
+        click(Vec2(center.x + 80, center.y))
+        identities = [api.group_parameters(f)["group_id"]
+                      for f in state.live_context.feature_list if api.is_manual_group(f)]
+        assert len(identities) == 2 and identities[0] != identities[1]
+        a_id, b_id = identities
+        before_a = group_by_id(a_id)
+        before_b = group_by_id(b_id)
+        a_corner = dict(api.group_member_world_points(before_a))["top_right"]
+        b_corner = dict(api.group_member_world_points(before_b))["top_right"]
+
+        state.manual_mark_select_button.invoke()
+        click(a_corner)
+        assert api.group_parameters(state.live_context.feature_list[
+            state.hole_session.selected_index])["group_id"] == a_id
+        double(a_corner)
+        assert state.manual_group_member.get() == "top_right"
+        state.manual_group_offset_x.set("3")
+        state.manual_group_offset_y.set("1")
+
+        # RED on original #3431: this stale click changes B's top_right.
+        click(b_corner)
+        assert api.group_parameters(state.live_context.feature_list[
+            state.hole_session.selected_index])["group_id"] == b_id
+        state.manual_group_apply_offset.invoke()
+        root.update()
+        assert group_by_id(a_id) == before_a, "A_MUST_NOT_CHANGE_AFTER_SELECT_B"
+        assert group_by_id(b_id) == before_b, "STALE_A_MEMBER_EDIT_CHANGED_B"
+
+        # The same B must remain editable after a fresh real double hit.
+        double(b_corner)
+        assert state.manual_group_member.get() == "top_right"
+        state.manual_group_offset_x.set("4")
+        state.manual_group_offset_y.set("2")
+        state.manual_group_apply_offset.invoke()
+        root.update()
+        revised_b = group_by_id(b_id)
+        assert api.group_parameters(revised_b)["members"][-1] == (
+            "top_right", 4.0, 2.0)
+        assert group_by_id(a_id) == before_a
+
+        # Blank-space double clicks must not steal/open any corner.
+        blank = Vec2(center.x, center.y + 80)
+        click(b_corner)
+        double(blank)
+        assert not state.manual_group_member.get(), "BLANK_DOUBLE_OPENED_STALE_CORNER"
+        state.manual_group_offset_x.set("8")
+        state.manual_group_apply_offset.invoke()
+        root.update()
+        assert group_by_id(b_id) == revised_b
+
+        # Mode change and Undo must invalidate the prior corner binding.
+        double(dict(api.group_member_world_points(revised_b))["top_right"])
+        assert state.manual_group_member.get() == "top_right"
+        state.manual_group_tools["quad_l"].invoke()
+        state.manual_group_offset_x.set("7")
+        state.manual_group_apply_offset.invoke()
+        assert group_by_id(b_id) == revised_b
+        state.manual_mark_select_button.invoke()
+        click(dict(api.group_member_world_points(revised_b))["top_right"])
+        double(dict(api.group_member_world_points(revised_b))["top_right"])
+        state.undo_btn.invoke()
+        root.update()
+        assert group_by_id(b_id) == before_b
+        state.manual_group_offset_x.set("9")
+        state.manual_group_apply_offset.invoke()
+        assert group_by_id(b_id) == before_b
+    finally:
+        if root.winfo_exists():
+            root.destroy()
