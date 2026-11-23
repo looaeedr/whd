@@ -171,6 +171,12 @@ def test_actual_whd_gui_d4_check_window_four_factory_holes_and_native_world(
 ):
     if os.name!="nt" and not os.environ.get("DISPLAY"):
         pytest.skip("requires real Tk/Xvfb GUI")
+    # Preserve the historical native CHECK projection as a fallback
+    # regression independently of the new exact-W620 opt-in adapter.
+    monkeypatch.setattr(
+        api,"project_operator_tail_d4_check_native_world",
+        lambda *_args,**_kwargs: None,
+    )
     root=tk.Tk()
     root.withdraw()
     designer=None
