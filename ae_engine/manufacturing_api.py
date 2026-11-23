@@ -3306,4 +3306,6 @@ from .v_miter_endcap_live_snapshot import (
     capture_endcap_live_v_miter_check_snapshot,
     normalize_endcap_live_v_miter_check_snapshot,
     replay_endcap_live_v_miter_check_snapshot,
+    capture_endcap_live_v_miter_bottom_pair_snapshots,
+    replay_endcap_live_v_miter_bottom_pair_snapshots,
 )

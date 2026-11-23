@@ -192,3 +192,108 @@ def show_saved_endcap_live_check_window(host, replayed, saved_record):
     except Exception:
         win.destroy()
         raise
+
+
+def show_saved_endcap_live_bottom_pair_window(host, replays, saved_records):
+    """Show two SEPARATE source-checked bottom-corner 2D scenes on one Tail.
+
+    Each canvas is its own original Engine full-sheet *single-corner* CHECK;
+    no contours, folds or triangles from two independent solutions are ever
+    merged. A simultaneous single-sheet V cut and sequential 3D with one
+    shared physical Y BEND have NOT been proven by the existing solver.
+    """
+    from collections.abc import Mapping
+
+    targets = ("bottom_left", "bottom_right")
+    if (not isinstance(replays, Mapping) or not isinstance(saved_records, Mapping)
+            or set(replays) != set(targets)
+            or not set(targets) <= set(saved_records)):
+        raise ValueError("ENDCAP_SAVED_TAIL_PAIR_BOTH_REPLAYS_REQUIRED")
+    scenes = {}
+    for key in targets:
+        candidate = replays[key]
+        record = saved_records[key]
+        scene = candidate.full_sheet_check_scene
+        if (candidate.part_key != "tail" or candidate.corner_key != key
+                or candidate.first_bend_axis != "x"
+                or record["corner_key"] != key or record["first_bend_axis"] != "x"
+                or not candidate.manufacturing_status.endswith("UNCERTIFIED")
+                or scene is None or not scene.primitives
+                or any(row.layer not in ("CHECK", "DATUM") for row in scene.primitives)):
+            raise ValueError("ENDCAP_SAVED_TAIL_PAIR_UNVERIFIED_SCENE")
+        scenes[key] = scene
+
+    parent = getattr(host, "root", None)
+    win = tk.Toplevel(parent)
+    try:
+        win.title("已保存試算／非加工｜同片封尾 左下與右下分別 CHECK")
+        win.geometry("1460x810")
+        header = ttk.Frame(win)
+        header.pack(fill=tk.X, padx=12, pady=(10, 4))
+        ttk.Label(
+            header, text=(
+                "同一片封尾｜左右兩角已各自驗證來源｜X 先折、共用原 Y 折線"
+                "｜兩張獨立 CHECK，非加工"
+            ),
+        ).pack(anchor="w")
+        ttk.Label(
+            header, text=(
+                "左右各自以相同原生 PartRenderData 計算，但尚未證明雙 V "
+                "切割後的單一母材／共享折線只折一次及完整 3D。"
+                "下方是兩角分開的 2D，不能相疊或當成已完成的全板展開圖。"
+            ), wraplength=1370,
+        ).pack(anchor="w", pady=(3, 4))
+        ttk.Button(
+            header, text="關閉檢視／返回編輯",
+            command=lambda: close_saved_live_check_window(host),
+        ).pack(anchor="e")
+
+        pair_area = ttk.Frame(win)
+        pair_area.pack(fill=tk.BOTH, expand=True, padx=8, pady=6)
+        pair_area.columnconfigure(0, weight=1)
+        pair_area.columnconfigure(1, weight=1)
+        pair_area.rowconfigure(1, weight=1)
+        canvases = {}
+        for column, key in enumerate(targets):
+            label = "左下" if key == "bottom_left" else "右下"
+            ttk.Label(
+                pair_area,
+                text=f"{label}｜原全板 DATUM + {label}單角 V 候選 CHECK (mm)",
+            ).grid(row=0, column=column, sticky="w", padx=12, pady=(0, 4))
+            canvas = tk.Canvas(
+                pair_area, width=690, height=640, bg="#162534",
+                highlightthickness=0,
+            )
+            canvas.grid(row=1, column=column, sticky="nsew", padx=8)
+            viewport = _ReadOnlyViewport(scenes[key], 690, 640)
+            render_drawing_scene(canvas, scenes[key], viewport)
+            canvas.create_text(
+                12, 622, anchor="w", fill="#dadfe6",
+                text=f"{label}單角 CHECK｜不含另一角 V｜非加工",
+            )
+            canvases[key] = canvas
+
+        warning = ttk.Label(
+            win, text=(
+                "折後 3D：不提供雙角合成 3D（共用 Y 折線只折一次及"
+                "雙角成形厚板／R／BA 尚未求解驗證）。"
+                "禁止把兩個單角 3D mesh 疊成同一片。"
+            ),
+        )
+        warning.pack(anchor="w", padx=16, pady=(2, 10))
+        win._saved_endcap_pair_replays = dict(replays)
+        win._saved_endcap_pair_scenes = scenes
+        win._saved_endcap_pair_2d_canvases = canvases
+        win._saved_endcap_pair_3d_figure = None
+        win._saved_endcap_pair_3d_warning = warning
+        if parent is not None and parent.winfo_viewable():
+            win.transient(parent)
+        win.wait_visibility()
+        win.grab_set()
+        win.focus_set()
+        setattr(host, WINDOW_ATTR, win)
+        win.protocol("WM_DELETE_WINDOW", lambda: close_saved_live_check_window(host))
+        return win
+    except Exception:
+        win.destroy()
+        raise
