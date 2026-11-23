@@ -80,3 +80,61 @@ def test_native_cadcraft_worker_with_real_hole_editor_shell(tmp_path):
         _prove_in_worker(tmp_path, root=root)
     finally:
         root.destroy()
+
+
+
+def test_real_cadcraft_bridge_worker_with_editor_but_without_button(tmp_path):
+    """Same GUI bridge, same one-hole source and native CLI; only Button.invoke
+    and its pending GUI lifecycle callbacks are absent.
+    """
+    from ae_engine.sheetmetal_features import (
+        CircleFeature, FeatureAnchor, Vec2, feature_surface_from_rect,
+    )
+    from gui_modules.editors.cadcraft_command_preview_bridge import (
+        draw_whd_commands_with_cadcraft, prepare_whd_cadcraft_commands,
+    )
+    from test_issue1959_cadcraft_command_button_live_tk import _tk_shell
+
+    root, editor, _canvas, _session, features, _dialogs = _tk_shell()
+    features.append(CircleFeature(
+        10, FeatureAnchor.ABSOLUTE_FINISHED_FACE, Vec2(40, 40)
+    ))
+    surface = feature_surface_from_rect(
+        "1959-tk", Vec2(0, 0), Vec2(200, 200)
+    )
+    instructions = prepare_whd_cadcraft_commands(
+        surface=surface, features=features, width=200., height=200.
+    )
+    assert len(instructions) == 1
+    cli = _vendor_cli()
+    result = queue.Queue(maxsize=1)
+
+    def execute():
+        try:
+            print("MINIMAL_REAL_BRIDGE_WORKER_START", threading.get_ident(), flush=True)
+            evidence = draw_whd_commands_with_cadcraft(
+                instructions=instructions, executable=cli, output_dir=tmp_path,
+            )
+            result.put(("ok", evidence))
+            print("MINIMAL_REAL_BRIDGE_WORKER_FINISH", flush=True)
+        except Exception as exc:
+            result.put(("error", repr(exc)))
+            print("MINIMAL_REAL_BRIDGE_WORKER_ERROR", repr(exc), flush=True)
+
+    try:
+        thread = threading.Thread(target=execute, name="native-bridge-no-button")
+        thread.start()
+        limit = time.monotonic() + 80
+        while thread.is_alive() and time.monotonic() < limit:
+            root.update()
+            time.sleep(0.01)
+        thread.join(1)
+        assert not thread.is_alive(), "REAL_BRIDGE_NO_BUTTON_TIMEOUT"
+        status, output = result.get_nowait()
+        assert status == "ok", output
+        assert output.geometry_evidence["status"] == "PASS"
+        assert output.output_dxf.is_file() and output.preview_png.is_file()
+        assert editor.winfo_exists()
+        print("MINIMAL_REAL_BRIDGE_WITH_EDITOR_NO_BUTTON_GREEN", flush=True)
+    finally:
+        root.destroy()
