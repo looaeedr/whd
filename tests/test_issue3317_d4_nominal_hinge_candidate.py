@@ -512,12 +512,11 @@ def test_d4_isolated_y225_source_taper_keeps_original_cutting_and_lower_solid(fi
     illegal=tuple(
         (edge,tuple(origins)) for edge,origins in world_edges.items()
         if len(origins)==4
-        and not (min(abs(p[1]-48.) for p in edge)<1e-6)
     )
     assert trial["v_world_four_edges"]==8,(
         "D4_Y225_TAPER_NEW_FOUR_EDGE_SOURCE",
         trial["v_world_four_edges"],
-        tuple((edge,origin) for edge,origin in illegal[:8]),
+        tuple((edge,origin) for edge,origin in illegal),
     )
     assert trial["v_world_open_seam_edges"]==0
     assert trial["v_world_open_edges"]==16
