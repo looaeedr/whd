@@ -33,14 +33,25 @@ def validate_live_sources(snapshot):
     return out
 
 
+TAIL_BOTTOM_PAIR = ("bottom_left", "bottom_right")
+
+
+def _selected_corners(host, part, target):
+    pair = host._pair_for_corner_target(target)
+    together = host.manual_corner_pair_same[part].get(pair)
+    if part == "tail" and target == "bottom" and together is True:
+        return TAIL_BOTTOM_PAIR
+    if target in CORNERS and together is False:
+        return (target,)
+    raise ValueError("請選單一實體角；只有自訂封尾下方可同片選左右兩角")
+
+
 def _selected_source(host, snapshot):
     part = host._current_manual_corner_part_key()
     if part not in PARTS:
         raise ValueError("V 型 CHECK 試算來源只適用於封頭／封尾")
     corner = host.manual_active_corner_var.get()
-    pair = host._pair_for_corner_target(corner)
-    if corner not in CORNERS or host.manual_corner_pair_same[part].get(pair):
-        raise ValueError("請指定實際單一角落，不代選成對截角")
+    _selected_corners(host, part, corner)
     # The main GUI snapshot owns *per-physical-part* Features and Fold.
     # The canonical PartSpec/FinalScene adapters consume selected-payload
     # `features` / `fold_profiles`, NOT root `part_features` maps.
@@ -89,9 +100,39 @@ def _selected_source(host, snapshot):
 def capture_current(host):
     snapshot = host._make_original_fold_designer_snapshot()
     part, corner, spec, native = _selected_source(host, snapshot)
-    axes = engine.normalize_operator_v_miter_gui_first_bend_axes(
-        snapshot.get("v_miter_gui_first_bend_axes"), snapshot.get("v_miter_gui_check_corners"),
+    targets = _selected_corners(host, part, corner)
+    selections = engine.normalize_operator_v_miter_gui_choices(
+        snapshot.get("v_miter_gui_check_corners"),
     )
+    axes = engine.normalize_operator_v_miter_gui_first_bend_axes(
+        snapshot.get("v_miter_gui_first_bend_axes"), selections,
+    )
+    if len(targets) == 2:
+        if any(selections.get(part, {}).get(key) != "V_MITER_CHECK"
+               for key in targets):
+            raise ValueError("V_MITER_TAIL_PAIR_BOTH_V_CHOICES_REQUIRED")
+        # One actual selected first X on EACH corner; no auto 90-degree choice.
+        chosen_axes = {key: axes.get(part, {}).get(key) for key in targets}
+        if any(chosen_axes[key] != "x" for key in targets):
+            raise ValueError("V_MITER_TAIL_PAIR_EXPLICIT_X_FIRST_REQUIRED")
+        saved_modes = engine.normalize_operator_v_miter_gui_relief_modes(
+            snapshot.get("v_miter_gui_relief_modes"), selections,
+        )
+        # Only the committed per-corner mode is authoritative. An absent
+        # map means the original ROUND_R default, not an unsaved Tk switch.
+        modes = {
+            key: saved_modes.get(part, {}).get(key, "ROUND_R")
+            for key in targets
+        }
+        # Public Engine checks shared source and BOTH local results before
+        # the one GUI state assignment. No partial left-only save on failure.
+        rows = engine.capture_endcap_live_v_miter_bottom_pair_snapshots(
+            spec, native, first_bend_axes=chosen_axes, relief_modes=modes,
+        )
+        records = deepcopy(getattr(host, ATTR, {}))
+        records.setdefault(part, {}).update(rows)
+        setattr(host, ATTR, validate_live_sources({KEY: records}))
+        return rows
     axis = axes.get(part, {}).get(corner)
     if axis not in ("x", "y"):
         raise ValueError("請先指定目前角落的實體第一折")
@@ -111,6 +152,30 @@ def replay_current(host, snapshot):
     if not records:
         return None  # old files keep read-only legacy V1/V2 metadata view
     part, corner, spec, native = _selected_source(host, snapshot)
+    targets = _selected_corners(host, part, corner)
+    if len(targets) == 2:
+        saved = records.get(part, {})
+        if any(key not in saved for key in targets):
+            raise ValueError("V_MITER_TAIL_PAIR_SAVED_BOTH_SOURCES_REQUIRED")
+        selected = engine.normalize_operator_v_miter_gui_choices(
+            snapshot.get("v_miter_gui_check_corners"),
+        )
+        axes = engine.normalize_operator_v_miter_gui_first_bend_axes(
+            snapshot.get("v_miter_gui_first_bend_axes"), selected,
+        )
+        modes = engine.normalize_operator_v_miter_gui_relief_modes(
+            snapshot.get("v_miter_gui_relief_modes"), selected,
+        )
+        if any(
+            selected.get(part, {}).get(key) != "V_MITER_CHECK"
+            or axes.get(part, {}).get(key) != saved[key]["first_bend_axis"]
+            or modes.get(part, {}).get(key, "ROUND_R") != saved[key]["relief_mode"]
+            for key in targets
+        ):
+            raise ValueError("V_MITER_TAIL_PAIR_SAVED_SELECTION_CHANGED")
+        return engine.replay_endcap_live_v_miter_bottom_pair_snapshots(
+            spec, native, {key: saved[key] for key in targets},
+        )
     row = records.get(part, {}).get(corner)
     if row is None:
         raise ValueError("ENDCAP_LIVE_V_SOURCE_NOT_SAVED_FOR_SELECTION")

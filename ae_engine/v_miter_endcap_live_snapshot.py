@@ -238,3 +238,84 @@ def replay_endcap_live_v_miter_check_snapshot(
     ):
         raise GeometryError("V_MITER_LIVE_SOURCE_CHANGED")
     return _solve_bound_live_check(part_spec, render_data, current, first, second)
+
+
+# The narrow Custom Tail two-corner CHECK keeps two independent old V1 records.
+# It verifies one *source* sheet and one *shared* finite Y BEND, but does NOT
+# claim a combined two-V manufactured mother, joint 3D or two-fold mesh.
+_TAIL_BOTTOM_PAIR = ("bottom_left", "bottom_right")
+
+
+def _bound_tail_bottom_pair(part_spec, render_data, *, axes, relief_modes):
+    if (not isinstance(part_spec, EndCapPartSpec)
+            or not part_spec.is_tail or part_spec.model_name is not None
+            or not isinstance(render_data, PartRenderData)
+            or not isinstance(render_data.scene, DrawingScene)
+            or not isinstance(axes, Mapping) or not isinstance(relief_modes, Mapping)
+            or set(axes) != set(_TAIL_BOTTOM_PAIR)
+            or set(relief_modes) != set(_TAIL_BOTTOM_PAIR)
+            or any(axes[key] != "x" for key in _TAIL_BOTTOM_PAIR)):
+        raise GeometryError("V_MITER_TAIL_PAIR_EXPLICIT_CUSTOM_X_FIRST_REQUIRED")
+    bound = {}
+    for corner in _TAIL_BOTTOM_PAIR:
+        bound[corner] = _bound_inputs(
+            part_spec, render_data, corner, axes[corner], relief_modes[corner],
+        )
+    left = bound["bottom_left"]
+    right = bound["bottom_right"]
+    # X-first: first is each side's actual X BEND; second is the one
+    # original, finite, physically SHARED Y BEND object, not two copies.
+    if (left[1] is right[1] or left[2] is not right[2]
+            or left[1].p1.x == right[1].p1.x):
+        raise GeometryError("V_MITER_TAIL_PAIR_SHARED_PHYSICAL_BEND_REQUIRED")
+    return bound
+
+
+def capture_endcap_live_v_miter_bottom_pair_snapshots(
+    part_spec: EndCapPartSpec, render_data: PartRenderData, *,
+    first_bend_axes: Mapping, relief_modes: Mapping,
+) -> dict[str, dict[str, str]]:
+    """Atomically qualify both independent CHECK records on ONE live Tail.
+
+    Neither a combined V outline nor a formed combined 3D is calculated.
+    Callers must only publish the returned rows once BOTH Engine projections
+    have completed; a failed right corner must not publish the left.
+    """
+    bound = _bound_tail_bottom_pair(
+        part_spec, render_data, axes=first_bend_axes, relief_modes=relief_modes,
+    )
+    rows = {}
+    for corner in _TAIL_BOTTOM_PAIR:
+        record, first, second = bound[corner]
+        _solve_bound_live_check(part_spec, render_data, record, first, second)
+        rows[corner] = record
+    return rows
+
+
+def replay_endcap_live_v_miter_bottom_pair_snapshots(
+    part_spec: EndCapPartSpec, render_data: PartRenderData,
+    saved_rows: Mapping,
+) -> dict[str, VMiterOperatorGUICheck]:
+    """Both stored records must match one current physical Tail or show none."""
+    if not isinstance(saved_rows, Mapping) or set(saved_rows) != set(_TAIL_BOTTOM_PAIR):
+        raise GeometryError("V_MITER_TAIL_PAIR_SAVED_BOTH_SOURCES_REQUIRED")
+    records = {
+        key: normalize_endcap_live_v_miter_check_snapshot(saved_rows[key])
+        for key in _TAIL_BOTTOM_PAIR
+    }
+    if any(records[key]["corner_key"] != key for key in _TAIL_BOTTOM_PAIR):
+        raise GeometryError("V_MITER_TAIL_PAIR_SAVED_CORNER_MISMATCH")
+    bound = _bound_tail_bottom_pair(
+        part_spec, render_data,
+        axes={key: records[key]["first_bend_axis"] for key in _TAIL_BOTTOM_PAIR},
+        relief_modes={key: records[key]["relief_mode"] for key in _TAIL_BOTTOM_PAIR},
+    )
+    # Check BOTH sources before projecting either view; the original source
+    # digest is never relaxed and can still detect any real Fold/width drift.
+    for key in _TAIL_BOTTOM_PAIR:
+        if bound[key][0] != records[key]:
+            raise GeometryError("V_MITER_LIVE_SOURCE_CHANGED")
+    return {
+        key: _solve_bound_live_check(part_spec, render_data, *bound[key])
+        for key in _TAIL_BOTTOM_PAIR
+    }

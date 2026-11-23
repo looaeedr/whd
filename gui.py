@@ -1038,6 +1038,7 @@ class Phase6ApplicationHost:
         )
         from gui_modules.application.endcap_live_v_check_view import (
             close_saved_live_check_window, show_saved_endcap_live_check_window,
+            show_saved_endcap_live_bottom_pair_window,
         )
         # Invalidate first: even a stale replay or project change cannot
         # leave yesterday's candidate displayed as the current saved source.
@@ -1051,6 +1052,11 @@ class Phase6ApplicationHost:
                 return detail
             part = self._current_manual_corner_part_key()
             corner = self.manual_active_corner_var.get()
+            if corner == "bottom" and part == "tail" and isinstance(replayed, dict):
+                # Engine already replayed BOTH on the same physical source.
+                return show_saved_endcap_live_bottom_pair_window(
+                    self, replayed, getattr(self, ATTR)[part],
+                )
             record = getattr(self, ATTR)[part][corner]
             return show_saved_endcap_live_check_window(self, replayed, record)
         except (TypeError, ValueError, KeyError) as exc:
@@ -1062,14 +1068,21 @@ class Phase6ApplicationHost:
 
     def capture_endcap_live_v_miter_check_source(self):
         from gui_modules.application.endcap_live_v_check_consumer import capture_current
+        from gui_modules.application.endcap_live_v_check_view import close_saved_live_check_window
+        # An old popup may not survive an unsuccessful replacement capture.
+        close_saved_live_check_window(self)
         try:
             row = capture_current(self)
         except (TypeError, ValueError) as exc:
             messagebox.showerror("V 型斜接｜CHECK 來源未保存", str(exc))
             return None
-        from gui_modules.application.endcap_live_v_check_view import close_saved_live_check_window
-        close_saved_live_check_window(self)
-        messagebox.showinfo("V 型斜接｜CHECK 來源", "目前角落的來源已核對，可用專案儲存保留；不可加工。")
+        messagebox.showinfo(
+            "V 型斜接｜CHECK 來源",
+            ("同片封尾左右兩角各自通過驗證、已原子保存來源；"
+             "只有分開的 2D CHECK，未驗證雙角合成 3D，不可加工。")
+            if isinstance(row, dict) and set(row) == {"bottom_left", "bottom_right"}
+            else "目前角落的來源已核對，可用專案儲存保留；不可加工。",
+        )
         return row
 
     def set_v_miter_gui_check_choice(self):
