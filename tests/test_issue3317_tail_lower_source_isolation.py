@@ -39,6 +39,11 @@ def test_only_authored_vault_tail_lower_fold_is_forwarded(
 ):
     material, seen = _call(_part(model=model, is_tail=is_tail, bottom=bottom), monkeypatch)
     assert not material.is_empty
+    # Receiving uses its independent EndCap builder; it must not be forced
+    # through Vault's stretched baseline just to satisfy this regression.
+    if model == "受電箱":
+        assert seen == []
+        return
     assert len(seen) == 1
     forwarded = {k: v for k, v in seen[0].items() if k.startswith("target_fold_")}
     if should_override:
