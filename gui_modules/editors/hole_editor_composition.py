@@ -12,6 +12,68 @@ from types import SimpleNamespace
 from whd_theme import configure_tk_menu
 
 
+class _HoleEditorAfterOwner:
+    """Editor-owned single Tk-thread after token; no callback retained on finish."""
+
+    def __init__(self, editor, callback):
+        self._editor = editor
+        self._callback = callback
+        self._token = None
+        self._closed = False
+        editor._hole_editor_after_owners.add(self)
+
+    def schedule(self, delay):
+        if self._closed:
+            return
+        if self._token is not None:
+            raise RuntimeError("HOLE_EDITOR_AFTER_ALREADY_SCHEDULED")
+        self._token = self._editor.after(delay, self._run)
+
+    def _run(self):
+        self._token = None
+        if self._closed:
+            return
+        try:
+            self._callback()
+        finally:
+            if self._token is None:
+                self.close()
+
+    def close(self):
+        if self._closed:
+            return
+        self._closed = True
+        editor, token = self._editor, self._token
+        self._editor = None
+        self._callback = None
+        self._token = None
+        if editor is not None:
+            editor._hole_editor_after_owners.discard(self)
+            if token is not None:
+                try:
+                    editor.after_cancel(token)
+                except Exception:
+                    # Tk may already have removed the token during Destroy.
+                    pass
+
+
+def _release_hole_editor_owned_tk(event, editor_ref):
+    """Only the top-level editor's real Tk Destroy may release its widgets."""
+    editor = editor_ref()
+    if editor is None or event.widget is not editor:
+        return
+    for owner in tuple(editor._hole_editor_after_owners):
+        owner.close()
+    # Exactly the six transient child/master backrefs; no indiscriminate scan.
+    for name in (
+        "_hole_header_fullscreen", "_hole_header_cadcraft",
+        "_hole_header_cadcraft_draw", "_hole_header_cadcraft_return",
+        "_hole_header_cadcraft_status", "_hole_sidebar_scroll",
+    ):
+        if name in editor.__dict__:
+            delattr(editor, name)
+
+
 class HoleEditorCompositionDependencies:
     """Explicit adapter for authorities currently imported by the GUI host module."""
 
@@ -737,6 +799,14 @@ def _build_navigation_and_lifecycle(s):
 
 
 def _bind_editor_events(s):
+    from weakref import ref
+    s.editor._hole_editor_after_owners = set()
+    editor_ref = ref(s.editor)
+    s.editor.bind(
+        "<Destroy>",
+        lambda event: _release_hole_editor_owned_tk(event, editor_ref),
+        add="+",
+    )
     # CADCraft is an opt-in external inspection only. Re-resolve the active
     # editor context on click (including inner-door context switches); never
     # import CADCraft edits or mutate this editor's pending feature session.
@@ -816,7 +886,7 @@ def _bind_editor_events(s):
                         return
                     status, outcome = result_queue.get_nowait()
                 except Empty:
-                    s.editor.after(100, poll_for_result)
+                    draw_poll.schedule(100)
                     return
                 trial_button.configure(state="normal")
                 if status != "ok":
@@ -906,23 +976,29 @@ def _bind_editor_events(s):
                             )
                             pid = getattr(process, "pid", None)
                             if isinstance(pid, int) and pid > 0:
-                                def focus_new_cadcraft(attempt=0):
+                                focus_attempt = [0]
+
+                                def focus_new_cadcraft():
                                     if not s.editor.winfo_exists():
                                         return
                                     if focus_started_cadcraft_window(pid):
                                         return
-                                    if attempt < 12 and process.poll() is None:
-                                        s.editor.after(
-                                            150, lambda: focus_new_cadcraft(attempt + 1)
-                                        )
+                                    if focus_attempt[0] < 12 and process.poll() is None:
+                                        focus_attempt[0] += 1
+                                        focus_task.schedule(150)
                                     elif status_label is not None:
                                         status_label.configure(
                                             text="CADCraft 已啟動；若視窗在後方請 Alt+Tab"
                                         )
-                                s.editor.after(180, focus_new_cadcraft)
 
+                                focus_task = _HoleEditorAfterOwner(
+                                    s.editor, focus_new_cadcraft,
+                                )
+                                focus_task.schedule(180)
+
+            draw_poll = _HoleEditorAfterOwner(s.editor, poll_for_result)
             Thread(target=worker, name="whd-cadcraft-command-draw", daemon=True).start()
-            s.editor.after(100, poll_for_result)
+            draw_poll.schedule(100)
 
         trial_button.configure(command=draw_new_cadcraft_picture)
 
@@ -1022,7 +1098,7 @@ def _bind_editor_events(s):
                 try:
                     status, result = queue.get_nowait()
                 except Empty:
-                    s.editor.after(100, poll)
+                    capture_poll.schedule(100)
                     return
                 return_button.configure(state="normal")
                 if status != "ok":
@@ -1038,8 +1114,9 @@ def _bind_editor_events(s):
                     return
                 stage_return_ticket(result)
 
+            capture_poll = _HoleEditorAfterOwner(s.editor, poll)
             Thread(target=worker, name="whd-cadcraft-live-capture", daemon=True).start()
-            s.editor.after(100, poll)
+            capture_poll.schedule(100)
 
         return_button.configure(command=return_manually_moved_holes)
     s.editor.bind("<F11>", s.toggle_fullscreen)
@@ -1070,7 +1147,7 @@ def _bind_editor_events(s):
     s.canvas.bind("<Button-3>", s.on_canvas_right)
     s.canvas.bind("<Configure>", lambda event: s.redraw())
     s.refresh_created()
-    s.editor.after(50, s.redraw)
+    _HoleEditorAfterOwner(s.editor, s.redraw).schedule(50)
 
 
 def open_unified_hole_editor(
