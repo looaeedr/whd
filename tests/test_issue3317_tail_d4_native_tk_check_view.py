@@ -18,6 +18,154 @@ from ae_engine import manufacturing_api as api
 from ae_engine.assembly_geometry import triangle_bounds
 
 
+def _d4_forensic_face_provenance(flat, check, body, tail, *, first_axis):
+    """CHECK-only face IDs, actual original UV ownership and entire V walls.
+
+    This does not modify the mesh or infer solid volume from surface hits.
+    The two V legs are assessed as oriented planar polygon SETS: different
+    triangulation diagonals must not count as a gap.
+    """
+    import math
+    from shapely.geometry import LineString, Point, Polygon
+    from shapely.ops import unary_union
+    from ae_engine.assembly_geometry import _segment_triangle_intersection
+    from ae_engine.v_miter_tail_no_ba_sequential import (
+        _stages,stations_from_real_flat,
+    )
+
+    origin=flat.original_factory_material
+    k=len(check.source_uv)
+    nface=len(check.source_triangle_faces)
+    verts=check.inner_xyz+check.outer_xyz
+    st=stations_from_real_flat(flat)
+
+    def vminus(a,b):return tuple(a[i]-b[i] for i in range(3))
+    def dot(a,b):return sum(a[i]*b[i] for i in range(3))
+    def cross(a,b):return (
+        a[1]*b[2]-a[2]*b[1],
+        a[2]*b[0]-a[0]*b[2],
+        a[0]*b[1]-a[1]*b[0],
+    )
+    def unit(v):
+        d=math.sqrt(dot(v,v))
+        return tuple(x/d for x in v) if d>1e-12 else (0.,0.,0.)
+    def normal(tri):
+        return unit(cross(vminus(tri[1],tri[0]),
+                          vminus(tri[2],tri[0])))
+    def ray_faces(mesh,point,axis):
+        low=min(q[axis] for tri in mesh for q in tri)-1.
+        high=max(q[axis] for tri in mesh for q in tri)+1.
+        start=list(point);end=list(point)
+        start[axis]=low;end[axis]=high
+        rows=[]
+        for fid,tri in enumerate(mesh):
+            hit=_segment_triangle_intersection(
+                start,end,tri,tolerance=1e-7,
+            )
+            if hit is not None:
+                rows.append((fid,tuple(round(float(v),7) for v in hit)))
+        return tuple(rows)
+
+    def tail_record(fid,hit,mesh):
+        face=check.shell_faces[fid]
+        indices=tuple(v%k for v in face)
+        source=tuple(check.source_uv[i] for i in indices)
+        poly=Polygon(source)
+        src_area=poly.area
+        old_area=poly.intersection(origin).area if src_area>1e-10 else 0.
+        new_area=src_area-old_area
+        domain=("old" if src_area>1e-10 and new_area<1e-7
+                else "restored" if src_area>1e-10 and old_area<1e-7
+                else "mixed" if src_area>1e-10 else "boundary_wall")
+        if fid<2*nface:
+            skin="inner" if fid%2==0 else "outer"
+        else:skin="cut_wall"
+        inner=tuple(check.inner_xyz[i] for i in indices)
+        outer=tuple(check.outer_xyz[i] for i in indices)
+        ctr=tuple(sum(uv[j] for uv in source)/3. for j in range(2))
+        first,final,n_first,n_final,_=_stages(
+            ctr,first_axis,st,
+        )
+        return dict(
+            face=fid,hit=hit,uv=tuple(tuple(round(v,5) for v in q)
+                                      for q in source),
+            domain=domain,old_uv_area=round(old_area,6),
+            restored_uv_area=round(new_area,6),skin=skin,
+            world_normal=tuple(round(v,6) for v in normal(mesh[fid])),
+            first_xyz=tuple(round(v,5) for v in first),
+            final_xyz=tuple(round(v,5) for v in final),
+            staged_normal=tuple(round(v,5) for v in n_final),
+            local_inner=tuple(tuple(round(v,5) for v in p)
+                              for p in inner),
+            local_outer=tuple(tuple(round(v,5) for v in p)
+                              for p in outer),
+        )
+
+    rays={}
+    for name,point in (
+        ("real_front_corner",(-294.,-297.,0.)),
+        ("rear_sheet",(100.,-275.,0.)),
+    ):
+        ours=ray_faces(tail,point,2)
+        theirs=ray_faces(body,point,2)
+        rays[name]={
+            "body":tuple({"face":fid,"hit":hit,
+                          "normal":tuple(round(v,5) for v in normal(body[fid]))}
+                         for fid,hit in theirs),
+            "tail":tuple(tail_record(fid,hit,tail) for fid,hit in ours),
+        }
+
+    # The exact 3D wall face pair IDs derive from the same UV boundary edge
+    # and original (lower,apex,upper) pairs. There are four leg groups.
+    groups={}
+    for j,(a,b,_) in enumerate(check.source_boundary_edges):
+        edge=LineString((check.source_uv[a],check.source_uv[b]))
+        if edge.length<=1e-9:continue
+        for name,lower,apex,upper in flat.opening_source_points_xy:
+            for label,tip in (("lower",lower),("upper",upper)):
+                straight=LineString((apex,tip))
+                if edge.difference(straight.buffer(3e-7)).length>1e-7:
+                    continue
+                ids=(2*nface+2*j,2*nface+2*j+1)
+                groups.setdefault((name,label),[]).extend(ids)
+
+    seams={}
+    for name,_,_,_ in flat.opening_source_points_xy:
+        lo=tuple(dict.fromkeys(groups.get((name,"lower"),())))
+        up=tuple(dict.fromkeys(groups.get((name,"upper"),())))
+        assert lo and up,("SOURCE_STRAIGHT_V_WALLS_REQUIRED",name,lo,up)
+        a=tail[lo[0]]
+        e0=unit(vminus(a[1],a[0]))
+        n=normal(a)
+        e1=cross(n,e0)
+        anchor=a[0]
+        def project(tri):
+            return Polygon(tuple(
+                (dot(vminus(p,anchor),e0),dot(vminus(p,anchor),e1))
+                for p in tri
+            ))
+        def set_polygon(ids):
+            return unary_union([project(tail[i]) for i in ids])
+        lower=set_polygon(lo)
+        upper=set_polygon(up)
+        all_up=tuple(p for i in up for p in tail[i])
+        plane_distance=max(abs(dot(vminus(p,anchor),n)) for p in all_up)
+        avg_up=unit(tuple(sum(normal(tail[i])[k] for i in up)
+                          for k in range(3)))
+        seams[name]={
+            "lower_face_ids":lo,"upper_face_ids":up,
+            "lower_area":round(lower.area,9),
+            "upper_area":round(upper.area,9),
+            "intersection_area":round(lower.intersection(upper).area,9),
+            "symmetric_difference_area":round(
+                lower.symmetric_difference(upper).area,9,
+            ),
+            "max_out_of_plane":round(plane_distance,9),
+            "opposed_normal_dot":round(dot(n,avg_up),7),
+        }
+    return {"first_axis":first_axis,"rays":rays,"straight_v_wall_sets":seams}
+
+
 def test_actual_whd_gui_d4_check_window_four_factory_holes_and_native_world(
     record_property, tmp_path, monkeypatch,
 ):
@@ -310,6 +458,23 @@ def test_actual_whd_gui_d4_check_window_four_factory_holes_and_native_world(
             assert min(shifted_front[1],front_body[1])-max(
                 shifted_front[0],front_body[0],
             )==pytest.approx(2.,abs=1e-5)
+        # This is material/face provenance, not another overlap assertion:
+        # print the exact face IDs, UV/old-vs-restored origin, normals and
+        # full left/right V opposing-wall polygon set differences.
+        import warnings
+        for axis,solid,shell in (
+            ("x",placed,check),("y",second_world,second),
+        ):
+            proof=_d4_forensic_face_provenance(
+                flat,shell,body,solid,first_axis=axis,
+            )
+            import json
+            warnings.warn(
+                "ISSUE3317_SOURCE_FACE_AUDIT="+json.dumps(
+                    proof,ensure_ascii=True,separators=(",",":"),
+                ),
+                RuntimeWarning,stacklevel=1,
+            )
         # Integral Body's corrected outside datum now has no side
         # interior overlap at either stationary material sample, for both
         # fold orders. Existing rear overlap is NOT thereby certified clear.
