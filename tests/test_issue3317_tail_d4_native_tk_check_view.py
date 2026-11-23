@@ -950,3 +950,115 @@ def test_real_tk_w620_d4_check_button_uses_exact_preplaced_lower_v_solid(
             try:designer.root.destroy()
             except tk.TclError:pass
         root.destroy()
+
+
+@pytest.mark.parametrize("first_axis",("x","y"))
+def test_native_tk_d4_check_refuses_stale_saved_bend_identity_same_axis(
+    first_axis,monkeypatch,
+):
+    """Real Settings button: changed physical X BEND endpoint, same X/Y labels.
+
+    The Engine must reject the stale *stored identity* before creating a
+    CHECK Toplevel, writing a snapshot, or enabling the CHECK DXF button.
+    """
+    if os.name!="nt" and not os.environ.get("DISPLAY"):
+        pytest.skip("requires real Tk/Xvfb GUI")
+    from copy import deepcopy
+    from phase6_manufacturing_adapter import build_scene_payload_for_app
+    root=tk.Tk()
+    root.withdraw()
+    designer=None
+    try:
+        main=gui.BoxCalculatorGUI(root)
+        main.baseline_var.set("金庫型")
+        main.w_var.set("620")
+        main.h_var.set("600")
+        main.d_var.set("185")
+        if hasattr(main,"t_var"):
+            main.t_var.set("2")
+        main._apply_existing_parts_from_fold_workspace(
+            ["box_body","head","tail"],
+        )
+        designer=main.open_original_fold_designer()
+        root.update_idletasks();root.update()
+        designer.activate_part("tail")
+        editor=designer.bend_ui
+        editor.nb.select(editor.tabs.index("Y"))
+        root.update_idletasks();root.update()
+        editor.on_tab(None);editor.render()
+        rows=editor.get_active_dict()["Y"]
+        index=next(i for i,seg in enumerate(rows)
+                   if seg.get("phase6_key")=="ybottom1")
+        changed=[dict(seg) for seg in rows]
+        changed[index]["len"]=48.
+        displayed=api.project_operator_fold_editor_display_rows(
+            changed,getattr(designer.state,"phase6_thickness",2.),
+        )
+        editor.controls[index]["len"].set(str(displayed[index]["len"]))
+        editor.save()
+        designer._save_current_part(notify=False)
+        designer._phase6_update_scheduler.flush_now()
+        root.update_idletasks();root.update()
+        page=designer.settings_panel.render_context("tail")
+        button=page["extension_state"]["tail_d4_check_widget"]
+        assert button.winfo_exists()
+        payload=dict(build_scene_payload_for_app(designer,"tail"))
+        payload["_use_committed_relief"]=False
+        spec_context=designer._part_spec_query_callback("tail",dict(payload))
+        spec=spec_context[0]
+        raw=designer._scene_query_callback("tail",dict(payload))
+        selected=api.commit_operator_tail_lower_v_first_bends(
+            {
+                **deepcopy(designer._phase6_input_snapshot),
+                api.TAIL_LOWER_V_SNAPSHOT_KEY:"v90",
+            },
+            {"bottom_left":first_axis,"bottom_right":first_axis},
+            spec=spec,render_data=raw,
+        )[api.TAIL_LOWER_V_FIRST_BENDS_KEY]
+        assert api.validate_operator_tail_lower_v_first_bends(
+            selected,spec=spec,render_data=raw,
+        )==first_axis
+        # Modify only the serialized stored X identity: no physical
+        # Factory BEND, CUTTING or actual project geometry is changed.
+        stale=deepcopy(selected)
+        original=deepcopy(stale["bottom_left"]["x"])
+        assert original==[[15.0,49.0],[15.0,225.0]]
+        stale["bottom_left"]["x"][0][1]+=0.5
+        assert stale["bottom_left"]["first"]==first_axis
+        assert stale["bottom_right"]["first"]==first_axis
+        with pytest.raises(ValueError,match=(
+            "V_MITER_FIRST_BEND_SOURCE_CHANGED_RESELECT_REQUIRED"
+        )):
+            api.validate_operator_tail_lower_v_first_bends(
+                stale,spec=spec,render_data=raw,
+            )
+        designer._phase6_input_snapshot[
+            api.TAIL_LOWER_V_FIRST_BENDS_KEY
+        ]=stale
+        before=deepcopy(designer._phase6_input_snapshot)
+        existing=tuple(
+            w for w in designer.root.winfo_children()
+            if isinstance(w,tk.Toplevel) and "CHECK_NOT_CNC" in w.title()
+        )
+        button.invoke()
+        root.update_idletasks();root.update()
+        after=tuple(
+            w for w in designer.root.winfo_children()
+            if isinstance(w,tk.Toplevel) and "CHECK_NOT_CNC" in w.title()
+        )
+        assert after==existing,(
+            "D4_CHECK_STALE_FINITE_BEND_SHOWED_WINDOW",first_axis,
+        )
+        assert "V_MITER_FIRST_BEND_SOURCE_CHANGED_RESELECT_REQUIRED" in (
+            designer.settings_status_var.get()
+        )
+        assert designer._phase6_input_snapshot==before
+        # No new CHECK button/dialog exists, and the Factory source is
+        # unchanged even though the stored selection is stale.
+        refreshed=designer._scene_query_callback("tail",dict(payload))
+        assert refreshed.scene.primitives==raw.scene.primitives
+    finally:
+        if designer is not None:
+            try:designer.root.destroy()
+            except tk.TclError:pass
+        root.destroy()
