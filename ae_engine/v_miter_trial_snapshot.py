@@ -54,6 +54,7 @@ _SNAPSHOT_KEYS = frozenset({
     "contract", "manufacturing_status", "source_geometry_sha256",
     "first_bend_index", "second_bend_index", "parameters",
 })
+_BOUND_FOLD_KEYS = frozenset({"source_fold_sha256", "source_corner_key"})
 
 
 def _source_float(value: object) -> float:
@@ -139,14 +140,97 @@ def _owned_index(scene: DrawingScene, bend: LinePrimitive) -> int:
     raise GeometryError("V-miter saved BEND must belong to original physical source scene")
 
 
+
+def _bound_endcap_fold_sha256(
+    part_spec, scene: DrawingScene, first: LinePrimitive,
+    second: LinePrimitive, corner_key: str, *,
+    second_angle_deg: float,
+) -> str:
+    """Bind a CHECK snapshot to authored signed Fold as well as physical BEND.
+
+    A DrawingScene alone has no angle/direction: its geometry digest cannot
+    attest a changed PartSpec Fold. This is source metadata, never a V solver.
+    Only EndCap Head/Tail is in the first source-bound slice.
+    """
+    from .contracts import EndCapPartSpec
+    from .v_miter_material_trial import _single_source_material
+    from .v_miter_operator_gui_check import (
+        V_MITER_GUI_CORNER_KEYS, _endcap_existing_fold_angle_sources,
+        _partspec_corner_fold_station, _physical_corner_bends,
+    )
+    if not isinstance(part_spec, EndCapPartSpec):
+        raise GeometryError("V_MITER_SNAPSHOT_ENDCAP_SOURCE_REQUIRED")
+    if type(corner_key) is not str or corner_key not in V_MITER_GUI_CORNER_KEYS:
+        raise GeometryError("V_MITER_SNAPSHOT_PHYSICAL_CORNER_REQUIRED")
+    bounds = _single_source_material(scene).bounds
+    px, py = _endcap_existing_fold_angle_sources(
+        part_spec, "tail" if part_spec.is_tail else "head",
+    )
+    x_station, x_angle = _partspec_corner_fold_station(
+        px, bounds[0], near_min=corner_key.endswith("left"),
+    )
+    y_station, y_angle = _partspec_corner_fold_station(
+        py, bounds[1], near_min=corner_key.startswith("bottom"),
+    )
+    *_, real_x, real_y = _physical_corner_bends(
+        scene, _single_source_material(scene), corner_key,
+        expected_stations=(x_station, y_station),
+    )
+    if first is real_x and second is real_y:
+        first_angle, second_angle = x_angle, y_angle
+    elif first is real_y and second is real_x:
+        first_angle, second_angle = y_angle, x_angle
+    else:
+        raise GeometryError("V_MITER_SNAPSHOT_SELECTED_BEND_IDENTITY_MISMATCH")
+    if (abs(abs(first_angle) - 90) > 1e-8
+            or first_angle * second_angle <= 0
+            or abs(abs(second_angle) - second_angle_deg) > 1e-8):
+        raise GeometryError("V_MITER_SNAPSHOT_AUTHORED_FOLD_ANGLE_MISMATCH")
+    fields = ("width", "depth", "thickness", "frame_width", "model_name",
+              "is_tail", "fold_left", "fold_right", "fold_top",
+              "fold_bottom", "depth_comp_t")
+    def profile_rows(profile):
+        return [
+            [row.length, row.angle, row.formed_length, row.phase6_key, row.core]
+            for row in profile
+        ]
+    payload = {
+        "revision": "V_MITER_ENDCAP_AUTHORED_FOLD_SOURCE_SHA256_V1",
+        "part_spec": {name: getattr(part_spec, name) for name in fields},
+        "fold_profile_x": profile_rows(px),
+        "fold_profile_y": profile_rows(py),
+        "corner_key": corner_key,
+        "source_geometry_sha256": _source_geometry_sha256(
+            scene, selected_physical_indices=(
+                _owned_index(scene, first), _owned_index(scene, second),
+            ),
+        ),
+    }
+    try:
+        return hashlib.sha256(json.dumps(
+            payload, ensure_ascii=False, sort_keys=True,
+            allow_nan=False, separators=(",", ":"),
+        ).encode("utf-8")).hexdigest()
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise GeometryError("V_MITER_SNAPSHOT_AUTHORED_FOLD_SOURCE_INVALID") from exc
+
+
 def _validate_snapshot(
     payload: Mapping, *,
     contract: str = _TRIAL_CONTRACT,
     status: str = _UNCERTIFIED,
     input_keys: frozenset = _INPUT_KEYS,
 ) -> tuple[int, int, dict]:
-    if not isinstance(payload, Mapping) or set(payload) != _SNAPSHOT_KEYS:
+    if (not isinstance(payload, Mapping) or
+            set(payload) not in (_SNAPSHOT_KEYS, _SNAPSHOT_KEYS | _BOUND_FOLD_KEYS)):
         raise GeometryError("V-miter saved trial record has invalid fields")
+    if "source_fold_sha256" in payload:
+        digest, corner = payload["source_fold_sha256"], payload["source_corner_key"]
+        if (type(digest) is not str or len(digest) != 64
+                or any(ch not in "0123456789abcdef" for ch in digest)
+                or type(corner) is not str
+                or corner not in ("top_left", "top_right", "bottom_left", "bottom_right")):
+            raise GeometryError("V-miter saved authored Fold source binding is invalid")
     if payload["contract"] != contract:
         raise GeometryError("V-miter saved trial contract revision is unsupported")
     if payload["manufacturing_status"] != status:
@@ -198,6 +282,7 @@ def capture_v_miter_relief_trial_snapshot(
     second_fold_angle_deg: float,
     relief_mode: str,
     relief_t_factor: float | None = None,
+    part_spec=None, corner_key: str | None = None,
 ) -> dict[str, object]:
     """Capture validated operator source only, excluding computed geometry."""
     trial = project_v_miter_relief_mating_trial(
@@ -212,7 +297,17 @@ def capture_v_miter_relief_trial_snapshot(
     q = trial.relief.source_trial.ideal.source
     first_role = _owned_index(scene, v_edge_bend)
     second_role = _owned_index(scene, second_bend)
+    if (part_spec is None) != (corner_key is None):
+        raise GeometryError("V_MITER_SNAPSHOT_PARTSPEC_AND_CORNER_REQUIRED")
+    bound_fold = (
+        {"source_fold_sha256": _bound_endcap_fold_sha256(
+            part_spec, scene, v_edge_bend, second_bend, corner_key,
+            second_angle_deg=q.second_fold_angle_deg,
+        ), "source_corner_key": corner_key}
+        if part_spec is not None else {}
+    )
     return {
+        **bound_fold,
         "contract": _TRIAL_CONTRACT,
         "manufacturing_status": _UNCERTIFIED,
         "source_geometry_sha256": _source_geometry_sha256(
@@ -238,6 +333,7 @@ def _resolve_saved_trial_source(
     contract: str = _TRIAL_CONTRACT,
     status: str = _UNCERTIFIED,
     input_keys: frozenset = _INPUT_KEYS,
+    part_spec=None,
 ) -> tuple[LinePrimitive, LinePrimitive, dict]:
     first_idx, second_idx, parameters = _validate_snapshot(
         snapshot, contract=contract, status=status, input_keys=input_keys,
@@ -283,15 +379,28 @@ def _resolve_saved_trial_source(
             not isinstance(second, LinePrimitive) or second.layer != "BEND" or
             first is second):
         raise GeometryError("V-miter saved source BEND references have changed roles")
+    if "source_fold_sha256" in snapshot:
+        if part_spec is None:
+            raise GeometryError("V_MITER_SNAPSHOT_CURRENT_PARTSPEC_REQUIRED")
+        actual = _bound_endcap_fold_sha256(
+            part_spec, scene, first, second, snapshot["source_corner_key"],
+            second_angle_deg=parameters["second_fold_angle_deg"],
+        )
+        if actual != snapshot["source_fold_sha256"]:
+            raise GeometryError("V_MITER_SNAPSHOT_AUTHORED_FOLD_SOURCE_CHANGED")
+    elif part_spec is not None:
+        raise GeometryError("V_MITER_SNAPSHOT_LEGACY_FOLD_UNBOUND")
     return first, second, parameters
 
 
 def replay_v_miter_relief_trial_snapshot(
     scene: DrawingScene,
-    snapshot: Mapping,
+    snapshot: Mapping, *, part_spec=None,
 ) -> VMiterReliefMatingTrial:
     """Recreate original 2D relief and 3D ideal seam after a source reload."""
-    first, second, parameters = _resolve_saved_trial_source(scene, snapshot)
+    first, second, parameters = _resolve_saved_trial_source(
+        scene, snapshot, part_spec=part_spec,
+    )
     return project_v_miter_relief_mating_trial(
         scene, first, second, **parameters,
     )
@@ -327,10 +436,12 @@ def build_saved_v_miter_relief_trial_check_scene(
     scene: DrawingScene,
     snapshot: Mapping,
     *,
-    include_alignment_check: bool = False,
+    include_alignment_check: bool = False, part_spec=None,
 ) -> DrawingScene:
     """Saved V1 source recreates CHECK/DATUM and optional CHECK alignment."""
-    first, second, parameters = _resolve_saved_trial_source(scene, snapshot)
+    first, second, parameters = _resolve_saved_trial_source(
+        scene, snapshot, part_spec=part_spec,
+    )
     preview = build_v_miter_relief_trial_check_scene(
         scene, first, second, **parameters,
     )
@@ -343,7 +454,7 @@ def build_saved_v_miter_relief_trial_check_scene(
 
 def replay_v_miter_true_thickness_collision_snapshot(
     scene: DrawingScene,
-    snapshot: Mapping,
+    snapshot: Mapping, *, part_spec=None,
 ) -> VMiterTrueThicknessCollisionShadow:
     """Rebuild full local T-thick sharp-fold collision from saved REAL source.
 
@@ -352,7 +463,9 @@ def replay_v_miter_true_thickness_collision_snapshot(
     No persisted collision result can certify an untested manufacturing DXF.
     The 60-degree unresolved physical BEND extension still fails closed.
     """
-    first, second, parameters = _resolve_saved_trial_source(scene, snapshot)
+    first, second, parameters = _resolve_saved_trial_source(
+        scene, snapshot, part_spec=part_spec,
+    )
     return diagnose_v_miter_true_thickness_collision(
         scene, first, second, **parameters,
     )
@@ -374,6 +487,7 @@ def capture_v_miter_radius_ba_trial_snapshot(
     first_bend_allowance_mm: float,
     second_bend_allowance_mm: float,
     max_permitted_edge_trim_mm: float,
+    part_spec=None, corner_key: str | None = None,
 ) -> dict[str, object]:
     """Store verified operator R/BA source, never the computed mesh/CUTTING.
 
@@ -392,6 +506,7 @@ def capture_v_miter_radius_ba_trial_snapshot(
     }
     old = capture_v_miter_relief_trial_snapshot(
         scene, v_edge_bend, second_bend, **basic,
+        part_spec=part_spec, corner_key=corner_key,
     )
     measured = {
         "first_inner_radius_mm": first_inner_radius_mm,
@@ -409,6 +524,7 @@ def capture_v_miter_radius_ba_trial_snapshot(
         scene, v_edge_bend, second_bend, **basic, **measured,
     )
     return {
+        **{k: old[k] for k in _BOUND_FOLD_KEYS if k in old},
         "contract": _R_BA_TRIAL_CONTRACT,
         "manufacturing_status": _R_BA_UNCERTIFIED,
         "source_geometry_sha256": old["source_geometry_sha256"],
@@ -445,6 +561,7 @@ def _project_operator_v_miter_preview_source(
         row, contract=contract, status=status, input_keys=input_keys,
     )
     return deepcopy({
+        **{k: row[k] for k in _BOUND_FOLD_KEYS if k in row},
         "contract": row["contract"],
         "manufacturing_status": row["manufacturing_status"],
         "source_geometry_sha256": row["source_geometry_sha256"],
@@ -477,22 +594,22 @@ def project_operator_v_miter_radius_ba_preview_source(
 
 
 def _resolve_saved_r_ba_trial_source(
-    scene: DrawingScene, snapshot: Mapping,
+    scene: DrawingScene, snapshot: Mapping, *, part_spec=None,
 ) -> tuple[LinePrimitive, LinePrimitive, dict]:
     return _resolve_saved_trial_source(
         scene, snapshot,
         contract=_R_BA_TRIAL_CONTRACT,
         status=_R_BA_UNCERTIFIED,
-        input_keys=_R_BA_INPUT_KEYS,
+        input_keys=_R_BA_INPUT_KEYS, part_spec=part_spec,
     )
 
 
 def replay_v_miter_radius_ba_trial_snapshot(
-    scene: DrawingScene, snapshot: Mapping,
+    scene: DrawingScene, snapshot: Mapping, *, part_spec=None,
 ) -> VMiterRadiusCompensatedInterfaceTrial:
     """Re-solve true R/BA/T 3D CHECK from saved source with no mesh trust."""
     first, second, parameters = _resolve_saved_r_ba_trial_source(
-        scene, snapshot,
+        scene, snapshot, part_spec=part_spec,
     )
     return solve_v_miter_radius_ba_interface_trial(
         scene, first, second, **parameters,
@@ -502,7 +619,7 @@ def replay_v_miter_radius_ba_trial_snapshot(
 def build_saved_v_miter_radius_ba_check_scene(
     scene: DrawingScene, snapshot: Mapping,
     *,
-    include_alignment_check: bool = False,
+    include_alignment_check: bool = False, part_spec=None,
 ) -> DrawingScene:
     """Recreate V2 CHECK-only 2D with optional real-BEND alignment CHECK.
 
@@ -510,7 +627,7 @@ def build_saved_v_miter_radius_ba_check_scene(
     release fifth-type CUTTING/BEND/MARKING manufacture or certify R/BA.
     """
     first, second, parameters = _resolve_saved_r_ba_trial_source(
-        scene, snapshot,
+        scene, snapshot, part_spec=part_spec,
     )
     preview = build_v_miter_radius_ba_full_sheet_check_scene(
         scene, first, second, **parameters,
