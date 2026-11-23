@@ -1175,8 +1175,8 @@ def test_real_tk_d4_check_bottom31_original_square_hole_collision_refuses(
         root.destroy()
 
 
-def test_real_tk_d4_check_unverified_top_fold_keeps_legacy_view():
-    """Real top17 Factory source: CHECK visible, no new nominal world adapter."""
+def test_real_tk_d4_check_top_fold_raw_factory_mismatch_rejected():
+    """Real GUI top17: reject changed raw/Factory exterior, never fake CHECK."""
     if os.name!="nt" and not os.environ.get("DISPLAY"):
         pytest.skip("requires real Tk/Xvfb GUI")
     from copy import deepcopy
@@ -1229,14 +1229,10 @@ def test_real_tk_d4_check_unverified_top_fold_keeps_legacy_view():
             w for w in designer.root.winfo_children()
             if isinstance(w,tk.Toplevel) and "CHECK_NOT_CNC" in w.title()
         ]
-        assert len(windows)==1,designer.settings_status_var.get()
-        win=windows[0]
-        assert win._tail_d4_check_world_candidate is None
-        assert len(win._tail_d4_check_placed_world)==len(
-            win._tail_d4_check_shell.shell_faces
-        )
-        assert win._tail_d4_check_world_source_faces==(
-            win._tail_d4_check_shell.shell_faces
+        assert not windows,("D4_CHECK_ACCEPTED_DIFFERENT_FACTORY_SOURCE",
+                            designer.settings_status_var.get())
+        assert "TAIL_IMAGE_V90_FACTORY_SOURCE_DIFFERENT" in (
+            designer.settings_status_var.get()
         )
         assert designer._phase6_input_snapshot==before
     finally:
