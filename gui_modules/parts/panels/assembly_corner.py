@@ -950,6 +950,11 @@ def _build_corner_type_selector(host, editor):
         activeforeground="#ffffff", anchor=tk.W,
     )
     host.v_miter_check_source_button.pack(side=tk.LEFT, fill=tk.X, expand=True)
+    host.v_miter_capture_live_source_button = ttk.Button(
+        v_row, text="建立封頭／封尾 CHECK 來源",
+        command=host.capture_endcap_live_v_miter_check_source,
+    )
+    host.v_miter_capture_live_source_button.pack(side=tk.LEFT)
     tk.Label(
         type_frame, text="未認證 CHECK；不可選為正式截角或輸出加工 DXF",
         bg=host.COLOR_INPUT_BG, fg=host.COLOR_TEXT_MUTED,

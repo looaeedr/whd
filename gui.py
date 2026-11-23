@@ -1035,7 +1035,12 @@ class Phase6ApplicationHost:
         from tkinter import messagebox
         try:
             snapshot = self._make_original_fold_designer_snapshot()
-            detail = _v_miter_check_source_summary_impl(snapshot)
+            from gui_modules.application.endcap_live_v_check_consumer import replay_current
+            replayed = replay_current(self, snapshot)
+            if replayed is None:
+                detail = _v_miter_check_source_summary_impl(snapshot)
+            else:
+                detail = "已用目前封頭／封尾及實體折線重算保存的 CHECK；未認證、不可加工。"
         except (TypeError, ValueError) as exc:
             messagebox.showerror(
                 "V 型斜接｜試算來源無效",
@@ -1044,6 +1049,16 @@ class Phase6ApplicationHost:
             return None
         messagebox.showinfo("V 型斜接｜CHECK 試算來源", detail)
         return detail
+
+    def capture_endcap_live_v_miter_check_source(self):
+        from gui_modules.application.endcap_live_v_check_consumer import capture_current
+        try:
+            row = capture_current(self)
+        except (TypeError, ValueError) as exc:
+            messagebox.showerror("V 型斜接｜CHECK 來源未保存", str(exc))
+            return None
+        messagebox.showinfo("V 型斜接｜CHECK 來源", "目前角落的來源已核對，可用專案儲存保留；不可加工。")
+        return row
 
     def set_v_miter_gui_check_choice(self):
         """Select a fifth CHECK-only draft without changing the physical CornerType."""
