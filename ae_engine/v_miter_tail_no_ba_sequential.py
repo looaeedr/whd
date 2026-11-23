@@ -265,8 +265,8 @@ def _single_sheet_triangles(
     )+tuple(float(y) for y in extra_y))))
     out=[]
     area=0.
-    for yl,yr in zip(ys,ys[1:]):
-        for xl,xr in zip(lower_x,lower_x[1:]):
+    for xl,xr in zip(lower_x,lower_x[1:]):
+        for yl,yr in zip(ys,ys[1:]):
             cut=stock.intersection(box(xl,yl,xr,yr))
             parts=[cut] if cut.geom_type=="Polygon" else [
                 g for g in getattr(cut,"geoms",())
