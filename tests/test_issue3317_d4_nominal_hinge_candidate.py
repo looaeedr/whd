@@ -90,9 +90,31 @@ def test_w620_nominal_hinge_trial_keeps_true_v_and_native_assembly(first_axis):
     assert trial["v_world_open_seam_edges"]==0
     assert trial["v_world_four_edges"]==8
     assert trial["v_world_open_edges"]<=original["v_world_open_edges"]
-    assert triangle_bounds(trial["v_surface"])==pytest.approx(
-        triangle_bounds(original["v_surface"]),abs=1e-6
-    )
+    for o_interval,n_interval in zip(
+        triangle_bounds(original["v_surface"]),
+        triangle_bounds(trial["v_surface"]),
+    ):
+        assert o_interval==pytest.approx(n_interval,abs=1e-6)
+    # The unchanged upper source material has exactly the same world
+    # positions. A different triangulation must not move the original cap.
+    def world_uv_map(candidate):
+        return {
+            tuple(round(v,7) for v in candidate["v_source_uv"][index]): point
+            for face,triangle in zip(
+                candidate["v_source_faces"],candidate["v_surface"],
+            )
+            for index,point in zip(face,triangle)
+        }
+    orig_uv=world_uv_map(original)
+    trial_uv=world_uv_map(trial)
+    upper_start=max(upper[1] for _,_,_,upper
+                    in flat.opening_source_points_xy)
+    upper_original={uv:p for uv,p in orig_uv.items()
+                    if uv[1]>upper_start+1e-7}
+    assert upper_original
+    for uv,point in upper_original.items():
+        assert uv in trial_uv
+        assert trial_uv[uv]==pytest.approx(point,abs=1e-7)
     for label,where in (
         ("rear",(100.,-275.,0.)),
         ("front_frame",(-294.,-297.,0.)),
