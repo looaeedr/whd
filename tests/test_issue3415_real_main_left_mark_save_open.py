@@ -457,3 +457,158 @@ def test_primary_designer_file_menu_opens_marked_a_then_unconfigured_b(
     finally:
         if root.winfo_exists():
             root.destroy()
+
+
+def test_primary_confirm_scoped_reference_edges_without_gc(tmp_path, monkeypatch):
+    """One true Primary A→B probe, no GC/referrer scan or synthetic session.
+
+    Reuse the existing exact GUI workflow. Only intercept *around* its real
+    open and Confirm calls to record ownership, then diagnose the state
+    graph after that original test has destroyed its Tk root and returned.
+    This is a closed, never-merge diagnostic, not an exit132 root-cause proof.
+    """
+    import sys
+    from weakref import ref
+    from gui_modules.application import physical_part_hole_editor as physical
+
+    observed = {}
+    original_open = physical.open_workspace_sheet_editor
+    original_confirm = _actual_editor_confirm
+
+    def named_cells(callback):
+        return dict(zip(
+            callback.__code__.co_freevars,
+            (cell.cell_contents for cell in (callback.__closure__ or ())),
+        ))
+
+    def observe_open(host, key):
+        result = original_open(host, key)
+        assert key == "base_plate" and result is host.last_unified_hole_editor
+        editor = result
+        canvas = host.last_hole_editor_canvas
+        insert = host.last_hole_editor_insert_button
+        assert editor.winfo_exists() == 1 and canvas.winfo_exists() == 1
+
+        mark_place = editor._manual_marking_place
+        state = named_cells(mark_place)["s"]
+        wrapped = state.redraw
+        assert named_cells(wrapped)["s"] is state
+        original = named_cells(wrapped)["real_redraw"]
+        renderer = original.__self__
+        assert type(renderer).__name__ == "HoleEditorCanvasRenderer"
+        assert named_cells(renderer.context_provider)["s"] is state
+        assert state.indicator_redraw[0] is wrapped
+
+        guarded_sync = state.sync_all
+        assert named_cells(guarded_sync)["s"] is state
+        authoritative_sync = named_cells(guarded_sync)["authoritative_sync"]
+        assert authoritative_sync.__self__.sync_callback is None, (
+            "PHYSICAL_SHEET_SYNC_IS_DEFERRED_UNTIL_CONFIRM"
+        )
+        assert state.sync_callback is not None
+        assert state.on_confirm_features is not None
+
+        observed["refs"] = {
+            "host": ref(host), "editor": ref(editor), "canvas": ref(canvas),
+            "insert": ref(insert), "checked_redraw": ref(wrapped),
+            "original_renderer": ref(renderer), "guarded_sync": ref(guarded_sync),
+            "original_sync": ref(authoritative_sync.__self__),
+            "committed_sync": ref(state.sync_callback),
+        }
+        observed["edges"] = {
+            "host_editor": host.last_unified_hole_editor is editor,
+            "host_canvas": host.last_hole_editor_canvas is canvas,
+            "host_insert": host.last_hole_editor_insert_button is insert,
+            "redraw_to_state": named_cells(wrapped)["s"] is state,
+            "original_redraw_to_state": (
+                named_cells(renderer.context_provider)["s"] is state
+            ),
+            "sync_to_state": named_cells(guarded_sync)["s"] is state,
+            "sync_original_is_deferred": (
+                authoritative_sync.__self__.sync_callback is None
+            ),
+        }
+        return result
+
+    def observe_confirm(editor):
+        original_confirm(editor)  # actual Tk Button.invoke + Engine commit
+        assert not editor.winfo_exists()
+        assert all(name not in editor.__dict__ for name in (
+            "_manual_marking_controls", "_manual_marking_place",
+            "_manual_marking_select",
+        ))
+        observed["confirmed"] = True
+
+    monkeypatch.setattr(physical, "open_workspace_sheet_editor", observe_open)
+    monkeypatch.setattr(sys.modules[__name__], "_actual_editor_confirm", observe_confirm)
+    # Exercise full Primary physical LEFT drawing, Save As, File > Open A,
+    # authentic manufacturing DXF verification, then File > Open B.
+    test_primary_designer_file_menu_opens_marked_a_then_unconfigured_b(
+        tmp_path, monkeypatch,
+    )
+    assert observed["confirmed"] and all(observed["edges"].values())
+    refs = observed["refs"]
+
+    def remaining():
+        return tuple(sorted(key for key, weak in refs.items() if weak() is not None))
+
+    after_real_destroy = remaining()
+    print("WHD_3415_OWNED_AFTER_ROOT_DESTROY", after_real_destroy, flush=True)
+    assert {"editor", "canvas", "checked_redraw"}.issubset(after_real_destroy)
+
+    # Phase 1: only exact host aliases, with identity guards. The old
+    # editor must never clear a newly-installed editor or its Canvas/button.
+    wrapped = refs["checked_redraw"]()
+    state = named_cells(wrapped)["s"]
+    host = refs["host"]()
+    editor = refs["editor"]()
+    canvas = refs["canvas"]()
+    insert = refs["insert"]()
+    for name, target in (
+        ("last_unified_hole_editor", editor),
+        ("last_hole_editor_canvas", canvas),
+        ("last_hole_editor_insert_button", insert),
+    ):
+        assert getattr(host, name) is target
+        if getattr(host, name) is target:
+            setattr(host, name, None)
+    del host, editor, canvas, insert, wrapped, state
+    after_alias = remaining()
+    print("WHD_3415_AFTER_IDENTITY_ALIAS_DETACH", after_alias, flush=True)
+    assert "checked_redraw" in after_alias, (
+        "UNEXPECTED_ALIAS_ONLY_RELEASE_OF_SELF_CLOSING_REDRAW"
+    )
+
+    # Phase 2: detach the *named* self-closing redraw and guarded sync
+    # edges from this one destroyed editor's composition state.
+    wrapped = refs["checked_redraw"]()
+    state = named_cells(wrapped)["s"]
+    assert state.indicator_redraw[0] is wrapped
+    assert state.redraw is wrapped
+    assert named_cells(state.sync_all)["s"] is state
+    state.indicator_redraw[0] = None
+    state.redraw = None
+    state.sync_all = None
+    state.sync_callback = None
+    del state, wrapped
+    after_named = remaining()
+    print("WHD_3415_AFTER_NAMED_REDRAW_SYNC_DETACH", after_named, flush=True)
+
+    # Phase 3: *diagnostic only*, release this single destroyed editor's
+    # transient SimpleNamespace on the same Tk thread. This is NOT a
+    # production proposal, does not traverse objects, and calls no GC.
+    # It distinguishes additional state-owned closures from host aliases.
+    living = refs["guarded_sync"]() or refs["original_renderer"]()
+    if living is not None:
+        if hasattr(living, "__closure__"):
+            state = named_cells(living).get("s")
+        else:
+            state = named_cells(living.context_provider).get("s")
+        if state is not None:
+            state.__dict__.clear()
+            del state
+    del living
+    after_scope = remaining()
+    print("WHD_3415_AFTER_SINGLE_EDITOR_STATE_RELEASE", after_scope, flush=True)
+    # Do not invent a GREEN memory-release verdict or force collection.
+    # Printed exact weakref survivors are this probe's observable result.
