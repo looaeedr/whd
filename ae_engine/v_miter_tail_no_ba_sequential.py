@@ -241,13 +241,12 @@ def _stages(uv,first_axis,stations=None):
 
 
 def _single_sheet_triangles(
-    stock,stations=None,*,extra_x=(),extra_y=(),extra_x_max_y=None,
+    stock,stations=None,*,extra_x=(),extra_y=(),
 ):
     """Triangulate actual CUTTING at source crease/endpoint stations.
 
-    Optional nominal T-shell splits are confined to the requested source Y
-    rows, preserving the entire unmodified upper source triangulation.
-    Default call has identical stations and behavior as the original Engine.
+    Optional nominal T-shell splits preserve the exact CUTTING boundary and
+    material area. The original call has the same source crease stations.
     """
     st=stations or LowerDualVStations.regression_522x233()
     left_delta=st.left_x-st.xmin
@@ -267,9 +266,7 @@ def _single_sheet_triangles(
     out=[]
     area=0.
     for yl,yr in zip(ys,ys[1:]):
-        xs=(lower_x if extra_x_max_y is None
-            or yr<=float(extra_x_max_y)+_TOL else base_x)
-        for xl,xr in zip(xs,xs[1:]):
+        for xl,xr in zip(lower_x,lower_x[1:]):
             cut=stock.intersection(box(xl,yl,xr,yr))
             parts=[cut] if cut.geom_type=="Polygon" else [
                 g for g in getattr(cut,"geoms",())
