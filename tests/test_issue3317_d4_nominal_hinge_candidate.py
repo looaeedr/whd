@@ -626,8 +626,13 @@ def test_native_check_uses_actual_factory_dimensions_and_original_holes(
     assert tuple(g for g in fold_guides_from_final_scene(flat.original_scene))
     assert len(flat.original_factory_material.interiors)==0
     assert len(candidate["v_material"].interiors)==4
-    assert candidate["v_material"].symmetric_difference(
-        flat.result_material
+    # The D4 solid material has the four original physical CUTTING holes,
+    # while the flat's retained polygon is its exterior-only shell.
+    # Compare actual outer contour with outer contour; do not count real
+    # Factory holes as lost/extra material or silently discard them.
+    from shapely.geometry import Polygon
+    assert Polygon(candidate["v_material"].exterior).symmetric_difference(
+        Polygon(flat.result_material.exterior)
     ).area<=1e-7
     assert stations_from_real_flat(flat).bottom_y==pytest.approx(bottom)
     # Only candidate geometry changes; source Factory finite BEND and
