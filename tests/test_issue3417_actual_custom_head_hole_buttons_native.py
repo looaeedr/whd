@@ -112,9 +112,15 @@ def test_real_custom_head_hole_capture_save_new_tk_open_view_and_move_reject(
         replay_snapshot = fresh._make_original_fold_designer_snapshot()
         _, _, reopened_spec, reopened = _selected_source(fresh, replay_snapshot)
         assert reopened_spec.model_name is None
-        assert reopened_spec.fold_profile_x == native_spec.fold_profile_x
-        assert reopened_spec.fold_profile_y == native_spec.fold_profile_y
-        assert deepcopy(replay_snapshot.get("part_profiles", {}).get("head")) == source_profiles
+        # Save may materialize the original Factory Fold defaults into
+        # explicit authored profiles. The effective physical Fold must be
+        # identical, not the historical empty-vs-explicit storage wrapper.
+        from ae_engine.v_miter_operator_gui_check import _endcap_existing_fold_angle_sources
+        assert _endcap_existing_fold_angle_sources(reopened_spec, "head") == (
+            _endcap_existing_fold_angle_sources(native_spec, "head")
+        )
+        if source_profiles is not None:
+            assert replay_snapshot.get("part_profiles", {}).get("head") == source_profiles
         assert reopened_spec.holes == native_spec.holes
         assert _source_circle(reopened.scene) == circle
         messages.clear()
