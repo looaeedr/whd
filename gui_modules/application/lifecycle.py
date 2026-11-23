@@ -488,6 +488,9 @@ def _apply_phase6_project_snapshot(self, snapshot):
         (snapshot or {}).get("v_miter_gui_first_bend_axes"),
         v_miter_gui_choice,
     )
+    from .endcap_live_v_check_consumer import ATTR, validate_live_sources
+    live_endcap_check = validate_live_sources(snapshot or {})
+    setattr(self, ATTR, live_endcap_check)
     # Switching projects must drop both previous sources; preflight failure
     # above must leave BOTH old records and session unchanged.
     self._v_miter_relief_trial_preview = v_miter_v1
@@ -670,6 +673,12 @@ def _compose_phase6_project_snapshot_from_main_gui(self):
     """從目前主 GUI 狀態建立唯一 canonical committed snapshot。"""
     snapshot = self._make_original_fold_designer_snapshot()
     snapshot.pop("_runtime_project_path", None)
+    from .endcap_live_v_check_consumer import ATTR, KEY, validate_live_sources
+    records = validate_live_sources({KEY: getattr(self, ATTR, {})})
+    if records:
+        snapshot[KEY] = records
+    else:
+        snapshot.pop(KEY, None)
     saved_v1_source = getattr(self, "_v_miter_relief_trial_preview", None)
     if saved_v1_source is not None:
         # Preserve the original V1 operator inputs, not computed 2D/3D.

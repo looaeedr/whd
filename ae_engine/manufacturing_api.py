@@ -3300,3 +3300,10 @@ def project_operator_tail_d4_check_native_world(
             )):
         raise ValueError("TAIL_D4_CHECK_NATIVE_WORLD_EVIDENCE_REJECTED")
     return candidate
+
+# Explicit EndCap live CHECK source; independent of raw trial/manufacture.
+from .v_miter_endcap_live_snapshot import (
+    capture_endcap_live_v_miter_check_snapshot,
+    normalize_endcap_live_v_miter_check_snapshot,
+    replay_endcap_live_v_miter_check_snapshot,
+)
