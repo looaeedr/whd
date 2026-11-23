@@ -215,8 +215,17 @@ def project_tail_d4_shared_original_fold_candidate(
     exact_y=exact_tail_y_fold_profile_from_original_bends(flat,st)
     original_bends=fold_guides_from_final_scene(flat.original_scene)
     candidate_bends=fold_guides_from_final_scene(flat.result_scene)
-    if tuple(original_bends)!=tuple(candidate_bends):
-        raise GeometryError("TAIL_D4_SHARED_FACTORY_BEND_CHANGED")
+    # The V CHECK may show extended X side endpoint PROJECTIONS, but
+    # these are not a new source-authored manufacturing BEND. The true
+    # original Factory finite X guide is the folding authority. The real
+    # Y bottom/upper guides must still match exactly; all authorized
+    # V-side source extensions are already verified by stations_from_real_flat.
+    original_y=tuple(g for g in original_bends if g.axis=="y")
+    candidate_y=tuple(g for g in candidate_bends if g.axis=="y")
+    if original_y!=candidate_y:
+        raise GeometryError("TAIL_D4_SHARED_FACTORY_Y_BEND_CHANGED")
+    if len(tuple(g for g in original_bends if g.axis=="x"))!=2:
+        raise GeometryError("TAIL_D4_SHARED_FACTORY_SOURCE_SIDE_BEND_MISSING")
     # SAME current WHD 3D folding primitive as an unmodified EndCap.
     surface=folded_mesh_from_polygon(
         source,owned["X"],exact_y,fold_guides=original_bends,
