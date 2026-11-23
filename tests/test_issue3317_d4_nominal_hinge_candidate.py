@@ -18,7 +18,7 @@ from ae_engine.v_miter_tail_d4_delivery import (
 )
 
 
-def _real_w620_body():
+def _real_w620_body(*,width=620.,height=600.,depth=185.,bottom=48.):
     from ae_engine.contracts import BoxBodyPartSpec
     from ae_engine.manufacturing_api import build_box_body_structure_render_data
     from ae_engine.box_body_structure_state import default_box_body_structure_state
@@ -26,23 +26,23 @@ def _real_w620_body():
     from phase6_final_scene_view import AssemblyScenePart
 
     values={
-        "model":"金庫型","w":620.,"h":600.,"d":185.,"t":2.,
+        "model":"金庫型","w":width,"h":height,"d":depth,"t":2.,
         "fw":25.,"zl1":15.,"zl2":15.,"zr1":15.,"zr2":15.,
-        "yl1":15.,"yr1":15.,"ytop1":16.,"ybottom1":48.,
+        "yl1":15.,"yr1":15.,"ytop1":16.,"ybottom1":bottom,
     }
     structure=build_box_body_structure_render_data(BoxBodyPartSpec(
-        width=620.,height=600.,depth=185.,thickness=2.,frame_width=25.,
+        width=width,height=height,depth=depth,thickness=2.,frame_width=25.,
         model_name="金庫型",zl1=15.,zl2=15.,zr1=15.,zr2=15.,
         fold_profile=profile_to_fold_segments(build_box_body_profile(values)),
         structure_state=default_box_body_structure_state(),
-        head_ybottom1=48.,tail_ybottom1=48.,
+        head_ybottom1=bottom,tail_ybottom1=bottom,
     ))
     body=AssemblyScenePart(
         part_key="box_body",render_data=structure,
         x_profile=(),y_profile=(),placement="box_body",
     )
     return tuple(api.build_joint_world_geometry(
-        (body,),(620.,600.,185.),2.,
+        (body,),(width,height,depth),2.,
     )["world_triangles_by_part"]["box_body"])
 
 
@@ -582,23 +582,104 @@ def test_d4_lower_v_tip_2h_taper_stays_original_upper_source(first_axis):
         assert before==pytest.approx(after,abs=1e-6)
 
 
-def test_d4_native_check_world_adapter_only_exact_verified_w620_source():
-    """Other dimensions/optional source fields retain legacy CHECK behavior."""
+@pytest.mark.parametrize("first_axis",("x","y"))
+@pytest.mark.parametrize("dimensions",(
+    (620.,600.,185.,48.),
+    (620.,600.,185.,55.),
+    (670.,640.,205.,55.),
+))
+def test_native_check_uses_actual_factory_dimensions_and_original_holes(
+    first_axis,dimensions,
+):
+    """Real Engine Factory and Body request, not a hand-authored 2D fixture."""
     from dataclasses import replace
-    from ae_engine import manufacturing_api as api
+    from ae_engine.manufacturing_render_data import fold_guides_from_final_scene
+    from ae_engine.v_miter_tail_no_ba_sequential import stations_from_real_flat
+    from ae_engine.assembly_geometry import triangle_bounds
+    width,height,depth,bottom=dimensions
+    source=replace(default_vault_tail_d4_spec(),
+                   width=width,height=height,depth=depth,fold_bottom=bottom)
+    flat,_=build_tail_d4_check_from_original(source)
+    body=_real_w620_body(width=width,height=height,depth=depth,bottom=bottom)
+    candidate=api.project_operator_tail_d4_check_native_world(
+        flat,first_axis=first_axis,box_body_world=body,
+    )
+    assert candidate is not None
+    assert candidate["first_axis"]==first_axis
+    assert not candidate["manufacturing_approved"]
+    assert candidate["nominal_lower_v_taper"] is True
+    assert len(candidate["v_solid"])==len(candidate["v_solid_source_ids"])
+    assert candidate["v_source_uv"]
+    assert candidate["v_world_open_seam_edges"]==0
+    assert candidate["v_world_four_edges"]==8
+    assert candidate["v_extra_world_open_edges"]==0
+    assert candidate["v_world_open_edges"]==candidate[
+        "shared_original_world_open_edges"
+    ]
+    assert len(candidate["straight_v_wall_sets"])==2
+    assert all(row["full_face_contact_proven"]
+               for row in candidate["straight_v_wall_sets"])
+    assert len([p for p in flat.result_scene.primitives
+                if p.layer=="CUTTING"])==5
+    assert len([p for p in flat.original_scene.primitives
+                if p.layer=="CUTTING"])==5
+    assert tuple(g for g in fold_guides_from_final_scene(flat.original_scene))
+    assert flat.original_factory_material.interiors==()
+    assert len(candidate["v_material"].interiors)==4
+    assert candidate["v_material"].symmetric_difference(
+        flat.result_material
+    ).area<=1e-7
+    assert stations_from_real_flat(flat).bottom_y==pytest.approx(bottom)
+    # Only candidate geometry changes; source Factory finite BEND and
+    # the pre-existing physical Body world are never altered.
+    assert len(body)>0
+    assert triangle_bounds(candidate["v_solid"]) is not None
+
+
+@pytest.mark.parametrize("first_axis",("x","y"))
+def test_native_check_rejects_real_original_square_hole_at_bottom31(
+    first_axis,
+):
+    """Original x3..7/y18..22 square has nonzero overlap with V wedge."""
+    from dataclasses import replace
+    from ae_engine.sheetmetal_geometry_core import GeometryError
+    spec=replace(default_vault_tail_d4_spec(),fold_bottom=31.)
+    with pytest.raises(GeometryError,match=(
+        "V_MITER_LOWER_CUTTING_CONFLICTS_WITH_ORIGINAL_HOLE"
+    )):
+        build_tail_d4_check_from_original(spec)
+
+
+def test_d4_native_check_world_adapter_preserves_unverified_profile_fallback():
+    """Unsupported family/T/FW/side/top profile returns legacy CHECK only."""
+    from dataclasses import replace
     flat,_=build_tail_d4_check_from_original(default_vault_tail_d4_spec())
     body=_real_w620_body()
     for changed in (
-        {"width":621.},
-        {"depth":186.},
         {"thickness":2.5},
-        {"height":None},
-        {"fold_bottom":49.},
+        {"frame_width":26.},
         {"fold_top":17.},
         {"fold_left":16.},
+        {"fold_right":16.},
         {"model_name":"受電箱"},
     ):
         other=replace(flat,source_spec=replace(flat.source_spec,**changed))
         assert api.project_operator_tail_d4_check_native_world(
             other,first_axis="x",box_body_world=body,
         ) is None,changed
+
+
+@pytest.mark.parametrize("field,bad",(
+    ("width",None),("depth",0.),("height",float("nan")),
+    ("fold_bottom",-1.),("fold_bottom",float("inf")),
+))
+def test_d4_check_invalid_real_dimension_never_defaults_to_w620(field,bad):
+    from dataclasses import replace
+    flat,_=build_tail_d4_check_from_original(default_vault_tail_d4_spec())
+    other=replace(flat,source_spec=replace(flat.source_spec,**{field:bad}))
+    with pytest.raises(ValueError,match=(
+        "TAIL_D4_CHECK_NATIVE_PHYSICAL_DIMENSIONS_INVALID:"+field
+    )):
+        api.project_operator_tail_d4_check_native_world(
+            other,first_axis="x",box_body_world=_real_w620_body(),
+        )
