@@ -285,19 +285,7 @@ jobs:
           print("WINDOWS_NATIVE_VENDOR_GUI_TCP_UNSAVED_WHD_SESSION_GREEN")
           '@ | python -
           if ($LASTEXITCODE -ne 0) { throw "WINDOWS_NATIVE_GUI_TCP_RECEIPT_INVALID" }
-      # #3415 isolated A/B only: run B with the same real Button.invoke and
-      # complete verification in a short-lived child, then ALWAYS run the
-      # original A unchanged even when B fails. Never merge this workflow.
-      - name: DIAGNOSTIC B - native Tk Button.invoke with full DXF proof in child
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = "Stop"
-          $env:CADCRAFT_CONFIG_DIR = Join-Path $env:RUNNER_TEMP "issue1959-native-button-proof-B"
-          python -m pytest -q -s tests/test_issue3415_windows_native_proof_ab.py
-          if ($LASTEXITCODE -ne 0) { throw "WHD_3415_NATIVE_PROOF_CHILD_B_RED" }
-          Write-Host "WHD_3415_NATIVE_PROOF_CHILD_B_FULL_E2E_GREEN"
       - name: Real WHD Tk button opens native CADCraft GUI live unsaved Confirm Cancel Undo
-        if: ${{ !cancelled() }}
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
@@ -342,3 +330,68 @@ jobs:
           path: work/issue1959-win/
           if-no-files-found: warn
           retention-days: 14
+
+  windows-3415-proof-child-ab:
+    name: DIAGNOSTIC ONLY - Windows native Button.invoke A/B proof isolation
+    runs-on: windows-2022
+    timeout-minutes: 30
+    env:
+      PYTHONIOENCODING: utf-8
+      PYTHONUTF8: "1"
+    steps:
+      - name: Checkout exact WHD PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Set up Python for Windows
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install real Windows WHD geometry dependencies
+        shell: pwsh
+        run: python -m pip install -r requirements.txt ezdxf pytest matplotlib
+      - name: Verify publisher SHA256 and unpack official Windows x64 CADCraft v0.8.0
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $ProgressPreference = "SilentlyContinue"
+          $name = "cadcraft-0.8.0-windows-x64-portable.zip"
+          $base = "https://github.com/storytold/cadcraft/releases/download/v0.8.0"
+          $dir = Join-Path $env:RUNNER_TEMP "issue1959-cadcraft-win64"
+          New-Item -ItemType Directory -Force -Path $dir | Out-Null
+          $archive = Join-Path $dir $name
+          $sumfile = Join-Path $dir "SHA256SUMS.txt"
+          Invoke-WebRequest -Uri "$base/SHA256SUMS.txt" -OutFile $sumfile
+          Invoke-WebRequest -Uri "$base/$name" -OutFile $archive
+          $lines = @(Get-Content $sumfile | Where-Object { $_ -match [regex]::Escape($name) })
+          if ($lines.Count -ne 1) { throw "CADCRAFT_SHA256SUMS_AMBIGUOUS" }
+          $expected = ($lines[0].Trim() -split "\s+")[0].ToLowerInvariant()
+          $actual = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actual -ne $expected) { throw "CADCRAFT_OFFICIAL_WINDOWS_SHA256_MISMATCH" }
+          Expand-Archive -LiteralPath $archive -DestinationPath (Join-Path $dir "unpacked") -Force
+          $executables = @(Get-ChildItem (Join-Path $dir "unpacked") -Recurse -File -Filter "cadcraft-cli.exe")
+          if ($executables.Count -ne 1) { throw "CADCRAFT_WINDOWS_CLI_NOT_UNIQUE" }
+          $cli = $executables[0].FullName
+          "CADCRAFT_CLI=$cli" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          $guis = @(Get-ChildItem (Join-Path $dir "unpacked") -Recurse -File -Filter "cadcraft.exe")
+          if ($guis.Count -ne 1) { throw "CADCRAFT_WINDOWS_GUI_NOT_UNIQUE" }
+          "CADCRAFT_GUI=$($guis[0].FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          Write-Host "OFFICIAL_WINDOWS_CADCRAFT_RELEASE_SHA256 $actual"
+      - name: B - original native Tk button with exact full DXF proof in child
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $env:CADCRAFT_CONFIG_DIR = Join-Path $env:RUNNER_TEMP "issue1959-native-button-proof-B"
+          python -m pytest -q -s tests/test_issue3415_windows_native_proof_ab.py
+          if ($LASTEXITCODE -ne 0) { throw "WHD_3415_NATIVE_PROOF_CHILD_B_RED" }
+          Write-Host "WHD_3415_NATIVE_PROOF_CHILD_B_FULL_E2E_GREEN"
+      - name: A - original unmodified Windows native Tk Button.invoke test
+        if: ${{ !cancelled() }}
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $env:CADCRAFT_CONFIG_DIR = Join-Path $env:RUNNER_TEMP "issue1959-native-button-proof-A"
+          python -m pytest -q -s tests/test_issue1959_native_windows_whd_button_e2e.py
+          if ($LASTEXITCODE -ne 0) { throw "WHD_3415_NATIVE_ORIGINAL_A_RED" }
+          Write-Host "WHD_3415_NATIVE_ORIGINAL_A_FULL_E2E_GREEN"
