@@ -296,8 +296,13 @@ def nominal_adjacent_source_skins(
                     # Only the inward (negative) physical skin receives
                     # the longitudinal relief. It is tangent to the real
                     # source X crease, so nominal plane-normal T stays fixed.
+                    # Tangents were source-oriented toward increasing Y.
+                    # The inward negative skin must move BACK along the
+                    # finite crease (toward smaller source Y); moving it
+                    # forward doubles the inner upper end into a spurious
+                    # world four-edge, despite a continuous +/- skin seam.
                     tangent_adjust=_mul(
-                        tangents[station],(h-local_h)*blend,
+                        tangents[station],-(h-local_h)*blend,
                     )
             offset=_mul(shift,t/2.)
             vlayers.append((_add(p,offset),
