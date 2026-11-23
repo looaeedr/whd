@@ -304,6 +304,7 @@ from .receiving_quantity_versions import (
 from .assembly_geometry import (
     restore_unrelieved_endcap_material, restored_endcap_relief_delta,
     thicken_triangle_surface, MeshInterferenceDiagnostic,
+    inspect_native_d4_assembly_world as inspect_operator_tail_d4_assembly_world,
     folded_mesh_from_polygon as folded_material_mid_mesh,
     place_box_body_structure_points as project_box_body_structure_world_points,
     triangle_bounds as physical_mesh_world_bounds,
@@ -599,6 +600,20 @@ from .physical_part_identity import (
 from .independent_part_view_mesh import (
     IndependentPartViewMesh, project_independent_part_view_mesh,
 )
+from .operator_tail_lower_v_first_bends import (
+    TAIL_LOWER_V_FIRST_BENDS_KEY,
+    project_operator_tail_lower_v_first_bend_options,
+    commit_operator_tail_lower_v_first_bends,
+    validate_operator_tail_lower_v_first_bends,
+    project_operator_tail_lower_v_first_bend_status,
+)
+from .operator_tail_lower_v import (
+    TAIL_LOWER_V_SNAPSHOT_KEY, normalize_operator_tail_lower_v_choice,
+    project_operator_tail_lower_v_settings, commit_operator_tail_lower_v_choice,
+    project_operator_tail_lower_v_preview_render, tail_lower_v_preview_mesh,
+    tail_lower_v_first_stage_mesh,
+    reject_tail_lower_v_preview_for_dxf,
+)
 
 from .part_dimension_projection import (
     DoorPartProjection, door_part_projections, project_part_dimensions,
@@ -809,7 +824,7 @@ from .assembly_collision import (
     serialize_joint_relief_polygons, restore_joint_relief_cut_geometry,
 )
 from .endcap_verified_replay import replay_resolved_endcap_render
-from .assembly_geometry import build_joint_world_geometry
+from .assembly_geometry import (build_joint_world_geometry, _has_integral_dwd_fold_owner as project_integral_box_body_formed_skin_eligible)
 from .assembly_geometry_folded_mesh import (
     expand_box_body_fw_world_mid, shift_multistage_terminal_fold_world_mid,
     fit_receiving_left_zl1_world_mid,
@@ -915,6 +930,8 @@ def save_part_render_data_dxf(
     """Serialize an already-built authoritative FinalScene to DXF."""
     _manufacturing_export.require_dxf_overwrite_boolean(overwrite)
     metadata = getattr(render_data, "metadata", None) or {}
+    # A CHECK-only V preview is never a production cutting plan.
+    reject_tail_lower_v_preview_for_dxf(render_data)
     blocked = metadata.get("baseline_fit_error")
     if blocked:
         raise ValueError(str(blocked))
@@ -2579,6 +2596,7 @@ from .receiving_settings_assembly_mesh import (
     resolve_box_body_true_world_piece_meshes,
     AssembledEndcapWorldSkins,
     resolve_assembled_endcap_world_skins,
+    place_prethickened_endcap_world_skins,
 )
 
 # #2517: physical material/outside/BEND dimension evidence for FinalScene UI.
@@ -3191,3 +3209,94 @@ from .receiving_nfb_ui1a import (
     effective_nfb_slot_brand as project_receiving_nfb_draft_slot_brand,
     nfb_ui1a_preview as preview_receiving_nfb_draft,
 )
+
+
+# #3317: public read-only native Tail Ø4 CHECK projection.  The Engine owns
+# source verification, thickness, finite BEND and independent DXF reopen;
+# GUI consumers may only paint typed primitives and inspect stations.
+# No manufacturing export, CornerType promotion or CNC permission is implied.
+from .sheetmetal_drawing import (
+    CirclePrimitive as TailD4PreviewCirclePrimitive,
+    LinePrimitive as TailD4PreviewLinePrimitive,
+    PolylinePrimitive as TailD4PreviewPolylinePrimitive,
+)
+from .v_miter_tail_no_ba_sequential import (
+    stations_from_real_flat as project_operator_tail_d4_source_stations,
+)
+from .v_miter_tail_d4_delivery import (
+    build_tail_d4_check_from_original as build_operator_tail_d4_check_from_original,
+)
+from .v_miter_tail_d4_check_dxf import (
+    save_tail_d4_check_dxf as save_operator_tail_d4_check_dxf,
+)
+
+
+def project_operator_tail_d4_check_native_world(
+    flat, *, first_axis, box_body_world,
+):
+    """CHECK-only true-T lower V from authenticated live Factory dimensions.
+
+    The W620/D185/H600/bottom48 specimen is regression evidence, not a
+    manufacturing size restriction. Preserve the verified Vault Tail T2,
+    FW25, left/right15, top16 source-profile scope. All four remaining
+    physical dimensions come from the caller's actual finite input.
+    Unsupported profiles retain their legacy CHECK; invalid physical sizes
+    fail closed, never silently use an example/default.
+    """
+    from math import isfinite
+    spec=flat.source_spec
+    def exact(value,expected):
+        return (type(value) in (int,float) and isfinite(value)
+                and abs(float(value)-expected)<=1e-7)
+    if (
+        spec.model_name!="金庫型"
+        or not spec.is_tail
+        or not exact(spec.thickness,2.)
+        or not exact(spec.frame_width,25.)
+        or not exact(spec.fold_left,15.)
+        or not exact(spec.fold_right,15.)
+        or not exact(spec.fold_top,16.)
+    ):
+        return None
+    for name in ("width","depth","height","fold_bottom"):
+        value=getattr(spec,name,None)
+        if (type(value) not in (int,float)
+                or not isfinite(value) or value<=0):
+            raise ValueError(
+                "TAIL_D4_CHECK_NATIVE_PHYSICAL_DIMENSIONS_INVALID:"+name
+            )
+
+    if first_axis not in ("x","y") or not box_body_world:
+        raise ValueError("TAIL_D4_CHECK_NATIVE_WORLD_SOURCE_REQUIRED")
+    from .v_miter_tail_d4_delivery import (
+        project_tail_d4_shared_original_fold_candidate,
+    )
+    candidate=project_tail_d4_shared_original_fold_candidate(
+        flat,first_axis=first_axis,box_body_world=tuple(box_body_world),
+        nominal_hinge=True,nominal_lower_v_taper=True,
+    )
+    solid=candidate["v_solid"]
+    ids=candidate["v_solid_source_ids"]
+    uv=candidate["v_source_uv"]
+    if (candidate["manufacturing_approved"]
+            or len(solid)!=len(ids) or not solid or not uv
+            or any(len(face)!=3 or any(
+                type(vertex_id) is not int or not 0<=vertex_id<len(uv)
+                for vertex_id in face
+            ) for face in ids)
+            or any(len(point)!=2 or any(
+                not isfinite(value) for value in point
+            ) for point in uv)
+            or candidate["v_world_four_edges"]!=8
+            or candidate["v_world_open_seam_edges"]!=0
+            or candidate["v_extra_world_open_edges"]!=0
+            or candidate["v_world_open_edges"]!=candidate[
+                "shared_original_world_open_edges"
+            ]
+            or len(candidate["straight_v_wall_sets"])!=2
+            or not all(
+                row["full_face_contact_proven"]
+                for row in candidate["straight_v_wall_sets"]
+            )):
+        raise ValueError("TAIL_D4_CHECK_NATIVE_WORLD_EVIDENCE_REJECTED")
+    return candidate
