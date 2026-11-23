@@ -125,7 +125,7 @@ def _wall_contact(groups,corner):
 def project_d4_original_owner_uv_solid(
     flat,stock,st,first_axis,x_profile,y_profile,original_bends,
     original_surface,box_body_world,thickness,*,nominal_hinge=False,
-    nominal_side_collar=True, nominal_upper_taper=False,
+    nominal_side_collar=True, nominal_lower_v_taper=False,
 ):
     """Form the actual FinalScene sheet with sourced two-stage lower corners.
 
@@ -139,48 +139,26 @@ def project_d4_original_owner_uv_solid(
     if nominal_hinge:
         from .v_miter_tail_d4_nominal_hinge import nominal_hinge_width
         nominal_h=nominal_hinge_width(flat,thickness,st)
-        t_half=float(thickness)/2.
         split_x=tuple(v for c in (st.left_x,st.right_x)
-                      for v in ((c-nominal_h,c+nominal_h)
-                                +((c-t_half,c+t_half)
-                                  if nominal_upper_taper else ())))
-        taper_y=(max(st.left_side_end,st.right_side_end)-nominal_h,
-                 max(st.left_side_end,st.right_side_end)-nominal_h/2.)
+                      for v in (c-nominal_h,c+nominal_h))
+        tips=tuple(float(upper[1])
+                   for _,_,_,upper in flat.opening_source_points_xy)
+        if len(tips)!=2 or abs(tips[0]-tips[1])>1e-7:
+            raise GeometryError("TAIL_D4_LOWER_V_TAPER_SOURCE_TIP_INVALID")
+        cut_tip=tips[0]
+        cut_end=cut_tip+2.*nominal_h
+        if nominal_lower_v_taper and cut_end>=min(
+                st.left_side_end,st.right_side_end)-1e-7:
+            raise GeometryError("TAIL_D4_LOWER_V_TAPER_REACHES_SIDE_END")
         source,area=_single_sheet_triangles(
             stock,st,extra_x=split_x,
             extra_y=(st.bottom_y-nominal_h,st.bottom_y+nominal_h)
-            +(taper_y if nominal_upper_taper else ()),
+            +((cut_tip,cut_end) if nominal_lower_v_taper else ()),
         )
     else:
+        if nominal_lower_v_taper:
+            raise GeometryError("TAIL_D4_LOWER_V_TAPER_REQUIRES_NOMINAL_T")
         source,area=_single_sheet_triangles(stock,st)
-    if nominal_hinge and nominal_upper_taper:
-        # The tapered T displacement is not affine over the final narrow
-        # source triangle. Preserve its actual perimeter and every source
-        # UV vertex; insert genuine UV-interior material samples and apply
-        # the same native midline and nominal two-skin map to each piece.
-        # This does not add BEND, move a CUTTING edge, stitch, or make caps.
-        taper_start=max(st.left_side_end,st.right_side_end)-nominal_h
-        taper_end=max(st.left_side_end,st.right_side_end)
-        subdivided=[]
-        for tri in source:
-            near_endpoint=(
-                min(v[1] for v in tri)>=taper_start-1e-7
-                and max(v[1] for v in tri)<=taper_end+1e-7
-                and any(
-                    abs(v[0]-crease)<=nominal_h+1e-7
-                    for v in tri
-                    for crease in (st.left_x,st.right_x)
-                )
-            )
-            if not near_endpoint:
-                subdivided.append(tri)
-                continue
-            a,b,c=tri
-            center=tuple(sum(v[i] for v in tri)/3. for i in (0,1))
-            subdivided.extend((
-                (a,b,center),(b,c,center),(c,a,center),
-            ))
-        source=tuple(subdivided)
     if abs(area-stock.area)>1e-5:
         raise GeometryError("TAIL_D4_SHARED_UV_MATERIAL_AREA_LOST")
     # Y threshold is authored by the actual two V cut legs, not by a
@@ -259,7 +237,7 @@ def project_d4_original_owner_uv_solid(
             faces,source_uv,world_surface,t,st,nominal_h,stock,
             flat.opening_source_points_xy,
             extend_side_collar=nominal_side_collar,
-            upper_taper=nominal_upper_taper,
+            lower_v_taper=nominal_lower_v_taper,
         )
     else:
         nominal_skins=None
@@ -327,9 +305,24 @@ def project_d4_original_owner_uv_solid(
                         and dist(aminus,cminus)<1e-7
                         and dist(bminus,dminus)<1e-7):
                     continue
-            solid.extend(((aplus,dplus,bplus),(aplus,cplus,dplus),
-                          (aminus,dminus,cminus),(aminus,bminus,dminus)))
-            solid_source_ids.extend(((a,b,b),(a,a,b),(a,b,a),(a,b,b)))
+            bridges=(
+                ((aplus,dplus,bplus),(a,b,b)),
+                ((aplus,cplus,dplus),(a,a,b)),
+                ((aminus,dminus,cminus),(a,b,a)),
+                ((aminus,bminus,dminus),(a,b,b)),
+            )
+            for bridge,ids in bridges:
+                # Omit only a genuinely zero-area bridge subtriangle with
+                # two identical world endpoints at a sourced X hinge.
+                # Never remove a positive-area face or V CUTTING wall.
+                if nominal_lower_v_taper and (
+                    dist(bridge[0],bridge[1])<=1e-8
+                    or dist(bridge[1],bridge[2])<=1e-8
+                    or dist(bridge[2],bridge[0])<=1e-8
+                ):
+                    continue
+                solid.append(bridge)
+                solid_source_ids.append(ids)
     seams=tuple(_wall_contact(groups,corner)
                 for corner,_,_,_ in flat.opening_source_points_xy)
     if len(solid)!=len(solid_source_ids):
@@ -343,7 +336,7 @@ def project_d4_original_owner_uv_solid(
         "v_surface":tuple(world_surface),
         "v_solid":tuple(solid),
         "nominal_hinge_width_mm":nominal_h,
-        "nominal_upper_taper":bool(nominal_hinge and nominal_upper_taper),
+        "nominal_lower_v_taper":bool(nominal_hinge and nominal_lower_v_taper),
         "v_solid_source_ids":tuple(solid_source_ids),
         "straight_v_wall_sets":seams,
         "open_world_edges":open_count,
