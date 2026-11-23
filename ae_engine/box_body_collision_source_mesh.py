@@ -12,7 +12,7 @@ from .assembly_geometry_primitives import thicken_triangle_surface
 
 def project_box_body_collision_source_mesh(
     render_data, *, box_body_world, placed_piece_meshes=(),
-    physical_piece_world=(), thickness,
+    physical_piece_world=(), thickness, integral_world_is_physical=False,
 ):
     """Assemble canonical BoxBody solid skin source for interference diagnostics.
 
@@ -20,6 +20,16 @@ def project_box_body_collision_source_mesh(
     triangles creates impossible collision volumes, so they pass unchanged.
     Fallback mid-surface pieces and integral sheets are thickened exactly once.
     """
+    if type(integral_world_is_physical) is not bool:
+        raise ValueError("BOX_BODY_INTEGRAL_PHYSICAL_SOURCE_FLAG_INVALID")
+    if integral_world_is_physical:
+        if getattr(render_data, "pieces", None):
+            raise ValueError("BOX_BODY_INTEGRAL_PHYSICAL_SOURCE_MISMATCH")
+        # Exactly the same source-owned true-T Body already drawn in 3D.
+        # Calling thicken_triangle_surface again is physically incorrect.
+        if not box_body_world:
+            raise ValueError("BOX_BODY_INTEGRAL_PHYSICAL_SKINS_REQUIRED")
+        return tuple(box_body_world)
     if getattr(render_data, "pieces", None):
         solid = []
         has_physical_skins = bool(physical_piece_world)

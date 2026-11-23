@@ -17,6 +17,7 @@ from __future__ import annotations
 from .assembly_mesh_reuse import reuse_local_mesh
 
 from dataclasses import dataclass
+import math
 
 
 from .assembly_geometry_primitives import (
@@ -59,6 +60,7 @@ class MeshInterferenceDiagnostic:
     intersection_points: tuple[tuple[float, float, float], ...]
     pair_count: int = 0
     intersection_segments: tuple = ()
+    target_face_indices: tuple[int, ...] = ()
 
     @property
     def has_interference(self) -> bool:
@@ -182,6 +184,7 @@ def detect_world_mesh_surface_interference(source_triangles, target_triangles, *
     src_min = src.min(axis=1)
     src_max = src.max(axis=1)
     target_hits = []
+    target_face_indices = []
     points = []
     pair_count = 0
     segments = []
@@ -194,7 +197,7 @@ def detect_world_mesh_surface_interference(source_triangles, target_triangles, *
             point_keys.add(key)
             points.append(tuple(float(v) for v in point))
 
-    for target_tri in target:
+    for face_index, target_tri in enumerate(target):
         arr = np.asarray(target_tri, dtype=float)
         tmin = arr.min(axis=0) - float(tolerance)
         tmax = arr.max(axis=0) + float(tolerance)
@@ -246,9 +249,140 @@ def detect_world_mesh_surface_interference(source_triangles, target_triangles, *
                         record(point)
         if hit_target:
             target_hits.append(target_tri)
+            target_face_indices.append(face_index)
 
     return MeshInterferenceDiagnostic(
-        tuple(target_hits), tuple(points), pair_count, tuple(segments)
+        tuple(target_hits), tuple(points), pair_count, tuple(segments),
+        tuple(target_face_indices),
+    )
+
+
+
+
+def probe_native_world_mesh_axis_faces(triangles, *, axis, fixed_xyz,
+                                      tolerance=1e-7):
+    """Read the exact mesh's physical faces on an axis-aligned world line.
+
+    Returned sorted coordinates are surface hits ONLY. A paired set of hits
+    is not assumed to be a watertight solid, or a licence to edit the mesh.
+    This exact-source diagnostic also works when the Box Body is open.
+    """
+    import math
+    if axis not in (0, 1, 2):
+        raise ValueError("NATIVE_WORLD_PROBE_AXIS_INVALID")
+    fixed = tuple(float(v) for v in fixed_xyz)
+    if len(fixed) != 3 or not all(math.isfinite(v) for v in fixed):
+        raise ValueError("NATIVE_WORLD_PROBE_POINT_INVALID")
+    mesh = tuple(triangles)
+    if not mesh:
+        raise ValueError("NATIVE_WORLD_PROBE_MESH_REQUIRED")
+    low = min(float(p[axis]) for tri in mesh for p in tri) - 1.
+    high = max(float(p[axis]) for tri in mesh for p in tri) + 1.
+    start = list(fixed)
+    end = list(fixed)
+    start[axis] = low
+    end[axis] = high
+    hits = set()
+    for triangle in mesh:
+        xyz = _segment_triangle_intersection(
+            start, end, triangle, tolerance=tolerance,
+        )
+        if xyz is not None:
+            hits.add(round(float(xyz[axis]), 6))
+    return tuple(sorted(hits))
+
+
+@dataclass(frozen=True)
+class NativeD4AssemblyCheck:
+    """CHECK-only result for the exact meshes displayed in the native window."""
+
+    body_triangle_count: int
+    tail_triangle_count: int
+    body_edges_manifold_closed: bool
+    crossing_pair_count: int
+    crossing_segments: tuple
+    crossing_points: tuple
+    volume_verdict: str
+    crossing_tail_uv_bounds: tuple | None = None
+    crossing_world_bounds: tuple | None = None
+    crossing_regions: tuple = ()
+    crossing_target_face_indices: tuple = ()
+    manufacturing_approved: bool = False
+
+
+def inspect_native_d4_assembly_world(
+    body_world, placed_world, *, tail_faces=None, source_uv=None,
+    openings=None,
+):
+    """Inspect *the displayed* Body and Ø4 Tail, without remesh or relocation.
+
+    Surface crossing is evidence, not an intersection volume or minimum
+    clearance. Coplanar contact is handled by the existing surface checker;
+    an open Body cannot support an enclosed-volume verdict.
+    """
+    body = tuple(body_world)
+    tail = tuple(placed_world)
+    if not body or not tail:
+        raise ValueError("TAIL_D4_ASSEMBLY_NATIVE_MESH_REQUIRED")
+    closure = diagnose_world_mesh_triangle_edge_incidence(body)
+    crossing = detect_world_mesh_surface_interference(body, tail)
+    # Map actual hit Tail triangles back to their ORIGINAL source UV.
+    # This is evidence, not material removal or a second fold model.
+    uv_bounds = None
+    regions = ()
+    if tail_faces is not None or source_uv is not None:
+        if tail_faces is None or source_uv is None:
+            raise ValueError("TAIL_D4_ASSEMBLY_UV_SOURCE_INCOMPLETE")
+        faces = tuple(tail_faces)
+        uv = tuple(source_uv)
+        if len(faces) != len(tail) or not uv:
+            raise ValueError("TAIL_D4_ASSEMBLY_UV_SOURCE_MISMATCH")
+        all_uv = []
+        hits_by_region = {"bottom_left": 0, "bottom_right": 0, "other": 0}
+        apexes = {str(item[0]): tuple(item[2]) for item in (openings or ())}
+        for index in crossing.target_face_indices:
+            coords = tuple(uv[int(i) % len(uv)] for i in faces[index])
+            all_uv.extend(coords)
+            region = "other"
+            for name, apex in apexes.items():
+                if name in hits_by_region and all(
+                    abs(float(p[0]) - float(apex[0])) <= 26.
+                    and abs(float(p[1]) - float(apex[1])) <= 26.
+                    for p in coords
+                ):
+                    region = name
+                    break
+            hits_by_region[region] += 1
+        if all_uv:
+            uv_bounds = tuple(
+                (min(float(p[k]) for p in all_uv),
+                 max(float(p[k]) for p in all_uv))
+                for k in (0, 1)
+            )
+        regions = tuple(hits_by_region.items())
+    world_bounds = None
+    if crossing.intersection_points:
+        world_bounds = tuple(
+            (min(p[k] for p in crossing.intersection_points),
+             max(p[k] for p in crossing.intersection_points))
+            for k in range(3)
+        )
+    return NativeD4AssemblyCheck(
+        body_triangle_count=len(body),
+        tail_triangle_count=len(tail),
+        body_edges_manifold_closed=closure.edges_manifold_closed,
+        crossing_pair_count=crossing.pair_count,
+        crossing_segments=crossing.intersection_segments,
+        crossing_points=crossing.intersection_points,
+        crossing_tail_uv_bounds=uv_bounds,
+        crossing_world_bounds=world_bounds,
+        crossing_regions=regions,
+        crossing_target_face_indices=crossing.target_face_indices,
+        volume_verdict=(
+            "VOLUME_INTERFERENCE_UNVERIFIABLE_BODY_OPEN"
+            if not closure.edges_manifold_closed
+            else "VOLUME_INTERFERENCE_NOT_ESTABLISHED_BY_SURFACE_CROSSINGS"
+        ),
     )
 
 
@@ -853,6 +987,7 @@ def folded_mesh_with_flat_uv_from_polygon(
     *,
     fold_exemptions=(),
     fold_guides=(),
+    fold_tip_continuity=(),
 ):
     """Fold material exactly like :func:`folded_mesh_from_polygon`, preserving 2D UV.
 
@@ -866,8 +1001,18 @@ def folded_mesh_with_flat_uv_from_polygon(
 
     xb, xf = _profile_geometry(x_profile)
     yb, yf = _profile_geometry(y_profile)
-    x_mapper = _prepare_profile_mapper(x_profile, axis="x", fold_guides=fold_guides, geometry=(xb, xf))
-    y_mapper = _prepare_profile_mapper(y_profile, axis="y", fold_guides=fold_guides, geometry=(yb, yf))
+    tip_kwargs = (
+        {"fold_tip_continuity": fold_tip_continuity}
+        if fold_tip_continuity else {}
+    )
+    x_mapper = _prepare_profile_mapper(
+        x_profile,axis="x",fold_guides=fold_guides,
+        geometry=(xb,xf),**tip_kwargs,
+    )
+    y_mapper = _prepare_profile_mapper(
+        y_profile,axis="y",fold_guides=fold_guides,
+        geometry=(yb,yf),**tip_kwargs,
+    )
     total_x, total_y = float(xb[-1]), float(yb[-1])
     display_material = material.simplify(0.05, preserve_topology=True)
     clipped_material = display_material.intersection(box(0.0, 0.0, total_x, total_y))
@@ -894,6 +1039,24 @@ def folded_mesh_with_flat_uv_from_polygon(
             for value in (float(guide.span_start), float(guide.span_end)):
                 if 0.0 < value < total_y:
                     y_cuts.add(value)
+    # Mirror the existing folded_mesh_from_polygon finite-tip
+    # tessellation EXACTLY. This only subdivides connected V stock; it
+    # neither extends nor edits the operator's real source BEND.
+    for axis, station, outer_min, outer_max in tuple(fold_tip_continuity or ()):
+        dest = x_cuts if str(axis) == "y" else y_cuts
+        matched = [guide for guide in tuple(fold_guides or ())
+                   if str(guide.axis) == str(axis)
+                   and abs(float(guide.position)-float(station))<=1e-6]
+        if len(matched)!=1:
+            raise ValueError("WHD_FOLD_TIP_TESSELLATION_BEND_MISSING")
+        for start,stop in (
+            (float(outer_min),float(matched[0].span_start)),
+            (float(matched[0].span_end),float(outer_max)),
+        ):
+            for step in range(1,8):
+                point=start+(stop-start)*step/8.
+                if 0.<point<(total_x if str(axis)=="y" else total_y):
+                    dest.add(point)
     x_cuts = sorted(x_cuts)
     y_cuts = sorted(y_cuts)
 
@@ -1380,6 +1543,74 @@ def derive_side_back_split_endcap_bottom_relief(
     }
 
 
+def _has_integral_dwd_fold_owner(part):
+    """Only an authored, source-keyed one-piece D-W-D BoxBody owns this skin."""
+    render=getattr(part,"render_data",None)
+    topology=getattr(render,"unfolded_topology",None)
+    if (str(getattr(part,"part_key",""))!="box_body"
+            or str(getattr(part,"placement","")) not in {"box_body","body","cabinet"}
+            or getattr(render,"pieces",None)
+            or getattr(topology,"source",None)!="BOX_BODY_FOLD_PROFILE"):
+        return False
+    profile=tuple(getattr(part,"x_profile",()) or ())
+    keys=tuple(str(_segment_value(row,"phase6_key","") or "") for row in profile)
+    core=tuple((i,str(_segment_value(row,"core","") or ""))
+               for i,row in enumerate(profile) if _segment_value(row,"core"))
+    if (len(profile)!=9 or keys!=(
+            "zl1","zl2","fw_left","d_left","w","d_right",
+            "fw_right","zr2","zr1")
+            or core!=((3,"D"),(4,"W"),(5,"D"))):
+        return False
+    angles=tuple(_segment_value(row,"angle",None) for row in profile)
+    return all(
+        angle is not None and abs(abs(float(angle))-90.)<=1e-7
+        for angle in angles[:-1]
+    ) and angles[-1] is None
+
+
+def _integral_body_formed_outside_skins(mapped, placed, *, thickness):
+    """Physical integral D-W-D Box Body skins from its Fold INSIDE datum.
+
+    The source Fold chain is material-length geometry; a real adjacent
+    90-degree BEND owns the operator outside +T, so this is NOT a mid-surface
+    with a symmetric +/-T/2. Keep source vertices/triangles unchanged, with
+    one skin at the Fold datum and the other exactly T toward the cabinet
+    exterior. No XY scaling, changed CUTTING, BA or synthetic bend.
+    """
+    # The placed mesh is world-space; its own X/Z folded envelope is the
+    # translation-equivariant cabinet datum. A GLOBAL origin test turns
+    # left/rear skins inside-out when the cabinet receives an offset.
+    triangles=tuple(placed)
+    items=tuple(mapped)
+    if len(triangles)!=len(items):
+        raise ValueError("BOX_BODY_INTEGRAL_FOLD_SKIN_SOURCE_MISMATCH")
+    t=float(thickness)
+    if not math.isfinite(t) or t<=0:
+        raise ValueError("BOX_BODY_INTEGRAL_SHEET_THICKNESS_INVALID")
+    bounds=triangle_bounds(triangles)
+    center_x=(bounds[0][0]+bounds[0][1])/2.
+    center_z=(bounds[2][0]+bounds[2][1])/2.
+    result=[]
+    for item,mid in zip(items,triangles):
+        n=_triangle_unit_normal(mid)
+        if n is None:
+            raise ValueError("BOX_BODY_INTEGRAL_DEGENERATE_PHYSICAL_FACE")
+        centroid=tuple(sum(float(p[k]) for p in mid)/3. for k in range(3))
+        radial=n[0]*(centroid[0]-center_x)+n[2]*(centroid[2]-center_z)
+        if abs(radial)<=1e-8:
+            raise ValueError("BOX_BODY_INTEGRAL_OUTSIDE_FACE_DIRECTION_AMBIGUOUS")
+        outward=1. if radial>0. else -1.
+        outer=tuple(
+            tuple(float(p[k])+outward*t*n[k] for k in range(3))
+            for p in mid
+        )
+        result.extend((
+            MappedSkinTriangle(flat=item.flat,world=mid,side=-1),
+            MappedSkinTriangle(flat=item.flat,world=outer,side=1),
+        ))
+    return tuple(result)
+
+
 def build_joint_world_geometry(parts, finished_dimensions, sheet_thickness):
     """Build Joint Solver v2 world/UV maps from canonical AssemblyScenePart objects.
 
@@ -1457,18 +1688,24 @@ def build_joint_world_geometry(parts, finished_dimensions, sheet_thickness):
                 world_mid_piece = fit_receiving_left_zl1_world_mid(
                     piece, mapped, world_mid_piece, sheet_thickness=sheet_thickness,
                 )
-                skins = []
-                for item, world_mid in zip(mapped, world_mid_piece):
-                    normal = _triangle_unit_normal(world_mid)
-                    if normal is None:
-                        continue
-                    for side in (-1, 1):
-                        delta = tuple(float(side) * half * value for value in normal)
-                        world = tuple(
-                            tuple(float(point[i]) + delta[i] for i in range(3))
-                            for point in world_mid
-                        )
-                        skins.append(MappedSkinTriangle(flat=item.flat, world=world, side=side))
+                if (str(getattr(piece,"role","") or "").lower()=="integral"
+                        and _has_integral_dwd_fold_owner(body)):
+                    skins=list(_integral_body_formed_outside_skins(
+                        mapped,world_mid_piece,thickness=sheet_thickness,
+                    ))
+                else:
+                    skins = []
+                    for item, world_mid in zip(mapped, world_mid_piece):
+                        normal = _triangle_unit_normal(world_mid)
+                        if normal is None:
+                            continue
+                        for side in (-1, 1):
+                            delta = tuple(float(side) * half * value for value in normal)
+                            world = tuple(
+                                tuple(float(point[i]) + delta[i] for i in range(3))
+                                for point in world_mid
+                            )
+                            skins.append(MappedSkinTriangle(flat=item.flat, world=world, side=side))
                 piece_key = f"box_body:{str(getattr(piece, 'role', '') or '').strip().lower()}"
                 flat_material_by_part[piece_key] = piece.render_data.material
                 mapped_skin_triangles_by_part[piece_key] = tuple(skins)
@@ -1483,10 +1720,17 @@ def build_joint_world_geometry(parts, finished_dimensions, sheet_thickness):
             body_world_mid = place_assembly_triangles(
                 tuple(item.local for item in mapped), body.placement, finished_dimensions, body.offset
             )
-            skins = world_skin_with_flat_uv(
-                mapped, body.placement, finished_dimensions, offset=body.offset,
-                sheet_thickness=sheet_thickness,
-            )
+            # The operator's true D-W-D BoxBody Fold is an inside skin;
+            # other plain parts keep their original symmetric mid-surface.
+            if _has_integral_dwd_fold_owner(body):
+                skins = _integral_body_formed_outside_skins(
+                    mapped,body_world_mid,thickness=sheet_thickness,
+                )
+            else:
+                skins = world_skin_with_flat_uv(
+                    mapped,body.placement,finished_dimensions,
+                    offset=body.offset,sheet_thickness=sheet_thickness,
+                )
             flat_material_by_part["box_body"] = body.render_data.material
             mapped_skin_triangles_by_part["box_body"] = tuple(skins)
             world_triangles_by_part["box_body"] = tuple(item.world for item in skins)
