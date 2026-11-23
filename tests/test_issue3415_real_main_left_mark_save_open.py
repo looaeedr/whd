@@ -99,7 +99,11 @@ def test_real_main_left_committed_mark_saveas_new_root_open_designer_export(
 
     for roundtrip in (0, 1):
         root = tk.Tk()
-        root.withdraw()
+        # A real operator's Main window is visible. With withdraw(), the
+        # nested editor canvas stays 1x1, so no genuine mouse hit is possible.
+        root.geometry("1400x900+0+0")
+        root.update_idletasks()
+        root.update()
         host = None
         try:
             host = gui.BoxCalculatorGUI(root)
