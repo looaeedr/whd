@@ -293,6 +293,18 @@ jobs:
           python -m pytest -q tests/test_issue1959_native_windows_whd_button_e2e.py
           if ($LASTEXITCODE -ne 0) { throw "WHD_WINDOWS_NATIVE_TK_BUTTON_CADCRAFT_TCP_RED" }
           Write-Host "REAL_WINDOWS_WHD_TK_NATIVE_CADCRAFT_UNSAVED_RETURN_GREEN"
+      # #3415 diagnosis: run unchanged A before this step, and retain the
+      # same original Windows runner/Python/vendor binary even when A exits
+      # with the native fatal exception. B is a separate pytest interpreter.
+      - name: DIAGNOSTIC B after original A - full proof in short-lived child
+        if: ${{ !cancelled() }}
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $env:CADCRAFT_CONFIG_DIR = Join-Path $env:RUNNER_TEMP "issue1959-native-button-proof-after-A"
+          python -m pytest -q -s tests/test_issue3415_windows_native_proof_ab.py
+          if ($LASTEXITCODE -ne 0) { throw "WHD_3415_CHILD_B_AFTER_ORIGINAL_A_RED" }
+          Write-Host "WHD_3415_CHILD_B_AFTER_ORIGINAL_A_FULL_E2E_GREEN"
       - name: Windows native CADCraft draws actual WHD holes and saves disposable PNG DXF
         shell: pwsh
         run: |
