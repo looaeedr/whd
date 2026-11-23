@@ -182,7 +182,11 @@ def test_primary_group_four_l_member_edit_rotate_mirror_undo_save_reopen_dxf_b(
             canvas.event_generate("<ButtonRelease-1>", x=round(x), y=round(y))
             root.update()
             interim = tuple(f for f in state.live_context.feature_list if api.is_manual_group(f))
-            assert len(interim) == 1, ("PRIMARY_GROUP_TOOL_PLACEMENT_FAILED", kind)
+            assert len(interim) == 1, (
+                "PRIMARY_GROUP_TOOL_PLACEMENT_FAILED", kind,
+                state.manual_group_tool[0], state.manual_mark_mode[0],
+                state.manual_mark_status.cget("text"),
+            )
             assert api.group_parameters(interim[0])["kind"] == kind
             corners = dict(api.group_member_world_points(interim[0]))
             if kind == "cross":

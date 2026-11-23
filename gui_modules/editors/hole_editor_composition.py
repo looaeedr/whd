@@ -1195,6 +1195,8 @@ def _install_manual_marking_actions(s):
     s.editor._manual_marking_select = select_mode
     s.editor._manual_group_double = mark_double
     s.canvas.bind("<Double-Button-1>", mark_double)
+    s.canvas.bind("<Triple-Button-1>", mark_double)
+    s.canvas.bind("<Quadruple-Button-1>", mark_double)
 
 def _bind_editor_events(s):
     # CADCraft is an opt-in external inspection only. Re-resolve the active
