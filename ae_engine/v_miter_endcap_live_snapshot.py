@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 import hashlib
+import json
 
 from .contracts import EndCapPartSpec
 from .manufacturing_render_data import PartRenderData
@@ -10,6 +11,7 @@ from .sheetmetal_drawing import DrawingScene
 from .sheetmetal_geometry_core import GeometryError
 from .v_miter_corner_source import VMiterReliefMode
 from .v_miter_material_trial import _single_source_material
+from .v_miter_existing_circle_check import qualify_live_endcap_circle_source
 from .v_miter_operator_gui_check import (
     V_MITER_GUI_CORNER_KEYS,
     V_MITER_GUI_UNCERTIFIED,
@@ -42,7 +44,12 @@ def _bound_inputs(part_spec, render_data, corner_key, first_bend_axis, relief_mo
         relief_mode = VMiterReliefMode(relief_mode).value
     except ValueError as exc:
         raise GeometryError("V_MITER_LIVE_SOURCE_RELIEF_MODE_INVALID") from exc
-    scene = render_data.scene
+    # The old V1/V2 physical digest remains strictly single-CUTTING.
+    # Only this Custom EndCap live CHECK can qualify one real inner circle.
+    scoped, source_circle, _void = qualify_live_endcap_circle_source(
+        part_spec, render_data,
+    )
+    scene = scoped.scene
     _, _, x_h, y_h, _, _, x_bend, y_bend, x_angle, y_angle = (
         _bound_endcap_corner_bends(
             part_spec, scene, _single_source_material(scene), corner_key,
@@ -57,10 +64,25 @@ def _bound_inputs(part_spec, render_data, corner_key, first_bend_axis, relief_mo
         second_angle_deg=abs(second_angle), thickness_mm=part_spec.thickness,
         first_flange_height_mm=first_h, second_flange_height_mm=second_h,
     )
-    digest = hashlib.sha256("|".join((
+    components = [
         _ENDCAP_LIVE_CHECK_CONTRACT, fold_digest, corner_key,
         first_bend_axis, relief_mode,
-    )).encode("ascii")).hexdigest()
+    ]
+    if source_circle is not None:
+        # Source geometry and its already-verified actual material inner ring
+        # are 1:1. Bind the precise original circle so a +13 mm hole move
+        # invalidates the old record without altering the V1 envelope.
+        circle_row = [
+            "VERIFIED_CUSTOM_ENDCAP_CUTTING_CIRCLE_V1",
+            source_circle.center.x, source_circle.center.y,
+            source_circle.radius, source_circle.source_type,
+            source_circle.source_id,
+        ]
+        components.append(hashlib.sha256(json.dumps(
+            circle_row, ensure_ascii=False, allow_nan=False,
+            separators=(",", ":"),
+        ).encode("utf-8")).hexdigest())
+    digest = hashlib.sha256("|".join(components).encode("ascii")).hexdigest()
     return {
         "contract": _ENDCAP_LIVE_CHECK_CONTRACT,
         "manufacturing_status": V_MITER_GUI_UNCERTIFIED,
