@@ -3242,19 +3242,23 @@ def project_operator_tail_d4_check_native_world(
     The supplied Body must be the caller's actual Engine world geometry.
     This never changes an export, factory profile, project or DXF.
     """
+    from math import isfinite
     spec=flat.source_spec
+    def exact(value,expected):
+        return (type(value) in (int,float) and isfinite(value)
+                and abs(float(value)-expected)<=1e-7)
     if (
         spec.model_name!="金庫型"
-        or abs(float(spec.width)-620.)>1e-7
-        or abs(float(spec.depth)-185.)>1e-7
-        or abs(float(spec.thickness)-2.)>1e-7
-        or abs(float(spec.frame_width)-25.)>1e-7
-        or abs(float(spec.height)-600.)>1e-7
-        or abs(float(spec.fold_bottom)-48.)>1e-7
-        or abs(float(spec.fold_left)-15.)>1e-7
-        or abs(float(spec.fold_right)-15.)>1e-7
-        or abs(float(spec.fold_top)-16.)>1e-7
         or not spec.is_tail
+        or not exact(spec.width,620.)
+        or not exact(spec.depth,185.)
+        or not exact(spec.thickness,2.)
+        or not exact(spec.frame_width,25.)
+        or not exact(spec.height,600.)
+        or not exact(spec.fold_bottom,48.)
+        or not exact(spec.fold_left,15.)
+        or not exact(spec.fold_right,15.)
+        or not exact(spec.fold_top,16.)
     ):
         return None
     if first_axis not in ("x","y") or not box_body_world:
