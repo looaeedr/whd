@@ -508,9 +508,12 @@ def test_d4_lower_v_tip_2h_taper_stays_original_upper_source(first_axis):
     assert trial["v_world_open_seam_edges"]==0
     assert trial["v_extra_world_open_edges"]==0
     assert trial["v_world_open_edges"]==24
-    assert len(trial["straight_v_wall_sets"])==4
-    assert all(x["full_face_contact_proven"]
-               for x in trial["straight_v_wall_sets"])
+    assert len(trial["straight_v_wall_sets"])==2
+    assert all(
+        x["lower_triangles"]==2 and x["upper_triangles"]==2
+        and x["full_face_contact_proven"]
+        for x in trial["straight_v_wall_sets"]
+    )
     # The original midline/assembly reference and actual upper native
     # T skins are untouched even where upper Fold is already imperfect.
     for oa,ob in zip(triangle_bounds(native["v_surface"]),
