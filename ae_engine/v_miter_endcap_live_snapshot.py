@@ -171,7 +171,23 @@ def _verified_original_no_hole_fold_equivalence(
         current_rows, _ = _physical_sources(render_data.scene)
         canonical_rows, _ = _physical_sources(canonical.scene)
         legacy_rows, _ = _physical_sources(original.scene)
-        if current_rows != canonical_rows or current_rows != legacy_rows:
+        def same_physical_cutting_and_finite_bends(a, b):
+            # Project Open's original linked Fold reorders BEND rows and
+            # reverses p1/p2 without moving the actual finite segment.
+            # Do not relax either normal source hash: only this fully
+            # provenance-verified no-hole compatibility compares unoriented
+            # segments WITH multiplicity and exact CUTTING source.
+            cuts_a = [row for row in a if row[0] == "CUTTING"]
+            cuts_b = [row for row in b if row[0] == "CUTTING"]
+            def bends(rows):
+                return sorted(
+                    tuple(sorted((tuple(row[1]), tuple(row[2]))))
+                    for row in rows if row[0] == "BEND"
+                )
+            return cuts_a == cuts_b and bends(a) == bends(b)
+
+        if (not same_physical_cutting_and_finite_bends(current_rows, canonical_rows)
+                or not same_physical_cutting_and_finite_bends(current_rows, legacy_rows)):
             return False
         current_stock = _single_source_material(render_data.scene)
         canonical_stock = _single_source_material(canonical.scene)

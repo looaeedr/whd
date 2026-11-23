@@ -145,16 +145,28 @@ def test_original_3416_native_saved_nohole_opens_without_drift_but_w_change_reje
         rows_old, _ = _physical_sources(historical_render.scene)
         px, py = _endcap_existing_fold_angle_sources(spec, "head")
         bx, by = _endcap_existing_fold_angle_sources(historical_spec, "head")
-        print("LEGACY_NATIVE_SOURCE_DIAGNOSTIC", {
-            "saved_digest": old_digest,
-            "rebuilt_old_digest": refold["source_fold_sha256"],
-            "physical_rows_equal": rows_now == rows_old,
-            "current_rows": rows_now,
-            "old_rows": rows_old,
-            "current_fold": [(r.phase6_key, r.length, r.angle) for r in py],
-            "historical_fold": [(r.phase6_key, r.length, r.angle) for r in by],
-            "compatible": _verified_original_no_hole_fold_equivalence(spec, render, source[KEY]["head"]["bottom_left"]),
-        }, flush=True)
+        assert refold["source_fold_sha256"] == old_digest
+        # Old real Factory produces the *same* finite BEND segments, with
+        # harmless reversal of endpoint direction and ordered presentation.
+        # Test both the physical source and the engine's narrow compatibility.
+        def physical_bends(rows):
+            return sorted(
+                tuple(sorted((tuple(row[1]), tuple(row[2]))))
+                for row in rows if row[0] == "BEND"
+            )
+        assert [r for r in rows_now if r[0] == "CUTTING"] == [
+            r for r in rows_old if r[0] == "CUTTING"
+        ]
+        assert physical_bends(rows_now) == physical_bends(rows_old)
+        assert [(r.length, r.angle) for r in px] == [
+            (r.length, r.angle) for r in bx
+        ]
+        assert [(r.length, r.angle) for r in py] == [
+            (r.length, r.angle) for r in by
+        ]
+        assert _verified_original_no_hole_fold_equivalence(
+            spec, render, source[KEY]["head"]["bottom_left"]
+        )
         errors.clear()
         app.v_miter_check_source_button.invoke()
         assert not errors, errors
@@ -165,6 +177,29 @@ def test_original_3416_native_saved_nohole_opens_without_drift_but_w_change_reje
         assert getattr(app, ATTR)["head"]["bottom_left"]["source_fold_sha256"] == old_digest
         close_saved_live_check_window(app)
         app.w_var.set(str(float(app.w_var.get()) + 10))
+        errors.clear()
+        app.v_miter_check_source_button.invoke()
+        assert errors and "V_MITER_LIVE_SOURCE_CHANGED" in errors[-1][1]
+        assert getattr(app, "_endcap_live_saved_check_window", None) is None
+        assert original_file.read_bytes() == original_bytes
+        # A real authored -75.5 degree lower FW change on that SAME old
+        # project must remain stale even though its 2D finite BEND can stay
+        # in the same coordinates (do not downgrade signed Fold to geometry).
+        app._apply_phase6_project_snapshot(source)
+        _select_head(app)
+        profiles = app.workspace_controller.part_profiles_snapshot()
+        edited = deepcopy(profiles["head"])
+        fw_rows = [row for row in edited["Y"] if row.get("phase6_key") == "fw"]
+        assert len(fw_rows) == 1
+        fw_rows[0]["angle"] = -75.5
+        profiles["head"] = edited
+        owner = app.workspace_controller.workspace_snapshot()
+        owner["part_profiles"] = profiles
+        app.workspace_controller.commit_workspace(owner)
+        now = app._make_original_fold_designer_snapshot()
+        _, _, edited_spec, edited_render = _selected_source(app, now)
+        assert any(row.phase6_key == "fw" and row.angle == -75.5
+                   for row in edited_spec.fold_profile_y)
         errors.clear()
         app.v_miter_check_source_button.invoke()
         assert errors and "V_MITER_LIVE_SOURCE_CHANGED" in errors[-1][1]
