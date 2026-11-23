@@ -472,3 +472,49 @@ def test_real_finite_bend_extension_does_not_authorize_infinite_mark(actual_shee
                 "base_plate", context, (), midpoint=Vec2(target_x, yy),
                 length=6, angle_deg=90,
             )
+
+
+def test_real_tk_sync_warns_when_existing_mark_conflicts_with_new_blank_hole(actual_sheet):
+    """The real editor sync catches invalid MARKING but not unrelated errors."""
+    import tkinter as tk
+    from types import SimpleNamespace
+    from gui_modules.editors.hole_editor_composition import _guard_manual_marking_sync
+
+    _source, _render, context, _center, _angle = actual_sheet
+    dashed = _mark(actual_sheet, pattern="dashed")
+    p1, p2 = dashed.points
+    blank_point = Vec2(p1.x + (p2.x-p1.x)*3/12,
+                       p1.y + (p2.y-p1.y)*3/12)
+    hole = CircleFeature(
+        diameter=0.5, anchor=FeatureAnchor.ABSOLUTE_FINISHED_FACE,
+        offset=blank_point, layer="CUTTING",
+    )
+    pending = [dashed, hole]
+    root = tk.Tk()
+    try:
+        status = tk.Label(root)
+        confirm = tk.Button(root, text="確定")
+        original_calls = []
+        def failing_publisher():
+            original_calls.append(tuple(pending))
+            raise ValueError("canonical physical publisher rejected candidate")
+        state = SimpleNamespace(
+            part_key="base_plate", manual_marking_context=context,
+            live_context=SimpleNamespace(feature_list=pending),
+            d=SimpleNamespace(tk=tk, manufacturing_api=api),
+            sync_all=failing_publisher,
+            confirm_all_btn=confirm, manual_mark_status=status,
+        )
+        _guard_manual_marking_sync(state)
+        state.sync_all()
+        assert len(original_calls) == 1
+        assert tuple(pending) == (dashed, hole)  # no silent trimming/deletion
+        assert confirm.cget("state") == tk.DISABLED
+        assert status.cget("fg") == "#ff453a"
+        assert "完整筆畫" in status.cget("text")
+
+        pending.pop()  # after Undo, an unrelated publisher error still raises
+        with pytest.raises(ValueError, match="canonical physical publisher"):
+            state.sync_all()
+    finally:
+        root.destroy()
