@@ -1513,6 +1513,45 @@ def derive_side_back_split_endcap_bottom_relief(
     }
 
 
+def _integral_body_formed_outside_skins(mapped, placed, *, thickness):
+    """Physical integral D-W-D Box Body skins from its Fold INSIDE datum.
+
+    The source Fold chain is material-length geometry; a real adjacent
+    90-degree BEND owns the operator outside +T, so this is NOT a mid-surface
+    with a symmetric +/-T/2. Keep source vertices/triangles unchanged, with
+    one skin at the Fold datum and the other exactly T toward the cabinet
+    exterior. No XY scaling, changed CUTTING, BA or synthetic bend.
+    """
+    from .assembly_geometry_primitives import triangle_bounds
+
+    triangles=tuple(placed)
+    items=tuple(mapped)
+    if len(triangles)!=len(items):
+        raise ValueError("BOX_BODY_INTEGRAL_FOLD_SKIN_SOURCE_MISMATCH")
+    t=float(thickness)
+    if not math.isfinite(t) or t<=0:
+        raise ValueError("BOX_BODY_INTEGRAL_SHEET_THICKNESS_INVALID")
+    result=[]
+    for item,mid in zip(items,triangles):
+        n=_triangle_unit_normal(mid)
+        if n is None:
+            raise ValueError("BOX_BODY_INTEGRAL_DEGENERATE_PHYSICAL_FACE")
+        centroid=tuple(sum(float(p[k]) for p in mid)/3. for k in range(3))
+        radial=n[0]*centroid[0]+n[2]*centroid[2]
+        if abs(radial)<=1e-8:
+            raise ValueError("BOX_BODY_INTEGRAL_OUTSIDE_FACE_DIRECTION_AMBIGUOUS")
+        outward=1. if radial>0. else -1.
+        outer=tuple(
+            tuple(float(p[k])+outward*t*n[k] for k in range(3))
+            for p in mid
+        )
+        result.extend((
+            MappedSkinTriangle(flat=item.flat,world=mid,side=-1),
+            MappedSkinTriangle(flat=item.flat,world=outer,side=1),
+        ))
+    return tuple(result)
+
+
 def build_joint_world_geometry(parts, finished_dimensions, sheet_thickness):
     """Build Joint Solver v2 world/UV maps from canonical AssemblyScenePart objects.
 
