@@ -285,9 +285,13 @@ def test_real_integral_body_plain_main_3d_matches_source_formed_outside_and_coll
         structure_state=default_box_body_structure_state(),
         head_ybottom1=15.,tail_ybottom1=48.,
     ))
+    raw_body=structural.canonical_strip_render_data
+    _minx,miny,_maxx,maxy=map(float,raw_body.material.bounds)
+    physical_y_profile=({"len":maxy-miny,"core":True},)
     plain=AssemblyScenePart(
-        part_key="box_body",render_data=structural.canonical_strip_render_data,
-        x_profile=tuple(profile),y_profile=(),placement="box_body",
+        part_key="box_body",render_data=raw_body,
+        x_profile=tuple(profile),y_profile=physical_y_profile,
+        placement="box_body",
     )
     request=FinalSceneViewRequest(
         render_data=AssemblySceneRenderData(assembly_parts=(plain,)),
