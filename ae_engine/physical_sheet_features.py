@@ -22,7 +22,7 @@ def with_physical_sheet_features(key, render, features):
     surface, width, height, _ = physical_sheet_feature_context(key, render)
     normalized = tuple(legacy_hole_to_feature(dict(f)) if isinstance(f, Mapping) else f
                        for f in features)
-    from .operator_manual_marking import validate_physical_manual_markings
+    from .operator_manual_marking import is_manual_mark, validate_physical_manual_markings
     validate_physical_manual_markings(
         key, render, normalized, surface=surface, width=width, height=height,
     )
@@ -30,4 +30,11 @@ def with_physical_sheet_features(key, render, features):
     scene = DrawingScene()
     scene.extend(render.scene.primitives)
     scene.extend(resolved_features_to_primitives(resolved))
-    return replace(render, scene=scene, material=material_polygon_from_final_scene(scene))
+    marked = tuple(feature for feature in normalized if is_manual_mark(feature))
+    metadata = dict(getattr(render, "metadata", None) or {})
+    if marked:
+        metadata["manual_marking_v1_features"] = marked
+    return replace(
+        render, scene=scene, material=material_polygon_from_final_scene(scene),
+        metadata=metadata,
+    )

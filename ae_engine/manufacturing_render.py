@@ -7,6 +7,8 @@
 """Bounded render-data orchestration for canonical manufacturing output."""
 from __future__ import annotations
 
+from dataclasses import replace
+
 from .contracts import BoxBodyPartSpec, EndCapPartSpec, BasePlatePartSpec
 from .cabinet_types import policy as cabinet_family_policy
 
@@ -150,13 +152,18 @@ def build_part_render_data(
     if isinstance(spec, BasePlatePartSpec):
         from .operator_manual_marking import (
             is_manual_mark, validate_physical_manual_markings,
+            require_first_sheet_manual_marking_spec,
         )
         authored = tuple(
             feature for feature in tuple(getattr(spec, "features", ()) or ())
             if is_manual_mark(feature)
         )
         if authored:
+            require_first_sheet_manual_marking_spec(spec)
             validate_physical_manual_markings(
                 str(spec.physical_id or "base_plate"), render_data, authored,
             )
+            metadata = dict(getattr(render_data, "metadata", None) or {})
+            metadata["manual_marking_v1_features"] = authored
+            render_data = replace(render_data, metadata=metadata)
     return render_data

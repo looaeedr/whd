@@ -21,9 +21,122 @@ from .sheetmetal_drawing import (
 MANUAL_MARK_SOURCE = "WHD_MANUAL_MARKING_V1"
 _EPS = 1e-7
 
+def require_first_sheet_manual_marking_spec(spec):
+    """The #3412 release is ONLY the real Receiving LEFT physical BasePlate.
+
+    A generic Vault/unknown BasePlate with the same part key is not this
+    source.  This is an *additional* marking gate, never DXF certification.
+    """
+    from .cabinet_types.policy import canonical_family_name
+    from .contracts import BasePlatePartSpec
+    from .sheetmetal_part_adapters import RECEIVING_BASE_PATTERN_LEFT
+    if (not isinstance(spec, BasePlatePartSpec)
+            or canonical_family_name(spec.model_name) != "受電箱"
+            or spec.physical_id != "base_plate"
+            or spec.receiving_bend_pattern != RECEIVING_BASE_PATTERN_LEFT
+            or spec.corner_policy is not None
+            or bool(spec.seam_positions)
+            or spec.receiving_nfb_depth_pair_mm is not None):
+        raise ValueError("MANUAL_MARKING_V1_UNSUPPORTED_SOURCE")
+
+
+def require_first_sheet_manual_marking_render(part_key, render):
+    """Require source-labelled *real* material topology and finite BEND spans.
+
+    Identity is not established by a caller's 'base_plate' string.  The
+    original registered LEFT BasePlate PartSpec must supply this metadata,
+    three Y material segments, and two full-span finite real BENDs.
+    """
+    from .manufacturing_render_data import fold_guides_from_final_scene
+    from .sheetmetal_part_adapters import RECEIVING_BASE_PATTERN_LEFT
+
+    if part_key != "base_plate" or render is None:
+        raise ValueError("MANUAL_MARKING_V1_UNSUPPORTED_SOURCE")
+    meta = getattr(render, "metadata", None) or {}
+    topology = getattr(render, "unfolded_topology", None)
+    if (meta.get("stable_id") != "base_plate"
+            or meta.get("receiving_bend_pattern") != RECEIVING_BASE_PATTERN_LEFT
+            or getattr(topology, "piece_id", None) != "base_plate"
+            or getattr(topology, "source", None) != "RECEIVING_BASE_BEND"):
+        raise ValueError("MANUAL_MARKING_V1_UNSUPPORTED_SOURCE")
+    xs = tuple(getattr(topology, "x_segments", ()) or ())
+    ys = tuple(getattr(topology, "y_segments", ()) or ())
+    if len(xs) != 1 or len(ys) != 3 or any(
+        not isfinite(float(row.length)) or float(row.length) <= 0
+        for row in xs + ys
+    ):
+        raise ValueError("MANUAL_MARKING_V1_UNSUPPORTED_SOURCE")
+    material = getattr(render, "material", None)
+    if material is None or getattr(material, "is_empty", True):
+        raise ValueError("MANUAL_MARKING_V1_UNSUPPORTED_SOURCE")
+    minx, miny, maxx, maxy = material.bounds
+    if (abs(minx) > _EPS or abs(miny) > _EPS
+            or abs((maxx - minx) - float(xs[0].length)) > 1e-6
+            or abs((maxy - miny) - sum(float(row.length) for row in ys)) > 1e-6):
+        raise ValueError("MANUAL_MARKING_V1_UNSUPPORTED_SOURCE")
+    guides = fold_guides_from_final_scene(render.scene)
+    stations = (float(ys[0].length), float(ys[0].length + ys[1].length))
+    if (len(guides) != 2 or any(
+        guide.axis != "y"
+        or abs(guide.position - station) > 1e-6
+        or abs(guide.span_start - minx) > 1e-6
+        or abs(guide.span_end - maxx) > 1e-6
+        for guide, station in zip(sorted(guides, key=lambda row: row.position), stations)
+    )):
+        raise ValueError("MANUAL_MARKING_V1_UNSUPPORTED_SOURCE")
+    return render
+
+
+def first_sheet_manual_marking_supported(part_key, render):
+    """GUI capability projection, not an authorization or material builder."""
+    try:
+        require_first_sheet_manual_marking_render(part_key, render)
+    except (ValueError, TypeError, AttributeError, OverflowError):
+        return False
+    return True
+
+
+def _manual_marking_scene_primitives(scene):
+    rows = tuple(getattr(scene, "primitives", ()) or ())
+    return tuple(row for row in rows
+                 if getattr(row, "semantic_id", None) == MANUAL_MARK_SOURCE
+                 or getattr(row, "source_type", None) == MANUAL_MARK_SOURCE)
+
+
+def verify_manual_marking_output(render):
+    """Hard gate at the public DXF sink, independent of the editor/PartSpec.
+
+    Validate complete authored strokes against the CURRENT scene CUTTING,
+    including holes in dashed blank space.  Check exact real ink primitives:
+    no dropped/reordered/stale segments and no unauthorised CustomFold export.
+    """
+    scene = getattr(render, "scene", None)
+    marked = _manual_marking_scene_primitives(scene)
+    metadata = dict(getattr(render, "metadata", None) or {})
+    authored = tuple(metadata.get("manual_marking_v1_features") or ())
+    if not marked and not authored:
+        return
+    part_id = metadata.get("stable_id")
+    require_first_sheet_manual_marking_render(part_id, render)
+    if not authored:
+        raise ValueError("MANUAL_MARKING_V1_MISSING_AUTHORED_STROKE")
+    if not all(is_manual_mark(f) for f in authored):
+        raise ValueError("MANUAL_MARKING_V1_MISSING_AUTHORED_STROKE")
+    validate_physical_manual_markings(part_id, render, authored)
+    expected = tuple((tuple(points), closed) for mark in authored
+                     for layer, points, closed in mark.layered_profiles)
+    actual = tuple((tuple(row.points), row.closed) for row in marked
+                   if isinstance(row, PolylinePrimitive)
+                   and row.semantic_id == MANUAL_MARK_SOURCE)
+    if len(marked) != len(expected) or actual != expected:
+        raise ValueError("MANUAL_MARKING_V1_SCENE_STROKES_CHANGED")
+
+
 
 def is_manual_mark(feature):
-    return isinstance(feature, ProfileFeature) and feature.source_type == MANUAL_MARK_SOURCE
+    if isinstance(feature, Mapping):
+        return feature.get("source_type") == MANUAL_MARK_SOURCE
+    return getattr(feature, "source_type", None) == MANUAL_MARK_SOURCE
 
 
 def _finite(raw, label, *, positive=False):
@@ -66,7 +179,9 @@ def _segments(a, b, pattern, dash, gap):
 
 
 def _source_pattern(feature):
-    if (feature.layer != "MARKING" or feature.anchor is not FeatureAnchor.ABSOLUTE_FINISHED_FACE
+    if (not isinstance(feature, ProfileFeature)
+            or feature.layer != "MARKING"
+            or feature.anchor is not FeatureAnchor.ABSOLUTE_FINISHED_FACE
             or feature.rotation_deg != 0 or feature.offset != Vec2(0.0, 0.0)
             or len(feature.points) != 2):
         raise ValueError("手動打標已存的來源形狀不合法")
@@ -137,6 +252,7 @@ def validate_physical_manual_markings(part_key, render, features, *,
     marks = tuple(f for f in normalized if is_manual_mark(f))
     if not marks:
         return ()
+    require_first_sheet_manual_marking_render(part_key, render)
     if not any(isinstance(p, LinePrimitive) and str(p.layer).upper() == "BEND"
                and hypot(p.p2.x-p.p1.x, p.p2.y-p.p1.y) > _EPS
                for p in getattr(render.scene, "primitives", ())):
@@ -178,6 +294,7 @@ def create_physical_manual_marking(part_key, context, existing_features, *,
 
     if not isinstance(context, PhysicalSheetEditorContext) or context.part_key != part_key:
         raise ValueError("手動打標物理板件身分不一致")
+    require_first_sheet_manual_marking_render(part_key, context.render_data)
     if not isinstance(midpoint, Vec2):
         raise ValueError("手動打標中點必須是物理座標")
     mx, my = _finite(midpoint.x, "中點 X"), _finite(midpoint.y, "中點 Y")

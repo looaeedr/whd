@@ -349,7 +349,9 @@ def _build_reference_stack(s):
         overlay_widgets={"x_group": x_group, "y_group": y_group, "panel": ref_panel},
     )
     sync_coordinator = d._HoleEditorSyncCoordinator(
-        sync_callback=s.sync_callback, draw_preview=s.host.draw_preview,
+        sync_callback=(None if getattr(s, "defer_workspace_sync", False)
+                       else s.sync_callback),
+        draw_preview=s.host.draw_preview,
     )
     s.sync_all = sync_coordinator.sync_all
     created_list_presentation = d._HoleEditorCreatedListPresentation(
@@ -727,6 +729,7 @@ def _build_navigation_and_lifecycle(s):
         insert_mode=s.insert_mode,
         set_insert_mode=s.set_insert_mode,
         cancel_active_edit=s.cancel_active_edit,
+        sync_on_cancel=not getattr(s, "skip_cancel_sync", False),
     )
     if str(s.part_key).startswith("inner_door:"):
         def accept_verified_openings(verified):
@@ -1275,7 +1278,8 @@ def open_unified_hole_editor(
     on_close=None, on_confirm=None, on_confirm_features=None,
     baseline_scene=None, baseline_status_text=None,
     indicator_component_context_provider=None, cabinet_reference_guide=None,
-    local_reference_guide=None, manual_marking_context=None, *, dependencies,
+    local_reference_guide=None, manual_marking_context=None,
+    defer_workspace_sync=False, skip_cancel_sync=False, *, dependencies,
 ):
     s = SimpleNamespace(
         host=host, d=dependencies, part_key=part_key, title=title, surface=surface,
@@ -1293,6 +1297,8 @@ def open_unified_hole_editor(
         baseline_status_text=baseline_status_text,
         indicator_component_context_provider=indicator_component_context_provider,
         manual_marking_context=manual_marking_context,
+        defer_workspace_sync=defer_workspace_sync,
+        skip_cancel_sync=skip_cancel_sync,
     )
     _prepare_model(s)
     _build_shell_and_indicator(s)
