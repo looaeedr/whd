@@ -144,7 +144,8 @@ def _owned_index(scene: DrawingScene, bend: LinePrimitive) -> int:
 def _bound_endcap_fold_sha256(
     part_spec, scene: DrawingScene, first: LinePrimitive,
     second: LinePrimitive, corner_key: str, *,
-    second_angle_deg: float,
+    second_angle_deg: float, thickness_mm: float,
+    first_flange_height_mm: float, second_flange_height_mm: float,
 ) -> str:
     """Bind a CHECK snapshot to authored signed Fold as well as physical BEND.
 
@@ -155,37 +156,50 @@ def _bound_endcap_fold_sha256(
     from .contracts import EndCapPartSpec
     from .v_miter_material_trial import _single_source_material
     from .v_miter_operator_gui_check import (
-        V_MITER_GUI_CORNER_KEYS, _endcap_existing_fold_angle_sources,
-        _partspec_corner_fold_station, _physical_corner_bends,
+        V_MITER_GUI_CORNER_KEYS, _bound_endcap_corner_bends,
+        _endcap_existing_fold_angle_sources,
     )
     if not isinstance(part_spec, EndCapPartSpec):
         raise GeometryError("V_MITER_SNAPSHOT_ENDCAP_SOURCE_REQUIRED")
     if type(corner_key) is not str or corner_key not in V_MITER_GUI_CORNER_KEYS:
         raise GeometryError("V_MITER_SNAPSHOT_PHYSICAL_CORNER_REQUIRED")
-    bounds = _single_source_material(scene).bounds
-    px, py = _endcap_existing_fold_angle_sources(
-        part_spec, "tail" if part_spec.is_tail else "head",
+    material = _single_source_material(scene)
+    *source, x_angle, y_angle = _bound_endcap_corner_bends(
+        part_spec, scene, material, corner_key,
     )
-    x_station, x_angle = _partspec_corner_fold_station(
-        px, bounds[0], near_min=corner_key.endswith("left"),
-    )
-    y_station, y_angle = _partspec_corner_fold_station(
-        py, bounds[1], near_min=corner_key.startswith("bottom"),
-    )
-    *_, real_x, real_y = _physical_corner_bends(
-        scene, _single_source_material(scene), corner_key,
-        expected_stations=(x_station, y_station),
-    )
+    _, _, x_height, y_height, _, _, real_x, real_y = source
     if first is real_x and second is real_y:
         first_angle, second_angle = x_angle, y_angle
+        first_height, second_height = x_height, y_height
     elif first is real_y and second is real_x:
         first_angle, second_angle = y_angle, x_angle
+        first_height, second_height = y_height, x_height
     else:
         raise GeometryError("V_MITER_SNAPSHOT_SELECTED_BEND_IDENTITY_MISMATCH")
     if (abs(abs(first_angle) - 90) > 1e-8
             or first_angle * second_angle <= 0
             or abs(abs(second_angle) - second_angle_deg) > 1e-8):
         raise GeometryError("V_MITER_SNAPSHOT_AUTHORED_FOLD_ANGLE_MISMATCH")
+
+    # Physical T and both flange reaches belong to current PartSpec/FinalScene.
+    # A saved CHECK may not supply plausible but unrelated operator numbers.
+    for field, value in (
+        ("thickness_mm", thickness_mm),
+        ("first_flange_height_mm", first_flange_height_mm),
+        ("second_flange_height_mm", second_flange_height_mm),
+    ):
+        if type(value) not in (int, float) or not math.isfinite(value) or value <= 0:
+            raise GeometryError(f"V_MITER_SNAPSHOT_{field.upper()}_INVALID")
+    source_t = part_spec.thickness
+    if (type(source_t) not in (int, float) or not math.isfinite(source_t)
+            or source_t <= 0 or abs(source_t - thickness_mm) > 1e-8):
+        raise GeometryError("V_MITER_SNAPSHOT_SOURCE_THICKNESS_MISMATCH")
+    if (abs(first_height - first_flange_height_mm) > 1e-6 or
+            abs(second_height - second_flange_height_mm) > 1e-6):
+        raise GeometryError("V_MITER_SNAPSHOT_SOURCE_FLANGE_HEIGHT_MISMATCH")
+    px, py = _endcap_existing_fold_angle_sources(
+        part_spec, "tail" if part_spec.is_tail else "head",
+    )
     fields = ("width", "depth", "thickness", "frame_width", "model_name",
               "is_tail", "fold_left", "fold_right", "fold_top",
               "fold_bottom", "depth_comp_t")
@@ -195,11 +209,17 @@ def _bound_endcap_fold_sha256(
             for row in profile
         ]
     payload = {
-        "revision": "V_MITER_ENDCAP_AUTHORED_FOLD_SOURCE_SHA256_V1",
+        "revision": "V_MITER_ENDCAP_AUTHORED_FOLD_SOURCE_SHA256_V2",
         "part_spec": {name: getattr(part_spec, name) for name in fields},
         "fold_profile_x": profile_rows(px),
         "fold_profile_y": profile_rows(py),
         "corner_key": corner_key,
+        "bound_operator_inputs": {
+            "thickness_mm": float(thickness_mm),
+            "first_flange_height_mm": float(first_flange_height_mm),
+            "second_flange_height_mm": float(second_flange_height_mm),
+            "second_fold_angle_deg": float(second_angle_deg),
+        },
         "source_geometry_sha256": _source_geometry_sha256(
             scene, selected_physical_indices=(
                 _owned_index(scene, first), _owned_index(scene, second),
@@ -303,6 +323,9 @@ def capture_v_miter_relief_trial_snapshot(
         {"source_fold_sha256": _bound_endcap_fold_sha256(
             part_spec, scene, v_edge_bend, second_bend, corner_key,
             second_angle_deg=q.second_fold_angle_deg,
+            thickness_mm=q.thickness_mm,
+            first_flange_height_mm=q.first_flange_height_mm,
+            second_flange_height_mm=q.second_flange_height_mm,
         ), "source_corner_key": corner_key}
         if part_spec is not None else {}
     )
@@ -385,6 +408,9 @@ def _resolve_saved_trial_source(
         actual = _bound_endcap_fold_sha256(
             part_spec, scene, first, second, snapshot["source_corner_key"],
             second_angle_deg=parameters["second_fold_angle_deg"],
+            thickness_mm=parameters["thickness_mm"],
+            first_flange_height_mm=parameters["first_flange_height_mm"],
+            second_flange_height_mm=parameters["second_flange_height_mm"],
         )
         if actual != snapshot["source_fold_sha256"]:
             raise GeometryError("V_MITER_SNAPSHOT_AUTHORED_FOLD_SOURCE_CHANGED")
