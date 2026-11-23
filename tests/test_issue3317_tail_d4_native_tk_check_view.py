@@ -508,10 +508,15 @@ def test_actual_whd_gui_d4_check_window_four_factory_holes_and_native_world(
             assert trial["v_seam_uv_positions"] and all(
                 gap<=1e-6 for _,gap in trial["v_seam_uv_positions"]
             ),("D4_SOURCE_CONNECTED_SEAM_MISMATCH",axis)
+            assert trial["v_world_open_seam_edges"]==0,(
+                "D4_SOURCE_SEAM_PHYSICAL_OPEN_EDGE",
+                axis,trial["v_world_open_seam_edges"],
+            )
             import warnings
             warnings.warn(
                 "ISSUE3317_SHARED_UV_PHYSICAL_EDGE_COUNTS="+repr((
                     axis,trial["v_world_open_edges"],
+                    trial["v_world_open_seam_edges"],
                     trial["v_world_four_edges"],
                     trial["v_world_multi_edges"],
                     len(trial["v_source_uv"]),
