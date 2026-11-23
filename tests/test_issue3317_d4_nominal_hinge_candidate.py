@@ -204,3 +204,65 @@ def test_w620_nominal_hinge_trial_keeps_true_v_and_native_assembly(first_axis):
         assert a==pytest.approx(b,abs=1e-6),(label,a,b)
     # Never conflate same-source V wall contact with cross-part nonpenetration.
     assert len(body)>0
+
+
+def _left_side_lower_inner_skin_pair_intersection(candidate):
+    """Source-identified lower Ø4 side collar, not a same-XYZ V contact."""
+    from shapely.geometry import Point,Polygon
+    sample_uv=((14.934562,46.001071),(14.869194,46.004282))
+    selected=[]
+    for uv in sample_uv:
+        candidates=[]
+        for fid,face in enumerate(candidate["v_source_faces"]):
+            points=tuple(candidate["v_source_uv"][i] for i in face)
+            region=Polygon(points)
+            if region.area<=1e-10 or not region.buffer(1e-7).covers(Point(uv)):
+                continue
+            # The two triangles for each indexed source face are plus and
+            # minus T skins. Use ONLY the inward skin, never cut walls.
+            triangle=candidate["v_solid"][fid*2+1]
+            candidates.append((fid,points,triangle))
+        assert candidates,("D4_LEFT_COLLAR_REAL_SOURCE_POINT_MISSING",uv)
+        selected.append(candidates)
+    overlaps=[]
+    for fid_a,source_a,tri_a in selected[0]:
+        for fid_b,source_b,tri_b in selected[1]:
+            if fid_a==fid_b:
+                continue
+            # Both offending skins lie in the same real X=-305 plane.
+            if max(abs(p[0]-tri_a[0][0]) for p in tri_a+tri_b)>1e-6:
+                continue
+            pa=Polygon(tuple((p[1],p[2]) for p in tri_a))
+            pb=Polygon(tuple((p[1],p[2]) for p in tri_b))
+            if pa.area>1e-9 and pb.area>1e-9:
+                overlaps.append(pa.intersection(pb).area)
+    return max(overlaps,default=0.)
+
+
+@pytest.mark.parametrize("first_axis",("x","y"))
+def test_d4_left_relief_side_collar_inner_skin_no_double_material(first_axis):
+    """Real UV witnesses that used to penetrate on the lower side X skin."""
+    flat,_=build_tail_d4_check_from_original(default_vault_tail_d4_spec())
+    body=_real_w620_body()
+    original=project_tail_d4_shared_original_fold_candidate(
+        flat,first_axis=first_axis,box_body_world=body,
+    )
+    repaired=project_tail_d4_shared_original_fold_candidate(
+        flat,first_axis=first_axis,box_body_world=body,nominal_hinge=True,
+    )
+    original_overlap=_left_side_lower_inner_skin_pair_intersection(original)
+    repaired_overlap=_left_side_lower_inner_skin_pair_intersection(repaired)
+    assert original_overlap>1.,(
+        "D4_LEFT_COLLAR_INDEPENDENT_RED_NOT_REPRODUCED",
+        first_axis,original_overlap,
+    )
+    assert repaired_overlap<=1e-7,(
+        "D4_LEFT_COLLAR_TRUE_SOURCE_INNER_SKINS_STILL_OVERLAP",
+        first_axis,repaired_overlap,
+    )
+    assert repaired["v_world_four_edges"]==8
+    assert repaired["v_world_open_seam_edges"]==0
+    assert repaired["v_world_open_edges"]==28
+    assert all(r["full_face_contact_proven"]
+               for r in repaired["straight_v_wall_sets"])
+    assert not repaired["manufacturing_approved"]
