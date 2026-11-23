@@ -135,6 +135,20 @@ def test_real_main_left_committed_mark_saveas_new_root_open_designer_export(
                     fields[key].set(str(value))
                 rendered["extension_state"]["receiving_base_plate_apply_button"].invoke()
                 assert designer._phase6_input_snapshot["receiving_base_plate"] == LEFT
+                # The legacy project legitimately contains no BasePlate at
+                # all. A committed source does not silently add a physical
+                # part: use the real Designer "新增板件" Tk Menu command.
+                assert "base_plate" not in designer.designer_workspace.available_parts
+                add_menu = designer.add_part_menu
+                plate_rows = [
+                    index for index in range(add_menu.index("end") + 1)
+                    if add_menu.type(index) == "command"
+                    and "底板" in add_menu.entrycget(index, "label")
+                ]
+                assert len(plate_rows) == 1, "REAL_ADD_BASE_PLATE_MENU_NOT_FOUND"
+                add_menu.invoke(plate_rows[0])
+                root.update()
+                assert "base_plate" in designer.designer_workspace.available_parts
                 spec, ctx = _real_part(host)
                 assert spec.receiving_bend_pattern == RECEIVING_BASE_PATTERN_LEFT
                 assert spec.corner_policy is None
