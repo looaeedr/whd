@@ -504,14 +504,20 @@ def show_tail_d4_check(self, namespace):
                 resolved_render_data=raw_tail.render_data,
             )
             current=dict(getattr(app,"_phase6_input_snapshot",{}) or {})
-            status=manufacturing_api.project_operator_tail_lower_v_first_bend_status(
-                current,
+            # Source identity, not an X/Y display label, is authoritative.
+            # A recorded finite BEND can become stale without changing the
+            # operator's selected axis. Validate against the SAME detached
+            # original spec/raw used for this CHECK, before painting or DXF.
+            # No record is the legacy display-only X/X default; it is never
+            # committed or interpreted as a manufacturing selection.
+            recorded=current.get(
+                manufacturing_api.TAIL_LOWER_V_FIRST_BENDS_KEY,
             )
-            left=status.get("bottom_left")
-            right=status.get("bottom_right")
-            # Two real choices already exist in native Settings; when not
-            # committed, display X/X CHECK explicitly, without saving it.
-            axis=left if left==right and left in ("x","y") else "x"
+            axis=manufacturing_api.validate_operator_tail_lower_v_first_bends(
+                recorded,spec=spec,render_data=raw,
+            )
+            if axis is None:
+                axis="x"
             dimensions=tuple(
                 float(v) for v in operator_finished_dimensions_for_app(app)
             )
