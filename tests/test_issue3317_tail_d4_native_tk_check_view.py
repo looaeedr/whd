@@ -1108,3 +1108,68 @@ def test_native_tk_d4_check_refuses_stale_saved_bend_identity_same_axis(
             try:designer.root.destroy()
             except tk.TclError:pass
         root.destroy()
+
+
+@pytest.mark.parametrize("first_axis",("x","y"))
+def test_real_tk_d4_check_bottom31_original_square_hole_collision_refuses(
+    first_axis,
+):
+    """Operator enters 31, CHECK must not fall back to 48 or remove square."""
+    if os.name!="nt" and not os.environ.get("DISPLAY"):
+        pytest.skip("requires real Tk/Xvfb GUI")
+    from copy import deepcopy
+    root=tk.Tk()
+    root.withdraw()
+    designer=None
+    try:
+        main=gui.BoxCalculatorGUI(root)
+        main.baseline_var.set("金庫型")
+        main.w_var.set("620")
+        main.h_var.set("600")
+        main.d_var.set("185")
+        if hasattr(main,"t_var"):
+            main.t_var.set("2")
+        main._apply_existing_parts_from_fold_workspace(
+            ["box_body","head","tail"],
+        )
+        designer=main.open_original_fold_designer()
+        root.update_idletasks();root.update()
+        designer.activate_part("tail")
+        editor=designer.bend_ui
+        editor.nb.select(editor.tabs.index("Y"))
+        root.update_idletasks();root.update()
+        editor.on_tab(None);editor.render()
+        rows=editor.get_active_dict()["Y"]
+        index=next(i for i,row in enumerate(rows)
+                   if row.get("phase6_key")=="ybottom1")
+        revised=[dict(row) for row in rows]
+        revised[index]["len"]=31.
+        displayed=api.project_operator_fold_editor_display_rows(
+            revised,getattr(designer.state,"phase6_thickness",2.),
+        )
+        editor.controls[index]["len"].set(str(displayed[index]["len"]))
+        editor.save()
+        designer._save_current_part(notify=False)
+        designer._phase6_update_scheduler.flush_now()
+        root.update_idletasks();root.update()
+        assert designer._phase6_input_snapshot[
+            "assembly_relief"
+        ]["source"]["ybottom1"]==pytest.approx(31.)
+        page=designer.settings_panel.render_context("tail")
+        button=page["extension_state"]["tail_d4_check_widget"]
+        before=deepcopy(designer._phase6_input_snapshot)
+        button.invoke()
+        root.update_idletasks();root.update()
+        assert not [
+            w for w in designer.root.winfo_children()
+            if isinstance(w,tk.Toplevel) and "CHECK_NOT_CNC" in w.title()
+        ],("D4_CHECK_MOVED_ORIGINAL_SQUARE_HOLE",first_axis)
+        assert "V_MITER_LOWER_CUTTING_CONFLICTS_WITH_ORIGINAL_HOLE" in (
+            designer.settings_status_var.get()
+        )
+        assert designer._phase6_input_snapshot==before
+    finally:
+        if designer is not None:
+            try:designer.root.destroy()
+            except tk.TclError:pass
+        root.destroy()
