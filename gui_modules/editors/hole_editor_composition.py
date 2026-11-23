@@ -784,6 +784,46 @@ def _build_navigation_and_lifecycle(s):
 
 
 
+def _guard_manual_marking_sync(s):
+    """Keep stale mark and conflicting new hole in the editor for correction.
+
+    The physical Engine still REJECTS publication.  Only the explicitly
+    detected mark/material collision is presented as a live red warning; all
+    unrelated legacy hole sync failures preserve their original exception.
+    Called before pointer actions capture the session sync callback.
+    """
+    if getattr(s, "manual_marking_context", None) is None:
+        return
+    authoritative_sync = s.sync_all
+
+    def sync_with_mark_warning():
+        try:
+            return authoritative_sync()
+        except (ValueError, TypeError, RuntimeError):
+            current = tuple(s.live_context.feature_list)
+            if not any(s.d.manufacturing_api.is_manual_mark(row) for row in current):
+                raise
+            context = s.manual_marking_context
+            try:
+                s.d.manufacturing_api.validate_physical_manual_markings(
+                    s.part_key, context.render_data, current,
+                    surface=context.feature_surface,
+                    width=context.width, height=context.height,
+                )
+            except (ValueError, TypeError, RuntimeError) as mark_error:
+                s.manual_mark_status.configure(
+                    text="打標／孔位無法確認：" + str(mark_error),
+                    fg="#ff453a",
+                )
+                s.confirm_all_btn.configure(state=s.d.tk.DISABLED)
+                # The original complete features remain in the editing session.
+                # No invalid data is copied into the physical Workspace.
+                return
+            raise  # Not a mark collision: preserve existing hole failure.
+
+    s.sync_all = sync_with_mark_warning
+
+
 def _install_manual_marking_actions(s):
     """Only the real physical-sheet editor gets this drawing interaction.
 
@@ -1259,6 +1299,7 @@ def open_unified_hole_editor(
     _build_sidebar_workspace_state(s)
     _build_reference_stack(s)
     _build_renderer_and_catalog_actions(s)
+    _guard_manual_marking_sync(s)
     _build_pointer_and_created_actions(s)
     _build_reference_selection_actions(s)
     _build_navigation_and_lifecycle(s)
