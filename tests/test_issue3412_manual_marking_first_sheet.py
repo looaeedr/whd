@@ -372,3 +372,103 @@ def test_real_cutting_boundary_endpoint_allowed_along_rejected_bend_overlap_allo
         )),
     )
     assert overlap.layer == "MARKING"
+
+
+def test_oblique_crossing_and_dashed_ink_versus_blank_use_real_finite_fold(actual_sheet):
+    """The real Receiving BasePlate BEND is crossed obliquely, not extended.
+
+    The 3D path must bend through its intermediate physical face coordinates
+    whereas DXF retains unmodified straight source segments.
+    """
+    from math import dist
+    source, render, context, center, angle = actual_sheet
+    assert angle == 90  # actual horizontal BEND20, not a fabricated test line
+    profiles = api.build_standard_part_fold_profiles(source, "base_plate")
+
+    def new_mark(delta_y, pattern):
+        return api.create_physical_manual_marking(
+            "base_plate", context, (), midpoint=Vec2(center.x, center.y + delta_y),
+            length=12, angle_deg=60, pattern=pattern, dash=2, gap=2,
+        )
+
+    oblique = new_mark(0, "solid")
+    formed = api.with_physical_sheet_features("base_plate", render, (oblique,))
+    world = api.project_independent_scene_annotation_paths(
+        formed.scene, profiles["X"], profiles["Y"], formed.fold_guides,
+    )
+    ink = [points for layer, points in world if layer == "MARKING"]
+    assert len(ink) == 1 and len(ink[0]) > 2
+    middle = ink[0][len(ink[0]) // 2]
+    endpoint_midpoint = tuple((a+b)/2 for a, b in zip(ink[0][0], ink[0][-1]))
+    assert dist(middle, endpoint_midpoint) > 0.1  # cannot paint a straight 3D chord
+
+    # Dash period 2+2: real ink [0,2],[4,6],[8,10] from first tip.
+    # Move the origin +0.1/-0.8 mm in Y: the same true BEND20 falls
+    # respectively *inside* the second ink or the empty [6,8] interval.
+    dashed_ink = new_mark(0.1, "dashed")
+    dashed_blank = new_mark(-0.8, "dashed")
+
+    def crossing_ink(mark):
+        return any(
+            min(p.y for p in points) < center.y - 1e-6
+            and max(p.y for p in points) > center.y + 1e-6
+            for _layer, points, _closed in mark.layered_profiles
+        )
+
+    assert crossing_ink(dashed_ink)
+    assert not crossing_ink(dashed_blank)
+    for mark in (dashed_ink, dashed_blank):
+        physically = api.with_physical_sheet_features("base_plate", render, (mark,))
+        marked = [row for row in physically.scene.primitives
+                  if row.layer == "MARKING"]
+        assert len(marked) == 3
+        paths = [pts for layer, pts in
+                 api.project_independent_scene_annotation_paths(
+                     physically.scene, profiles["X"], profiles["Y"],
+                     physically.fold_guides,
+                 ) if layer == "MARKING"]
+        assert len(paths) == 3
+        assert all(len(points) > 2 for points in paths)
+        for drawn, (_layer, physical_segment, _closed) in zip(
+            marked, mark.layered_profiles,
+        ):
+            assert isinstance(drawn, PolylinePrimitive)
+            assert drawn.points == physical_segment
+
+
+def test_real_finite_bend_extension_does_not_authorize_infinite_mark(actual_sheet):
+    """An extrapolated BEND is not an alternate source of material or cutting."""
+    from math import degrees, atan2
+    _source, render, context, _center, _angle = actual_sheet
+    bending = next(
+        p for p in render.scene.primitives
+        if isinstance(p, LinePrimitive) and p.layer == "BEND"
+    )
+    assert bending.p1.y == pytest.approx(bending.p2.y)
+    low = min(bending.p1.x, bending.p2.x)
+    high = max(bending.p1.x, bending.p2.x)
+    yy = float(bending.p1.y)
+    target_x = low - 1.0
+    if target_x <= render.material.bounds[0] + 1e-7:
+        target_x = high + 1.0
+    assert target_x < low or target_x > high
+
+    # No fabricated extension of a finite BEND is added to DrawingScene.
+    original_bends = [row for row in render.scene.primitives
+                      if row.layer == "BEND"]
+    from shapely.geometry import LineString
+    full = LineString(((target_x, yy-3), (target_x, yy+3)))
+    if (render.material.covers(full)
+            and render.material.boundary.intersection(full).length <= 1e-7):
+        mark = api.create_physical_manual_marking(
+            "base_plate", context, (), midpoint=Vec2(target_x, yy),
+            length=6, angle_deg=90,
+        )
+        resulting = api.with_physical_sheet_features("base_plate", render, (mark,))
+        assert [p for p in resulting.scene.primitives if p.layer == "BEND"] == original_bends
+    else:
+        with pytest.raises(ValueError, match="完整筆畫|CUTTING"):
+            api.create_physical_manual_marking(
+                "base_plate", context, (), midpoint=Vec2(target_x, yy),
+                length=6, angle_deg=90,
+            )
