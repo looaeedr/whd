@@ -354,6 +354,10 @@ from .physical_sheet_editor_context import (
     PhysicalSheetEditorContext, resolve_physical_sheet_editor_context,
     propose_operator_physical_sheet_hole_features,
 )
+from .operator_manual_marking import (
+    MANUAL_MARK_SOURCE, is_manual_mark,
+    create_physical_manual_marking, validate_physical_manual_markings,
+)
 from .indicator_editor_geometry import (
     resolve_indicator_editor_components,
     resolve_indicator_box_editor_geometry,

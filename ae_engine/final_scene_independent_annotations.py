@@ -65,9 +65,31 @@ def project_independent_scene_annotation_paths(
                 _map_point(primitive.p2, map_x, map_y),
             )
         else:
-            pts = tuple(_map_point(p, map_x, map_y) for p in primitive.points)
-            if primitive.closed and pts:
-                pts = pts + (pts[0],)
+            if (layer == "MARKING" and
+                    getattr(primitive, "semantic_id", None) == "WHD_MANUAL_MARKING_V1"):
+                # A midpoint-only/endpoint-only world projection cuts through
+                # folded faces when the real source stroke crosses a finite BEND.
+                # Sample the *same 2D ink* through the existing finite Fold mapper.
+                # DXF and authored 2D remain exactly two-point segments.
+                flat = tuple(primitive.points)
+                sampled = []
+                for start, end in zip(flat, flat[1:]):
+                    distance = math.hypot(end.x - start.x, end.y - start.y)
+                    steps = max(1, min(8192, math.ceil(distance)))
+                    for index in range(steps + 1):
+                        if sampled and index == 0:
+                            continue
+                        frac = index / steps
+                        sampled.append(_map_point_xy(
+                            float(start.x) + (float(end.x) - float(start.x)) * frac,
+                            float(start.y) + (float(end.y) - float(start.y)) * frac,
+                            map_x, map_y,
+                        ))
+                pts = tuple(sampled)
+            else:
+                pts = tuple(_map_point(p, map_x, map_y) for p in primitive.points)
+                if primitive.closed and pts:
+                    pts = pts + (pts[0],)
         if len(pts) >= 2:
             paths.append((layer, pts))
     return tuple(paths)

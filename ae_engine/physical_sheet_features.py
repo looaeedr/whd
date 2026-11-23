@@ -22,6 +22,10 @@ def with_physical_sheet_features(key, render, features):
     surface, width, height, _ = physical_sheet_feature_context(key, render)
     normalized = tuple(legacy_hole_to_feature(dict(f)) if isinstance(f, Mapping) else f
                        for f in features)
+    from .operator_manual_marking import validate_physical_manual_markings
+    validate_physical_manual_markings(
+        key, render, normalized, surface=surface, width=width, height=height,
+    )
     resolved = ae.resolve_surface_features(surface, normalized, width, height)
     scene = DrawingScene()
     scene.extend(render.scene.primitives)
