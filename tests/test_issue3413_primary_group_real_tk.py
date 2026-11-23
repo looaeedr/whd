@@ -171,7 +171,11 @@ def test_primary_group_four_l_member_edit_rotate_mirror_undo_save_reopen_dxf_b(
         # the committed four-corner group: cross at intersection, single L at
         # corner, pair L at group center. Delete each whole group with the
         # original button so final project contains only the four-corner case.
-        placement = Vec2(state.live_context.width / 2, state.live_context.height / 2)
+        # Tk Button events use integer pixels. Compare against the EXACT
+        # physical world position the Engine receives from that real click,
+        # not the pre-rounded nominal display center.
+        placement = state.canvas_view.canvas_to_world(round(x), round(y))
+        assert placement is not None
         for kind in ("cross", "l", "pair_l"):
             state.manual_group_tools[kind].invoke()
             canvas.event_generate("<Button-1>", x=round(x), y=round(y))
