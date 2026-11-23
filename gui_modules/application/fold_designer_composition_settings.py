@@ -369,9 +369,55 @@ def settings_context_extension_projection(self, namespace, context):
         }
 
     base_snapshot = dict(getattr(app, "_phase6_input_snapshot", {}) or {})
+    # Engine reads the current Family selection, not stale saved baseline.
+    model_var=getattr(app,"baseline_model_var",None)
+    if model_var is not None:
+        base_snapshot["model"]=str(model_var.get() or "").strip()
     receiving_base = manufacturing_api.project_operator_receiving_base_plate_settings(
         base_snapshot, context=context,
     )
+    lower_v=manufacturing_api.project_operator_tail_lower_v_settings(
+        base_snapshot,context=context,
+    )
+    if lower_v is not None:
+        # Presentation receives *actual finite BEND* choices from Engine.
+        # Never derive a line identity from a Tk label or CHECK field.
+        lower_v["first_bend_status"]=(
+            manufacturing_api.project_operator_tail_lower_v_first_bend_status(
+                base_snapshot,
+            )
+        )
+        try:
+            from phase6_manufacturing_adapter import build_scene_payload_for_app
+            source=dict(build_scene_payload_for_app(app,"tail"))
+            source["_use_committed_relief"]=False
+            spec_callback=getattr(app,"_part_spec_query_callback",None)
+            scene_callback=getattr(app,"_scene_query_callback",None)
+            if not callable(spec_callback) or not callable(scene_callback):
+                raise ValueError("V_MITER_FIRST_BEND_ENGINE_SOURCE_UNAVAILABLE")
+            ctx=spec_callback("tail",dict(source))
+            if not isinstance(ctx,tuple) or ctx[0] is None:
+                raise ValueError("V_MITER_FIRST_BEND_PART_SPEC_MISSING")
+            render=scene_callback("tail",dict(source))
+            active_v=None
+            if lower_v.get("choice")=="v90":
+                resolver=getattr(
+                    app,"_phase6_resolve_manufacturing_geometry",None,
+                )
+                if not callable(resolver):
+                    raise ValueError("V_MITER_FIRST_BEND_ACTIVE_V_FINAL_SCENE_REQUIRED")
+                geometry=resolver()
+                tail=geometry.part("tail") if geometry is not None else None
+                if tail is None or tail.render_data is None:
+                    raise ValueError("V_MITER_FIRST_BEND_ACTIVE_V_FINAL_SCENE_REQUIRED")
+                active_v=tail.render_data
+            lower_v["first_bend_options"]=(
+                manufacturing_api.project_operator_tail_lower_v_first_bend_options(
+                    ctx[0],render,active_v_render_data=active_v,
+                )
+            )
+        except (ValueError,TypeError) as exc:
+            lower_v["first_bend_source_error"]=str(exc)
     return {
         "receiving_base_plate": receiving_base,
         "box_structure": (
@@ -389,8 +435,344 @@ def settings_context_extension_projection(self, namespace, context):
             if context in endcap_fw_parts
             else None
         ),
-        "corner": corner_projection(context),
+        "corner": {
+            **corner_projection(context),
+            "tail_lower_v": lower_v,
+        },
     }
+
+def show_tail_d4_check(self, namespace):
+    """Source-qualified Ø4 inspection from CURRENT native project/Factory.
+
+    Independent read-only CHECK window, not the standard V90 input nor any
+    formal manufacturing/DXF/BA/R route. All source reconciliation is Engine.
+    """
+    app=self.app
+    try:
+        # A CHECK view is a read-only projection of committed native sources.
+        # Flushing the live scheduler here applies manufacturing snapshot
+        # patches (including assembly_relief) merely by opening a window.
+        from phase6_manufacturing_adapter import (
+            build_scene_payload_for_app,
+            build_manufacturing_request,
+            operator_finished_dimensions_for_app,
+        )
+        from phase6_manufacturing_contracts import manufacturing_request_fingerprint
+        from phase6_final_scene_view import AssemblyScenePart
+        from gui_modules.application.tail_d4_check_view import (
+            show_tail_d4_check_window,
+        )
+
+        def source():
+            spec_query=getattr(app,"_part_spec_query_callback",None)
+            render_query=getattr(app,"_scene_query_callback",None)
+            if not callable(spec_query) or not callable(render_query):
+                raise ValueError("TAIL_D4_CHECK_GUI_NATIVE_SOURCE_UNAVAILABLE")
+            values=dict(build_scene_payload_for_app(app,"tail"))
+            values["_use_committed_relief"]=False
+            spec_ctx=spec_query("tail",dict(values))
+            if not isinstance(spec_ctx,tuple) or not spec_ctx or spec_ctx[0] is None:
+                raise ValueError("TAIL_D4_CHECK_GUI_TAIL_SPEC_REQUIRED")
+            spec=spec_ctx[0]
+            raw=render_query("tail",dict(values))
+            # Detached EXACT source request without the V preview override.
+            # Otherwise the resolver would return the already-V FinalScene
+            # as if it were independent original/overlay CUTTING.
+            request=build_manufacturing_request(
+                app,
+                scene_payload_builder=lambda key: build_scene_payload_for_app(app,key),
+                render_data_provider=render_query,
+                part_spec_provider=spec_query,
+                finished_dimensions_provider=lambda key=None:
+                    operator_finished_dimensions_for_app(app,key),
+            )
+            snapshot=dict(request.input_snapshot)
+            snapshot.pop(manufacturing_api.TAIL_LOWER_V_SNAPSHOT_KEY,None)
+            snapshot.pop(manufacturing_api.TAIL_LOWER_V_FIRST_BENDS_KEY,None)
+            plain=replace(request,input_snapshot=snapshot)
+            plain=replace(
+                plain,source_fingerprint=manufacturing_request_fingerprint(plain),
+            )
+            original=manufacturing_api.resolve_manufacturing_request(plain).geometry
+            raw_tail=original.part("tail")
+            body=original.part("box_body")
+            if (raw_tail is None or raw_tail.render_data is None
+                    or body is None or body.render_data is None):
+                raise ValueError("TAIL_D4_CHECK_GUI_BODY_AND_TAIL_REQUIRED")
+            flat,checks=manufacturing_api.build_operator_tail_d4_check_from_original(
+                spec,original_render_data=raw,
+                resolved_render_data=raw_tail.render_data,
+            )
+            current=dict(getattr(app,"_phase6_input_snapshot",{}) or {})
+            # Source identity, not an X/Y display label, is authoritative.
+            # A recorded finite BEND can become stale without changing the
+            # operator's selected axis. Validate against the SAME detached
+            # original spec/raw used for this CHECK, before painting or DXF.
+            # No record is the legacy display-only X/X default; it is never
+            # committed or interpreted as a manufacturing selection.
+            recorded=current.get(
+                manufacturing_api.TAIL_LOWER_V_FIRST_BENDS_KEY,
+            )
+            axis=manufacturing_api.validate_operator_tail_lower_v_first_bends(
+                recorded,spec=spec,render_data=raw,
+            )
+            if axis is None:
+                axis="x"
+            dimensions=tuple(
+                float(v) for v in operator_finished_dimensions_for_app(app)
+            )
+            part=AssemblyScenePart(
+                part_key="box_body",render_data=body.render_data,
+                x_profile=body.x_profile,y_profile=body.y_profile,
+                placement="box_body",
+            )
+            physical=manufacturing_api.build_joint_world_geometry(
+                (part,),dimensions,float(spec.thickness),
+            )["world_triangles_by_part"]
+            body_world=tuple(physical.get("box_body",()) or ())
+            if not body_world:
+                raise ValueError("TAIL_D4_CHECK_GUI_REAL_BODY_WORLD_REQUIRED")
+            return flat,checks,axis,body_world
+
+        flat,checks,axis,body_world=source()
+        check=checks[axis]
+        # CHECK-only Engine already-placed T shell is the sole candidate
+        # world geometry. Never apply the local-shell placement a second
+        # time, nor feed these world triangles into production metadata.
+        candidate=manufacturing_api.project_operator_tail_d4_check_native_world(
+            flat,first_axis=axis,box_body_world=body_world,
+        )
+        if candidate is None:
+            # Existing behavior for every unverified product/dimension.
+            vertices=check.inner_xyz+check.outer_xyz
+            local=tuple(tuple(vertices[i] for i in face)
+                        for face in check.shell_faces)
+            placed=manufacturing_api.place_prethickened_endcap_world_skins(
+                local,placement="bottom",box_body_world=body_world,
+            )
+            source_face_ids=check.shell_faces
+            source_uv=check.source_uv
+        else:
+            placed=candidate["v_solid"]
+            source_face_ids=candidate["v_solid_source_ids"]
+            source_uv=candidate["v_source_uv"]
+        assembly_check=manufacturing_api.inspect_operator_tail_d4_assembly_world(
+            body_world,placed,tail_faces=source_face_ids,
+            source_uv=source_uv,openings=flat.opening_source_points_xy,
+        )
+        def save_view_dxf(path):
+            # Rebuild from current source without committing GUI update intents.
+            latest,_checks,now_axis,_body=source()
+            if (latest.result_scene.primitives!=flat.result_scene.primitives
+                    or now_axis!=axis):
+                raise ValueError(
+                    "TAIL_D4_CHECK_GUI_SOURCE_CHANGED_REOPEN_PREVIEW"
+                )
+            return manufacturing_api.save_operator_tail_d4_check_dxf(
+                latest,path,first_axis=axis,overwrite=False,
+            )
+        return show_tail_d4_check_window(
+            app.root,flat=flat,check=check,body_world=body_world,
+            placed_world=placed,first_axis=axis,save_dxf=save_view_dxf,
+            assembly_check=assembly_check,
+            world_source_faces=(
+                source_face_ids if candidate is not None else None
+            ),
+            world_source_uv=source_uv if candidate is not None else None,
+            world_candidate=candidate,
+        )
+    except (ValueError,TypeError,OSError) as exc:
+        status=getattr(app,"settings_status_var",None)
+        if status is not None:
+            error=str(exc)
+            if ("V_MITER_FIRST_BEND_SOURCE_CHANGED_RESELECT_REQUIRED" in error
+                    or "V_MITER_FIRST_BEND_STORED_SOURCE_INVALID" in error
+                    or "V_MITER_FIRST_BEND_PARTIAL_SELECTION_FORBIDDEN" in error):
+                status.set(
+                    "Ø4 CHECK 來源折線身分已變更或無效，請重新選擇第一道折線："
+                    +error
+                )
+            else:
+                status.set("Ø4 CHECK 無法安全產生："+error)
+        return None
+
+
+def select_tail_lower_v_choice(self, namespace, choice_var):
+    """UI wires one Engine-validated optional source into live Save/3D."""
+    app=self.app
+    key=manufacturing_api.TAIL_LOWER_V_SNAPSHOT_KEY
+    current=manufacturing_api.normalize_operator_tail_lower_v_choice(
+        (getattr(app,"_phase6_input_snapshot",{}) or {}).get(key)
+    )
+    requested={"原樣":"original","V 型":"v90"}.get(str(choice_var.get()))
+    if requested is None:
+        choice_var.set("V 型" if current=="v90" else "原樣")
+        raise ValueError("下方左右截角只可選原樣／V 型")
+    try:
+        from phase6_manufacturing_adapter import build_scene_payload_for_app
+        values=build_scene_payload_for_app(app,"tail")
+        next_snapshot=manufacturing_api.commit_operator_tail_lower_v_choice(
+            app._phase6_input_snapshot,requested,tail_scene_values=values,
+        )
+        if requested=="v90" and current!="v90":
+            # Validate the *same already-resolved* Tail that the normal
+            # manufacturing/2D/3D path uses. Checking only the raw Factory
+            # render accepts a V even when a saved EndCap/USER_ADDED clearance
+            # overlaps it, and leaves a broken selection in project state.
+            # All geometry reconciliation stays in the public Engine API.
+            part_source=getattr(app,"_part_spec_query_callback",None)
+            render_source=getattr(app,"_scene_query_callback",None)
+            resolver=getattr(app,"_phase6_resolve_manufacturing_geometry",None)
+            if (not callable(part_source) or not callable(render_source)
+                    or not callable(resolver)):
+                raise ValueError("V 型缺少同一板件的 Engine 原始及已解析避空來源")
+            original_values=dict(values)
+            original_values["_use_committed_relief"]=False
+            spec_context=part_source("tail",dict(original_values))
+            if not isinstance(spec_context,tuple) or len(spec_context)!=2:
+                raise ValueError("V 型封尾 PartSpec 來源不完整")
+            preview_input=render_source("tail",dict(original_values))
+            resolved=resolver()
+            resolved_tail=resolved.part("tail") if resolved is not None else None
+            if resolved_tail is None or getattr(resolved_tail,"render_data",None) is None:
+                raise ValueError("V 型封尾原有避空未能由 Engine 解算；不更新選擇")
+            manufacturing_api.project_operator_tail_lower_v_preview_render(
+                spec_context[0],preview_input,choice=requested,
+                resolved_render_data=resolved_tail.render_data,
+            )
+    except (ValueError,TypeError) as exc:
+        choice_var.set("V 型" if current=="v90" else "原樣")
+        status=getattr(app,"settings_status_var",None)
+        if status is not None:
+            status.set(str(exc))
+        return False
+    if requested==current:
+        return True
+    app._phase6_input_snapshot.pop(key,None)
+    if requested=="original":
+        app._phase6_input_snapshot.pop(
+            manufacturing_api.TAIL_LOWER_V_FIRST_BENDS_KEY,None,
+        )
+    if key in next_snapshot:
+        app._phase6_input_snapshot[key]=next_snapshot[key]
+    app.submit_update_intent("geometry",commit=True)
+    panel=getattr(app,"settings_panel",None)
+    if panel is not None:
+        app.root.after_idle(
+            lambda p=panel: (
+                p.invalidate_context("tail"),
+                p.render_context("tail"),
+            )
+        )
+    status=getattr(app,"settings_status_var",None)
+    if status is not None:
+        status.set("下方左右截角："+(
+            "V 型（僅 2D／3D 預覽，禁止加工 DXF）"
+            if requested=="v90" else "原樣（已還原）"
+        ))
+    return True
+
+
+
+
+def select_tail_lower_v_first_bends(self, namespace, left_var, right_var):
+    """Commit source-bound left/right first bends, not an axis label."""
+    app=self.app
+    status=getattr(app,"settings_status_var",None)
+    try:
+        from phase6_manufacturing_adapter import build_scene_payload_for_app
+        values=dict(build_scene_payload_for_app(app,"tail"))
+        values["_use_committed_relief"]=False
+        source_spec=getattr(app,"_part_spec_query_callback",None)
+        source_render=getattr(app,"_scene_query_callback",None)
+        resolver=getattr(app,"_phase6_resolve_manufacturing_geometry",None)
+        if (not callable(source_spec) or not callable(source_render)
+                or not callable(resolver)):
+            raise ValueError("V_MITER_FIRST_BEND_ENGINE_SOURCE_UNAVAILABLE")
+        spec_tuple=source_spec("tail",dict(values))
+        if not isinstance(spec_tuple,tuple) or spec_tuple[0] is None:
+            raise ValueError("V_MITER_FIRST_BEND_PART_SPEC_MISSING")
+        spec=spec_tuple[0]
+        raw=source_render("tail",dict(values))
+        current=resolver()
+        active_tail=current.part("tail") if current is not None else None
+        if active_tail is None or active_tail.render_data is None:
+            raise ValueError("V_MITER_FIRST_BEND_ACTIVE_V_FINAL_SCENE_REQUIRED")
+        options=manufacturing_api.project_operator_tail_lower_v_first_bend_options(
+            spec,raw,active_v_render_data=active_tail.render_data,
+        )
+        # Match the CURRENT V FinalScene display label, not the pre-V
+        # guide's original starting point. Engine still commits and
+        # stale-checks original `bend`/`source_bends` from `raw`.
+        axis={}
+        for corner,var in (("bottom_left",left_var),("bottom_right",right_var)):
+            label=str(var.get())
+            axis[corner]=next((
+                candidate for candidate in ("x","y")
+                if label==options[corner][candidate]["label"]
+            ),None)
+        next_source=manufacturing_api.commit_operator_tail_lower_v_first_bends(
+            app._phase6_input_snapshot,axis,spec=spec,render_data=raw,
+        )
+        from phase6_manufacturing_adapter import (
+            build_manufacturing_request,
+            operator_finished_dimensions_for_app,
+        )
+        # One immutable native request recomputes non-V resolved relief
+        # BEFORE V projection. Never reinterpret the current V preview as raw.
+        # The adapter owns the source patch, Engine owns the actual solve.
+        first_key=manufacturing_api.TAIL_LOWER_V_FIRST_BENDS_KEY
+        from phase6_manufacturing_contracts import (
+            manufacturing_request_fingerprint,
+        )
+        request=build_manufacturing_request(
+            app,
+            scene_payload_builder=lambda key: build_scene_payload_for_app(app,key),
+            render_data_provider=source_render,
+            part_spec_provider=source_spec,
+            finished_dimensions_provider=lambda key=None:
+                operator_finished_dimensions_for_app(app,key),
+        )
+        candidate=replace(
+            request,input_snapshot={
+                **dict(request.input_snapshot),
+                first_key:deepcopy(next_source[first_key]),
+            },
+        )
+        candidate=replace(
+            candidate,
+            source_fingerprint=manufacturing_request_fingerprint(candidate),
+        )
+        response=manufacturing_api.resolve_manufacturing_request(candidate)
+        tail=response.geometry.part("tail")
+        if tail is None or tail.render_data is None:
+            raise ValueError("V_MITER_FIRST_BEND_RESOLVED_TAIL_REQUIRED")
+        if (tail.render_data.metadata.get("tail_lower_v_first_fold_basis")
+                != "OPERATOR_SELECTED_PHYSICAL_BEND"):
+            raise ValueError("V_MITER_FIRST_BEND_CANDIDATE_NOT_PROJECTED")
+    except (ValueError,TypeError) as exc:
+        if status is not None:
+            status.set(str(exc))
+        return False
+    app._phase6_input_snapshot[
+        manufacturing_api.TAIL_LOWER_V_FIRST_BENDS_KEY
+    ]=next_source[manufacturing_api.TAIL_LOWER_V_FIRST_BENDS_KEY]
+    app.submit_update_intent("geometry",commit=True)
+    panel=getattr(app,"settings_panel",None)
+    if panel is not None:
+        app.root.after_idle(
+            lambda p=panel: (
+                p.invalidate_context("tail"),
+                p.render_context("tail"),
+            )
+        )
+    if status is not None:
+        status.set(
+            "兩角首折："+axis["bottom_left"].upper()+"/"
+            +axis["bottom_right"].upper()
+            +"（已驗真實折線；非加工預覽）"
+        )
+    return True
 
 def sync_settings_panel_extension(
     self,
@@ -415,6 +797,9 @@ def sync_settings_panel_extension(
     ):
         setattr(app, name, dict(state.get(name, {}) or {}))
     original = required("original")
+    app.tail_lower_v_choice_var=state.get("tail_lower_v_choice_var")
+    app.tail_lower_v_first_left_var=state.get("tail_lower_v_first_bottom_left_var")
+    app.tail_lower_v_first_right_var=state.get("tail_lower_v_first_bottom_right_var")
     app.fixed_corner_summary_var = (
         state.get("fixed_corner_summary_var")
         or original.tk.StringVar(value="")

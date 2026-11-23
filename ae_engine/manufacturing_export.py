@@ -90,6 +90,9 @@ def resolved_physical_render_parts(resolved_geometry, *, include_unreleased_sour
         render_data = getattr(part, 'render_data', None)
         if render_data is None:
             raise ValueError(f'resolved manufacturing part missing render_data: {key}')
+        # The selected Vault lower V is CHECK only, never CNC.
+        from .operator_tail_lower_v import reject_tail_lower_v_preview_for_dxf
+        reject_tail_lower_v_preview_for_dxf(render_data)
         # Source-flat fixing plates have real physical PartRenderData for the
         # GUI and a separate source DXF export. Until finished BEND/weld Z is
         # verified, they are NOT part of the full cabinet production DXF set.

@@ -257,7 +257,20 @@ class Phase6BendingUI(original.BendingUI):
         target_idx = plan.target_index
         owner = getattr(self.update_cb, "__self__", None)
         symmetry_allowed = _phase6_box_symmetry_allowed(owner) if owner is not None else True
-        symmetric = symmetry_allowed and getattr(self.state, "symmetric", False)
+        # Tail's physical upper/lower folds are independent; a lower-fold
+        # edit must not mirror into the upper fold even when legacy symmetry
+        # is enabled for other parts.
+        is_tail_editor = (
+            getattr(self.state, "phase6_fold_ui_vault_key", None) == "封尾"
+            or str(getattr(
+                getattr(owner, "designer_workspace", None), "active_part", ""
+            ) or "") == "tail"
+        )
+        symmetric = (
+            symmetry_allowed
+            and bool(getattr(self.state, "symmetric", False))
+            and not is_tail_editor
+        )
         if symmetric and target_idx is not None and target_idx >= len(self.controls):
             raise ValueError("FOLD_EDITOR_MIRROR_CONTROL_INVALID")
         self._mark_workspace_dirty()

@@ -21,14 +21,30 @@ def mesh_build_scope():
 
 def reuse_local_mesh(build):
     @wraps(build)
-    def resolve(material, x_profile, y_profile, *, fold_exemptions=(), fold_guides=()):
+    def resolve(
+        material, x_profile, y_profile, *,
+        fold_exemptions=(), fold_guides=(), fold_tip_continuity=(),
+    ):
+        # Old receiving/vault mesh builders accept only the original
+        # fold_exemptions/fold_guides contract. An *inactive* optional tip
+        # extension must not be passed to them at all. Enabled extensions
+        # still go exclusively to builders that implement that geometry.
+        tip_kwargs = (
+            {"fold_tip_continuity": fold_tip_continuity}
+            if fold_tip_continuity else {}
+        )
         cache = _active_meshes.get()
         if cache is None:
-            return build(material, x_profile, y_profile,
-                         fold_exemptions=fold_exemptions, fold_guides=fold_guides)
+            return build(
+                material, x_profile, y_profile,
+                fold_exemptions=fold_exemptions,
+                fold_guides=fold_guides,
+                **tip_kwargs,
+            )
         from .assembly_geometry_folded_mesh import _segment_value
         xp, yp = tuple(x_profile or ()), tuple(y_profile or ())
         exemptions, guides = tuple(fold_exemptions or ()), tuple(fold_guides or ())
+        tip_continuity = tuple(tuple(row) for row in (fold_tip_continuity or ()))
         # Keep both length spellings: the existing profile/mask paths have
         # distinct legacy fallback rules. Do not round or normalize inputs.
         def profile_key(rows):
@@ -38,14 +54,21 @@ def reuse_local_mesh(build):
         key = (build, material.wkb, profile_key(xp), profile_key(yp),
                tuple((str(axis), polygon.wkb) for axis, polygon in exemptions),
                tuple((str(g.axis), float(g.position), float(g.span_start), float(g.span_end))
-                     for g in guides))
+                     for g in guides),
+               tip_continuity)
         try:
             hash(key)
         except TypeError:
             # Unusual extension profile values retain the uncached contract.
-            return build(material, xp, yp, fold_exemptions=exemptions, fold_guides=guides)
+            return build(
+                material, xp, yp, fold_exemptions=exemptions,
+                fold_guides=guides, **tip_kwargs,
+            )
         if key not in cache:
-            result = build(material, xp, yp, fold_exemptions=exemptions, fold_guides=guides)
+            result = build(
+                material, xp, yp, fold_exemptions=exemptions,
+                fold_guides=guides, **tip_kwargs,
+            )
             # Bound temporary memory even for unusually large assemblies.
             if len(cache) < 256:
                 cache[key] = result
