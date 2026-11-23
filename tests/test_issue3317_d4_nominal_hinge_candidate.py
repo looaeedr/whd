@@ -624,7 +624,7 @@ def test_native_check_uses_actual_factory_dimensions_and_original_holes(
     assert len([p for p in flat.original_scene.primitives
                 if p.layer=="CUTTING"])==5
     assert tuple(g for g in fold_guides_from_final_scene(flat.original_scene))
-    assert flat.original_factory_material.interiors==()
+    assert len(flat.original_factory_material.interiors)==0
     assert len(candidate["v_material"].interiors)==4
     assert candidate["v_material"].symmetric_difference(
         flat.result_material
