@@ -59,15 +59,31 @@ def _make_wall(a,b,normal,t):
     return ((pa,pb,mb),(pa,mb,ma))
 
 
-def _edge_counts(triangles):
-    counts=defaultdict(int)
-    for tri in triangles:
+def _edge_counts(triangles, source_face_ids=(), source_uv=(), seam=None):
+    """World-space incidence, retaining UV identity for every open edge."""
+    counts=defaultdict(list)
+    for face_id,tri in enumerate(triangles):
         for i in range(3):
             a,b=tri[i],tri[(i+1)%3]
-            counts[tuple(sorted((_key(a),_key(b))))]+=1
-    return (sum(v==1 for v in counts.values()),
-            sum(v==4 for v in counts.values()),
-            sum(v>2 for v in counts.values()))
+            edge=tuple(sorted((_key(a),_key(b))))
+            uv_edge=None
+            if source_face_ids:
+                row=source_face_ids[face_id]
+                uv_edge=(row[i],row[(i+1)%3])
+            counts[edge].append(uv_edge)
+    open_rows=tuple((edge,rows[0]) for edge,rows in counts.items()
+                    if len(rows)==1)
+    seam_open=0
+    if source_face_ids:
+        seam_open=sum(1 for _,edge in open_rows if (
+            edge is not None
+            and abs(source_uv[edge[0]][1]-seam)<1e-7
+            and abs(source_uv[edge[1]][1]-seam)<1e-7
+        ))
+    return (len(open_rows),
+            sum(len(v)==4 for v in counts.values()),
+            sum(len(v)>2 for v in counts.values()),
+            seam_open)
 
 
 def _wall_contact(groups,corner):
@@ -192,12 +208,14 @@ def project_d4_original_owner_uv_solid(
     # Maintain the original Engine T/2 convention on EVERY physical panel;
     # finite source UV edges own edge walls, never coincident world XYZ.
     solid=[]
+    solid_source_ids=[]
     edges=defaultdict(list)
     for fid,(face,tri,n) in enumerate(zip(faces,world_surface,normals)):
         off=_scale(n,t/2.)
         plus=tuple(_plus(p,off) for p in tri)
         minus=tuple(_diff(p,off) for p in tri)
         solid.extend((plus,(minus[0],minus[2],minus[1])))
+        solid_source_ids.extend((face,(face[0],face[2],face[1])))
         for j in range(3):
             a,b=face[j],face[(j+1)%3]
             edges[tuple(sorted((a,b)))].append((a,b,n,fid))
@@ -210,6 +228,7 @@ def project_d4_original_owner_uv_solid(
         if len(neighbors)==1:
             walls=_make_wall(pa,pb,n,t)
             solid.extend(walls)
+            solid_source_ids.extend(((a,b,b),(a,b,a)))
             line=LineString((source_uv[a],source_uv[b]))
             if line.length>1e-7:
                 for corner,lower,apex,upper in flat.opening_source_points_xy:
@@ -227,9 +246,14 @@ def project_d4_original_owner_uv_solid(
             cminus,dminus=_diff(pa,ob),_diff(pb,ob)
             solid.extend(((aplus,bplus,dplus),(aplus,dplus,cplus),
                           (aminus,cminus,dminus),(aminus,dminus,bminus)))
+            solid_source_ids.extend(((a,b,b),(a,b,a),(a,a,b),(a,b,b)))
     seams=tuple(_wall_contact(groups,corner)
                 for corner,_,_,_ in flat.opening_source_points_xy)
-    open_count,four_count,multi_count=_edge_counts(solid)
+    if len(solid)!=len(solid_source_ids):
+        raise GeometryError("TAIL_D4_SHARED_UV_PHYSICAL_FACE_IDENTITY_LOST")
+    open_count,four_count,multi_count,seam_open=_edge_counts(
+        solid,solid_source_ids,source_uv,seam,
+    )
     return {
         "source_uv":tuple(source_uv),
         "source_faces":tuple(faces),
@@ -239,6 +263,7 @@ def project_d4_original_owner_uv_solid(
         "open_world_edges":open_count,
         "four_world_edges":four_count,
         "multi_world_edges":multi_count,
+        "open_seam_world_edges":seam_open,
         "seam_uv_positions":seam_gaps,
         "source_area_mm2":area,
         "manufacturing_approved":False,
