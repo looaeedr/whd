@@ -3251,6 +3251,10 @@ def project_operator_tail_d4_check_native_world(
         or abs(float(spec.frame_width)-25.)>1e-7
         or abs(float(spec.height)-600.)>1e-7
         or abs(float(spec.fold_bottom)-48.)>1e-7
+        or abs(float(spec.fold_left)-15.)>1e-7
+        or abs(float(spec.fold_right)-15.)>1e-7
+        or abs(float(spec.fold_top)-16.)>1e-7
+        or not spec.is_tail
     ):
         return None
     if first_axis not in ("x","y") or not box_body_world:
