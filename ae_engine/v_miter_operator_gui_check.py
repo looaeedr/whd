@@ -465,23 +465,33 @@ def _profile_angle_at_bend(profile, position, origin):
     return found[0]
 
 
-def _partspec_corner_fold_station(profile, origin, *, near_min: bool):
-    """Exact signed Fold boundary at this PartSpec's physical outer corner.
+def _partspec_corner_fold_station(
+    profile, origin, *, near_min: bool, phase6_role: str | None = None,
+    scene_bend_count: int | None = None,
+):
+    """Resolve the *named* physical fold role at this EndCap corner.
 
-    The first and last real Fold boundaries are determined by the authored
-    material chain, never by a nearest drawn line or a default 90-degree bend.
-    A single scene BEND cannot supply an angle or change its Fold role.
+    Head Y is a three-crease chain: its return at the first Y boundary is
+    not the lower corner crease. Tail is natively ordered in the opposite
+    direction. The immutable PartSpec phase6_key, not the nearest/first
+    bend, identifies the physical role. Keyless legacy folds can be
+    disambiguated only with at most two source creases on this axis.
     """
     if not profile:
         raise GeometryError("V_MITER_GUI_AUTHORED_FOLD_ANGLE_REQUIRED")
     at = float(origin)
     boundaries = []
+    keyed = []
     for row in profile:
         length = getattr(row, "length", None)
         angle = getattr(row, "angle", None)
+        key = getattr(row, "phase6_key", None)
         if type(length) not in (int, float) or not math.isfinite(length) or length < 0:
             raise GeometryError("V_MITER_GUI_FOLD_MATERIAL_INVALID")
+        if key is not None and (type(key) is not str or not key):
+            raise GeometryError("V_MITER_GUI_FOLD_ROLE_INVALID")
         at += length
+        keyed.append(key)
         if angle is None:
             continue
         if type(angle) not in (int, float) or not math.isfinite(angle):
@@ -492,10 +502,56 @@ def _partspec_corner_fold_station(profile, origin, *, near_min: bool):
             raise GeometryError("V_MITER_GUI_FOLD_ANGLE_OUT_OF_RANGE")
         if boundaries and at - boundaries[-1][0] <= 1e-7:
             raise GeometryError("V_MITER_GUI_AMBIGUOUS_AUTHORED_FOLD_STATION")
-        boundaries.append((at, float(angle)))
+        boundaries.append((at, float(angle), key))
     if not boundaries:
         raise GeometryError("V_MITER_GUI_BEND_NOT_LINKED_TO_FOLD")
-    return boundaries[0] if near_min else boundaries[-1]
+    if phase6_role is not None and any(keyed):
+        matches = [(at, angle) for at, angle, key in boundaries if key == phase6_role]
+        if len(matches) != 1:
+            raise GeometryError("V_MITER_GUI_NAMED_CORNER_FOLD_REQUIRED")
+        return matches[0]
+    if phase6_role is not None and not any(keyed):
+        if (len(boundaries) >= 3 or
+                (scene_bend_count is not None and scene_bend_count >= 3)):
+            raise GeometryError("V_MITER_GUI_KEYLESS_MULTIFOLD_AMBIGUOUS")
+    chosen = boundaries[0] if near_min else boundaries[-1]
+    return chosen[0], chosen[1]
+
+
+def _bound_endcap_corner_bends(part_spec, scene, material, corner_key):
+    """One EndCap role-to-FinalScene BEND binding for live CHECK and replay.
+
+    Product owner: EndCap X roles yl1/endcap_w_core; Head lower Y fw,
+    Tail lower Y ybottom1; either upper Y endcap_d_core. Each must be
+    exactly one *finite original BEND owner* at that authored station.
+    """
+    part_key = "tail" if part_spec.is_tail else "head"
+    px, py = _endcap_existing_fold_angle_sources(part_spec, part_key)
+    minx, miny, _, _ = material.bounds
+    vertical, horizontal = _orthogonal_bends(scene)
+    left = corner_key.endswith("left")
+    bottom = corner_key.startswith("bottom")
+    role_x = "yl1" if left else "endcap_w_core"
+    role_y = (
+        ("ybottom1" if part_spec.is_tail else "fw") if bottom
+        else "endcap_d_core"
+    )
+    x_station, x_angle = _partspec_corner_fold_station(
+        px, minx, near_min=left,
+        phase6_role=role_x, scene_bend_count=len(vertical),
+    )
+    y_station, y_angle = _partspec_corner_fold_station(
+        py, miny, near_min=bottom,
+        phase6_role=role_y, scene_bend_count=len(horizontal),
+    )
+    sources = _physical_corner_bends(
+        scene, material, corner_key, expected_stations=(x_station, y_station),
+    )
+    *_, x_real, y_real = sources
+    if (x_angle != _profile_angle_at_bend(px, x_real.p1.x, minx)
+            or y_angle != _profile_angle_at_bend(py, y_real.p1.y, miny)):
+        raise GeometryError("V_MITER_GUI_PARTSPEC_FOLD_SOURCE_CHANGED")
+    return (*sources, x_angle, y_angle)
 
 
 def _endcap_existing_fold_angle_sources(part_spec: EndCapPartSpec, part_key: str):
@@ -568,23 +624,11 @@ def project_operator_v_miter_live_corner_check(
     if isinstance(part_spec, EndCapPartSpec):
         if first_bend_axis is None:
             raise GeometryError("V_MITER_GUI_FIRST_BEND_REQUIRED")
-        minx, miny, _, _ = material.bounds
-        source_x, source_y = _endcap_existing_fold_angle_sources(part_spec, part_key)
-        x_station, angle_x = _partspec_corner_fold_station(
-            source_x, minx, near_min=corner_key.endswith("left"),
+        x_bend, y_bend, x_height, y_height, x_gap, y_gap, x_real, y_real, angle_x, angle_y = (
+            _bound_endcap_corner_bends(
+                part_spec, render_data.scene, material, corner_key,
+            )
         )
-        y_station, angle_y = _partspec_corner_fold_station(
-            source_y, miny, near_min=corner_key.startswith("bottom"),
-        )
-        x_bend, y_bend, x_height, y_height, x_gap, y_gap, x_real, y_real = _physical_corner_bends(
-            render_data.scene, material, corner_key,
-            expected_stations=(x_station, y_station),
-        )
-        # Reconfirm that neither selected finite BEND changed its station,
-        # angle or signed fold direction in the current PartSpec.
-        if (angle_x != _profile_angle_at_bend(source_x, x_real.p1.x, minx)
-                or angle_y != _profile_angle_at_bend(source_y, y_real.p1.y, miny)):
-            raise GeometryError("V_MITER_GUI_PARTSPEC_FOLD_SOURCE_CHANGED")
         if angle_x * angle_y <= 0:
             raise GeometryError("V_MITER_GUI_OPPOSITE_FOLD_SENSE")
     else:
