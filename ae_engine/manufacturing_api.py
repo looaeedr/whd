@@ -3280,6 +3280,13 @@ def project_operator_tail_d4_check_native_world(
     uv=candidate["v_source_uv"]
     if (candidate["manufacturing_approved"]
             or len(solid)!=len(ids) or not solid or not uv
+            or any(len(face)!=3 or any(
+                type(vertex_id) is not int or not 0<=vertex_id<len(uv)
+                for vertex_id in face
+            ) for face in ids)
+            or any(len(point)!=2 or any(
+                not isfinite(value) for value in point
+            ) for point in uv)
             or candidate["v_world_four_edges"]!=8
             or candidate["v_world_open_seam_edges"]!=0
             or candidate["v_extra_world_open_edges"]!=0
