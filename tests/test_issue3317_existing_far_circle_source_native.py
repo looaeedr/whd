@@ -120,7 +120,8 @@ def test_native_custom_head_distant_circle_kept_in_2d_and_3d_not_claimed(
         assert inner[0].center == hole.center
         assert inner[0].radius == hole.radius
     assert tuple(rendered.scene.primitives) == original_primitives
-    assert all(p.layer != "CHECK" for p in rendered.scene.primitives)
+    # The canonical Factory can contain its own non-manufacturing CHECK datums.
+    # Our preview must not inject *additional* CHECK into that source scene.
     win = show_saved_endcap_live_check_window(app, replay, record)
     try:
         win.update()
@@ -172,14 +173,26 @@ def test_native_custom_head_duplicate_or_unverifiable_cutting_rejected(custom_he
     assert _capture(spec, rendered) == valid_record
 
 
-@pytest.mark.parametrize("delta", ((-196, -121), (-192, -118)))
-def test_native_custom_head_circle_near_left_lower_v_or_relief_rejected(
-    custom_head_native, delta,
+def test_native_custom_head_hole_intersecting_corner_is_refused_by_original_engine(
+    custom_head_native,
 ):
     _, bare_spec, _ = custom_head_native
-    spec = replace(bare_spec, holes=(_feature(*delta),))
-    rendered = api.build_operator_part_render_data(spec)
-    # A close/touching hole cannot be projected as unchanged CHECK material;
-    # it may be outside the original trimmed stock or intersect the V/R cut.
-    with pytest.raises(GeometryError, match="V_MITER_EXISTING_HOLE_"):
-        _capture(spec, rendered)
+    # The actual original finished-face surface already rejects a circle
+    # centered on the physical corner. Do not bypass this source qualification.
+    spec = replace(bare_spec, holes=(_feature(-196, -121),))
+    with pytest.raises(ValueError, match="user feature outside feature surface"):
+        api.build_operator_part_render_data(spec)
+
+
+def test_native_custom_head_near_but_nonintersecting_hole_is_not_falsely_rejected(
+    custom_head_native,
+):
+    _, bare_spec, _ = custom_head_native
+    # Proximity alone is not interference. The Engine's actual V/relief
+    # candidate must decide, without an invented shop clearance margin.
+    spec = replace(bare_spec, holes=(_feature(-192, -118),))
+    render = api.build_operator_part_render_data(spec)
+    record = _capture(spec, render)
+    replay = api.replay_endcap_live_v_miter_check_snapshot(spec, render, record)
+    assert replay.factory_bottom_relief_check is not None
+    assert replay.factory_true_t_check is None
