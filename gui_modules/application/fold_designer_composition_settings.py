@@ -530,15 +530,29 @@ def show_tail_d4_check(self, namespace):
 
         flat,checks,axis,body_world=source()
         check=checks[axis]
-        vertices=check.inner_xyz+check.outer_xyz
-        local=tuple(tuple(vertices[i] for i in face)
-                    for face in check.shell_faces)
-        placed=manufacturing_api.place_prethickened_endcap_world_skins(
-            local,placement="bottom",box_body_world=body_world,
+        # CHECK-only Engine already-placed T shell is the sole candidate
+        # world geometry. Never apply the local-shell placement a second
+        # time, nor feed these world triangles into production metadata.
+        candidate=manufacturing_api.project_operator_tail_d4_check_native_world(
+            flat,first_axis=axis,box_body_world=body_world,
         )
+        if candidate is None:
+            # Existing behavior for every unverified product/dimension.
+            vertices=check.inner_xyz+check.outer_xyz
+            local=tuple(tuple(vertices[i] for i in face)
+                        for face in check.shell_faces)
+            placed=manufacturing_api.place_prethickened_endcap_world_skins(
+                local,placement="bottom",box_body_world=body_world,
+            )
+            source_face_ids=check.shell_faces
+            source_uv=check.source_uv
+        else:
+            placed=candidate["v_solid"]
+            source_face_ids=candidate["v_solid_source_ids"]
+            source_uv=candidate["v_source_uv"]
         assembly_check=manufacturing_api.inspect_operator_tail_d4_assembly_world(
-            body_world,placed,tail_faces=check.shell_faces,
-            source_uv=check.source_uv,openings=flat.opening_source_points_xy,
+            body_world,placed,tail_faces=source_face_ids,
+            source_uv=source_uv,openings=flat.opening_source_points_xy,
         )
         def save_view_dxf(path):
             # Rebuild from current source without committing GUI update intents.
@@ -555,6 +569,8 @@ def show_tail_d4_check(self, namespace):
             app.root,flat=flat,check=check,body_world=body_world,
             placed_world=placed,first_axis=axis,save_dxf=save_view_dxf,
             assembly_check=assembly_check,
+            world_source_faces=source_face_ids,world_source_uv=source_uv,
+            world_candidate=candidate,
         )
     except (ValueError,TypeError,OSError) as exc:
         status=getattr(app,"settings_status_var",None)
