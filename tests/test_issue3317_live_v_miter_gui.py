@@ -50,7 +50,7 @@ def test_fifth_check_uses_actual_bends_and_fractional_other_fold_angle():
     render, original = _physical_four_corner_scene()
     spec = _endcap_spec()
     result = api.project_operator_v_miter_live_corner_check(
-        spec, render, "bottom_left",
+        spec, render, "bottom_left", first_bend_axis="x",
     )
     assert result.part_key == "head"
     assert result.corner_key == "bottom_left"
@@ -78,7 +78,7 @@ def test_fifth_check_uses_actual_bends_and_fractional_other_fold_angle():
 def test_all_four_physical_corners_can_be_checked_without_mutating_original(corner):
     render, original = _physical_four_corner_scene()
     result = api.project_operator_v_miter_live_corner_check(
-        _endcap_spec(second_angle=-90), render, corner,
+        _endcap_spec(second_angle=-90), render, corner, first_bend_axis="x",
     )
     assert result.corner_key == corner
     assert all(line.layer == "CHECK" for line in result.check_scene.primitives)
@@ -163,11 +163,11 @@ def test_wrong_angle_direction_or_missing_real_source_fails_closed():
     render, original = _physical_four_corner_scene()
     with pytest.raises(GeometryError, match="OPPOSITE_FOLD_SENSE"):
         api.project_operator_v_miter_live_corner_check(
-            _endcap_spec(second_angle=75.5), render, "bottom_left",
+            _endcap_spec(second_angle=75.5), render, "bottom_left", first_bend_axis="x",
         )
     with pytest.raises(GeometryError):
         api.project_operator_v_miter_live_corner_check(
-            _endcap_spec(second_angle=-180), render, "bottom_left",
+            _endcap_spec(second_angle=-180), render, "bottom_left", first_bend_axis="x",
         )
     missing = PartRenderData(
         scene=DrawingScene([render.scene.primitives[0]]),
@@ -175,7 +175,7 @@ def test_wrong_angle_direction_or_missing_real_source_fails_closed():
     )
     with pytest.raises(GeometryError, match="TWO_PHYSICAL_BENDS_REQUIRED"):
         api.project_operator_v_miter_live_corner_check(
-            _endcap_spec(), missing, "bottom_left",
+            _endcap_spec(), missing, "bottom_left", first_bend_axis="x",
         )
     assert tuple(render.scene.primitives) == original
 
