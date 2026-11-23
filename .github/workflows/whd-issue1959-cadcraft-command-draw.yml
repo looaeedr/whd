@@ -330,3 +330,89 @@ jobs:
           path: work/issue1959-win/
           if-no-files-found: warn
           retention-days: 14
+
+  windows-3415-tk-startup-only-diagnostic:
+    name: DIAGNOSTIC ONLY Windows Tcl init.tcl accessibility A/B
+    runs-on: windows-2022
+    timeout-minutes: 35
+    env:
+      PYTHONIOENCODING: utf-8
+      PYTHONUTF8: "1"
+    steps:
+      - name: Checkout exact WHD PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Set up Python for Windows
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install real Windows WHD geometry dependencies
+        shell: pwsh
+        run: python -m pip install -r requirements.txt ezdxf pytest matplotlib
+      - name: Real Windows WHD coordinate and Session regressions
+        shell: pwsh
+        env:
+          WHD_1959_PIXEL_RECEIPT_DIR: work/issue1959-win/real3d-pixels
+        run: python -m pytest -q tests/test_issue1959_whd_cadcraft_command_draw.py tests/test_issue1959_cadcraft_command_session_bridge.py tests/test_issue1959_cadcraft_command_preview_button.py tests/test_issue1959_whd_real_manufacturing_parity.py tests/test_issue1959_cadcraft_manual_return.py tests/test_issue1959_cadcraft_append_holes.py tests/test_issue1959_cadcraft_tcp_control.py tests/test_issue1959_cadcraft_command_button_live_tk.py tests/test_issue1959_cadcraft_live_return.py tests/test_issue1959_main_gui_save_open.py tests/test_issue1959_receiving_inner_3d_editor.py
+      - name: Verify publisher SHA256 and unpack official Windows x64 CADCraft v0.8.0
+        if: ${{ !cancelled() }}
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $ProgressPreference = "SilentlyContinue"
+          $name = "cadcraft-0.8.0-windows-x64-portable.zip"
+          $base = "https://github.com/storytold/cadcraft/releases/download/v0.8.0"
+          $dir = Join-Path $env:RUNNER_TEMP "issue1959-cadcraft-win64"
+          New-Item -ItemType Directory -Force -Path $dir | Out-Null
+          $archive = Join-Path $dir $name
+          $sumfile = Join-Path $dir "SHA256SUMS.txt"
+          Invoke-WebRequest -Uri "$base/SHA256SUMS.txt" -OutFile $sumfile
+          Invoke-WebRequest -Uri "$base/$name" -OutFile $archive
+          $lines = @(Get-Content $sumfile | Where-Object { $_ -match [regex]::Escape($name) })
+          if ($lines.Count -ne 1) { throw "CADCRAFT_SHA256SUMS_AMBIGUOUS" }
+          $expected = ($lines[0].Trim() -split "\s+")[0].ToLowerInvariant()
+          $actual = (Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actual -ne $expected) { throw "CADCRAFT_OFFICIAL_WINDOWS_SHA256_MISMATCH" }
+          Expand-Archive -LiteralPath $archive -DestinationPath (Join-Path $dir "unpacked") -Force
+          $executables = @(Get-ChildItem (Join-Path $dir "unpacked") -Recurse -File -Filter "cadcraft-cli.exe")
+          if ($executables.Count -ne 1) { throw "CADCRAFT_WINDOWS_CLI_NOT_UNIQUE" }
+          $cli = $executables[0].FullName
+          "CADCRAFT_CLI=$cli" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          $guis = @(Get-ChildItem (Join-Path $dir "unpacked") -Recurse -File -Filter "cadcraft.exe")
+          if ($guis.Count -ne 1) { throw "CADCRAFT_WINDOWS_GUI_NOT_UNIQUE" }
+          "CADCRAFT_GUI=$($guis[0].FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          Write-Host "OFFICIAL_WINDOWS_CADCRAFT_RELEASE_SHA256 $actual"
+      - name: DIAGNOSTIC #3415 - Tk root destroy then new root (one Python process)
+        if: ${{ !cancelled() }}
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          python -m pytest -q -s tests/test_issue3415_tk_init_diagnostic.py::test_sequential_tk_roots_in_one_python_process
+          if ($LASTEXITCODE -ne 0) { throw "WHD_3415_TK_TWO_ROOTS_CONTROL_RED" }
+      - name: DIAGNOSTIC #3415 - original native Confirm then Cancel (SAME Python process)
+        if: ${{ !cancelled() }}
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $env:CADCRAFT_CONFIG_DIR = Join-Path $env:RUNNER_TEMP "issue3415-tk-confirm-cancel-same"
+          python -m pytest -q -s tests/test_issue3415_tk_init_diagnostic.py::test_original_native_button_same_process
+          if ($LASTEXITCODE -ne 0) { throw "WHD_3415_TK_SAME_PROCESS_RED" }
+      - name: DIAGNOSTIC #3415 - original native Confirm fresh Python process
+        if: ${{ !cancelled() }}
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $env:CADCRAFT_CONFIG_DIR = Join-Path $env:RUNNER_TEMP "issue3415-tk-confirm-fresh"
+          python -m pytest -q -s "tests/test_issue3415_tk_init_diagnostic.py::test_original_native_button_same_process[confirm]"
+          if ($LASTEXITCODE -ne 0) { throw "WHD_3415_TK_FRESH_CONFIRM_RED" }
+      - name: DIAGNOSTIC #3415 - original native Cancel fresh Python process
+        if: ${{ !cancelled() }}
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $env:CADCRAFT_CONFIG_DIR = Join-Path $env:RUNNER_TEMP "issue3415-tk-cancel-fresh"
+          python -m pytest -q -s "tests/test_issue3415_tk_init_diagnostic.py::test_original_native_button_same_process[cancel]"
+          if ($LASTEXITCODE -ne 0) { throw "WHD_3415_TK_FRESH_CANCEL_RED" }
+
