@@ -124,6 +124,7 @@ class AssembledEndcapWorldSkins:
 def resolve_assembled_endcap_world_skins(
     local_triangles, *, placement, box_body_world, thickness,
     offset=(0.0, 0.0, 0.0), preserve_core_origin=False,
+    reference_triangles=None,
 ):
     """Canonical Head/Tail world mating, then true-thickness physical skins.
 
@@ -136,6 +137,7 @@ def resolve_assembled_endcap_world_skins(
         local_triangles, placement, box_body_world, offset,
         sheet_thickness=thickness,
         preserve_core_origin=preserve_core_origin,
+        reference_triangles=reference_triangles,
     )
     return AssembledEndcapWorldSkins(
         formed_surface=tuple(surface),
