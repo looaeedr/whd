@@ -59,6 +59,10 @@ def test_live_corner_uses_authored_actual_two_bends_and_angles(tail, second_angl
     assert live.second_bend_axis == "y"
     assert live.ideal.source.first_fold_angle_deg == 90
     assert live.second_fold_angle_deg == second_angle
+    assert live.first_physical_bend is real_x
+    assert live.second_physical_bend is real_y
+    assert live.first_signed_fold_angle_deg == -90
+    assert live.second_signed_fold_angle_deg == -second_angle
     assert live.first_flange_height_mm == 20
     assert live.second_flange_height_mm == y_bottom
     assert tuple(render.scene.primitives) == before
@@ -129,4 +133,42 @@ def test_new_snapshot_fold_fingerprint_detects_same_scene_but_changed_authored_a
         _bound_endcap_fold_sha256(
             changed, render.scene, real_x, real_y, "bottom_left",
             second_angle_deg=second_angle,
+        )
+
+
+@pytest.mark.parametrize("angle", (60, 90, 120))
+def test_source_bound_v1_trial_replay_rejects_fold_drift_and_unbound_legacy(angle):
+    spec, render, real_x, real_y = _source(angle)
+    kwargs = dict(
+        thickness_mm=2, first_flange_height_mm=20,
+        second_flange_height_mm=20, second_fold_angle_deg=angle,
+        relief_mode="RELIEF_HOLE", relief_t_factor=1,
+    )
+    saved = api.capture_v_miter_relief_trial_snapshot(
+        render.scene, real_x, real_y, **kwargs,
+        part_spec=spec, corner_key="bottom_left",
+    )
+    assert saved["source_fold_sha256"]
+    assert saved["source_corner_key"] == "bottom_left"
+    rebuilt = api.replay_v_miter_relief_trial_snapshot(
+        render.scene, saved, part_spec=spec,
+    )
+    assert rebuilt.manufacturing_status.endswith("UNCERTIFIED")
+    with pytest.raises(GeometryError, match="CURRENT_PARTSPEC_REQUIRED"):
+        api.replay_v_miter_relief_trial_snapshot(render.scene, saved)
+    changed = replace(spec, fold_profile_y=(
+        replace(spec.fold_profile_y[0], angle=-120 if angle != 120 else -60),
+        *spec.fold_profile_y[1:],
+    ))
+    with pytest.raises(GeometryError, match="AUTHORED_FOLD"):
+        api.replay_v_miter_relief_trial_snapshot(
+            render.scene, saved, part_spec=changed,
+        )
+    old = api.capture_v_miter_relief_trial_snapshot(
+        render.scene, real_x, real_y, **kwargs,
+    )
+    assert "source_fold_sha256" not in old
+    with pytest.raises(GeometryError, match="LEGACY_FOLD_UNBOUND"):
+        api.replay_v_miter_relief_trial_snapshot(
+            render.scene, old, part_spec=spec,
         )
