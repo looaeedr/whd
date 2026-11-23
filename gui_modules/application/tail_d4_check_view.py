@@ -131,6 +131,12 @@ def show_tail_d4_check_window(
             or assembly_check.tail_triangle_count != len(placed_world)
             or assembly_check.manufacturing_approved):
         raise ValueError("TAIL_D4_CHECK_GUI_ASSEMBLY_SOURCE_MISMATCH")
+    evidence_note=(
+        "｜下方 V 候選／原有開邊 %d／新增 %d"
+        % (world_candidate["v_world_open_edges"],
+           world_candidate["v_extra_world_open_edges"])
+        if world_candidate is not None else ""
+    )
     win=tk.Toplevel(parent)
     win.title("WHD 封尾 Ø4 CHECK_NOT_CNC — 不能加工")
     win.geometry("1480x940")
@@ -140,6 +146,7 @@ def show_tail_d4_check_window(
         "封尾 Ø4｜真 Factory／專案來源｜"
         +first_axis.upper()+"/"+first_axis.upper()
         +"｜CHECK_NOT_CNC｜R2_MODEL_UNRESOLVED｜裝配體積未驗收"
+        +evidence_note
     )).pack(side=tk.LEFT)
     def save():
         filename=filedialog.asksaveasfilename(
