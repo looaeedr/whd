@@ -474,6 +474,7 @@ def project_tail_d4_shared_original_fold_candidate(
         "v_world_open_edges":developed["open_world_edges"],
         "v_world_four_edges":developed["four_world_edges"],
         "v_world_multi_edges":developed["multi_world_edges"],
+        "v_world_open_seam_edges":developed["open_seam_world_edges"],
         "v_seam_uv_positions":developed["seam_uv_positions"],
         "original_material":material_polygon_from_final_scene(
             flat.original_scene,
