@@ -188,7 +188,12 @@ def test_primary_group_four_l_member_edit_rotate_mirror_undo_save_reopen_dxf_b(
         canvas.event_generate("<ButtonRelease-1>", x=round(px), y=round(py))
         root.update()
         assert state.hole_session.selected_index == rows.index(group)
-        canvas.event_generate("<Double-Button-1>", x=round(px), y=round(py))
+        # Tk rejects explicitly synthesizing a <Double-Button-1> modifier.
+        # Generate two genuine press/release events on the live Canvas so
+        # its installed double-click binding is exercised by Tk itself.
+        for _ in range(2):
+            canvas.event_generate("<ButtonPress-1>", x=round(px), y=round(py))
+            canvas.event_generate("<ButtonRelease-1>", x=round(px), y=round(py))
         root.update()
         assert state.manual_group_member.get() == "top_right"
         state.manual_group_offset_x.set("3")
@@ -329,7 +334,9 @@ def test_primary_group_four_l_member_edit_rotate_mirror_undo_save_reopen_dxf_b(
         stage.manual_mark_select_button.invoke()
         stage.canvas.event_generate("<Button-1>", x=round(ux), y=round(uy))
         stage.canvas.event_generate("<ButtonRelease-1>", x=round(ux), y=round(uy))
-        stage.canvas.event_generate("<Double-Button-1>", x=round(ux), y=round(uy))
+        for _ in range(2):
+            stage.canvas.event_generate("<ButtonPress-1>", x=round(ux), y=round(uy))
+            stage.canvas.event_generate("<ButtonRelease-1>", x=round(ux), y=round(uy))
         root.update()
         assert stage.manual_group_member.get() == "top_right"
         stage.manual_group_offset_x.set("4")

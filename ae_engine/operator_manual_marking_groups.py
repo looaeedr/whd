@@ -57,6 +57,12 @@ def _parameters(feature):
         raise ValueError("MANUAL_GROUP_UNKNOWN_KIND")
     if not isinstance(row["group_id"], str) or not row["group_id"]:
         raise ValueError("MANUAL_GROUP_MISSING_ID")
+    # A group has no invented X/Y spacing defaults. Missing required
+    # dimensions must be distinguished from malformed numeric inputs.
+    if kind in ("pair_l", "quad_l") and row["spacing_x"] in ("", None):
+        raise ValueError("MANUAL_GROUP_SPACING_X_REQUIRED")
+    if kind == "quad_l" and row["spacing_y"] in ("", None):
+        raise ValueError("MANUAL_GROUP_SPACING_Y_REQUIRED")
     for key in ("spacing_x", "spacing_y", "arm_x", "arm_y", "dash", "gap", "angle"):
         row[key] = _finite(row[key], key, positive=key in ("arm_x", "arm_y", "dash", "gap"))
     if kind in ("pair_l", "quad_l") and row["spacing_x"] <= 0:
