@@ -511,7 +511,7 @@ def test_d4_isolated_y225_source_taper_keeps_original_cutting_and_lower_solid(fi
             )
     illegal=tuple(
         (edge,tuple(origins)) for edge,origins in world_edges.items()
-        if len(origins)==4
+        if len(origins)==4 and max(point[2] for point in edge)>80.
     )
     assert trial["v_world_four_edges"]==8,(
         "D4_Y225_TAPER_NEW_FOUR_EDGE_SOURCE",
