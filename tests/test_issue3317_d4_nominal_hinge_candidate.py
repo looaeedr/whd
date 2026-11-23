@@ -216,7 +216,7 @@ def _left_side_lower_inner_skin_pair_intersection(candidate):
         for fid,face in enumerate(candidate["v_source_faces"]):
             points=tuple(candidate["v_source_uv"][i] for i in face)
             region=Polygon(points)
-            if region.area<=1e-10 or not region.buffer(1e-7).covers(Point(uv)):
+            if region.area<=1e-10 or not region.buffer(2e-6).covers(Point(uv)):
                 continue
             # The two triangles for each indexed source face are plus and
             # minus T skins. Use ONLY the inward skin, never cut walls.
