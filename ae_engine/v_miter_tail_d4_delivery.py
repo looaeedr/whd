@@ -333,10 +333,22 @@ def project_tail_d4_shared_original_fold_candidate(
         raise GeometryError("TAIL_D4_SHARED_FACTORY_Y_BEND_CHANGED")
     if len(tuple(g for g in original_bends if g.axis=="x"))!=2:
         raise GeometryError("TAIL_D4_SHARED_FACTORY_SOURCE_SIDE_BEND_MISSING")
-    # SAME current WHD 3D folding primitive as an unmodified EndCap.
-    surface=folded_mesh_from_polygon(
-        source,owned["X"],exact_y,fold_guides=original_bends,
+    # The restored material beyond the finite X guides is continuous
+    # with the genuine left/right side flanges. Use WHD's ALREADY
+    # EXISTING source-owned tip-following kinematics, with no new crease:
+    # source BEND itself remains (position, finite span) unchanged.
+    from .assembly_geometry import folded_mesh_with_flat_uv_from_polygon
+    tip_extensions=tuple(
+        ("x",float(g.position),float(st.ymin),float(g.span_end))
+        for g in original_bends if g.axis=="x"
     )
+    if len(tip_extensions)!=2:
+        raise GeometryError("TAIL_D4_SHARED_FACTORY_TWO_X_TIP_SOURCES_REQUIRED")
+    source_mapped=folded_mesh_with_flat_uv_from_polygon(
+        source,owned["X"],exact_y,fold_guides=original_bends,
+        fold_tip_continuity=tip_extensions,
+    )
+    surface=tuple(row.local for row in source_mapped)
     baseline_surface=folded_mesh_from_polygon(
         material_polygon_from_final_scene(flat.original_scene),
         owned["X"],exact_y,fold_guides=original_bends,
@@ -355,11 +367,6 @@ def project_tail_d4_shared_original_fold_candidate(
         raise GeometryError("TAIL_D4_SHARED_FACTORY_COLLAPSED_SOURCE_TRIANGLE")
     # Source-UV keyed mapping uses the SAME original owner for extracting
     # real cut-wall quads; it is diagnostic only and does not change solids.
-    from .assembly_geometry import folded_mesh_with_flat_uv_from_polygon
-    from .assembly_geometry_primitives import place_endcap_against_box_body
-    source_mapped=folded_mesh_with_flat_uv_from_polygon(
-        source,owned["X"],exact_y,fold_guides=original_bends,
-    )
     # SAME world-assembly + symmetric physical T as original WHD EndCap,
     # rather than Ø4's independently invented inner_xyz full-T offset.
     baseline=resolve_assembled_endcap_world_skins(
