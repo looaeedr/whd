@@ -946,6 +946,39 @@ def test_real_tk_w620_d4_check_button_uses_exact_preplaced_lower_v_solid(
             base64.b64encode(raw.getvalue()).decode("ascii"),
         )
         assert len(raw.getvalue())>3000
+        if record_selection:
+            # Opening a correct CHECK does not authorize exporting after
+            # its saved finite-BEND identity has gone stale. The toolbar
+            # rebuilds the same detached source before writing any DXF.
+            stale=deepcopy(designer._phase6_input_snapshot[
+                api.TAIL_LOWER_V_FIRST_BENDS_KEY
+            ])
+            stale["bottom_left"]["x"][0][1]+=0.5
+            designer._phase6_input_snapshot[
+                api.TAIL_LOWER_V_FIRST_BENDS_KEY
+            ]=stale
+            unchanged=deepcopy(designer._phase6_input_snapshot)
+            filename=tmp_path/("stale_"+first_axis+"_must_not_save.dxf")
+            monkeypatch.setattr(
+                "gui_modules.application.tail_d4_check_view.filedialog.asksaveasfilename",
+                lambda **_kw:str(filename),
+            )
+            errors=[]
+            monkeypatch.setattr(
+                "gui_modules.application.tail_d4_check_view.messagebox.showerror",
+                lambda *args,**kwargs:errors.append(args),
+            )
+            toolbar=next(w for w in win.winfo_children()
+                         if isinstance(w,ttk.Frame))
+            save=next(w for w in toolbar.winfo_children()
+                      if isinstance(w,ttk.Button)
+                      and "另存看圖 DXF" in w.cget("text"))
+            save.invoke()
+            assert errors and "V_MITER_FIRST_BEND_SOURCE_CHANGED_RESELECT_REQUIRED" in str(
+                errors[-1]
+            )
+            assert not filename.exists()
+            assert designer._phase6_input_snapshot==unchanged
     finally:
         if win is not None:
             try:win.destroy()
