@@ -156,10 +156,19 @@ def test_actual_whd_gui_d4_check_window_four_factory_holes_and_native_world(
         rear_tail=probe_native_world_mesh_axis_faces(
             placed,axis=2,fixed_xyz=(100.,-275.,0.),
         )
-        for value in (-92.5,-90.5,90.5,92.5):
+        for value in (-92.5,-90.5):
             assert any(abs(z-value)<1e-4 for z in rear_body),(
                 "BODY_REAR_PROBE",value,rear_body,
             )
+        # Front is an OPENING: x=100 crosses no front sheet. Do not
+        # invent an entire front wall. Check its actual surviving source
+        # flange triangle vertices alongside the full formed D bounds.
+        front_skin_z={
+            round(float(point[2]),6)
+            for triangle in body for point in triangle
+            if float(point[2])>90.
+        }
+        assert 90.5 in front_skin_z and 92.5 in front_skin_z
         for value in (-91.5,-89.5):
             assert any(abs(z-value)<1e-4 for z in rear_tail),(
                 "TAIL_REAR_PROBE",value,rear_tail,
