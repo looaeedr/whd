@@ -195,6 +195,7 @@ def _original_fold_v_wall_sets(flat, source_mapped, world_mid, thickness):
     if len(source_mapped)!=len(world_mid):
         raise GeometryError("TAIL_D4_SHARED_FACTORY_WALL_SOURCE_COUNT_INVALID")
     edges=defaultdict(list)
+    world_edge_incidence=defaultdict(int)
     t=float(thickness)
     for fid,(record,triangle) in enumerate(zip(source_mapped,world_mid)):
         uv=record.flat
@@ -203,12 +204,20 @@ def _original_fold_v_wall_sets(flat, source_mapped, world_mid, thickness):
             a,b=uv[j],uv[(j+1)%3]
             pa,pb=triangle[j],triangle[(j+1)%3]
             k=tuple(sorted((key(a),key(b))))
-            edges[k].append((a,b,pa,pb,n,fid))
+            wk=tuple(sorted((key(pa),key(pb))))
+            world_edge_incidence[wk]+=1
+            edges[k].append((a,b,pa,pb,n,fid,wk))
     parts=defaultdict(list)
     for group in edges.values():
         if len(group)!=1:
             continue
-        a,b,pa,pb,n,fid=group[0]
+        a,b,pa,pb,n,fid,wk=group[0]
+        # The existing shared T solid builds a cut wall ONLY for actual
+        # single-incidence WORLD edges. A source UV boundary which has
+        # folded onto another world edge does not receive an authored
+        # physical wall: never synthesize that face for this proof.
+        if world_edge_incidence[wk]!=1:
+            continue
         line=LineString((a,b))
         if line.length<eps:continue
         for corner,low,apex,high in flat.opening_source_points_xy:
