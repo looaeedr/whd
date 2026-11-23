@@ -3229,3 +3229,52 @@ from .v_miter_tail_d4_delivery import (
 from .v_miter_tail_d4_check_dxf import (
     save_tail_d4_check_dxf as save_operator_tail_d4_check_dxf,
 )
+
+
+def project_operator_tail_d4_check_native_world(
+    flat, *, first_axis, box_body_world,
+):
+    """#3317 CHECK-only already-assembled W620 true-T source projection.
+
+    Only the exact native Factory W620/D185/T2/FW25/H600/bottom48 vault
+    specimen with the authenticated original Ø4 source is opted in.
+    Other products return None and keep their existing CHECK preview.
+    The supplied Body must be the caller's actual Engine world geometry.
+    This never changes an export, factory profile, project or DXF.
+    """
+    spec=flat.source_spec
+    if (
+        spec.model_name!="金庫型"
+        or abs(float(spec.width)-620.)>1e-7
+        or abs(float(spec.depth)-185.)>1e-7
+        or abs(float(spec.thickness)-2.)>1e-7
+        or abs(float(spec.frame_width)-25.)>1e-7
+        or abs(float(spec.height)-600.)>1e-7
+        or abs(float(spec.fold_bottom)-48.)>1e-7
+    ):
+        return None
+    if first_axis not in ("x","y") or not box_body_world:
+        raise ValueError("TAIL_D4_CHECK_NATIVE_WORLD_SOURCE_REQUIRED")
+    from .v_miter_tail_d4_delivery import (
+        project_tail_d4_shared_original_fold_candidate,
+    )
+    candidate=project_tail_d4_shared_original_fold_candidate(
+        flat,first_axis=first_axis,box_body_world=tuple(box_body_world),
+        nominal_hinge=True,nominal_lower_v_taper=True,
+    )
+    solid=candidate["v_solid"]
+    ids=candidate["v_solid_source_ids"]
+    uv=candidate["v_source_uv"]
+    if (candidate["manufacturing_approved"]
+            or len(solid)!=len(ids) or not solid or not uv
+            or candidate["v_world_four_edges"]!=8
+            or candidate["v_world_open_seam_edges"]!=0
+            or candidate["v_extra_world_open_edges"]!=0
+            or candidate["v_world_open_edges"]!=24
+            or len(candidate["straight_v_wall_sets"])!=2
+            or not all(
+                row["full_face_contact_proven"]
+                for row in candidate["straight_v_wall_sets"]
+            )):
+        raise ValueError("TAIL_D4_CHECK_NATIVE_WORLD_EVIDENCE_REJECTED")
+    return candidate
