@@ -826,14 +826,25 @@ def test_real_tk_w620_d4_check_button_uses_exact_preplaced_lower_v_solid(
         # Real native selection, not a test-supplied fold label. Both X/X
         # and Y/Y must invoke the native Settings button with its true state.
         if first_axis=="y":
-            from ae_engine.manufacturing_api import (
-                TAIL_LOWER_V_FIRST_BENDS_KEY,
-            )
-            current=deepcopy(designer._phase6_input_snapshot)
-            current[TAIL_LOWER_V_FIRST_BENDS_KEY]={
-                "bottom_left":"y","bottom_right":"y",
+            from phase6_manufacturing_adapter import build_scene_payload_for_app
+            payload=dict(build_scene_payload_for_app(designer,"tail"))
+            payload["_use_committed_relief"]=False
+            spec_ctx=designer._part_spec_query_callback("tail",dict(payload))
+            raw=designer._scene_query_callback("tail",dict(payload))
+            # Engine-generated genuine finite-source fold identity, never
+            # fabricated "bottom_left": "y" labels. CHECK itself remains
+            # detached and read-only: no V/geometry writes to the project.
+            ephemeral={
+                **deepcopy(designer._phase6_input_snapshot),
+                api.TAIL_LOWER_V_SNAPSHOT_KEY:"v90",
             }
-            designer._phase6_input_snapshot=current
+            selected=api.commit_operator_tail_lower_v_first_bends(
+                ephemeral,{"bottom_left":"y","bottom_right":"y"},
+                spec=spec_ctx[0],render_data=raw,
+            )
+            designer._phase6_input_snapshot[
+                api.TAIL_LOWER_V_FIRST_BENDS_KEY
+            ]=selected[api.TAIL_LOWER_V_FIRST_BENDS_KEY]
             before=deepcopy(designer._phase6_input_snapshot)
         button.invoke()
         root.update_idletasks();root.update()
