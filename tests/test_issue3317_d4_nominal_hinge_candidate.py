@@ -416,8 +416,19 @@ def test_d4_y225_same_source_skin_edge_gap_is_explicit_unresolved(first_axis,sid
         nominal_hinge=True,
     )
     st=stations_from_real_flat(flat)
+    # This is the exact W620 source witness at Y225, not a derived
+    # assumption that it equals the *upper crease* station. Read it
+    # back from the actual candidate source UV; fail if it is absent.
+    upper_source_rows=tuple(sorted({
+        round(float(uv[1]),7) for uv in candidate["v_source_uv"]
+        if uv[1]>st.upper_start+1e-7
+    }))
+    assert any(abs(y-225.)<1e-7 for y in upper_source_rows),(
+        "D4_UPPER_SOURCE_Y225_ROW_NOT_FOUND",upper_source_rows,
+    )
+    row_y=next(y for y in upper_source_rows if abs(y-225.)<1e-7)
     rows=_source_shared_upper_skin_discontinuities(
-        candidate,station=st.upper_crease,side=side,
+        candidate,station=row_y,side=side,
     )
     assert rows,("D4_UPPER_SHARED_UV_GAP_DISAPPEARED_RECHECK",first_axis,side)
     mismatch=max(max(p,m) for _,ends in rows for _,p,m in ends)
