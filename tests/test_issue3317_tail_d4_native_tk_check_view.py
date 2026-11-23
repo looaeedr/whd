@@ -285,6 +285,31 @@ def test_actual_whd_gui_d4_check_window_four_factory_holes_and_native_world(
             )
             assert all(any(abs(z-v)<1e-4 for z in rear_hits)
                        for v in (-91.5,-89.5))
+            rear_interval=(-91.5,-89.5)
+            body_rear_interval=(-92.5,-90.5)
+            rear_overlap=min(rear_interval[1],body_rear_interval[1])-max(
+                rear_interval[0],body_rear_interval[0],
+            )
+            assert rear_overlap==pytest.approx(1.,abs=1e-6)
+            corner_hits=probe_native_world_mesh_axis_faces(
+                shell_mesh,axis=2,fixed_xyz=(-294.,-297.,0.),
+            )
+            assert len(corner_hits)>=2,("D4_FRONT_CORNER_MISSING",corner_hits)
+            front_tail=tuple(sorted(corner_hits)[-2:])
+            front_body=tuple(sorted(front_corner_body)[-2:])
+            assert min(front_tail[1],front_body[1])-max(
+                front_tail[0],front_body[0],
+            )==pytest.approx(1.,abs=1e-5)
+            # A hypothetical rigid +1 Z shift fixes rear but doubles
+            # the real front-frame overlap: quantify without moving a mesh.
+            shifted_rear=(rear_interval[0]+1.,rear_interval[1]+1.)
+            shifted_front=(front_tail[0]+1.,front_tail[1]+1.)
+            assert min(shifted_rear[1],body_rear_interval[1])-max(
+                shifted_rear[0],body_rear_interval[0],
+            )==pytest.approx(0.,abs=1e-6)
+            assert min(shifted_front[1],front_body[1])-max(
+                shifted_front[0],front_body[0],
+            )==pytest.approx(2.,abs=1e-5)
         # Integral Body's corrected outside datum now has no side
         # interior overlap at either stationary material sample, for both
         # fold orders. Existing rear overlap is NOT thereby certified clear.
