@@ -202,3 +202,34 @@ def test_real_p6fold_reopen_dxf_mm_and_form_marking_finite_fold(actual_sheet, tm
     ]
     assert base_entities
     assert any(e.dxf.layer == "BEND" for e in base_entities)
+
+
+def test_normal_baseplate_partspec_export_revalidates_full_stroke(actual_sheet, tmp_path):
+    """The actual production PartSpec route cannot bypass the editor gate."""
+    source, render, _context, _center, _angle = actual_sheet
+    _values, spec = _part_spec(source)
+    mark = _mark(actual_sheet, pattern="dashed")
+    canonical = ManufacturingContext(resource_root=Path(__file__).resolve().parents[1])
+    qualified = api.build_part_render_data(replace(spec, features=(mark,)), canonical)
+    rows = [p for p in qualified.scene.primitives if p.layer == "MARKING"]
+    assert len(rows) == len(mark.layered_profiles)
+    assert qualified.material.equals(render.material)
+    target = tmp_path / "qualified-base-regular-export.dxf"
+    api.save_part_render_data_dxf(
+        qualified, target, overwrite=False, verify_reopen=True,
+    )
+    assert ezdxf.readfile(target).header["$INSUNITS"] == 4
+
+    start, end = mark.points
+    blank = Vec2(start.x + (end.x-start.x) * 3 / 12,
+                 start.y + (end.y-start.y) * 3 / 12)
+    through_hole = CircleFeature(
+        diameter=0.5, anchor=FeatureAnchor.ABSOLUTE_FINISHED_FACE,
+        offset=blank, layer="CUTTING",
+    )
+    # Persisted real mark is not auto-adjusted after adding a hole.  Building
+    # a fresh normal PartSpec must reject before any DXF writer can run.
+    unsafe = replace(spec, features=(mark, through_hole))
+    with pytest.raises(ValueError, match="完整筆畫"):
+        api.build_part_render_data(unsafe, canonical)
+    assert target.exists()
