@@ -1514,6 +1514,31 @@ def derive_side_back_split_endcap_bottom_relief(
     }
 
 
+def _has_integral_dwd_fold_owner(part):
+    """Only an authored, source-keyed one-piece D-W-D BoxBody owns this skin."""
+    render=getattr(part,"render_data",None)
+    topology=getattr(render,"unfolded_topology",None)
+    if (str(getattr(part,"part_key",""))!="box_body"
+            or str(getattr(part,"placement","")) not in {"box_body","body","cabinet"}
+            or getattr(render,"pieces",None)
+            or getattr(topology,"source",None)!="BOX_BODY_FOLD_PROFILE"):
+        return False
+    profile=tuple(getattr(part,"x_profile",()) or ())
+    keys=tuple(str(_segment_value(row,"phase6_key","") or "") for row in profile)
+    core=tuple((i,str(_segment_value(row,"core","") or ""))
+               for i,row in enumerate(profile) if _segment_value(row,"core"))
+    if (len(profile)!=9 or keys!=(
+            "zl1","zl2","fw_left","d_left","w","d_right",
+            "fw_right","zr2","zr1")
+            or core!=((3,"D"),(4,"W"),(5,"D"))):
+        return False
+    angles=tuple(_segment_value(row,"angle",None) for row in profile)
+    return all(
+        angle is not None and abs(abs(float(angle))-90.)<=1e-7
+        for angle in angles[:-1]
+    ) and angles[-1] is None
+
+
 def _integral_body_formed_outside_skins(mapped, placed, *, thickness):
     """Physical integral D-W-D Box Body skins from its Fold INSIDE datum.
 
@@ -1523,8 +1548,9 @@ def _integral_body_formed_outside_skins(mapped, placed, *, thickness):
     one skin at the Fold datum and the other exactly T toward the cabinet
     exterior. No XY scaling, changed CUTTING, BA or synthetic bend.
     """
-    from .assembly_geometry_primitives import triangle_bounds
-
+    # The placed mesh is world-space; its own X/Z folded envelope is the
+    # translation-equivariant cabinet datum. A GLOBAL origin test turns
+    # left/rear skins inside-out when the cabinet receives an offset.
     triangles=tuple(placed)
     items=tuple(mapped)
     if len(triangles)!=len(items):
@@ -1532,13 +1558,16 @@ def _integral_body_formed_outside_skins(mapped, placed, *, thickness):
     t=float(thickness)
     if not math.isfinite(t) or t<=0:
         raise ValueError("BOX_BODY_INTEGRAL_SHEET_THICKNESS_INVALID")
+    bounds=triangle_bounds(triangles)
+    center_x=(bounds[0][0]+bounds[0][1])/2.
+    center_z=(bounds[2][0]+bounds[2][1])/2.
     result=[]
     for item,mid in zip(items,triangles):
         n=_triangle_unit_normal(mid)
         if n is None:
             raise ValueError("BOX_BODY_INTEGRAL_DEGENERATE_PHYSICAL_FACE")
         centroid=tuple(sum(float(p[k]) for p in mid)/3. for k in range(3))
-        radial=n[0]*centroid[0]+n[2]*centroid[2]
+        radial=n[0]*(centroid[0]-center_x)+n[2]*(centroid[2]-center_z)
         if abs(radial)<=1e-8:
             raise ValueError("BOX_BODY_INTEGRAL_OUTSIDE_FACE_DIRECTION_AMBIGUOUS")
         outward=1. if radial>0. else -1.
@@ -1630,7 +1659,8 @@ def build_joint_world_geometry(parts, finished_dimensions, sheet_thickness):
                 world_mid_piece = fit_receiving_left_zl1_world_mid(
                     piece, mapped, world_mid_piece, sheet_thickness=sheet_thickness,
                 )
-                if str(getattr(piece,"role","") or "").lower()=="integral":
+                if (str(getattr(piece,"role","") or "").lower()=="integral"
+                        and _has_integral_dwd_fold_owner(body)):
                     skins=list(_integral_body_formed_outside_skins(
                         mapped,world_mid_piece,thickness=sheet_thickness,
                     ))
@@ -1661,12 +1691,17 @@ def build_joint_world_geometry(parts, finished_dimensions, sheet_thickness):
             body_world_mid = place_assembly_triangles(
                 tuple(item.local for item in mapped), body.placement, finished_dimensions, body.offset
             )
-            # Plain integral PartRenderData is also a source-owned D-W-D
-            # physical Body, not an arbitrary sheet mid-surface. Use the
-            # SAME inside Fold datum as structure-type integral above.
-            skins = _integral_body_formed_outside_skins(
-                mapped,body_world_mid,thickness=sheet_thickness,
-            )
+            # The operator's true D-W-D BoxBody Fold is an inside skin;
+            # other plain parts keep their original symmetric mid-surface.
+            if _has_integral_dwd_fold_owner(body):
+                skins = _integral_body_formed_outside_skins(
+                    mapped,body_world_mid,thickness=sheet_thickness,
+                )
+            else:
+                skins = world_skin_with_flat_uv(
+                    mapped,body.placement,finished_dimensions,
+                    offset=body.offset,sheet_thickness=sheet_thickness,
+                )
             flat_material_by_part["box_body"] = body.render_data.material
             mapped_skin_triangles_by_part["box_body"] = tuple(skins)
             world_triangles_by_part["box_body"] = tuple(item.world for item in skins)
