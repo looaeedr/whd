@@ -580,3 +580,25 @@ def test_d4_lower_v_tip_2h_taper_stays_original_upper_source(first_axis):
             trial["v_solid"],axis=2,fixed_xyz=location,
         )
         assert before==pytest.approx(after,abs=1e-6)
+
+
+def test_d4_native_check_world_adapter_only_exact_verified_w620_source():
+    """Other dimensions/optional source fields retain legacy CHECK behavior."""
+    from dataclasses import replace
+    from ae_engine import manufacturing_api as api
+    flat,_=build_tail_d4_check_from_original(default_vault_tail_d4_spec())
+    body=_real_w620_body()
+    for changed in (
+        {"width":621.},
+        {"depth":186.},
+        {"thickness":2.5},
+        {"height":None},
+        {"fold_bottom":49.},
+        {"fold_top":17.},
+        {"fold_left":16.},
+        {"model_name":"受電箱"},
+    ):
+        other=replace(flat,source_spec=replace(flat.source_spec,**changed))
+        assert api.project_operator_tail_d4_check_native_world(
+            other,first_axis="x",box_body_world=body,
+        ) is None,changed
