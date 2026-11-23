@@ -286,6 +286,12 @@ jobs:
           print("WINDOWS_NATIVE_VENDOR_GUI_TCP_UNSAVED_WHD_SESSION_GREEN")
           '@ | python -
           if ($LASTEXITCODE -ne 0) { throw "WINDOWS_NATIVE_GUI_TCP_RECEIPT_INVALID" }
+      - name: Diagnose native CADCraft ezdxf worker without Tk, with plain Tk, and real Editor shell
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          python -m pytest -q -s tests/test_issue3415_clean_windows_gc_diagnostic.py
+          if ($LASTEXITCODE -ne 0) { throw "WHD_3415_CLEAN_NATIVE_MINIMAL_DIAGNOSTIC_RED" }
       - name: Real WHD Tk button opens native CADCraft GUI live unsaved Confirm Cancel Undo
         shell: pwsh
         run: |
