@@ -275,7 +275,7 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                 if (
                     part_key=="box_body"
                     and not getattr(part_data,"pieces",None)
-                    and tuple(getattr(part,"x_profile",()) or ())
+                    and manufacturing_api.project_integral_box_body_formed_skin_eligible(part)
                 ):
                     # The original D-W-D Fold is the INSIDE material datum.
                     # Render the exact Engine-owned formed true-T Body, not
