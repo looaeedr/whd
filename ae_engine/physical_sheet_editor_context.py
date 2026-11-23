@@ -90,6 +90,11 @@ def propose_operator_physical_sheet_hole_features(
             normalized.append(feature)
         else:
             raise ValueError("實體孔位不是有效的 Feature")
+    from .operator_manual_marking import validate_physical_manual_markings
+    validate_physical_manual_markings(
+        part_key, context.render_data, tuple(normalized),
+        surface=context.feature_surface, width=context.width, height=context.height,
+    )
     resolve_surface_features(
         context.feature_surface, tuple(normalized),
         context.width, context.height,
