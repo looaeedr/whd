@@ -228,7 +228,7 @@ def _build_sidebar_workspace_state(s):
     s.manual_mark_dash = None
     s.manual_mark_gap = None
     s.manual_mark_status = None
-    if s.manual_marking_context is not None:
+    if getattr(s, 'manual_marking_context', None) is not None:
         mark_bar = d.tk.Frame(s.center, bg=host.COLOR_PANEL)
         mark_bar.pack(before=s.canvas, fill=d.tk.X, padx=4, pady=3)
         s.manual_mark_length = d.tk.StringVar(master=s.editor, value="60")
@@ -790,7 +790,7 @@ def _install_manual_marking_actions(s):
     The GUI never computes the stroke endpoints, clearance or Fold.  Each
     click passes the raw input and midpoint to the public Engine candidate.
     """
-    if s.manual_marking_context is None:
+    if getattr(s, 'manual_marking_context', None) is None:
         return
     from phase6_hole_editor_session import HoleEditorAction
     d = s.d
@@ -1198,7 +1198,7 @@ def _bind_editor_events(s):
     s.editor.bind("<Control-z>", s.undo_last_action)
     s.editor.bind("<Control-Z>", s.undo_last_action)
     s.editor.bind("<Escape>", (
-        s.manual_mark_escape if s.manual_marking_context is not None else s.on_escape
+        s.manual_mark_escape if getattr(s, 'manual_marking_context', None) is not None else s.on_escape
     ))
     s.editor.protocol("WM_DELETE_WINDOW", s.cancel_all)
     s.catalog_list.bind(
