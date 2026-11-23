@@ -516,7 +516,19 @@ def test_d4_isolated_y225_source_taper_keeps_original_cutting_and_lower_solid(fi
     assert trial["v_world_four_edges"]==8,(
         "D4_Y225_TAPER_NEW_FOUR_EDGE_SOURCE",
         trial["v_world_four_edges"],
-        tuple((edge,origin) for edge,origin in illegal),
+        tuple(
+            (
+                edge,
+                ";".join(
+                    f"face{fid}/"+
+                    ("skin+" if fid%2==0 else "skin-")
+                    +"/"+str(tuple(tuple(round(x,6) for x in uv)
+                                   for uv in pair))
+                    for fid,pair in origins
+                )
+            )
+            for edge,origins in illegal
+        ),
     )
     assert trial["v_world_open_seam_edges"]==0
     assert trial["v_world_open_edges"]==16
