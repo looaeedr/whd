@@ -512,10 +512,26 @@ def test_actual_whd_gui_d4_check_window_four_factory_holes_and_native_world(
                 "D4_SOURCE_SEAM_PHYSICAL_OPEN_EDGE",
                 axis,trial["v_world_open_seam_edges"],
             )
+            assert trial["original_world_open_edges"]==24,(
+                "D4_ORIGINAL_FACTORY_OPEN_EDGE_BASELINE_CHANGED",
+                axis,trial["original_world_open_edges"],
+            )
+            assert (
+                trial["v_world_open_edges"],
+                trial["v_extra_world_open_edges"],
+                trial["v_world_four_edges"],
+            )==(56,32,8),(
+                "D4_UV_ROOT_RESIDUAL_PHYSICAL_EDGES_CHANGED",axis,
+                trial["v_world_open_edges"],
+                trial["v_extra_world_open_edges"],
+                trial["v_world_four_edges"],
+            )
             import warnings
             warnings.warn(
                 "ISSUE3317_SHARED_UV_PHYSICAL_EDGE_COUNTS="+repr((
-                    axis,trial["v_world_open_edges"],
+                    axis,trial["original_world_open_edges"],
+                    trial["v_world_open_edges"],
+                    trial["v_extra_world_open_edges"],
                     trial["v_world_open_seam_edges"],
                     trial["v_world_four_edges"],
                     trial["v_world_multi_edges"],
