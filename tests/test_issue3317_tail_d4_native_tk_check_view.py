@@ -516,6 +516,35 @@ def test_actual_whd_gui_d4_check_window_four_factory_holes_and_native_world(
                 trial["shared_original_world_open_edges"]
                 +trial["original_removed_world_open_edges"]
             ),("D4_SOURCE_BASELINE_EDGE_IDENTITY_MISMATCH",axis)
+            assert len(trial["v_extra_world_open_edge_uv"])==(
+                trial["v_extra_world_open_edges"]
+            ),("D4_NEW_ROOT_WORLD_EDGE_UV_IDENTITY_LOST",axis)
+            from collections import Counter
+            actual_apex=tuple(
+                (name,apex) for name,_,apex,_
+                in flat.opening_source_points_xy
+            )
+            left_x=min(apex[0] for _,apex in actual_apex)
+            right_x=max(apex[0] for _,apex in actual_apex)
+            seam_y=min(upper[1] for _,_,_,upper
+                       in flat.opening_source_points_xy)
+            region_counts=Counter()
+            for edge_uv in trial["v_extra_world_open_edge_uv"]:
+                cx=sum(p[0] for p in edge_uv)/2.
+                ymax=max(p[1] for p in edge_uv)
+                if ymax<=seam_y+1e-7 and cx<left_x+25.:
+                    region_counts["left_v_root"]+=1
+                elif ymax<=seam_y+1e-7 and cx>right_x-25.:
+                    region_counts["right_v_root"]+=1
+                else:
+                    region_counts["other_or_above_v"]+=1
+            import warnings
+            warnings.warn(
+                "ISSUE3317_SHARED_UV_OPEN_ROOT_SOURCE_REGIONS="
+                +repr((axis,dict(region_counts),
+                       trial["v_extra_world_open_edge_uv"][:4])),
+                RuntimeWarning,stacklevel=1,
+            )
             assert trial["v_world_open_edges"]==(
                 trial["shared_original_world_open_edges"]
                 +trial["v_extra_world_open_edges"]
