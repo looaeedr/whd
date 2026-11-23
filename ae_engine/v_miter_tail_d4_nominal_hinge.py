@@ -145,7 +145,15 @@ def nominal_adjacent_source_skins(faces,source_uv,world_surface,t,st,h):
         raise GeometryError("TAIL_D4_NOMINAL_SOURCE_ADJACENT_HINGE_MISSING")
     used_hinges=set()
     layers=[]
+    upper_cutoff=max(st.left_side_end,st.right_side_end)
     for fid,(face,tri,n) in enumerate(zip(faces,world_surface,normals)):
+        # Do not deform the ORIGINAL upper cap side of the finite X-BEND
+        # endpoint. The lower-to-upper transition may remain physically
+        # unresolved; it must not be hidden by changing native upper skins.
+        if min(source_uv[i][1] for i in face)>=upper_cutoff-1e-7:
+            off=_mul(n,t/2.)
+            layers.append(tuple((_add(p,off),_sub(p,off)) for p in tri))
+            continue
         vlayers=[]
         for vertex_id,p in zip(face,tri):
             uv=source_uv[vertex_id]
