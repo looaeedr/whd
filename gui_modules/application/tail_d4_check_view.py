@@ -96,11 +96,37 @@ def _fit_equal_3d(ax, triangles):
 
 def show_tail_d4_check_window(
     parent, *, flat, check, body_world, placed_world, first_axis,
-    save_dxf, assembly_check,
+    save_dxf, assembly_check, world_source_faces=None,
+    world_source_uv=None, world_candidate=None,
 ):
     """Open a native Tk CHECK-only view: 2D, assembled 3D, upper, both roots."""
-    if not body_world or len(placed_world)!=len(check.shell_faces):
-        raise ValueError("TAIL_D4_CHECK_GUI_NATIVE_WORLD_SOURCE_REQUIRED")
+    # The candidate world shell has one UV-source triplet PER displayed
+    # triangle. Unlike old CHECK shell_faces, these are not local
+    # +/-T vertex indices and must never be used for local placement.
+    source_faces=(check.shell_faces if world_source_faces is None
+                  else tuple(world_source_faces))
+    source_uv=(check.source_uv if world_source_uv is None
+               else tuple(world_source_uv))
+    if (not body_world or len(placed_world)!=len(source_faces)
+            or not source_uv
+            or any(len(face)!=3 or any(
+                not isinstance(i,int) or i<0 or i>=len(source_uv)
+                for i in face
+            ) for face in source_faces)):
+        if world_candidate is None and world_source_faces is None:
+            # The original source faces include outer-skin offset indices.
+            if not body_world or len(placed_world)!=len(check.shell_faces):
+                raise ValueError("TAIL_D4_CHECK_GUI_NATIVE_WORLD_SOURCE_REQUIRED")
+        else:
+            raise ValueError("TAIL_D4_CHECK_GUI_WORLD_UV_SOURCE_MISMATCH")
+    if world_candidate is not None and (
+        world_source_faces is None or world_source_uv is None
+        or tuple(placed_world)!=tuple(world_candidate["v_solid"])
+        or source_faces!=tuple(world_candidate["v_solid_source_ids"])
+        or source_uv!=tuple(world_candidate["v_source_uv"])
+        or world_candidate["manufacturing_approved"]
+    ):
+        raise ValueError("TAIL_D4_CHECK_GUI_WORLD_CANDIDATE_UNTRUSTED")
     if (assembly_check.body_triangle_count != len(body_world)
             or assembly_check.tail_triangle_count != len(placed_world)
             or assembly_check.manufacturing_approved):
@@ -188,10 +214,10 @@ def show_tail_d4_check_window(
     all_x=[p[0] for tri in placed_world for p in tri]
     center=(min(all_x)+max(all_x))/2
     st=manufacturing_api.project_operator_tail_d4_source_stations(flat)
-    n=len(check.source_uv)
+    n=len(source_uv)
     upper_mesh=tuple(
-        tri for face,tri in zip(check.shell_faces,placed_world)
-        if all(check.source_uv[v%n][1]>=st.upper_start-1e-6
+        tri for face,tri in zip(source_faces,placed_world)
+        if all(source_uv[v%n][1]>=st.upper_start-1e-6
                for v in face)
     )
     sections=_cross_section_world_x(upper_mesh,center)
@@ -206,9 +232,9 @@ def show_tail_d4_check_window(
     for corner,ax in zip(flat.opening_source_points_xy,(left_ax,right_ax)):
         name,_lo,apex,_hi=corner
         corner_mesh=tuple(
-            tri for face,tri in zip(check.shell_faces,placed_world)
-            if all(abs(check.source_uv[v%n][0]-apex[0])<=26.
-                   and abs(check.source_uv[v%n][1]-apex[1])<=26.
+            tri for face,tri in zip(source_faces,placed_world)
+            if all(abs(source_uv[v%n][0]-apex[0])<=26.
+                   and abs(source_uv[v%n][1]-apex[1])<=26.
                    for v in face)
         )
         if corner_mesh:
@@ -269,5 +295,8 @@ def show_tail_d4_check_window(
     win._tail_d4_check_shell=check
     win._tail_d4_check_body_world=body_world
     win._tail_d4_check_placed_world=placed_world
+    win._tail_d4_check_world_source_faces=source_faces
+    win._tail_d4_check_world_source_uv=source_uv
+    win._tail_d4_check_world_candidate=world_candidate
     win._tail_d4_assembly_check=assembly_check
     return win
