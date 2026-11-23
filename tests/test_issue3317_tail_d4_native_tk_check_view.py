@@ -769,13 +769,18 @@ def test_actual_whd_gui_d4_check_window_four_factory_holes_and_native_world(
         root.destroy()
 
 
-@pytest.mark.parametrize("first_axis,record_selection",(
-    ("x",False),  # legacy display-only, no stored first-bend record
-    ("x",True),   # authentic fresh X/X finite BEND identity
-    ("y",True),   # authentic fresh Y/Y finite BEND identity
+@pytest.mark.parametrize("first_axis,record_selection,width,height,depth,bottom",(
+    ("x",False,620.,600.,185.,48.),  # legacy display-only
+    ("x",True,620.,600.,185.,48.),   # genuine saved X/X identity
+    ("y",True,620.,600.,185.,48.),   # genuine saved Y/Y identity
+    ("x",True,620.,600.,185.,55.),
+    ("y",True,620.,600.,185.,55.),
+    ("x",True,670.,640.,205.,55.),
+    ("y",True,670.,640.,205.,55.),
 ))
 def test_real_tk_w620_d4_check_button_uses_exact_preplaced_lower_v_solid(
-    first_axis,record_selection,record_property,monkeypatch,tmp_path,
+    first_axis,record_selection,width,height,depth,bottom,
+    record_property,monkeypatch,tmp_path,
 ):
     """Real GUI click; world mesh & source triplets are Engine-owned.
 
@@ -792,9 +797,9 @@ def test_real_tk_w620_d4_check_button_uses_exact_preplaced_lower_v_solid(
     try:
         main=gui.BoxCalculatorGUI(root)
         main.baseline_var.set("金庫型")
-        main.w_var.set("620")
-        main.h_var.set("600")
-        main.d_var.set("185")
+        main.w_var.set(str(width))
+        main.h_var.set(str(height))
+        main.d_var.set(str(depth))
         if hasattr(main,"t_var"):
             main.t_var.set("2")
         main._apply_existing_parts_from_fold_workspace(
@@ -811,7 +816,7 @@ def test_real_tk_w620_d4_check_button_uses_exact_preplaced_lower_v_solid(
         index=next(i for i,seg in enumerate(rows)
                    if seg.get("phase6_key")=="ybottom1")
         candidate=[dict(seg) for seg in rows]
-        candidate[index]["len"]=48.
+        candidate[index]["len"]=bottom
         displayed=api.project_operator_fold_editor_display_rows(
             candidate,getattr(designer.state,"phase6_thickness",2.),
         )
@@ -826,7 +831,7 @@ def test_real_tk_w620_d4_check_button_uses_exact_preplaced_lower_v_solid(
         designer._phase6_update_scheduler.flush_now()
         root.update_idletasks();root.update()
         before=deepcopy(designer._phase6_input_snapshot)
-        assert before["assembly_relief"]["source"]["ybottom1"]==pytest.approx(48.)
+        assert before["assembly_relief"]["source"]["ybottom1"]==pytest.approx(bottom)
         # Real native selection, not a test-supplied fold label. Both X/X
         # and Y/Y must invoke the native Settings button with its true state.
         if record_selection:
@@ -881,7 +886,9 @@ def test_real_tk_w620_d4_check_button_uses_exact_preplaced_lower_v_solid(
         assert len(original_check.shell_faces)!=len(placed)
         assert actual["v_world_four_edges"]==8
         assert actual["v_world_open_seam_edges"]==0
-        assert actual["v_world_open_edges"]==24
+        assert actual["v_world_open_edges"]==actual[
+            "shared_original_world_open_edges"
+        ]
         assert actual["v_extra_world_open_edges"]==0
         assert len(actual["straight_v_wall_sets"])==2
         assert all(x["full_face_contact_proven"]
@@ -912,7 +919,7 @@ def test_real_tk_w620_d4_check_button_uses_exact_preplaced_lower_v_solid(
         # source, not the old CHECK's independently placed local skin.
         # In exact W620 this physically measures X=-307..+307.
         assert triangle_bounds(placed)[0]==pytest.approx(
-            (-307.,307.),abs=1e-6,
+            (-(width/2.-3.),width/2.-3.),abs=1e-6,
         )
         assert triangle_bounds(placed)[0]==pytest.approx(
             triangle_bounds(actual["v_solid"])[0],abs=1e-7,
@@ -921,7 +928,8 @@ def test_real_tk_w620_d4_check_button_uses_exact_preplaced_lower_v_solid(
         # click; no DXF save unless the separate CHECK-only toolbar is used.
         assert designer._phase6_input_snapshot==before
         record_property("ISSUE3317_NATIVE_D4_LOWER_V_TK_WORLD",repr((
-            first_axis,len(placed),len(source_faces),len(source_uv),
+            first_axis,width,height,depth,bottom,
+            len(placed),len(source_faces),len(source_uv),
             actual["v_world_open_edges"],actual["v_extra_world_open_edges"],
             assembly.crossing_pair_count,
         )))
