@@ -1661,9 +1661,11 @@ def build_joint_world_geometry(parts, finished_dimensions, sheet_thickness):
             body_world_mid = place_assembly_triangles(
                 tuple(item.local for item in mapped), body.placement, finished_dimensions, body.offset
             )
-            skins = world_skin_with_flat_uv(
-                mapped, body.placement, finished_dimensions, offset=body.offset,
-                sheet_thickness=sheet_thickness,
+            # Plain integral PartRenderData is also a source-owned D-W-D
+            # physical Body, not an arbitrary sheet mid-surface. Use the
+            # SAME inside Fold datum as structure-type integral above.
+            skins = _integral_body_formed_outside_skins(
+                mapped,body_world_mid,thickness=sheet_thickness,
             )
             flat_material_by_part["box_body"] = body.render_data.material
             mapped_skin_triangles_by_part["box_body"] = tuple(skins)
