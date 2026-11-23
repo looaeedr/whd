@@ -97,6 +97,7 @@ def test_real_main_left_committed_mark_saveas_new_root_open_designer_export(
     second = tmp_path / "after-main-reopen.dxf"
     saved_marks = None
     source_sig = None
+    first_dxf_bytes = None
 
     for roundtrip in (0, 1):
         root = tk.Tk()
@@ -165,9 +166,23 @@ def test_real_main_left_committed_mark_saveas_new_root_open_designer_export(
                     editor._manual_marking_controls[2].cget("text")
                 )
                 assert editor._manual_marking_controls[2].cget("text") == ""
+                controls = editor._manual_marking_controls
+                assert len(controls) == 3
+                for child in controls:
+                    ancestor = child
+                    while ancestor is not None and ancestor is not editor:
+                        ancestor = ancestor.master
+                    assert ancestor is editor, "MARKING_CHILD_HAS_NO_EDITOR_MASTER_PATH"
                 _actual_editor_confirm(editor)
                 root.update()
                 assert not editor.winfo_exists()
+                for name in (
+                    "_manual_marking_controls", "_manual_marking_place",
+                    "_manual_marking_select",
+                ):
+                    assert name not in editor.__dict__, (
+                        "MARKING_EDITOR_REVERSE_REF_RETAINED: " + name
+                    )
                 saved_marks = tuple(
                     item for item in designer.designer_workspace.features_for("base_plate")
                     if api.is_manual_mark(item)
@@ -182,6 +197,7 @@ def test_real_main_left_committed_mark_saveas_new_root_open_designer_export(
                 )
                 host._export_authoritative_part(first_spec, first, first_ctx)
                 assert first.is_file() and first.stat().st_size > 0
+                first_dxf_bytes = first.read_bytes()
                 expected_entities = _dxf_entities(first)
                 assert api.verify_saved_part_render_data_dxf(
                     host._authoritative_render_data(first_spec, first_ctx), first
@@ -224,9 +240,15 @@ def test_real_main_left_committed_mark_saveas_new_root_open_designer_export(
                 ) == source_sig
                 host._export_authoritative_part(reopened_spec, second, reopened_ctx)
                 assert second.is_file() and second.stat().st_size > 0
-                assert first.read_bytes() == second.read_bytes(), (
-                    "RELOADED_MAIN_DXF_BYTES_DRIFT"
+                # A separately generated DXF legitimately carries its own
+                # ezdxf timestamp/metadata; comparing complete bytes across
+                # two separate exports invents a false manufacturing rule.
+                # Instead prove earlier output is byte-for-byte untouched,
+                # and BOTH files independently reopen to the same geometry.
+                assert first.read_bytes() == first_dxf_bytes, (
+                    "MAIN_REOPEN_OVERWROTE_OLD_DXF_BYTES"
                 )
+                assert second.read_bytes() and second != first
                 assert _dxf_entities(second) == expected_entities
                 assert api.verify_saved_part_render_data_dxf(
                     host._authoritative_render_data(reopened_spec, reopened_ctx), second
