@@ -454,3 +454,86 @@ def test_d4_y225_same_source_skin_edge_gap_is_explicit_unresolved(first_axis,sid
     )
     # This is an OBSERVED problem, never a manufacturing-success claim.
     assert not candidate["manufacturing_approved"]
+
+
+@pytest.mark.parametrize("first_axis",("x","y"))
+def test_d4_isolated_y225_source_taper_keeps_original_cutting_and_lower_solid(first_axis):
+    """Experimental 3D taper is never a CHECK/CNC or a changed FinalScene."""
+    from ae_engine.assembly_geometry import diagnose_world_mesh_self_intersections
+    from ae_engine.v_miter_tail_d4_shared_uv_solid import _normal,_dot
+    from math import dist
+
+    flat,_=build_tail_d4_check_from_original(default_vault_tail_d4_spec())
+    body=_real_w620_body()
+    old=project_tail_d4_shared_original_fold_candidate(
+        flat,first_axis=first_axis,box_body_world=body,nominal_hinge=True,
+    )
+    trial=project_tail_d4_shared_original_fold_candidate(
+        flat,first_axis=first_axis,box_body_world=body,
+        nominal_hinge=True,nominal_upper_taper=True,
+    )
+    assert trial["nominal_upper_taper"] is True
+    assert old["nominal_upper_taper"] is False
+    assert not trial["manufacturing_approved"]
+    assert trial["v_source_uv"] != old["v_source_uv"]
+    assert trial["v_source_area_mm2"]==pytest.approx(
+        old["v_source_area_mm2"],abs=1e-7,
+    )
+    assert trial["v_world_four_edges"]==8
+    assert trial["v_world_open_seam_edges"]==0
+    assert trial["v_world_open_edges"]==16
+    assert all(x["full_face_contact_proven"] for x in trial["straight_v_wall_sets"])
+    for bound_a,bound_b in zip(
+        triangle_bounds(old["v_surface"]),triangle_bounds(trial["v_surface"]),
+    ):
+        assert bound_a==pytest.approx(bound_b,abs=1e-7)
+    # Two T faces per true material triangle, never a wall or a forged cap.
+    for fid,tri in enumerate(trial["v_surface"]):
+        positive,negative=trial["v_solid"][fid*2:fid*2+2]
+        n=_normal(tri)
+        for j,point in enumerate(tri):
+            p=positive[j]
+            m=negative[(0,2,1)[j]]
+            assert _dot(tuple(p[k]-m[k] for k in range(3)),n)==pytest.approx(
+                flat.source_spec.thickness,abs=1e-6,
+            )
+        assert len(set(tuple(round(q,7) for q in p) for p in positive))==3
+        assert len(set(tuple(round(q,7) for q in p) for p in negative))==3
+    # Upper original skin positions are preserved above source side end.
+    from ae_engine.v_miter_tail_no_ba_sequential import stations_from_real_flat
+    st=stations_from_real_flat(flat)
+    source_samples=[]
+    for face in old["v_source_faces"]:
+        points=tuple(old["v_source_uv"][i] for i in face)
+        if min(p[1] for p in points)>=max(st.left_side_end,st.right_side_end)+1e-6:
+            source_samples.append(tuple(sum(p[k] for p in points)/3.
+                                        for k in (0,1)))
+    assert source_samples
+    for uv in source_samples[:60]:
+        a=_source_thickness_segment(old,uv)
+        b=_source_thickness_segment(trial,uv)
+        for pa,pb in zip(a,b):
+            assert pa==pytest.approx(pb,abs=1e-6)
+    for label,where in (
+        ("rear",(100.,-275.,0.)),
+        ("front_frame",(-294.,-297.,0.)),
+    ):
+        before=probe_native_world_mesh_axis_faces(
+            old["v_solid"],axis=2,fixed_xyz=where,
+        )
+        after=probe_native_world_mesh_axis_faces(
+            trial["v_solid"],axis=2,fixed_xyz=where,
+        )
+        assert before==pytest.approx(after,abs=1e-6),(label,before,after)
+    for side in ("left","right"):
+        # Same-source Y225 edges on both +/- T skins must now agree.
+        assert not _source_shared_upper_skin_discontinuities(
+            trial,station=st.left_side_end,side=side,
+        ),("D4_TAPER_Y225_SHARED_SOURCE_SKINS_DISCONTINUOUS",side,first_axis)
+        skins,ids=_source_local_side_skin_faces(trial,side)
+        check=diagnose_world_mesh_self_intersections(
+            skins,max_nonadjacent_pairs=len(skins)*(len(skins)-1)//2,
+        )
+        assert not check.numerical_budget_exhausted
+        assert check.crossing_pair_count==0
+        assert check.coplanar_overlap_pair_count==0
