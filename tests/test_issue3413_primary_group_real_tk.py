@@ -177,6 +177,11 @@ def test_primary_group_four_l_member_edit_rotate_mirror_undo_save_reopen_dxf_b(
         placement = state.canvas_view.canvas_to_world(round(x), round(y))
         assert placement is not None
         for kind in ("cross", "l", "pair_l"):
+            if kind == "pair_l":
+                # A previous L selection may have projected its zero
+                # spacing into the live editing controls. The operator
+                # explicitly supplies the pair baseline distance.
+                state.manual_group_spacing_x.set("40")
             state.manual_group_tools[kind].invoke()
             canvas.event_generate("<Button-1>", x=round(x), y=round(y))
             canvas.event_generate("<ButtonRelease-1>", x=round(x), y=round(y))
@@ -204,6 +209,9 @@ def test_primary_group_four_l_member_edit_rotate_mirror_undo_save_reopen_dxf_b(
             state.delete_btn.invoke()
             root.update()
             assert not any(api.is_manual_group(f) for f in state.live_context.feature_list)
+        # The four corners likewise require independent operator X/Y inputs.
+        state.manual_group_spacing_x.set("40")
+        state.manual_group_spacing_y.set("30")
         state.manual_group_tools["quad_l"].invoke()
         canvas.event_generate("<Button-1>", x=round(x), y=round(y))
         canvas.event_generate("<ButtonRelease-1>", x=round(x), y=round(y))
