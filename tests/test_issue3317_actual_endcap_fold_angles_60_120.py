@@ -12,7 +12,7 @@ import pytest
 from ae_engine import manufacturing_api as api
 from ae_engine.v_miter_material_trial import _single_source_material
 from ae_engine.v_miter_operator_gui_check import (
-    _endcap_existing_fold_angle_sources, _physical_corner_bends,
+    _endcap_existing_fold_angle_sources, _partspec_corner_fold_station,
 )
 
 
@@ -40,11 +40,18 @@ def test_real_head_tail_actual_fold_60_120_preserves_factory_source_and_T(
         render = app._query_fold_designer_render_data(part_key, snap)
         initial = tuple(render.scene.primitives)
         bounds = _single_source_material(render.scene).bounds
-        _, y_virtual, _, _, _, _, _, y_real = _physical_corner_bends(
-            render.scene, _single_source_material(render.scene), corner,
-        )
         x_profile, y_profile = _endcap_existing_fold_angle_sources(spec, part_key)
-        target_y = y_real.p1.y
+        # Bind the edited angle to the PartSpec Fold role being displayed,
+        # not the historical nearest-BEND heuristic (ambiguous on Head).
+        target_y, _ = _partspec_corner_fold_station(
+            y_profile, bounds[1], near_min=corner.startswith("bottom"),
+        )
+        assert sum(
+            1 for row in render.scene.primitives
+            if getattr(row, "layer", None) == "BEND"
+            and hasattr(row, "p1") and abs(row.p1.y-row.p2.y) < 1e-7
+            and abs(row.p1.y-target_y) < 1e-6
+        ) == 1
         cursor = bounds[1]
         found = []
         new_y = []
