@@ -33,6 +33,10 @@ def test_real_head_tail_actual_fold_60_120_preserves_factory_source_and_T(
         app.workspace_controller.set_active_part(part_key)
         app.select_manual_corner(corner)
         app.set_v_miter_gui_check_choice()
+        # Actual Tk entry requires the operator's first 90-degree fold.
+        # This is distinct from legacy internal readonly Engine preview.
+        with pytest.raises(ValueError, match="V_MITER_GUI_FIRST_BEND_REQUIRED"):
+            app._project_v_miter_gui_check_for_corner(part_key, corner)
         app.v_miter_first_bend_axis_var.set("x")
         app.set_v_miter_gui_first_bend_axis()
         snap = app._make_original_fold_designer_snapshot()
