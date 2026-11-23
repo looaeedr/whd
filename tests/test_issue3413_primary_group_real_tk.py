@@ -569,6 +569,47 @@ def test_primary_group_double_hit_and_stale_a_to_b_member_apply_is_inert():
         state.manual_group_offset_x.set("9")
         state.manual_group_apply_offset.invoke()
         assert group_by_id(b_id) == before_b
+
+        # The original created-feature list is another real selection route.
+        click(a_corner)
+        double(a_corner)
+        assert state.manual_group_member.get() == "top_right"
+        state.created_list.selection_clear(0, tk.END)
+        state.created_list.selection_set(1)
+        state.created_list.event_generate("<<ListboxSelect>>")
+        root.update()
+        assert api.group_parameters(state.live_context.feature_list[
+            state.hole_session.selected_index])["group_id"] == b_id
+        state.manual_group_offset_x.set("12")
+        state.manual_group_apply_offset.invoke()
+        assert group_by_id(b_id) == before_b
+
+        # Deletion + native Undo cannot revive a member-edit authorization.
+        click(a_corner)
+        double(a_corner)
+        assert state.manual_group_member.get() == "top_right"
+        state.delete_btn.invoke()
+        root.update()
+        assert all(api.group_parameters(f)["group_id"] != a_id
+                   for f in state.live_context.feature_list if api.is_manual_group(f))
+        state.undo_btn.invoke()
+        root.update()
+        assert group_by_id(a_id) == before_a
+        click(a_corner)
+        state.manual_group_offset_x.set("15")
+        state.manual_group_apply_offset.invoke()
+        assert group_by_id(a_id) == before_a
+
+        # Real Session context owner: even switching away and back to the
+        # same list must invalidate a previously double-hit member.
+        double(a_corner)
+        assert state.manual_group_member.get() == "top_right"
+        state.hole_session.activate_context("temporary", [])
+        state.hole_session.activate_context("base_plate", state.live_context.feature_list)
+        click(a_corner)
+        state.manual_group_offset_x.set("18")
+        state.manual_group_apply_offset.invoke()
+        assert group_by_id(a_id) == before_a
     finally:
         if root.winfo_exists():
             root.destroy()

@@ -924,7 +924,20 @@ def _install_manual_marking_actions(s):
     s.redraw = checked_redraw
     s.indicator_redraw[0] = checked_redraw
 
+    # The editable corner belongs to the exact group *and* editor context
+    # hit by the latest valid double-click, never to a reused member name.
+    s.manual_group_edit_identity = [None]  # (stable group_id, member_id)
+    s.manual_group_edit_context = [None]   # (Session context, list identity)
+
+    def clear_member_edit():
+        s.manual_group_edit_identity[0] = None
+        s.manual_group_edit_context[0] = None
+        s.manual_group_member.set("")
+        s.manual_group_offset_x.set("")
+        s.manual_group_offset_y.set("")
+
     def select_mode():
+        clear_member_edit()
         s.manual_mark_mode[0] = False
         s.manual_group_tool[0] = "select"
         s.manual_mark_draw_button.configure(relief=d.tk.RAISED)
@@ -933,6 +946,7 @@ def _install_manual_marking_actions(s):
             button.configure(relief=d.tk.RAISED)
 
     def draw_mode(kind="line"):
+        clear_member_edit()
         s.set_insert_mode(False)
         s.manual_mark_mode[0] = True
         s.manual_group_tool[0] = kind
@@ -950,6 +964,8 @@ def _install_manual_marking_actions(s):
         return None
 
     def publish_group_change(**values):
+        if "member_id" not in values:
+            clear_member_edit()  # geometry/pose edits invalidate the corner hot spot
         old = selected_group()
         if old is None:
             return False
@@ -971,7 +987,16 @@ def _install_manual_marking_actions(s):
     def edit_selected_member():
         group = selected_group()
         member_id = s.manual_group_member.get()
-        if group is None or not member_id:
+        binding = s.manual_group_edit_identity[0]
+        scope = s.manual_group_edit_context[0]
+        if (group is None or binding is None or not member_id
+                or binding != (api.group_parameters(group)["group_id"], member_id)
+                or scope != (s.hole_session.active_context_key,
+                             id(s.live_context.feature_list))):
+            clear_member_edit()
+            s.manual_mark_status.configure(
+                text="請重新雙擊要修改的群組角點", fg="#ff453a",
+            )
             return False
         return publish_group_change(
             member_id=member_id,
@@ -1008,6 +1033,9 @@ def _install_manual_marking_actions(s):
             mirror_vertical=not api.group_parameters(group)["mirror_vertical"])
 
     def mark_down(event):
+        # Also clear when the legacy pointer handler leaves its old selection
+        # active on empty canvas; a subsequent double must hit a real corner.
+        clear_member_edit()
         point = s.canvas_view.canvas_to_world(event.x, event.y)
         if point is None:
             return
@@ -1092,6 +1120,7 @@ def _install_manual_marking_actions(s):
                 )
             except (ValueError, TypeError, RuntimeError):
                 return "break"
+            clear_member_edit()
             s.hole_session.execute(HoleEditorAction.replace_selected(moved))
             s.redraw()
             return "break"
@@ -1107,9 +1136,32 @@ def _install_manual_marking_actions(s):
         point = s.canvas_view.canvas_to_world(event.x, event.y)
         group = selected_group()
         if point is None or group is None:
+            clear_member_edit()
             return "break"
-        member = api.nearest_group_member(group, point)
+        # Use the SAME local 5-mm corner hot zone as single-click selection.
+        # nearest_group_member alone accepts arbitrarily remote empty space.
+        members = api.group_member_world_points(group)
+        member, corner = min(
+            members, key=lambda row: hypot(point.x-row[1].x, point.y-row[1].y),
+        )
+        if hypot(point.x-corner.x, point.y-corner.y) > 5.0:
+            clear_member_edit()
+            return "break"
+        # If a coincident corner from another group is equally clickable,
+        # do not silently choose a group from the stale selection.
+        if any(
+            other is not group and api.is_manual_group(other)
+            and any(hypot(point.x-p.x, point.y-p.y) <= 5.0
+                    for _, p in api.group_member_world_points(other))
+            for other in s.live_context.feature_list
+        ):
+            clear_member_edit()
+            return "break"
         p = api.group_parameters(group)
+        s.manual_group_edit_identity[0] = (p["group_id"], member)
+        s.manual_group_edit_context[0] = (
+            s.hole_session.active_context_key, id(s.live_context.feature_list),
+        )
         dx, dy = next((x, y) for mid, x, y in p["members"] if mid == member)
         s.manual_group_member.set(member)
         s.manual_group_offset_x.set(str(dx))
@@ -1134,6 +1186,7 @@ def _install_manual_marking_actions(s):
     original_rotate = s.rotate_selected
 
     def safe_toggle(event=None):
+        clear_member_edit()
         # Both automatic MARKING and manual group features are non-process
         # contours; double-click must not turn them into CUTTING/BLIND_HOLE.
         chosen_index = s.created_list.curselection()
@@ -1150,6 +1203,7 @@ def _install_manual_marking_actions(s):
         return rows[idx] if 0 <= idx < len(rows) else None
 
     def safe_right(event):
+        clear_member_edit()
         chosen = selected_feature()
         if chosen is not None and getattr(chosen, "layer", None) == "MARKING":
             return "break"  # legacy rotation may corrupt authored MARKING
@@ -1158,6 +1212,7 @@ def _install_manual_marking_actions(s):
     original_delete = s.delete_selected
 
     def safe_delete():
+        clear_member_edit()
         chosen = selected_feature()
         if (chosen is not None and getattr(chosen, "layer", None) == "MARKING"
                 and not api.is_manual_mark(chosen)):
@@ -1165,6 +1220,7 @@ def _install_manual_marking_actions(s):
         return original_delete()
 
     def rotate_selected(angle):
+        clear_member_edit()
         group = selected_group()
         if group is not None:
             return publish_group_change(
@@ -1174,6 +1230,29 @@ def _install_manual_marking_actions(s):
             return "break"
         return original_rotate(angle)
 
+    # Other existing Tk routes may mutate selection without a Canvas press.
+    # Keep the original Session and insertion handlers, only invalidate the
+    # pending group-member edit at their public GUI boundaries.
+    original_created_select = s.on_created_select
+    original_undo = s.undo_last_action
+    original_activate_context = s.hole_session.activate_context
+
+    def safe_created_select(event=None):
+        clear_member_edit()
+        return original_created_select(event)
+
+    def safe_undo(event=None):
+        clear_member_edit()
+        return original_undo(event)
+
+    def safe_activate_context(*args, **kwargs):
+        clear_member_edit()
+        return original_activate_context(*args, **kwargs)
+
+    s.on_created_select = safe_created_select
+    s.undo_last_action = safe_undo
+    s.undo_btn.configure(command=safe_undo)
+    s.hole_session.activate_context = safe_activate_context
     s.toggle_created_process = safe_toggle
     s.on_canvas_right = safe_right
     s.delete_selected = safe_delete
