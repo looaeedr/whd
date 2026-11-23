@@ -28,16 +28,16 @@ _SOURCE_ERROR = "V_MITER_EXISTING_HOLE_SOURCE_UNVERIFIED"
 
 
 def _authentic_custom_endcap_fold_source(part_spec):
-    """Custom GUI's normalized model is None; it is not a literal '自訂'.
+    """The native Custom GUI normalizes its model to None, not '自訂'.
 
-    None alone is insufficient: require both actual authored Fold chains and
-    a physical manual CornerType policy before narrowly accepting this hole.
-    Exact original Factory/FinalScene/material rebuild is checked below.
+    A bare None is not eligibility: the operator's genuine physical Corner
+    policy must be present, with every original Fold role authenticated by
+    the existing source-bound bend resolver and exact Factory rebuild.
+    A Custom project can legitimately use Factory Fold defaults before it
+    has separately persisted authored X/Y profiles.
     """
     return (part_spec.model_name is None
-            and part_spec.corner_policy is not None
-            and bool(part_spec.fold_profile_x)
-            and bool(part_spec.fold_profile_y))
+            and part_spec.corner_policy is not None)
 
 
 def qualify_live_endcap_circle_source(part_spec, render_data):

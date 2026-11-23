@@ -32,16 +32,14 @@ def custom_head_native():
     app = BoxCalculatorGUI(root)
     try:
         app.baseline_var.set("自訂")
+        app.w_var.set("400")
+        app.d_var.set("250")
+        app.t_var.set("2")
         app.workspace_controller.set_active_part("head")
         payload = app._make_original_fold_designer_snapshot()
-        actual, _ = app._fold_designer_part_spec_from_payload("head", payload)
-        assert isinstance(actual, EndCapPartSpec)
-        spec = replace(
-            actual, width=400, depth=250, thickness=2, frame_width=25,
-            fold_left=15, fold_right=15, fold_top=16, fold_bottom=15,
-            fold_profile_x=(), fold_profile_y=(), model_name="自訂",
-            is_tail=False, holes=(),
-        )
+        spec, _ = app._fold_designer_part_spec_from_payload("head", payload)
+        assert isinstance(spec, EndCapPartSpec)
+        assert spec.model_name is None and not spec.holes
         no_hole = api.build_operator_part_render_data(spec)
         yield app, spec, no_hole
     finally:

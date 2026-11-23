@@ -76,11 +76,13 @@ def test_real_custom_head_hole_capture_save_new_tk_open_view_and_move_reject(
         app.v_miter_relief_mode_var.set(mode)
         snapshot = app._make_original_fold_designer_snapshot()
         assert len(snapshot["part_features"]["head"]) == 1
-        assert snapshot["part_profiles"]["head"]["X"]
-        assert snapshot["part_profiles"]["head"]["Y"]
+        # A Custom Main Tk may have no authored part_profiles yet; the
+        # existing Factory Fold is still real. Never fabricate or clear it.
+        source_profiles = deepcopy(snapshot.get("part_profiles", {}).get("head"))
         _, _, native_spec, native = _selected_source(app, snapshot)
         assert native_spec.model_name is None  # native Custom owner normalization
-        assert native_spec.fold_profile_x and native_spec.fold_profile_y
+        # The builder's untouched native Fold chains are our only source.
+        # They must roundtrip unchanged (asserted below).
         assert native_spec.holes == (_circle(),)
         circle = _source_circle(native.scene)
         assert circle.radius == 3
@@ -112,6 +114,7 @@ def test_real_custom_head_hole_capture_save_new_tk_open_view_and_move_reject(
         assert reopened_spec.model_name is None
         assert reopened_spec.fold_profile_x == native_spec.fold_profile_x
         assert reopened_spec.fold_profile_y == native_spec.fold_profile_y
+        assert deepcopy(replay_snapshot.get("part_profiles", {}).get("head")) == source_profiles
         assert reopened_spec.holes == native_spec.holes
         assert _source_circle(reopened.scene) == circle
         messages.clear()
