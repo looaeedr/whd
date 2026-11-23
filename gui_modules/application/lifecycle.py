@@ -1306,7 +1306,12 @@ def open_original_fold_designer(self, *, target_window=None):
         destroy_designer_window()
 
     def load_project_from_designer(path):
-        destroy_designer_window()
+        # The packaged Primary Designer owns the Tk root itself. Destroying
+        # that window before loading also destroys the only Tcl application.
+        # Legacy child Designers still use their original rebuild lifecycle;
+        # Primary reuses the live Designer and Engine snapshot hydration.
+        if window is not self.root:
+            destroy_designer_window()
         return self.load_phase6_project(path, open_designer=True)
 
     def save_project_from_designer(*, save_as=False, active_part=None):
