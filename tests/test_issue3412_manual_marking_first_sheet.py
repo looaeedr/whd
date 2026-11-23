@@ -233,3 +233,88 @@ def test_normal_baseplate_partspec_export_revalidates_full_stroke(actual_sheet, 
     with pytest.raises(ValueError, match="完整筆畫"):
         api.build_part_render_data(unsafe, canonical)
     assert target.exists()
+
+
+def test_real_tk_mark_button_middlepoint_red_warning_undo_and_escape(actual_sheet):
+    """Actual Tk buttons and the original Hole Editor Session are exercised."""
+    from types import SimpleNamespace
+    import tkinter as tk
+    from gui_modules.editors.hole_editor_composition import _install_manual_marking_actions
+    from phase6_hole_editor_session import Phase6HoleEditorSession, HoleEditorAction
+
+    _source, _render, context, midpoint, angle = actual_sheet
+    root = tk.Tk()
+    root.geometry("840x360+0+0")
+    actual_features = []
+    redraw_calls = []
+    try:
+        root.update_idletasks()
+        mark_length = tk.StringVar(master=root, value="12")
+        mark_angle = tk.StringVar(master=root, value=str(angle))
+        mark_style = tk.StringVar(master=root, value="dashed")
+        dash = tk.StringVar(master=root, value="2")
+        gap = tk.StringVar(master=root, value="2")
+        confirm_button = tk.Button(root, text="確定")
+        draw_button = tk.Button(root, text="打標")
+        select_button = tk.Button(root, text="選取")
+        warning = tk.Label(root, text="")
+        session = Phase6HoleEditorSession("base_plate", actual_features)
+        state = SimpleNamespace(
+            part_key="base_plate", editor=root, manual_marking_context=context,
+            live_context=SimpleNamespace(feature_list=actual_features),
+            d=SimpleNamespace(tk=tk, manufacturing_api=api),
+            manual_mark_mode=[False], manual_mark_length=mark_length,
+            manual_mark_angle=mark_angle, manual_mark_pattern=mark_style,
+            manual_mark_dash=dash, manual_mark_gap=gap,
+            manual_mark_status=warning, confirm_all_btn=confirm_button,
+            manual_mark_draw_button=draw_button,
+            manual_mark_select_button=select_button,
+            hole_session=session, indicator_redraw=[None],
+            on_canvas_down=lambda e: None, on_canvas_drag=lambda e: None,
+            on_escape=lambda e: "ESCAPE_DEFAULT",
+            canvas_view=SimpleNamespace(
+                canvas_to_world=lambda x, y: midpoint,
+            ),
+            set_insert_mode=lambda flag: None,
+            redraw=lambda: redraw_calls.append("draw"),
+            refresh_created=lambda: None,
+            sync_all=lambda: api.propose_operator_physical_sheet_hole_features(
+                "base_plate", context, actual_features,
+            ),
+        )
+        _install_manual_marking_actions(state)
+        assert select_button.cget("relief") == tk.SUNKEN
+        draw_button.invoke()
+        assert state.manual_mark_mode == [True]
+        state.on_canvas_down(SimpleNamespace(x=120, y=90))
+        assert len(actual_features) == 1
+        assert api.is_manual_mark(actual_features[0])
+        assert state.manual_mark_mode == [True]  # repeat until Esc
+        assert confirm_button.cget("state") == tk.NORMAL
+        assert redraw_calls
+
+        mark = actual_features[0]
+        a, b = mark.points
+        point_in_blank = Vec2(a.x + (b.x-a.x) * 3/12,
+                              a.y + (b.y-a.y) * 3/12)
+        actual_features.append(CircleFeature(
+            diameter=0.5, anchor=FeatureAnchor.ABSOLUTE_FINISHED_FACE,
+            offset=point_in_blank, layer="CUTTING",
+        ))
+        state.redraw()
+        assert confirm_button.cget("state") == tk.DISABLED
+        assert warning.cget("fg") == "#ff453a"
+        assert "完整筆畫" in warning.cget("text")
+        actual_features.pop()
+        state.redraw()
+        assert confirm_button.cget("state") == tk.NORMAL
+        assert warning.cget("text") == ""
+
+        assert state.manual_mark_escape(SimpleNamespace()) == "break"
+        assert state.manual_mark_mode == [False]
+        session.execute(HoleEditorAction.undo())
+        assert not actual_features
+        state.redraw()
+        assert confirm_button.cget("state") == tk.NORMAL
+    finally:
+        root.destroy()
