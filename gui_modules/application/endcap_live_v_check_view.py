@@ -101,9 +101,14 @@ def show_saved_endcap_live_check_window(host, replayed, saved_record):
             + "　避裂：" + mode_label + "　｜僅 CHECK，不是加工圖"
         )).pack(anchor="w")
         ttk.Label(header, text=(
-            "展開 2D 與折後 3D 均來自同一 Engine replay；"
-            "3D 為未認證的零內 R／真板厚候選，不代表已驗密合。"
+            "2D 與 3D 均取自同一 Engine replay；"
+            "3D 為避空前網格，不含左圖所選圓角／孔，"
+            "不代表 R／BA 或折後密合已驗收。"
         )).pack(anchor="w")
+        ttk.Button(
+            header, text="關閉檢視／返回編輯",
+            command=lambda: close_saved_live_check_window(host),
+        ).pack(anchor="e")
 
         body = ttk.Frame(win)
         body.pack(fill=tk.BOTH, expand=True, padx=8, pady=8)
@@ -112,8 +117,10 @@ def show_saved_endcap_live_check_window(host, replayed, saved_record):
         body.rowconfigure(1, weight=1)
         ttk.Label(body, text="2D 展開｜原料 DATUM／V 候選 CHECK").grid(
             row=0, column=0, sticky="w", padx=6)
-        ttk.Label(body, text="折後 3D｜同源 Engine 真 T 候選").grid(
-            row=0, column=1, sticky="w", padx=6)
+        warning = ttk.Label(
+            body, text="折後 3D｜避空前，不含左圖所選圓角／孔（非加工）",
+        )
+        warning.grid(row=0, column=1, sticky="w", padx=6)
         flat = tk.Canvas(body, width=675, height=640, bg="#162534",
                          highlightthickness=0)
         flat.grid(row=1, column=0, sticky="nsew", padx=6)
@@ -138,7 +145,7 @@ def show_saved_endcap_live_check_window(host, replayed, saved_record):
         axis.set_ylabel("Y mm")
         axis.set_zlabel("Z mm")
         axis.view_init(elev=25, azim=-55)
-        axis.set_title("CHECK formed true T (uncertified) | red: ideal seam")
+        axis.set_title("Pre-relief 3D | NO selected R / relief hole | CHECK")
         figure.tight_layout()
         canvas = FigureCanvasTkAgg(figure, master=body)
         canvas.get_tk_widget().grid(row=1, column=1, sticky="nsew", padx=6)
@@ -151,6 +158,15 @@ def show_saved_endcap_live_check_window(host, replayed, saved_record):
         win._saved_endcap_check_3d_figure = figure
         win._saved_endcap_check_3d_canvas = canvas
         win._saved_endcap_check_3d_triangles = (first, second)
+        win._saved_endcap_check_3d_warning = warning
+        # While this snapshot is displayed, prevent normal interaction with
+        # the editable primary GUI (W, Fold, corner). No source can be edited
+        # through the GUI until the operator closes this read-only window.
+        if parent is not None and parent.winfo_viewable():
+            win.transient(parent)
+        win.wait_visibility()
+        win.grab_set()
+        win.focus_set()
         setattr(host, WINDOW_ATTR, win)
         win.protocol("WM_DELETE_WINDOW", lambda: close_saved_live_check_window(host))
         return win

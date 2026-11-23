@@ -73,6 +73,19 @@ def test_native_saved_head_2d3d_reopen_ignores_unsaved_live_switch(tmp_path, mes
         view = fresh._endcap_live_saved_check_window
         assert view.winfo_exists()
         assert "已保存試算／非加工" in view.title()
+        view.update()
+        # Real Tk user input is held by the modal CHECK; unlike merely
+        # re-clicking, a physical W edit cannot be committed from main GUI.
+        assert view.winfo_viewable() == 1
+        assert view.grab_status() == "local"
+        assert fresh_root.grab_current() is view
+        assert "避空前，不含左圖所選圓角／孔" in (
+            view._saved_endcap_check_3d_warning.cget("text")
+        )
+        assert "Pre-relief 3D" in view._saved_endcap_check_3d_figure.axes[0].get_title()
+        assert "NO selected R / relief hole" in (
+            view._saved_endcap_check_3d_figure.axes[0].get_title()
+        )
         model = fresh._make_original_fold_designer_snapshot()
         spec, _ = fresh._fold_designer_part_spec_from_payload("head", model)
         source = fresh._query_fold_designer_render_data("head", model)
@@ -88,6 +101,18 @@ def test_native_saved_head_2d3d_reopen_ignores_unsaved_live_switch(tmp_path, mes
         assert len(view._saved_endcap_check_3d_figure.axes) == 1
         assert len(view._saved_endcap_check_3d_figure.axes[0].collections) >= 2
         assert all(len(part) > 0 for part in view._saved_endcap_check_3d_triangles)
+        # Proven old Engine limitation: relief changes 2D, not the pre-relief
+        # formed true-T 3D. View must NEVER claim that it shows that hole/R.
+        alternate = manufacturing_api.project_operator_v_miter_live_corner_check(
+            spec, source, "bottom_left", first_bend_axis="x",
+            relief_mode="ROUND_R" if saved_mode == "RELIEF_HOLE" else "RELIEF_HOLE",
+        )
+        assert (replay.factory_bottom_relief_check.corrected_remaining_outline
+                != alternate.factory_bottom_relief_check.corrected_remaining_outline)
+        assert (replay.factory_true_t_check.first_thick_solid_triangles
+                == alternate.factory_true_t_check.first_thick_solid_triangles)
+        assert (replay.factory_true_t_check.second_thick_solid_triangles
+                == alternate.factory_true_t_check.second_thick_solid_triangles)
         assert (replay.first_physical_bend.p1.x == 15
                 and replay.first_physical_bend.p2.x == 15)
         assert (replay.second_physical_bend.p1.y == 41
@@ -96,6 +121,18 @@ def test_native_saved_head_2d3d_reopen_ignores_unsaved_live_switch(tmp_path, mes
         assert fresh.v_miter_gui_first_bend_axes == unsaved_axes
         assert fresh.v_miter_gui_relief_modes == unsaved_relief
         assert p.read_bytes() == original_bytes
+        assert fresh_root.grab_current() is view
+        from gui_modules.application.endcap_live_v_check_view import (
+            close_saved_live_check_window,
+        )
+        close_saved_live_check_window(fresh)
+        assert not view.winfo_exists()
+        assert fresh_root.grab_current() is None
+        # Reopen the already-saved preview: subsequent project switching
+        # must destroy it even WITHOUT pressing the button again.
+        fresh.v_miter_check_source_button.invoke()
+        view = fresh._endcap_live_saved_check_window
+        assert view.grab_status() == "local"
 
         # Next click with drifted physical source must kill the old view.
         corrupt = deepcopy(opened)
