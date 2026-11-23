@@ -251,3 +251,67 @@ def test_actual_final_scene_renderer_places_approved_d4_t2_against_factory_body(
     assert any(abs(v[1]+298.)<1e-6
                for tri in rendered_tail for v in tri)
     fig.clear()
+
+
+
+def test_real_integral_body_plain_main_3d_matches_source_formed_outside_and_collision():
+    """Ordinary one-piece Vault main 3D must use the very same source Body.
+
+    This is a physical-world output assertion, NOT a new stretch/recenter
+    operation, a manufactured Tail, or a user-edited CUTTING/BEND.
+    """
+    from types import SimpleNamespace
+    from matplotlib.figure import Figure
+    from matplotlib.backends.backend_agg import FigureCanvasAgg
+    from ae_engine.contracts import BoxBodyPartSpec
+    from ae_engine.manufacturing_api import build_box_body_structure_render_data
+    from ae_engine.box_body_structure_state import default_box_body_structure_state
+    from phase6_fold_profiles import build_box_body_profile, profile_to_fold_segments
+    from phase6_final_scene_renderer import Phase6FinalSceneRenderer
+    from phase6_final_scene_contracts import (
+        AssemblyScenePart, AssemblySceneRenderData, FinalSceneViewRequest,
+    )
+
+    snapshot={
+        "model":"金庫型","w":620.,"h":600.,"d":185.,"t":2.,
+        "fw":25.,"zl1":15.,"zl2":15.,"zr1":15.,"zr2":15.,
+        "yl1":15.,"yr1":15.,"ytop1":16.,"ybottom1":48.,
+    }
+    profile=build_box_body_profile(snapshot)
+    structural=build_box_body_structure_render_data(BoxBodyPartSpec(
+        width=620.,height=600.,depth=185.,thickness=2.,frame_width=25.,
+        model_name="金庫型",zl1=15.,zl2=15.,zr1=15.,zr2=15.,
+        fold_profile=profile_to_fold_segments(profile),
+        structure_state=default_box_body_structure_state(),
+        head_ybottom1=15.,tail_ybottom1=48.,
+    ))
+    plain=AssemblyScenePart(
+        part_key="box_body",render_data=structural.canonical_strip_render_data,
+        x_profile=tuple(profile),y_profile=(),placement="box_body",
+    )
+    request=FinalSceneViewRequest(
+        render_data=AssemblySceneRenderData(assembly_parts=(plain,)),
+        x_profile=(),y_profile=(),part_key="assembly",
+        finished_dimensions=(620.,600.,185.),thickness=2.,
+    )
+    expected=api.build_joint_world_geometry(
+        (plain,),(620.,600.,185.),2.,
+    )["world_triangles_by_part"]["box_body"]
+    fig=Figure(figsize=(8,6))
+    ax=fig.add_subplot(111,projection="3d")
+    try:
+        actual=Phase6FinalSceneRenderer(
+            SimpleNamespace(ax3d=ax,canvas=FigureCanvasAgg(fig))
+        ).render(request)
+        assert tuple(actual)==tuple(expected)
+        bounds=triangle_bounds(actual)
+        assert bounds[0]==pytest.approx((-310.,310.),abs=1e-7)
+        assert bounds[1]==pytest.approx((-298.,298.),abs=1e-7)
+        assert bounds[2]==pytest.approx((-92.5,92.5),abs=1e-7)
+        physical_collision=api.project_box_body_collision_source_mesh(
+            plain.render_data,box_body_world=actual,
+            thickness=2.,integral_world_is_physical=True,
+        )
+        assert physical_collision==tuple(actual)
+    finally:
+        fig.clear()
