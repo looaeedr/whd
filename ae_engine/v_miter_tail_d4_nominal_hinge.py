@@ -95,6 +95,7 @@ def nominal_section_map(s,signed_t,h,*,panel):
 
 def nominal_adjacent_source_skins(
     faces,source_uv,world_surface,t,st,h,stock,flat_openings,
+    *,extend_side_collar=True,
 ):
     """Face-vertex +/-T/2 locations from real source-adjacent crease faces.
 
@@ -194,6 +195,8 @@ def nominal_adjacent_source_skins(
     # collar. Carry thickness influence (not the BEND/action) to the
     # existing Y bottom crease on both sides of the relief.
     # The source-validated empty X/Y stock square above is mandatory.
+    # Isolated explicit False reproduces the previous dd8 nominal RED
+    # geometry for a true same-source regression; never used by CHECK.
     extended=[]
     for axis,station,lo,hi,na,nb in hinge_segments:
         if axis==1:
@@ -201,7 +204,7 @@ def nominal_adjacent_source_skins(
                 axis,station,st.left_x,st.right_x,na,nb,
             ))
             continue
-        if axis==0:
+        if axis==0 and extend_side_collar:
             if (0.<=st.bottom_y-hi<=relieved_radius+1e-7):
                 hi=st.bottom_y
             if (0.<=lo-st.bottom_y<=relieved_radius+1e-7):
