@@ -593,18 +593,24 @@ def _apply_phase6_project_snapshot(self, snapshot):
         self.door_indicator_offset_x = 0.0
         self.door_indicator_offset_y = 0.0
 
-    # A saved Receiving physical source must survive even the normal
-    # Open Project route (open_designer=False). The GUI otherwise rebuilds
-    # a live snapshot containing only visible settings, and a later 3D
-    # open silently loses the user's already persisted BasePlate choice.
-    # Restore exactly this stored value, never infer a missing sheet.
-    if (model in ("受電箱", "RECEIVING")
-            and "receiving_base_plate" in snapshot):
-        effective = getattr(self, "_phase6_input_snapshot", None)
-        if isinstance(effective, dict):
-            effective["receiving_base_plate"] = deepcopy(
-                snapshot["receiving_base_plate"]
-            )
+    # Main Open (open_designer=False) must retain the committed physical
+    # source for the later *new* Designer. A freshly opened Main may not yet
+    # have _phase6_input_snapshot at all; silently checking isinstance(dict)
+    # drops a legitimate saved LEFT sheet and makes MARKING fail at export.
+    # Only the Engine detaches an explicitly persisted Receiving source.
+    # Missing or reset values must never be filled from a UI/default pattern.
+    saved_plate = manufacturing_api.project_operator_receiving_base_plate_snapshot_source(
+        snapshot, snapshot,
+    )
+    effective = getattr(self, "_phase6_input_snapshot", None)
+    if not isinstance(effective, dict) and saved_plate:
+        effective = {}
+        self._phase6_input_snapshot = effective
+    if isinstance(effective, dict):
+        # Opening another project without a committed plate must not recycle
+        # the previous project's LEFT pattern, even when a Designer existed.
+        effective.pop("receiving_base_plate", None)
+        effective.update(deepcopy(saved_plate))
     self.workspace_controller.set_active_part(snapshot.get("active_part") or workspace.get("active_part"))
     self._active_cabinet_type = _current_cabinet_type_name(self)
     self._reload_current_baseline_features()
