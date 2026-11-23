@@ -10,11 +10,13 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
+
+from shapely.geometry import Polygon
 import math
 
 from .contracts import DoorPartSpec, EndCapPartSpec
 from .manufacturing_render_data import PartRenderData
-from .sheetmetal_drawing import DrawingScene, LinePrimitive
+from .sheetmetal_drawing import DrawingScene, LinePrimitive, CirclePrimitive
 from .sheetmetal_geometry_core import GeometryError, Vec2
 from .v_miter_ideal_mating import (
     VMiterIdealMatingCandidate, project_ideal_v_miter_mating_candidate,
@@ -54,6 +56,9 @@ from .v_miter_factory_radius_ba_check import (
 from .v_miter_factory_true_t_check import (
     VMiterFactoryPostVTrueTCheck,
     project_v_miter_factory_post_v_true_t_check,
+)
+from .v_miter_existing_circle_check import (
+    UNSUPPORTED_HOLE_3D, qualify_live_endcap_circle_source,
 )
 
 V_MITER_GUI_CHECK = "V_MITER_CHECK"
@@ -623,14 +628,17 @@ def project_operator_v_miter_live_corner_check(
         # A single-axis BoxBody/BasePlate has no verified two-bend corner.
         # Do not synthesize an orthogonal fold from a nominal rectangle.
         raise GeometryError("V_MITER_GUI_PART_HAS_NO_VERIFIED_TWO_BEND_SOURCE")
-    material = _single_source_material(render_data.scene)
+    source_render, existing_circle, original_void = qualify_live_endcap_circle_source(
+        part_spec, render_data,
+    )
+    material = _single_source_material(source_render.scene)
     if isinstance(part_spec, EndCapPartSpec):
         # Real GUI requires an explicit first bend before invoking this
         # read-only Engine API. Preserve old internal CHECK-only calls without
         # selecting a manufacturing order when one uniquely has 90 degrees.
         x_bend, y_bend, x_height, y_height, x_gap, y_gap, x_real, y_real, angle_x, angle_y = (
             _bound_endcap_corner_bends(
-                part_spec, render_data.scene, material, corner_key,
+                part_spec, source_render.scene, material, corner_key,
             )
         )
         if angle_x * angle_y <= 0:
@@ -640,7 +648,7 @@ def project_operator_v_miter_live_corner_check(
         # has NOT received fifth-corner product approval or a new source
         # contract in this Head/Tail first slice.
         x_bend, y_bend, x_height, y_height, x_gap, y_gap, x_real, y_real = _physical_corner_bends(
-            render_data.scene, material, corner_key,
+            source_render.scene, material, corner_key,
         )
         angle_x = angle_y = 90.0
     if not (0 < abs(angle_x) < 180 and 0 < abs(angle_y) < 180):
@@ -700,7 +708,7 @@ def project_operator_v_miter_live_corner_check(
     factory_mother = None
     try:
         stock_check = project_v_miter_sharp_source_perimeter_check(
-            render_data.scene, ideal,
+            source_render.scene, ideal,
         )
     except GeometryError as original_failure:
         # The four-type factory cut may already have removed the source V
@@ -708,7 +716,7 @@ def project_operator_v_miter_live_corner_check(
         # rebuilt and compared PartSpec mother, never an inferred rectangle.
         try:
             factory_mother = project_v_miter_replaced_factory_corner_check(
-                part_spec, render_data, corner_key, ideal,
+                part_spec, source_render, corner_key, ideal,
             )
         except GeometryError as factory_failure:
             stock_check = None
@@ -731,7 +739,7 @@ def project_operator_v_miter_live_corner_check(
         ]
     )
     whole_sheet = (
-        build_v_miter_whole_sheet_check_scene(render_data, stock_check, ideal)
+        build_v_miter_whole_sheet_check_scene(source_render, stock_check, ideal)
         if stock_check is not None else None
     )
     marking = None
@@ -749,7 +757,7 @@ def project_operator_v_miter_live_corner_check(
         real_first = x_real if first[1] == "x" else y_real
         real_second = y_real if second[1] == "y" else x_real
         marking = project_v_miter_source_bend_marking_check(
-            render_data.scene, real_first, real_second, stock_check,
+            source_render.scene, real_first, real_second, stock_check,
         )
         whole_sheet.extend(marking.check_strokes)
         # The original factory topology is independent of the old trimmed
@@ -757,7 +765,7 @@ def project_operator_v_miter_live_corner_check(
         # segments as CHECK only, not a fabricated BEND or factory sign-off.
         try:
             factory_precut_fold = project_v_miter_factory_precut_fold_check(
-                part_spec, render_data, corner_key, stock_check,
+                part_spec, source_render, corner_key, stock_check,
                 real_first, real_second, factory_mother,
             )
         except GeometryError as exc:
@@ -772,7 +780,7 @@ def project_operator_v_miter_live_corner_check(
             # This 2D CHECK is not a certified physical 3D R/BA/Fold result.
             try:
                 factory_bottom_relief = project_v_miter_factory_bottom_relief_default_check(
-                    part_spec, render_data, corner_key, ideal, stock_check,
+                    part_spec, source_render, corner_key, ideal, stock_check,
                     factory_precut_fold, real_first, real_second,
                     trial_defaults, factory_mother,
                 )
@@ -787,16 +795,22 @@ def project_operator_v_miter_live_corner_check(
             # Reuse exactly this factory-proven V remaining stock + Fold as
             # input for the physical-T shadow. No new CNC authority and no
             # separate GUI-owned 3D sheet geometry.
-            try:
-                factory_true_t = project_v_miter_factory_post_v_true_t_check(
-                    part_spec, render_data, corner_key, ideal, stock_check,
-                    factory_precut_fold, real_first, real_second,
-                    first[0], second[0], factory_mother,
-                )
-            except GeometryError as exc:
-                factory_true_t_failure = str(exc)
+            if existing_circle is not None:
+                # A hole-free thick mesh is NOT a 3D model of a perforated sheet.
+                factory_true_t_failure = UNSUPPORTED_HOLE_3D
+            else:
+                try:
+                    factory_true_t = project_v_miter_factory_post_v_true_t_check(
+                        part_spec, source_render, corner_key, ideal, stock_check,
+                        factory_precut_fold, real_first, real_second,
+                        first[0], second[0], factory_mother,
+                    )
+                except GeometryError as exc:
+                    factory_true_t_failure = str(exc)
             if run_radius_ba_trial:
-                if factory_bottom_relief is None:
+                if existing_circle is not None:
+                    factory_radius_ba_failure = UNSUPPORTED_HOLE_3D
+                elif factory_bottom_relief is None:
                     factory_radius_ba_failure = (
                         factory_bottom_relief_failure
                         or "V_MITER_FACTORY_R_BA_SOURCE_RELIEF_REQUIRED"
@@ -809,7 +823,7 @@ def project_operator_v_miter_live_corner_check(
                 else:
                     try:
                         factory_radius_ba = project_v_miter_factory_radius_ba_default_check(
-                            part_spec, render_data, corner_key, ideal, stock_check,
+                            part_spec, source_render, corner_key, ideal, stock_check,
                             factory_precut_fold, real_first, real_second,
                             first[0], second[0], trial_defaults, factory_mother,
                             relief_check=factory_bottom_relief,
@@ -836,7 +850,9 @@ def project_operator_v_miter_live_corner_check(
     # or a certified interference-free weld.
     sharp_t = None
     sharp_t_failure = None
-    if stock_check is None:
+    if existing_circle is not None:
+        sharp_t_failure = UNSUPPORTED_HOLE_3D
+    elif stock_check is None:
         sharp_t_failure = "V_MITER_SHARP_T_REQUIRES_VERIFIED_SOURCE_STOCK"
     elif max(x_gap, y_gap) > 1e-7:
         sharp_t_failure = "V_MITER_SHARP_T_ORIGINAL_BEND_HAS_PHYSICAL_GAP"
@@ -852,6 +868,39 @@ def project_operator_v_miter_live_corner_check(
             )
         except GeometryError as exc:
             sharp_t_failure = str(exc)
+    if existing_circle is not None:
+        # Reconcile the real, separately CUTTING-defined hole with BOTH the
+        # sharp V and the R/relief replacement; near/touching/ambiguous voids
+        # cannot be proved retained by the existing detached 2D solver.
+        if factory_bottom_relief is None or stock_check is None or whole_sheet is None:
+            raise GeometryError("V_MITER_EXISTING_HOLE_V_SOURCE_UNVERIFIED")
+        for outline in (stock_check.removed_corner_outline,
+                        factory_bottom_relief.corrected_removed_outline):
+            removed = Polygon([(point.x, point.y) for point in outline])
+            if (removed.is_empty or not removed.is_valid
+                    or original_void.intersects(removed.buffer(1e-6))):
+                raise GeometryError("V_MITER_EXISTING_HOLE_INTERSECTS_V_OR_RELIEF")
+        remaining = Polygon([
+            (point.x, point.y)
+            for point in factory_bottom_relief.corrected_remaining_outline
+        ])
+        if (remaining.is_empty or not remaining.is_valid
+                or not remaining.contains(original_void)
+                or remaining.boundary.distance(original_void) <= 1e-6):
+            raise GeometryError("V_MITER_EXISTING_HOLE_INTERSECTS_V_OR_RELIEF")
+        # Keep the precise original Engine circle as an unchanged inner domain
+        # in the CHECK view, alongside the source DATUM. No physical CUTTING
+        # is emitted or modified; source (including the hole) is untouched.
+        whole_sheet.add(CirclePrimitive(
+            existing_circle.center, existing_circle.radius, "DATUM", color=6,
+            source_type=existing_circle.source_type,
+            source_id=existing_circle.source_id,
+        ))
+        whole_sheet.add(CirclePrimitive(
+            existing_circle.center, existing_circle.radius, "CHECK", color=2,
+            source_type=existing_circle.source_type,
+            source_id=existing_circle.source_id,
+        ))
     return VMiterOperatorGUICheck(
         part_key=part_key, corner_key=corner_key,
         first_bend_axis=first[1], second_bend_axis=second[1],

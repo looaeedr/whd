@@ -67,12 +67,14 @@ def show_saved_endcap_live_check_window(host, replayed, saved_record):
     if (scene is None or not getattr(scene, "primitives", None)
             or any(row.layer not in ("CHECK", "DATUM") for row in scene.primitives)):
         raise ValueError("ENDCAP_SAVED_CHECK_2D_SOURCE_UNAVAILABLE")
-    if (true_t is None or not true_t.first_thick_solid_triangles
+    no_hole_3d = (true_t is None and replayed.factory_true_t_failure
+                  == "V_MITER_LIVE_EXISTING_CUTTING_HOLE_3D_UNSUPPORTED")
+    if not no_hole_3d and (true_t is None or not true_t.first_thick_solid_triangles
             or not true_t.second_thick_solid_triangles
             or not true_t.manufacturing_status.endswith("UNCERTIFIED")):
         raise ValueError("ENDCAP_SAVED_CHECK_FORMED_3D_UNAVAILABLE")
-    first = tuple(true_t.first_thick_solid_triangles)
-    second = tuple(true_t.second_thick_solid_triangles)
+    first = () if no_hole_3d else tuple(true_t.first_thick_solid_triangles)
+    second = () if no_hole_3d else tuple(true_t.second_thick_solid_triangles)
 
     # Delay graphics import until the operator opens the CHECK viewer.
     from matplotlib.figure import Figure
@@ -101,6 +103,9 @@ def show_saved_endcap_live_check_window(host, replayed, saved_record):
             + "　避裂：" + mode_label + "　｜僅 CHECK，不是加工圖"
         )).pack(anchor="w")
         ttk.Label(header, text=(
+            "既有 CUTTING 穿孔已在同源 Engine 2D CHECK 保留；"
+            "現有 Engine 不支援含孔厚板折後模型，因此不提供 3D。"
+            if no_hole_3d else
             "2D 與 3D 均取自同一 Engine replay；"
             "3D 為避空前網格，不含左圖所選圓角／孔，"
             "不代表 R／BA 或折後密合已驗收。"
@@ -118,7 +123,11 @@ def show_saved_endcap_live_check_window(host, replayed, saved_record):
         ttk.Label(body, text="2D 展開｜原料 DATUM／V 候選 CHECK").grid(
             row=0, column=0, sticky="w", padx=6)
         warning = ttk.Label(
-            body, text="折後 3D｜避空前，不含左圖所選圓角／孔（非加工）",
+            body, text=(
+                "折後 3D｜既有穿孔未建模，不提供含孔厚板 3D"
+                if no_hole_3d else
+                "折後 3D｜避空前，不含左圖所選圓角／孔（非加工）"
+            ),
         )
         warning.grid(row=0, column=1, sticky="w", padx=6)
         flat = tk.Canvas(body, width=675, height=640, bg="#162534",
@@ -129,27 +138,37 @@ def show_saved_endcap_live_check_window(host, replayed, saved_record):
         flat.create_text(12, 624, anchor="w", fill="#dadfe6",
                          text="綠：CHECK 候選　紫：原板／折線 DATUM　單位 mm")
 
-        figure = Figure(figsize=(6.7, 6.4), dpi=100)
-        axis = figure.add_subplot(111, projection="3d")
-        axis.add_collection3d(Poly3DCollection(
-            first, facecolors="#0ea5e9", edgecolors="none", alpha=.65))
-        axis.add_collection3d(Poly3DCollection(
-            second, facecolors="#f59e0b", edgecolors="none", alpha=.65))
-        _fit_equal_3d(axis, first + second)
-        seam = replayed.ideal
-        axis.plot((seam.formed_seam_start[0], seam.formed_seam_end[0]),
-                  (seam.formed_seam_start[1], seam.formed_seam_end[1]),
-                  (seam.formed_seam_start[2], seam.formed_seam_end[2]),
-                  color="#dc2626", linewidth=2)
-        axis.set_xlabel("X mm")
-        axis.set_ylabel("Y mm")
-        axis.set_zlabel("Z mm")
-        axis.view_init(elev=25, azim=-55)
-        axis.set_title("Pre-relief 3D | NO selected R / relief hole | CHECK")
-        figure.tight_layout()
-        canvas = FigureCanvasTkAgg(figure, master=body)
-        canvas.get_tk_widget().grid(row=1, column=1, sticky="nsew", padx=6)
-        canvas.draw()
+        figure = None
+        canvas = None
+        if no_hole_3d:
+            ttk.Label(
+                body, text=(
+                    "此片有原生 CUTTING 內孔。現有 Engine 只有無孔的厚板折後網格；"
+                    "不得以該網格冒充含孔的 3D。此處只提供可信的 2D CHECK。"
+                ), wraplength=580, justify="left",
+            ).grid(row=1, column=1, sticky="nw", padx=12, pady=24)
+        else:
+            figure = Figure(figsize=(6.7, 6.4), dpi=100)
+            axis = figure.add_subplot(111, projection="3d")
+            axis.add_collection3d(Poly3DCollection(
+                first, facecolors="#0ea5e9", edgecolors="none", alpha=.65))
+            axis.add_collection3d(Poly3DCollection(
+                second, facecolors="#f59e0b", edgecolors="none", alpha=.65))
+            _fit_equal_3d(axis, first + second)
+            seam = replayed.ideal
+            axis.plot((seam.formed_seam_start[0], seam.formed_seam_end[0]),
+                      (seam.formed_seam_start[1], seam.formed_seam_end[1]),
+                      (seam.formed_seam_start[2], seam.formed_seam_end[2]),
+                      color="#dc2626", linewidth=2)
+            axis.set_xlabel("X mm")
+            axis.set_ylabel("Y mm")
+            axis.set_zlabel("Z mm")
+            axis.view_init(elev=25, azim=-55)
+            axis.set_title("Pre-relief 3D | NO selected R / relief hole | CHECK")
+            figure.tight_layout()
+            canvas = FigureCanvasTkAgg(figure, master=body)
+            canvas.get_tk_widget().grid(row=1, column=1, sticky="nsew", padx=6)
+            canvas.draw()
 
         # These references live on the read-only popup only, never on Project.
         win._saved_endcap_check_replay = replayed

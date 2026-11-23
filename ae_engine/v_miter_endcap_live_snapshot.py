@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 import hashlib
+import json
 
 from .contracts import EndCapPartSpec
 from .manufacturing_render_data import PartRenderData
@@ -10,6 +11,7 @@ from .sheetmetal_drawing import DrawingScene
 from .sheetmetal_geometry_core import GeometryError
 from .v_miter_corner_source import VMiterReliefMode
 from .v_miter_material_trial import _single_source_material
+from .v_miter_existing_circle_check import qualify_live_endcap_circle_source
 from .v_miter_operator_gui_check import (
     V_MITER_GUI_CORNER_KEYS,
     V_MITER_GUI_UNCERTIFIED,
@@ -42,7 +44,12 @@ def _bound_inputs(part_spec, render_data, corner_key, first_bend_axis, relief_mo
         relief_mode = VMiterReliefMode(relief_mode).value
     except ValueError as exc:
         raise GeometryError("V_MITER_LIVE_SOURCE_RELIEF_MODE_INVALID") from exc
-    scene = render_data.scene
+    # The old V1/V2 physical digest remains strictly single-CUTTING.
+    # Only this Custom EndCap live CHECK can qualify one real inner circle.
+    scoped, source_circle, _void = qualify_live_endcap_circle_source(
+        part_spec, render_data,
+    )
+    scene = scoped.scene
     _, _, x_h, y_h, _, _, x_bend, y_bend, x_angle, y_angle = (
         _bound_endcap_corner_bends(
             part_spec, scene, _single_source_material(scene), corner_key,
@@ -57,10 +64,25 @@ def _bound_inputs(part_spec, render_data, corner_key, first_bend_axis, relief_mo
         second_angle_deg=abs(second_angle), thickness_mm=part_spec.thickness,
         first_flange_height_mm=first_h, second_flange_height_mm=second_h,
     )
-    digest = hashlib.sha256("|".join((
+    components = [
         _ENDCAP_LIVE_CHECK_CONTRACT, fold_digest, corner_key,
         first_bend_axis, relief_mode,
-    )).encode("ascii")).hexdigest()
+    ]
+    if source_circle is not None:
+        # Source geometry and its already-verified actual material inner ring
+        # are 1:1. Bind the precise original circle so a +13 mm hole move
+        # invalidates the old record without altering the V1 envelope.
+        circle_row = [
+            "VERIFIED_CUSTOM_ENDCAP_CUTTING_CIRCLE_V1",
+            source_circle.center.x, source_circle.center.y,
+            source_circle.radius, source_circle.source_type,
+            source_circle.source_id,
+        ]
+        components.append(hashlib.sha256(json.dumps(
+            circle_row, ensure_ascii=False, allow_nan=False,
+            separators=(",", ":"),
+        ).encode("utf-8")).hexdigest())
+    digest = hashlib.sha256("|".join(components).encode("ascii")).hexdigest()
     return {
         "contract": _ENDCAP_LIVE_CHECK_CONTRACT,
         "manufacturing_status": V_MITER_GUI_UNCERTIFIED,
@@ -117,6 +139,91 @@ def normalize_endcap_live_v_miter_check_snapshot(record: Mapping) -> dict[str, s
     return dict(record)
 
 
+def _verified_original_no_hole_fold_equivalence(
+    part_spec: EndCapPartSpec, render_data: PartRenderData, record: Mapping,
+) -> bool:
+    """Narrow original #3416 zero-hole .p6fold compatibility, fail closed.
+
+    Before #3417, Main Tk captured an unprofiled EndCap PartSpec. Project
+    Open may materialize the original BoxBody-linked Factory X/Y profiles.
+    An old digest is accepted ONLY if the old unprofiled PartSpec reproduces
+    that exact stored digest and BOTH Engine rebuilds have identical original
+    ordered CUTTING/BEND, material and signed angle at *every* physical bend.
+    A real width, stock, finite BEND or authored Fold change must fail.
+    No user hole, second CUTTING or non-EndCap is compatible.
+    """
+    if (not isinstance(part_spec, EndCapPartSpec) or part_spec.holes
+            or not isinstance(render_data, PartRenderData)
+            or not isinstance(render_data.scene, DrawingScene)
+            or getattr(render_data.material, "interiors", ())):
+        return False
+    from dataclasses import replace
+    from .manufacturing_api import build_operator_part_render_data
+    from .v_miter_operator_gui_check import (
+        _endcap_existing_fold_angle_sources, _orthogonal_bends,
+        _profile_angle_at_bend,
+    )
+    from .v_miter_trial_snapshot import _physical_sources
+    legacy_spec = replace(part_spec, fold_profile_x=(), fold_profile_y=())
+    try:
+        canonical = build_operator_part_render_data(part_spec)
+        original = build_operator_part_render_data(legacy_spec)
+        current_rows, _ = _physical_sources(render_data.scene)
+        canonical_rows, _ = _physical_sources(canonical.scene)
+        legacy_rows, _ = _physical_sources(original.scene)
+        def same_physical_cutting_and_finite_bends(a, b):
+            # Project Open's original linked Fold reorders BEND rows and
+            # reverses p1/p2 without moving the actual finite segment.
+            # Do not relax either normal source hash: only this fully
+            # provenance-verified no-hole compatibility compares unoriented
+            # segments WITH multiplicity and exact CUTTING source.
+            cuts_a = [row for row in a if row[0] == "CUTTING"]
+            cuts_b = [row for row in b if row[0] == "CUTTING"]
+            def bends(rows):
+                return sorted(
+                    tuple(sorted((tuple(row[1]), tuple(row[2]))))
+                    for row in rows if row[0] == "BEND"
+                )
+            return cuts_a == cuts_b and bends(a) == bends(b)
+
+        if (not same_physical_cutting_and_finite_bends(current_rows, canonical_rows)
+                or not same_physical_cutting_and_finite_bends(current_rows, legacy_rows)):
+            return False
+        current_stock = _single_source_material(render_data.scene)
+        canonical_stock = _single_source_material(canonical.scene)
+        legacy_stock = _single_source_material(original.scene)
+        if (current_stock.symmetric_difference(canonical_stock).area > 1e-8
+                or current_stock.symmetric_difference(legacy_stock).area > 1e-8
+                or render_data.material.symmetric_difference(current_stock).area > 1e-8):
+            return False
+        part_key = "tail" if part_spec.is_tail else "head"
+        new_px, new_py = _endcap_existing_fold_angle_sources(part_spec, part_key)
+        old_px, old_py = _endcap_existing_fold_angle_sources(legacy_spec, part_key)
+        minx, miny, _, _ = current_stock.bounds
+        vertical, horizontal = _orthogonal_bends(render_data.scene)
+        if not vertical or not horizontal:
+            return False
+        # Full physical BEND ownership, not just the selected two bends.
+        # A -75.5 degree authored turn cannot be erased by this migration.
+        for bend in vertical:
+            position = bend.p1.x
+            if (_profile_angle_at_bend(new_px, position, minx)
+                    != _profile_angle_at_bend(old_px, position, minx)):
+                return False
+        for bend in horizontal:
+            position = bend.p1.y
+            if (_profile_angle_at_bend(new_py, position, miny)
+                    != _profile_angle_at_bend(old_py, position, miny)):
+                return False
+        historical, _, _ = _bound_inputs(
+            legacy_spec, original, record["corner_key"],
+            record["first_bend_axis"], record["relief_mode"],
+        )
+        return historical == record
+    except (GeometryError, ValueError, TypeError, AttributeError):
+        return False
+
+
 def replay_endcap_live_v_miter_check_snapshot(
     part_spec: EndCapPartSpec, render_data: PartRenderData, record: Mapping,
 ) -> VMiterOperatorGUICheck:
@@ -126,6 +233,8 @@ def replay_endcap_live_v_miter_check_snapshot(
         part_spec, render_data, record["corner_key"],
         record["first_bend_axis"], record["relief_mode"],
     )
-    if current != record:
+    if current != record and not _verified_original_no_hole_fold_equivalence(
+        part_spec, render_data, record,
+    ):
         raise GeometryError("V_MITER_LIVE_SOURCE_CHANGED")
     return _solve_bound_live_check(part_spec, render_data, current, first, second)
