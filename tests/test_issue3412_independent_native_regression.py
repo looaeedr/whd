@@ -407,3 +407,112 @@ def test_native_tk_canvas_place_confirm_save_new_instance_open_and_normal_dxf(
     paths = _formed_paths(whole, loaded)
     assert len(paths) == len(lines)
     assert all(len(path) >= 2 for path in paths)
+
+
+def test_composed_dxf_rejects_saved_customfold_mark_hole_in_dash_blank_atomically(
+    tmp_path,
+):
+    """Existing Vault/Panel composed sink must not bypass source-marking gate.
+
+    This uses real CustomFold material/CUTTING/BEND and the same persisted
+    dash2/gap2 stroke with the real 0.5-mm through hole at x37 in a blank.
+    An ordinary successful pre-commit guard does not authorize this intent.
+    """
+    from ae_engine.contracts import (
+        ResolvedManufacturingGeometry, ResolvedManufacturingPart,
+    )
+
+    spec = _spec(axis="X", key="custom:17")
+    mark = _custom_saved_mark()
+    hole = CircleFeature(
+        diameter=0.5, anchor=FeatureAnchor.ABSOLUTE_FINISHED_FACE,
+        offset=Vec2(37, 80), layer="CUTTING",
+    )
+    original = replace(spec, features=(mark, hole))
+    render = api.build_part_render_data(original)
+    assert sum(p.layer == "MARKING" for p in render.scene.primitives) == 3
+    geometry = ResolvedManufacturingGeometry(parts=(
+        ResolvedManufacturingPart(original.physical_id, render),
+    ))
+    outfile = tmp_path / "already-approved-composed.dxf"
+    outfile.write_bytes(b"PREVIOUS_VALID_COMPOSED_DATA")
+    guards = []
+
+    def live_source_guard():
+        guards.append(True)
+
+    with pytest.raises(ValueError, match="MANUAL_MARKING_V1_UNSUPPORTED_SOURCE"):
+        api.save_composed_panel_dxf(
+            (("actual-custom-fold", geometry),),
+            outfile, pre_commit_guard=live_source_guard, overwrite=True,
+        )
+    assert outfile.read_bytes() == b"PREVIOUS_VALID_COMPOSED_DATA"
+    assert original.features == (mark, hole)
+    # Reject occurs before any actual DXF writer, regardless of guard cadence.
+    assert len(guards) <= 1
+
+
+def test_composed_dxf_rejects_mixed_valid_base_and_unsupported_custom_before_write(
+    actual_sheet, tmp_path,
+):
+    """One illegal selected sheet must block the entire multi-panel publish."""
+    from ae_engine.contracts import (
+        ResolvedManufacturingGeometry, ResolvedManufacturingPart,
+    )
+    _source, real_base, _context, _, _ = actual_sheet
+    good = _mark(actual_sheet, pattern="dashed")
+    eligible = api.with_physical_sheet_features("base_plate", real_base, (good,))
+    base = ResolvedManufacturingGeometry(parts=(
+        ResolvedManufacturingPart("base_plate", eligible),
+    ))
+
+    custom = _spec(axis="X", key="custom:17")
+    unsafe = replace(custom, features=(_custom_saved_mark(),))
+    custom_geometry = ResolvedManufacturingGeometry(parts=(
+        ResolvedManufacturingPart(custom.physical_id,
+                                  api.build_part_render_data(unsafe)),
+    ))
+    dest = tmp_path / "mixed-previous-approved.dxf"
+    dest.write_bytes(b"KEEP_APPROVED_FILE")
+    with pytest.raises(ValueError, match="MANUAL_MARKING_V1_UNSUPPORTED_SOURCE"):
+        api.save_composed_panel_dxf(
+            (("good-real-base", base), ("unsupported-custom", custom_geometry)),
+            dest, pre_commit_guard=lambda: None, overwrite=True,
+        )
+    assert dest.read_bytes() == b"KEEP_APPROVED_FILE"
+
+
+def test_composed_dxf_real_base_manual_mark_and_unmarked_custom_still_export(
+    actual_sheet, tmp_path,
+):
+    """No-mark normal composed path and legal BasePlate are unchanged."""
+    from ae_engine.contracts import (
+        ResolvedManufacturingGeometry, ResolvedManufacturingPart,
+    )
+    _source, real_base, _context, _, _ = actual_sheet
+    mark = _mark(actual_sheet, pattern="dashed")
+    with_mark = api.with_physical_sheet_features(
+        "base_plate", real_base, (mark,),
+    )
+    base = ResolvedManufacturingGeometry(parts=(
+        ResolvedManufacturingPart("base_plate", with_mark),
+    ))
+    custom_spec = _spec(axis="X", key="custom:17")
+    unmarked = ResolvedManufacturingGeometry(parts=(
+        ResolvedManufacturingPart(custom_spec.physical_id,
+                                 api.build_part_render_data(custom_spec)),
+    ))
+    dest = tmp_path / "valid-composed.dxf"
+    guard_calls = []
+    result = api.save_composed_panel_dxf(
+        (("valid-manual-base", base), ("unmarked-custom", unmarked)),
+        dest, pre_commit_guard=lambda: guard_calls.append("ok"), overwrite=False,
+    )
+    assert result.path == str(dest)
+    assert len(guard_calls) == 2
+    dxf = ezdxf.readfile(dest)
+    assert dxf.header["$INSUNITS"] == 4
+    marked = [e for e in dxf.modelspace() if e.dxf.layer == "MARKING"]
+    assert len(marked) == len(mark.layered_profiles)
+    assert all(e.dxftype() == "LWPOLYLINE" and len(e) == 2 for e in marked)
+    assert any(e.dxf.layer == "BEND" for e in dxf.modelspace())
