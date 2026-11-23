@@ -31,10 +31,11 @@ def with_physical_sheet_features(key, render, features):
     scene.extend(render.scene.primitives)
     scene.extend(resolved_features_to_primitives(resolved))
     marked = tuple(feature for feature in normalized if is_manual_mark(feature))
+    material = material_polygon_from_final_scene(scene)
+    if not marked:
+        # Existing readonly/legacy render types need no metadata field.
+        # No manual intent => preserve their original replace contract.
+        return replace(render, scene=scene, material=material)
     metadata = dict(getattr(render, "metadata", None) or {})
-    if marked:
-        metadata["manual_marking_v1_features"] = marked
-    return replace(
-        render, scene=scene, material=material_polygon_from_final_scene(scene),
-        metadata=metadata,
-    )
+    metadata["manual_marking_v1_features"] = marked
+    return replace(render, scene=scene, material=material, metadata=metadata)
