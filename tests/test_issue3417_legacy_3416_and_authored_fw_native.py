@@ -128,6 +128,33 @@ def test_original_3416_native_saved_nohole_opens_without_drift_but_w_change_reje
         _, _, spec, render = _selected_source(app, native)
         assert spec.fold_profile_x and spec.fold_profile_y  # Main Tk Open links Fold
         assert not spec.holes
+        # Diagnose exact #3416 source compatibility before pressing Viewer:
+        # old digest, every source CUTTING/BEND and factory fold identity.
+        from dataclasses import replace
+        from ae_engine.v_miter_endcap_live_snapshot import (
+            _bound_inputs, _verified_original_no_hole_fold_equivalence,
+        )
+        from ae_engine.v_miter_trial_snapshot import _physical_sources
+        from ae_engine.v_miter_operator_gui_check import _endcap_existing_fold_angle_sources
+        historical_spec = replace(spec, fold_profile_x=(), fold_profile_y=())
+        historical_render = api.build_operator_part_render_data(historical_spec)
+        refold, _, _ = _bound_inputs(
+            historical_spec, historical_render, "bottom_left", "x", "ROUND_R",
+        )
+        rows_now, _ = _physical_sources(render.scene)
+        rows_old, _ = _physical_sources(historical_render.scene)
+        px, py = _endcap_existing_fold_angle_sources(spec, "head")
+        bx, by = _endcap_existing_fold_angle_sources(historical_spec, "head")
+        print("LEGACY_NATIVE_SOURCE_DIAGNOSTIC", {
+            "saved_digest": old_digest,
+            "rebuilt_old_digest": refold["source_fold_sha256"],
+            "physical_rows_equal": rows_now == rows_old,
+            "current_rows": rows_now,
+            "old_rows": rows_old,
+            "current_fold": [(r.phase6_key, r.length, r.angle) for r in py],
+            "historical_fold": [(r.phase6_key, r.length, r.angle) for r in by],
+            "compatible": _verified_original_no_hole_fold_equivalence(spec, render, source[KEY]["head"]["bottom_left"]),
+        }, flush=True)
         errors.clear()
         app.v_miter_check_source_button.invoke()
         assert not errors, errors
@@ -191,7 +218,9 @@ def test_native_authored_lower_fw_minus_75_5_invalidates_old_saved_digest(
         assert lower[0]["angle"] == pytest.approx(-90)
         lower[0]["angle"] = -75.5
         profiles["head"] = authored
-        fresh.workspace_controller.replace_part_profiles(profiles)
+        workspace = fresh.workspace_controller.workspace_snapshot()
+        workspace["part_profiles"] = profiles
+        fresh.workspace_controller.commit_workspace(workspace)
         changed_snapshot = fresh._make_original_fold_designer_snapshot()
         _, _, after, changed_render = _selected_source(fresh, changed_snapshot)
         actual = [seg for seg in after.fold_profile_y if seg.phase6_key == "fw"]
