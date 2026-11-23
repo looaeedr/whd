@@ -348,7 +348,9 @@ def _station_gap(position: float, a: float, b: float) -> float:
     return max(0.0, lo - position, position - hi)
 
 
-def _physical_corner_bends(scene, material, corner_key):
+def _physical_corner_bends(
+    scene, material, corner_key, *, expected_stations: tuple[float, float] | None = None,
+):
     """Resolve real BEND stations, not a fictional continuous source crease.
 
     Four-side manufacturing BENDs may cross in their interiors (Door) or end
@@ -367,6 +369,21 @@ def _physical_corner_bends(scene, material, corner_key):
     width, height = maxx - minx, maxy - miny
     if min(width, height) <= 1e-8:
         raise GeometryError("V_MITER_GUI_INVALID_MATERIAL_BOUNDS")
+    # Head/Tail live CHECK supplies the two stations from its *current*
+    # PartSpec Fold; scene-only nearest-BEND selection is never a fallback
+    # when a physical source binding has been requested.
+    if expected_stations is not None:
+        if (not isinstance(expected_stations, tuple) or len(expected_stations) != 2
+                or any(type(v) not in (float, int) or not math.isfinite(v)
+                       for v in expected_stations)):
+            raise GeometryError("V_MITER_GUI_BOUND_STATIONS_INVALID")
+        station_x, station_y = expected_stations
+        vertical = [row for row in vertical if abs(row.p1.x - station_x) <= 1e-6]
+        horizontal = [row for row in horizontal if abs(row.p1.y - station_y) <= 1e-6]
+        if not vertical or not horizontal:
+            raise GeometryError("V_MITER_GUI_PARTSPEC_BEND_SOURCE_MISMATCH")
+        if len(vertical) != 1 or len(horizontal) != 1:
+            raise GeometryError("V_MITER_GUI_AMBIGUOUS_BOUND_BEND_SOURCE")
     choices = []
     for vx in vertical:
         for hy in horizontal:
@@ -387,6 +404,8 @@ def _physical_corner_bends(scene, material, corner_key):
             choices.append((gap_v + gap_h, distance, meet, vx, hy, gap_v, gap_h))
     if not choices:
         raise GeometryError("V_MITER_GUI_NO_PHYSICAL_BEND_STATIONS_IN_CORNER")
+    if expected_stations is not None and len(choices) != 1:
+        raise GeometryError("V_MITER_GUI_BOUND_BENDS_NOT_IN_CORNER")
     choices.sort(key=lambda row: (row[0], row[1]))
     if len(choices) > 1 and all(
         abs(choices[1][i] - choices[0][i]) <= 1e-9 for i in (0, 1)
@@ -439,6 +458,39 @@ def _profile_angle_at_bend(profile, position, origin):
     if len(found) != 1 or abs(found[0]) <= 1e-9:
         raise GeometryError("V_MITER_GUI_BEND_NOT_LINKED_TO_FOLD")
     return found[0]
+
+
+def _partspec_corner_fold_station(profile, origin, *, near_min: bool):
+    """Exact signed Fold boundary at this PartSpec's physical outer corner.
+
+    The first and last real Fold boundaries are determined by the authored
+    material chain, never by a nearest drawn line or a default 90-degree bend.
+    A single scene BEND cannot supply an angle or change its Fold role.
+    """
+    if not profile:
+        raise GeometryError("V_MITER_GUI_AUTHORED_FOLD_ANGLE_REQUIRED")
+    at = float(origin)
+    boundaries = []
+    for row in profile:
+        length = getattr(row, "length", None)
+        angle = getattr(row, "angle", None)
+        if type(length) not in (int, float) or not math.isfinite(length) or length < 0:
+            raise GeometryError("V_MITER_GUI_FOLD_MATERIAL_INVALID")
+        at += length
+        if angle is None:
+            continue
+        if type(angle) not in (int, float) or not math.isfinite(angle):
+            raise GeometryError("V_MITER_GUI_FOLD_ANGLE_MISSING")
+        if abs(angle) <= 1e-9:
+            continue
+        if not 0 < abs(angle) < 180:
+            raise GeometryError("V_MITER_GUI_FOLD_ANGLE_OUT_OF_RANGE")
+        if boundaries and at - boundaries[-1][0] <= 1e-7:
+            raise GeometryError("V_MITER_GUI_AMBIGUOUS_AUTHORED_FOLD_STATION")
+        boundaries.append((at, float(angle)))
+    if not boundaries:
+        raise GeometryError("V_MITER_GUI_BEND_NOT_LINKED_TO_FOLD")
+    return boundaries[0] if near_min else boundaries[-1]
 
 
 def _endcap_existing_fold_angle_sources(part_spec: EndCapPartSpec, part_key: str):
@@ -508,24 +560,36 @@ def project_operator_v_miter_live_corner_check(
         # Do not synthesize an orthogonal fold from a nominal rectangle.
         raise GeometryError("V_MITER_GUI_PART_HAS_NO_VERIFIED_TWO_BEND_SOURCE")
     material = _single_source_material(render_data.scene)
-    x_bend, y_bend, x_height, y_height, x_gap, y_gap, x_real, y_real = _physical_corner_bends(
-        render_data.scene, material, corner_key,
-    )
-    if isinstance(part_spec, DoorPartSpec):
-        # Canonical DoorPartSpec has four fixed 90-degree sheet bends; its
-        # fold_left/right/top/bottom fields are physical return lengths.
-        angle_x = angle_y = 90.0
-    else:
+    if isinstance(part_spec, EndCapPartSpec):
+        if first_bend_axis is None:
+            raise GeometryError("V_MITER_GUI_FIRST_BEND_REQUIRED")
         minx, miny, _, _ = material.bounds
         source_x, source_y = _endcap_existing_fold_angle_sources(part_spec, part_key)
-        angle_x = _profile_angle_at_bend(
-            source_x, x_bend.p1.x, minx,
+        x_station, angle_x = _partspec_corner_fold_station(
+            source_x, minx, near_min=corner_key.endswith("left"),
         )
-        angle_y = _profile_angle_at_bend(
-            source_y, y_bend.p1.y, miny,
+        y_station, angle_y = _partspec_corner_fold_station(
+            source_y, miny, near_min=corner_key.startswith("bottom"),
         )
+        x_bend, y_bend, x_height, y_height, x_gap, y_gap, x_real, y_real = _physical_corner_bends(
+            render_data.scene, material, corner_key,
+            expected_stations=(x_station, y_station),
+        )
+        # Reconfirm that neither selected finite BEND changed its station,
+        # angle or signed fold direction in the current PartSpec.
+        if (angle_x != _profile_angle_at_bend(source_x, x_real.p1.x, minx)
+                or angle_y != _profile_angle_at_bend(source_y, y_real.p1.y, miny)):
+            raise GeometryError("V_MITER_GUI_PARTSPEC_FOLD_SOURCE_CHANGED")
         if angle_x * angle_y <= 0:
             raise GeometryError("V_MITER_GUI_OPPOSITE_FOLD_SENSE")
+    else:
+        # Preserve the pre-existing uncertified Door diagnostic only. Door
+        # has NOT received fifth-corner product approval or a new source
+        # contract in this Head/Tail first slice.
+        x_bend, y_bend, x_height, y_height, x_gap, y_gap, x_real, y_real = _physical_corner_bends(
+            render_data.scene, material, corner_key,
+        )
+        angle_x = angle_y = 90.0
     if not (0 < abs(angle_x) < 180 and 0 < abs(angle_y) < 180):
         raise GeometryError("V_MITER_GUI_FOLD_ANGLE_OUT_OF_RANGE")
     # Once the operator supplies a fold order, no X-first tie break is allowed.
@@ -542,9 +606,9 @@ def project_operator_v_miter_live_corner_check(
         else:
             first, second = (y_bend, "y", y_height), (x_bend, "x", x_height)
             second_angle = abs(angle_x)
-    elif abs(abs(angle_x) - 90) <= 1e-8:
-        # Legacy CHECK preview only: callers must supply the operator's
-        # explicit selection before the fifth CornerType can be certified.
+    elif isinstance(part_spec, DoorPartSpec) and abs(abs(angle_x) - 90) <= 1e-8:
+        # Pre-existing Door CHECK is kept for compatibility; it is NOT an
+        # approved fifth CornerType or an EndCap bound-source fallback.
         first, second = (x_bend, "x", x_height), (y_bend, "y", y_height)
         second_angle = abs(angle_y)
     elif abs(abs(angle_y) - 90) <= 1e-8:
