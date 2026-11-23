@@ -151,10 +151,10 @@ def nominal_adjacent_source_skins(faces,source_uv,world_surface,t,st,h,stock):
         raise GeometryError("TAIL_D4_NOMINAL_SOURCE_Y_HINGE_MISSING")
     y_lo=min(row[2] for row in y_segments)
     y_hi=max(row[3] for row in y_segments)
-    if (y_lo<st.bottom_guide_start-1e-7
-            or y_hi>st.bottom_guide_end+1e-7
-            or y_lo>st.left_x+h+1e-7
-            or y_hi<st.right_x-h-1e-7):
+    if (y_lo<st.left_x-1e-7
+            or y_hi>st.right_x+1e-7
+            or y_lo>st.bottom_guide_start+h+1e-7
+            or y_hi<st.bottom_guide_end-h-1e-7):
         raise GeometryError("TAIL_D4_NOMINAL_Y_SOURCE_HINGE_NOT_ACTUAL_SPAN")
     for crease in (st.left_x,st.right_x):
         overlap_band=box(crease-h,st.bottom_y-h,
