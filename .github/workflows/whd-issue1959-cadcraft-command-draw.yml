@@ -241,6 +241,7 @@ jobs:
           WHD_1959_PIXEL_RECEIPT_DIR: work/issue1959-win/real3d-pixels
         run: python -m pytest -q tests/test_issue1959_whd_cadcraft_command_draw.py tests/test_issue1959_cadcraft_command_session_bridge.py tests/test_issue1959_cadcraft_command_preview_button.py tests/test_issue1959_whd_real_manufacturing_parity.py tests/test_issue1959_cadcraft_manual_return.py tests/test_issue1959_cadcraft_append_holes.py tests/test_issue1959_cadcraft_tcp_control.py tests/test_issue1959_cadcraft_command_button_live_tk.py tests/test_issue1959_cadcraft_live_return.py tests/test_issue1959_main_gui_save_open.py tests/test_issue1959_receiving_inner_3d_editor.py
       - name: Verify publisher SHA256 and unpack official Windows x64 CADCraft v0.8.0
+        if: ${{ !cancelled() }}
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
@@ -268,6 +269,7 @@ jobs:
           "CADCRAFT_GUI=$($guis[0].FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
           Write-Host "OFFICIAL_WINDOWS_CADCRAFT_RELEASE_SHA256 $actual"
       - name: Actual Windows CADCraft desktop GUI unsaved TCP to WHD Session Confirm Undo
+        if: ${{ !cancelled() }}
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
@@ -286,6 +288,7 @@ jobs:
           '@ | python -
           if ($LASTEXITCODE -ne 0) { throw "WINDOWS_NATIVE_GUI_TCP_RECEIPT_INVALID" }
       - name: Real WHD Tk button opens native CADCraft GUI live unsaved Confirm Cancel Undo
+        if: ${{ !cancelled() }}
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
