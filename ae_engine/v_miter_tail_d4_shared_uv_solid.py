@@ -125,7 +125,7 @@ def _wall_contact(groups,corner):
 def project_d4_original_owner_uv_solid(
     flat,stock,st,first_axis,x_profile,y_profile,original_bends,
     original_surface,box_body_world,thickness,*,nominal_hinge=False,
-    nominal_side_collar=True,
+    nominal_side_collar=True, nominal_upper_taper=False,
 ):
     """Form the actual FinalScene sheet with sourced two-stage lower corners.
 
@@ -139,11 +139,17 @@ def project_d4_original_owner_uv_solid(
     if nominal_hinge:
         from .v_miter_tail_d4_nominal_hinge import nominal_hinge_width
         nominal_h=nominal_hinge_width(flat,thickness,st)
+        t_half=float(thickness)/2.
+        split_x=tuple(v for c in (st.left_x,st.right_x)
+                      for v in ((c-nominal_h,c+nominal_h)
+                                +((c-t_half,c+t_half)
+                                  if nominal_upper_taper else ())))
+        taper_y=(max(st.left_side_end,st.right_side_end)-nominal_h,
+                 max(st.left_side_end,st.right_side_end)-nominal_h/2.)
         source,area=_single_sheet_triangles(
-            stock,st,
-            extra_x=tuple(v for c in (st.left_x,st.right_x)
-                          for v in (c-nominal_h,c+nominal_h)),
-            extra_y=(st.bottom_y-nominal_h,st.bottom_y+nominal_h),
+            stock,st,extra_x=split_x,
+            extra_y=(st.bottom_y-nominal_h,st.bottom_y+nominal_h)
+            +(taper_y if nominal_upper_taper else ()),
         )
     else:
         source,area=_single_sheet_triangles(stock,st)
@@ -225,6 +231,7 @@ def project_d4_original_owner_uv_solid(
             faces,source_uv,world_surface,t,st,nominal_h,stock,
             flat.opening_source_points_xy,
             extend_side_collar=nominal_side_collar,
+            upper_taper=nominal_upper_taper,
         )
     else:
         nominal_skins=None
@@ -308,6 +315,7 @@ def project_d4_original_owner_uv_solid(
         "v_surface":tuple(world_surface),
         "v_solid":tuple(solid),
         "nominal_hinge_width_mm":nominal_h,
+        "nominal_upper_taper":bool(nominal_hinge and nominal_upper_taper),
         "v_solid_source_ids":tuple(solid_source_ids),
         "straight_v_wall_sets":seams,
         "open_world_edges":open_count,
