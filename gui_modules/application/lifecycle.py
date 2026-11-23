@@ -489,6 +489,9 @@ def _apply_phase6_project_snapshot(self, snapshot):
         v_miter_gui_choice,
     )
     from .endcap_live_v_check_consumer import ATTR, validate_live_sources
+    from .endcap_live_v_check_view import close_saved_live_check_window
+    # New project/source ownership always retires the previous CHECK window.
+    close_saved_live_check_window(self)
     live_endcap_check = validate_live_sources(snapshot or {})
     setattr(self, ATTR, live_endcap_check)
     # Switching projects must drop both previous sources; preflight failure

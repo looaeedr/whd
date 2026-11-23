@@ -42,15 +42,22 @@ def test_actual_native_head_live_check_project_save_reopen(tmp_path,monkeypatch,
             choose(fresh)
             model=fresh._make_original_fold_designer_snapshot()
             fresh.v_miter_check_source_button.invoke()
-            assert replies[-1][0]=="info" and "重算" in replies[-1][1]
+            view = fresh._endcap_live_saved_check_window
+            assert view.winfo_exists()
+            assert "已保存試算／非加工" in view.title()
+            assert view._saved_endcap_check_2d_canvas.find_all()
+            assert all(view._saved_endcap_check_3d_triangles)
             v=replay_current(fresh,model)
+            assert view._saved_endcap_check_replay == v
             assert v.manufacturing_status.endswith("UNCERTIFIED")
             assert {x.layer for x in v.full_sheet_check_scene.primitives}<={"CHECK","DATUM"}
             assert fresh._compose_phase6_project_snapshot_from_main_gui()[KEY]==old[KEY]
             bad=deepcopy(snap); bad[KEY]["head"]["bottom_left"]["source_fold_sha256"]="0"*64
             fresh._apply_phase6_project_snapshot(bad)
+            assert not view.winfo_exists()
             choose(fresh)
             fresh.v_miter_check_source_button.invoke()
+            assert getattr(fresh, "_endcap_live_saved_check_window", None) is None
             assert replies[-1][0]=="error" and "V_MITER_LIVE_SOURCE_CHANGED" in replies[-1][1]
             with pytest.raises(ValueError,match="V_MITER_LIVE_SOURCE_CHANGED"):
                 replay_current(fresh,fresh._make_original_fold_designer_snapshot())

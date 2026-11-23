@@ -1031,24 +1031,34 @@ class Phase6ApplicationHost:
         return _corner_parameter_summary_impl(cls, selection)
 
     def show_v_miter_check_source(self):
-        """Inspect Engine-validated saved CHECK source; no physical corner edit."""
+        """Show the saved Engine replay as read-only 2D + formed 3D CHECK."""
         from tkinter import messagebox
+        from gui_modules.application.endcap_live_v_check_consumer import (
+            ATTR, replay_current,
+        )
+        from gui_modules.application.endcap_live_v_check_view import (
+            close_saved_live_check_window, show_saved_endcap_live_check_window,
+        )
+        # Invalidate first: even a stale replay or project change cannot
+        # leave yesterday's candidate displayed as the current saved source.
+        close_saved_live_check_window(self)
         try:
             snapshot = self._make_original_fold_designer_snapshot()
-            from gui_modules.application.endcap_live_v_check_consumer import replay_current
             replayed = replay_current(self, snapshot)
             if replayed is None:
                 detail = _v_miter_check_source_summary_impl(snapshot)
-            else:
-                detail = "已用目前封頭／封尾及實體折線重算保存的 CHECK；未認證、不可加工。"
-        except (TypeError, ValueError) as exc:
+                messagebox.showinfo("V 型斜接｜CHECK 試算來源", detail)
+                return detail
+            part = self._current_manual_corner_part_key()
+            corner = self.manual_active_corner_var.get()
+            record = getattr(self, ATTR)[part][corner]
+            return show_saved_endcap_live_check_window(self, replayed, record)
+        except (TypeError, ValueError, KeyError) as exc:
             messagebox.showerror(
                 "V 型斜接｜試算來源無效",
                 f"Engine 拒絕保存的未認證 V 型來源：{exc}",
             )
             return None
-        messagebox.showinfo("V 型斜接｜CHECK 試算來源", detail)
-        return detail
 
     def capture_endcap_live_v_miter_check_source(self):
         from gui_modules.application.endcap_live_v_check_consumer import capture_current
@@ -1057,6 +1067,8 @@ class Phase6ApplicationHost:
         except (TypeError, ValueError) as exc:
             messagebox.showerror("V 型斜接｜CHECK 來源未保存", str(exc))
             return None
+        from gui_modules.application.endcap_live_v_check_view import close_saved_live_check_window
+        close_saved_live_check_window(self)
         messagebox.showinfo("V 型斜接｜CHECK 來源", "目前角落的來源已核對，可用專案儲存保留；不可加工。")
         return row
 
