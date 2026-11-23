@@ -60,9 +60,14 @@ def _old_3416_native_writer(path: Path, tmp_path: Path):
     script = """
 import sys
 import tkinter as tk
+from tkinter import messagebox
 from gui import BoxCalculatorGUI
 from gui_modules.application.endcap_live_v_check_consumer import ATTR, KEY
 from phase6_project_file import PROJECT_SCHEMA_V1, write_project
+messagebox.showinfo = lambda *args, **kw: None
+messagebox.showerror = lambda *args, **kw: (_ for _ in ()).throw(
+    AssertionError("ORIGINAL_3416_BUTTON_ERROR:" + repr(args))
+)
 root = tk.Tk()
 root.withdraw()
 try:
@@ -114,6 +119,7 @@ def test_original_3416_native_saved_nohole_opens_without_drift_but_w_change_reje
     assert not source.get("part_features", {}).get("head")
     errors = []
     monkeypatch.setattr(messagebox, "showerror", lambda *args: errors.append(args))
+    monkeypatch.setattr(messagebox, "showinfo", lambda *args: None)
     root, app = _new_gui()
     try:
         app._apply_phase6_project_snapshot(source)
@@ -149,6 +155,7 @@ def test_native_authored_lower_fw_minus_75_5_invalidates_old_saved_digest(
     from tkinter import messagebox
     errors = []
     monkeypatch.setattr(messagebox, "showerror", lambda *args: errors.append(args))
+    monkeypatch.setattr(messagebox, "showinfo", lambda *args: None)
     root, app = _new_gui()
     fresh_root = None
     try:
