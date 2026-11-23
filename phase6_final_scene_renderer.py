@@ -203,6 +203,8 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                     )
                 diagnostic_relief_delta = None
                 physical_piece_world = ()
+                # Multipart BoxBody never owns a Tail pre-thick preview.
+                preview_t2 = None
                 if getattr(part_data, "pieces", None):
                     piece_meshes = _phase6_box_body_structure_meshes(part_data, thickness=request.thickness)
                     physical_piece_world = _phase6_box_body_true_world_piece_meshes(
@@ -222,16 +224,36 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                     ):
                         fold_material = manufacturing_api.restore_unrelieved_endcap_material(part_material)
                         diagnostic_relief_delta = manufacturing_api.restored_endcap_relief_delta(part_material)
-                    local = _phase6_folded_mesh_from_polygon(
-                        fold_material,
-                        tuple(dict(seg) for seg in part.x_profile),
-                        tuple(dict(seg) for seg in part.y_profile),
-                        fold_guides=tuple(getattr(part_data, "fold_guides", ()) or ()),
+                    preview_t2=(
+                        manufacturing_api.tail_lower_v_preview_mesh(part_data)
+                        if part_key=="tail" else None
+                    )
+                    local=(
+                        preview_t2 if preview_t2 is not None
+                        else _phase6_folded_mesh_from_polygon(
+                            fold_material,
+                            tuple(dict(seg) for seg in part.x_profile),
+                            tuple(dict(seg) for seg in part.y_profile),
+                            fold_guides=tuple(getattr(part_data, "fold_guides", ()) or ()),
+                        )
                     )
                 placement = str(getattr(part, "placement", "offset") or "offset")
                 offset = getattr(part, "offset", (0.0, 0.0, 0.0))
                 formed_surface_for_edges = None
-                if placement in {"top", "head", "bottom", "tail"} and box_body_world:
+                # Preview T2 is already thick: never thicken a second time.
+                if preview_t2 is not None and part_key=="tail":
+                    # The V CHECK is ALREADY a complete T shell. Use the
+                    # same native Box Body mating origin as normal Tail;
+                    # do not recenter Z, mirror local Y or thicken again.
+                    # The Engine also reverses winding once for the
+                    # odd-handed (x,y,z)->(x,z,y) world transform.
+                    placed=manufacturing_api.place_prethickened_endcap_world_skins(
+                        local,placement=placement,box_body_world=box_body_world,
+                        offset=offset,preserve_core_origin=bool(getattr(
+                            render_data,"preserve_endcap_core_origin",False
+                        )),
+                    )
+                elif placement in {"top", "head", "bottom", "tail"} and box_body_world:
                     # The Engine returns both the canonical formed surface used
                     # by visual edges and its true-T physical solid.
                     skins = manufacturing_api.resolve_assembled_endcap_world_skins(
@@ -249,6 +271,26 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                     )
                 if not placed:
                     continue
+                integral_body_physical=False
+                if (
+                    part_key=="box_body"
+                    and not getattr(part_data,"pieces",None)
+                    and manufacturing_api.project_integral_box_body_formed_skin_eligible(part)
+                ):
+                    # The original D-W-D Fold is the INSIDE material datum.
+                    # Render the exact Engine-owned formed true-T Body, not
+                    # a raw mid-surface subsequently thickened +/-T/2.
+                    # Neither FinalScene CUTTING nor mesh coordinates are
+                    # stretched or altered by this view adapter.
+                    physical=manufacturing_api.build_joint_world_geometry(
+                        (part,),request.finished_dimensions,request.thickness,
+                    )["world_triangles_by_part"].get("box_body",())
+                    if not physical:
+                        raise ValueError(
+                            "BOX_BODY_INTEGRAL_PHYSICAL_WORLD_REQUIRED"
+                        )
+                    placed=tuple(physical)
+                    integral_body_physical=True
                 if part_key.startswith("box_body:divider:"):
                     # The certified FW contact uses physical sheet skins.
                     # Display that same T-thick solid rather than the
@@ -292,6 +334,7 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                                 placed_piece_meshes=placed_piece_meshes,
                                 physical_piece_world=physical_piece_world,
                                 thickness=request.thickness,
+                                integral_world_is_physical=integral_body_physical,
                             )
                         )
                     if getattr(part_data, "pieces", None):

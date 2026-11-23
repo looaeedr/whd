@@ -111,6 +111,46 @@ def _factory_original_shape(spec) -> tuple[Polygon, float, float]:
                 Vec2(row.p1.x, float(result.height) - row.p1.y),
                 Vec2(row.p2.x, float(result.height) - row.p2.y),
             ) for row in axes)
+    elif isinstance(spec, EndCapPartSpec):
+        # Vault regular EndCap has an intrinsic C03/C04 policy, not an
+        # explicit editable corner_policy. Rebuild its ORIGINAL Factory,
+        # rather than refusing the user's real Vault Tail source or
+        # constructing a nominal rectangle as a fake Factory.
+        from .manufacturing_endcap_compat import resolve_endcap_request
+        from .sheetmetal_part_adapters import build_endcap_result
+        from .ae_config import RELIEF_CONFIG
+        from .sheetmetal_geometry import build_endcap_topology
+
+        current = resolve_endcap_request(spec)
+        if current.corner_policy is not None:
+            raise GeometryError("V_MITER_MOTHER_POLICY_BRANCH_INCONSISTENT")
+        result = build_endcap_result(
+            w=current.width, d=current.depth, t=current.thickness,
+            fw=current.frame_width,
+            yl1=current.fold_left, yr1=current.fold_right,
+            ytop1=current.fold_top, ybottom1=current.fold_bottom,
+            x_topology=current.x_topology,
+            depth_comp_t=current.depth_comp_t,
+            relief_config=RELIEF_CONFIG,
+        )
+        points = (
+            result.outline if current.is_tail else
+            tuple(Vec2(p.x, float(result.height)-p.y)
+                  for p in result.outline)
+        )
+        source_fold = build_endcap_topology(result.topology)
+        axes = (
+            source_fold.left_bend, source_fold.right_bend,
+            source_fold.bottom_bend, source_fold.top_chain_bend_1,
+            source_fold.top_chain_bend_2,
+        )
+        uncut_bends = (
+            axes if current.is_tail else tuple(type(row)(
+                row.name,
+                Vec2(row.p1.x,float(result.height)-row.p1.y),
+                Vec2(row.p2.x,float(result.height)-row.p2.y),
+            ) for row in axes)
+        )
     else:
         raise GeometryError("V_MITER_MOTHER_REQUIRES_EDITABLE_FOUR_SIDE_FACTORY")
     stock = Polygon([(p.x, p.y) for p in points])
@@ -179,7 +219,10 @@ def project_v_miter_replaced_factory_corner_check(
     mother = box(0.0, 0.0, width, height)
     if mother.is_empty or mother.area <= 0 or original.difference(mother).area > 1e-6:
         raise GeometryError("V_MITER_MOTHER_FACTORY_BLANK_NOT_SOURCE_SUPERSET")
-    cut = _selected_original_corner_component(original, mother, corner_key)
+    # Classification uses the equivalent rebuilt Factory only: a 1-ULP
+    # difference in raw CUTTING must not connect opposite corner voids.
+    # The original FinalScene remains the output material/source below.
+    cut = _selected_original_corner_component(factory_original, mother, corner_key)
     restored = original.union(cut)
     if (
         restored.geom_type != "Polygon" or not restored.is_valid or
