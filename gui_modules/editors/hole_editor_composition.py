@@ -853,7 +853,13 @@ def _install_manual_marking_actions(s):
         s.hole_session.execute(HoleEditorAction.insert(mark))
         s.hole_session.execute(HoleEditorAction.commit_active())
         s.refresh_created()
-        s.sync_all()
+        try:
+            s.sync_all()
+        except (ValueError, TypeError, RuntimeError) as exc:
+            s.manual_mark_status.configure(
+                text="打標提交被拒絕：" + str(exc), fg="#ff453a",
+            )
+            s.confirm_all_btn.configure(state=d.tk.DISABLED)
         s.redraw()
         return "break"
 
