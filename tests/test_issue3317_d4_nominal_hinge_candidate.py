@@ -267,3 +267,168 @@ def test_d4_left_relief_side_collar_inner_skin_no_double_material(first_axis):
     assert all(r["full_face_contact_proven"]
                for r in repaired["straight_v_wall_sets"])
     assert not repaired["manufacturing_approved"]
+
+
+def _source_local_side_skin_faces(candidate, side):
+    """Only true source-owner +/- T skin, never V CUTTING/bridge contact.
+
+    The two physical skin triangles for each source face are stored in
+    their exact source-order pair before any boundary/corner wall faces.
+    Selection requires ALL three source UV vertices in the real lower
+    corner window, not world XYZ coincidence or a synthetically clipped
+    mesh that could conceal crossing segments.
+    """
+    st_left,st_right=(0.,40.) if side=="left" else (602.,642.)
+    faces=[]
+    ids=[]
+    for fid,source in enumerate(candidate["v_source_faces"]):
+        uv=tuple(candidate["v_source_uv"][i] for i in source)
+        if all(st_left-1e-7<=x<=st_right+1e-7
+               and y<=63.+1e-7 for x,y in uv):
+            faces.extend(candidate["v_solid"][2*fid:2*fid+2])
+            ids.append(fid)
+    assert faces and len(faces)==2*len(ids)
+    return tuple(faces),tuple(ids)
+
+
+@pytest.mark.parametrize("first_axis",("x","y"))
+@pytest.mark.parametrize("side",("left","right"))
+def test_d4_lower_side_true_3d_skin_crossing_red_green(first_axis,side):
+    """W620 actual source UV skins: transverse AND coplanar checks, fail closed."""
+    from ae_engine.assembly_geometry import diagnose_world_mesh_self_intersections
+    flat,_=build_tail_d4_check_from_original(default_vault_tail_d4_spec())
+    body=_real_w620_body()
+    baseline=project_tail_d4_shared_original_fold_candidate(
+        flat,first_axis=first_axis,box_body_world=body,
+        nominal_hinge=True,nominal_side_collar=False,
+    )
+    repaired=project_tail_d4_shared_original_fold_candidate(
+        flat,first_axis=first_axis,box_body_world=body,
+        nominal_hinge=True,
+    )
+    readings=[]
+    for candidate in (baseline,repaired):
+        skins,ids=_source_local_side_skin_faces(candidate,side)
+        assert all(2*fid+1<len(candidate["v_solid"]) for fid in ids)
+        # Exhaustive capacity for this exact selected 3D skin subset;
+        # no tolerance override, no world-XYZ welding of separate UV.
+        budget=len(skins)*(len(skins)-1)//2
+        check=diagnose_world_mesh_self_intersections(
+            skins,max_nonadjacent_pairs=budget,
+        )
+        assert not check.numerical_budget_exhausted,(
+            "D4_LOWER_SKIN_SCAN_BUDGET_OR_DEGENERATE",side,first_axis,
+            check,len(skins),
+        )
+        readings.append((check,len(skins)))
+    old,new=readings
+    assert (old[0].crossing_pair_count
+            or old[0].coplanar_overlap_pair_count),(
+        "D4_NOMINAL_PRECOLLAR_RED_NOT_REPRODUCED",
+        side,first_axis,old,
+    )
+    assert new[0].crossing_pair_count==0,(
+        "D4_LOWER_SIDE_TRANSVERSE_SKIN_CROSSING",
+        side,first_axis,new,
+    )
+    assert new[0].coplanar_overlap_pair_count==0,(
+        "D4_LOWER_SIDE_COPLANAR_SKIN_OVERLAP",
+        side,first_axis,new,
+    )
+    assert repaired["v_world_four_edges"]==8
+    assert repaired["v_world_open_seam_edges"]==0
+    assert repaired["v_world_open_edges"]==28
+    assert not repaired["manufacturing_approved"]
+
+
+def test_d4_true_3d_self_intersection_detector_transverse_positive_control():
+    """Prevent a coplanar-only or silently skipped nonparallel regression."""
+    from ae_engine.assembly_geometry import diagnose_world_mesh_self_intersections
+    # Two triangles cross as segments, sharing no vertices or source edge.
+    triangles=(
+        ((-2.,-2.,0.),(2.,-2.,0.),(0.,2.,0.)),
+        ((0.,-1.,-1.),(0.,1.,-1.),(0.,0.,1.)),
+    )
+    diagnostic=diagnose_world_mesh_self_intersections(
+        triangles,max_nonadjacent_pairs=1,
+    )
+    assert diagnostic.crossing_pair_count==1
+    assert diagnostic.coplanar_overlap_pair_count==0
+    assert not diagnostic.numerical_budget_exhausted
+
+
+def _source_shared_upper_skin_discontinuities(candidate,*,station,side):
+    """Only an exact shared SOURCE UV edge between same-oriented skin faces."""
+    from collections import defaultdict
+    from math import dist
+    from ae_engine.v_miter_tail_d4_shared_uv_solid import _normal,_dot
+
+    uv=candidate["v_source_uv"]
+    source_faces=candidate["v_source_faces"]
+    surface=candidate["v_surface"]
+    all_solid=candidate["v_solid"]
+    edges=defaultdict(list)
+    for fid,face in enumerate(source_faces):
+        for j in range(3):
+            a,b=face[j],face[(j+1)%3]
+            edges[tuple(sorted((a,b)))].append(fid)
+    witnesses=[]
+    for (a,b),neighbors in edges.items():
+        if len(neighbors)!=2:
+            continue
+        ua,ub=uv[a],uv[b]
+        if abs(ua[1]-station)>1e-7 or abs(ub[1]-station)>1e-7:
+            continue
+        if side=="left":
+            if max(ua[0],ub[0])>40:
+                continue
+        elif min(ua[0],ub[0])<602:
+            continue
+        fid0,fid1=neighbors
+        if _dot(_normal(surface[fid0]),_normal(surface[fid1]))<1.-1e-7:
+            continue
+        def skin_positions(fid,src_id):
+            face=source_faces[fid]
+            pos=face.index(src_id)
+            plus=all_solid[2*fid][pos]
+            # Minus is indexed in the source order 0,2,1.
+            minus=all_solid[2*fid+1][(0,2,1)[pos]]
+            return plus,minus
+        ends=[]
+        for idx in (a,b):
+            one=skin_positions(fid0,idx)
+            two=skin_positions(fid1,idx)
+            ends.append((uv[idx],dist(one[0],two[0]),
+                         dist(one[1],two[1])))
+        if max(v for _,p,m in ends for v in (p,m))>1e-7:
+            witnesses.append((tuple(sorted((ua,ub))),tuple(ends)))
+    return witnesses
+
+
+@pytest.mark.parametrize("first_axis",("x","y"))
+@pytest.mark.parametrize("side",("left","right"))
+def test_d4_y225_same_source_skin_edge_gap_is_explicit_unresolved(first_axis,side):
+    """Preserve honest upper source-endpoint RED; don't fabricate a bridge."""
+    from ae_engine.v_miter_tail_no_ba_sequential import stations_from_real_flat
+    flat,_=build_tail_d4_check_from_original(default_vault_tail_d4_spec())
+    candidate=project_tail_d4_shared_original_fold_candidate(
+        flat,first_axis=first_axis,box_body_world=_real_w620_body(),
+        nominal_hinge=True,
+    )
+    st=stations_from_real_flat(flat)
+    rows=_source_shared_upper_skin_discontinuities(
+        candidate,station=st.upper_crease,side=side,
+    )
+    assert rows,("D4_UPPER_SHARED_UV_GAP_DISAPPEARED_RECHECK",first_axis,side)
+    mismatch=max(max(p,m) for _,ends in rows for _,p,m in ends)
+    expected=candidate["nominal_hinge_width_mm"]-flat.source_spec.thickness/2.
+    assert mismatch==pytest.approx(expected,abs=1e-6),(
+        "D4_UPPER_SOURCE_EDGE_NOT_SAME_DOCUMENTED_GAP",
+        first_axis,side,rows[:4],
+    )
+    assert all(any(max(p,m)<1e-6 for _,p,m in ends)
+               for _,ends in rows),(
+        "D4_UPPER_SOURCE_EDGE_OTHER_ENDPOINT_DRIFTED",first_axis,side,
+    )
+    # This is an OBSERVED problem, never a manufacturing-success claim.
+    assert not candidate["manufacturing_approved"]
