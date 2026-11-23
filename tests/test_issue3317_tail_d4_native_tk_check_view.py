@@ -903,7 +903,15 @@ def test_real_tk_w620_d4_check_button_uses_exact_preplaced_lower_v_solid(
         assert assembly.crossing_regions==expected.crossing_regions
         fig=win._tail_d4_check_figure
         assert fig.axes[3].collections and fig.axes[4].collections
-        assert triangle_bounds(placed)[0]==pytest.approx((-308.,308.),abs=1e-6)
+        # World dimensions come from the SAME already-assembled Engine
+        # source, not the old CHECK's independently placed local skin.
+        # In exact W620 this physically measures X=-307..+307.
+        assert triangle_bounds(placed)[0]==pytest.approx(
+            (-307.,307.),abs=1e-6,
+        )
+        assert triangle_bounds(placed)[0]==pytest.approx(
+            triangle_bounds(actual["v_solid"])[0],abs=1e-7,
+        )
         # Same detached application snapshot before and after the CHECK
         # click; no DXF save unless the separate CHECK-only toolbar is used.
         assert designer._phase6_input_snapshot==before
