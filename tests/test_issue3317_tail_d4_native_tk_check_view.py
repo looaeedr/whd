@@ -497,8 +497,28 @@ def test_actual_whd_gui_d4_check_window_four_factory_holes_and_native_world(
                        and r["second_face_normal"] is not None
                        for r in ordered)
             walls=trial["straight_v_wall_sets"]
-            assert len(walls)==2
+            assert len(walls)==2 and all(
+                r["full_face_contact_proven"]
+                and r["lower_triangles"]==2
+                and r["upper_triangles"]==2
+                and r["opposed_normal_dot"]==pytest.approx(-1.,abs=1e-6)
+                and r["projected_symmetric_difference_area"]<=1e-6
+                for r in walls
+            ),("D4_SHARED_UV_REAL_V_WALLS_NOT_MATING",axis,walls)
+            assert trial["v_seam_uv_positions"] and all(
+                gap<=1e-6 for _,gap in trial["v_seam_uv_positions"]
+            ),("D4_SOURCE_CONNECTED_SEAM_MISMATCH",axis)
             import warnings
+            warnings.warn(
+                "ISSUE3317_SHARED_UV_PHYSICAL_EDGE_COUNTS="+repr((
+                    axis,trial["v_world_open_edges"],
+                    trial["v_world_four_edges"],
+                    trial["v_world_multi_edges"],
+                    len(trial["v_source_uv"]),
+                    len(trial["v_source_faces"]),
+                    max(gap for _,gap in trial["v_seam_uv_positions"]),
+                )),RuntimeWarning,stacklevel=1,
+            )
             warnings.warn(
                 "ISSUE3317_SHARED_ORIGINAL_FOLD_V_WALLS="
                 +repr((axis,walls)),
