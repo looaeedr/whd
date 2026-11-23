@@ -84,8 +84,13 @@ def test_explicit_y_first_with_non90_x_angle_follows_part_spec_not_x_fallback():
 
 def test_no_explicit_first_and_bad_direction_are_rejected():
     spec, render, _, _ = _source(120)
-    with pytest.raises(GeometryError, match="FIRST_BEND_REQUIRED"):
-        api.project_operator_v_miter_live_corner_check(spec, render, "bottom_left")
+    # Internal readonly CHECK remains compatible; only the real GUI
+    # requires an explicit first-fold operator choice.
+    readonly = api.project_operator_v_miter_live_corner_check(
+        spec, render, "bottom_left",
+    )
+    assert readonly.first_bend_axis == "x"
+    assert readonly.manufacturing_status.endswith("UNCERTIFIED")
     altered = replace(spec, fold_profile_y=(
         replace(spec.fold_profile_y[0], angle=120),
         *spec.fold_profile_y[1:],
@@ -122,7 +127,8 @@ def test_new_snapshot_fold_fingerprint_detects_same_scene_but_changed_authored_a
     spec, render, real_x, real_y = _source(second_angle)
     sha = _bound_endcap_fold_sha256(
         spec, render.scene, real_x, real_y, "bottom_left",
-        second_angle_deg=second_angle,
+        second_angle_deg=second_angle, thickness_mm=2,
+        first_flange_height_mm=20, second_flange_height_mm=20,
     )
     assert len(sha) == 64
     changed = replace(spec, fold_profile_y=(
@@ -132,7 +138,8 @@ def test_new_snapshot_fold_fingerprint_detects_same_scene_but_changed_authored_a
     with pytest.raises(GeometryError, match="AUTHORED_FOLD_ANGLE_MISMATCH"):
         _bound_endcap_fold_sha256(
             changed, render.scene, real_x, real_y, "bottom_left",
-            second_angle_deg=second_angle,
+            second_angle_deg=second_angle, thickness_mm=2,
+            first_flange_height_mm=20, second_flange_height_mm=20,
         )
 
 
@@ -173,4 +180,121 @@ def test_source_bound_v1_trial_replay_rejects_fold_drift_and_unbound_legacy(angl
     with pytest.raises(GeometryError, match="LEGACY_FOLD_UNBOUND"):
         api.replay_v_miter_relief_trial_snapshot(
             render.scene, old, part_spec=spec,
+        )
+
+
+def _named_head_tail_source(*, tail=False, y_angle=90, x_left=20):
+    """Real Engine EndCap Fold role order, including Head Y return third BEND.
+
+    Physical BENDs are deliberately finite and all three Y stations share
+    this same FinalScene; none can be selected by proximity.
+    """
+    y_bottom = 20
+    frame = 25
+    ret = 16
+    core_y = 200 - y_bottom - frame - ret
+    if tail:
+        y_rows = (
+            FoldProfileSegment(y_bottom, angle=-y_angle, phase6_key="ybottom1"),
+            FoldProfileSegment(core_y, angle=-90, phase6_key="endcap_d_core"),
+            FoldProfileSegment(frame, angle=-90, phase6_key="fw"),
+            FoldProfileSegment(ret, phase6_key="ytop1"),
+        )
+        lower_y, upper_y, return_y = y_bottom, y_bottom + core_y, y_bottom + core_y + frame
+    else:
+        y_rows = (
+            FoldProfileSegment(ret, angle=-90, phase6_key="ytop1"),
+            FoldProfileSegment(frame, angle=-y_angle, phase6_key="fw"),
+            FoldProfileSegment(core_y, angle=-90, phase6_key="endcap_d_core"),
+            FoldProfileSegment(y_bottom, phase6_key="ybottom1"),
+        )
+        return_y, lower_y, upper_y = ret, ret + frame, ret + frame + core_y
+    width = 200
+    x_core = width - 2*x_left
+    spec = EndCapPartSpec(
+        width=200, depth=200, thickness=2, frame_width=frame,
+        is_tail=tail, fold_left=x_left, fold_right=x_left,
+        fold_top=ret, fold_bottom=y_bottom,
+        fold_profile_x=(
+            FoldProfileSegment(x_left, angle=-90, phase6_key="yl1"),
+            FoldProfileSegment(x_core, angle=-90, phase6_key="endcap_w_core"),
+            FoldProfileSegment(x_left, phase6_key="yr1"),
+        ),
+        fold_profile_y=y_rows,
+    )
+    rect=(Vec2(0,0),Vec2(200,0),Vec2(200,200),Vec2(0,200))
+    x1=LinePrimitive(Vec2(x_left, 16),Vec2(x_left, 180),"BEND")
+    x2=LinePrimitive(Vec2(200-x_left,16),Vec2(200-x_left,180),"BEND")
+    y_return=LinePrimitive(Vec2(x_left,return_y),Vec2(200-x_left,return_y),"BEND")
+    y_lower=LinePrimitive(Vec2(x_left,lower_y),Vec2(200-x_left,lower_y),"BEND")
+    y_upper=LinePrimitive(Vec2(x_left,upper_y),Vec2(200-x_left,upper_y),"BEND")
+    scene=DrawingScene([
+        PolylinePrimitive(rect,"CUTTING",closed=True),
+        x1,x2,y_return,y_lower,y_upper,
+    ])
+    return spec, PartRenderData(scene=scene,material=Polygon((p.x,p.y) for p in rect)), x1, y_lower, y_return
+
+
+@pytest.mark.parametrize("tail", (False, True))
+@pytest.mark.parametrize("angle", (60, 90, 120))
+def test_named_multifold_head_tail_source_ignores_return_and_rejects_illegal_first(tail, angle):
+    spec, render, x1, real_y, return_y = _named_head_tail_source(tail=tail, y_angle=angle)
+    original = tuple(render.scene.primitives)
+    live = api.project_operator_v_miter_live_corner_check(
+        spec, render, "bottom_left", first_bend_axis="x",
+    )
+    assert live.first_physical_bend is x1
+    assert live.second_physical_bend is real_y
+    assert live.second_physical_bend is not return_y
+    assert live.second_fold_angle_deg == angle
+    assert live.second_signed_fold_angle_deg == -angle
+    assert tuple(render.scene.primitives) == original
+    if angle != 90:
+        with pytest.raises(GeometryError, match="SELECTED_FIRST_BEND_NOT_90"):
+            api.project_operator_v_miter_live_corner_check(
+                spec, render, "bottom_left", first_bend_axis="y",
+            )
+
+
+def test_head_keyless_three_crease_sources_must_not_guess():
+    spec, render, _, _, _ = _named_head_tail_source()
+    unkeyed=replace(
+        spec,
+        fold_profile_y=tuple(replace(row,phase6_key=None) for row in spec.fold_profile_y),
+    )
+    with pytest.raises(GeometryError, match="KEYLESS_MULTIFOLD_AMBIGUOUS"):
+        api.project_operator_v_miter_live_corner_check(
+            unkeyed, render, "bottom_left", first_bend_axis="x",
+        )
+
+
+@pytest.mark.parametrize("field,bad", (
+    ("thickness_mm", 3),
+    ("first_flange_height_mm", 25),
+    ("second_flange_height_mm", 25),
+))
+def test_bound_snapshot_rejects_changed_physical_T_or_flange_on_capture_and_replay(field,bad):
+    spec, render, first, second = _source(90)
+    args=dict(
+        thickness_mm=2, first_flange_height_mm=20,
+        second_flange_height_mm=20, second_fold_angle_deg=90,
+        relief_mode="RELIEF_HOLE", relief_t_factor=1,
+    )
+    saved = api.capture_v_miter_relief_trial_snapshot(
+        render.scene, first, second, **args,
+        part_spec=spec, corner_key="bottom_left",
+    )
+    assert saved["source_fold_sha256"]
+    tampered=dict(saved, parameters=dict(saved["parameters"]))
+    tampered["parameters"][field]=bad
+    with pytest.raises(GeometryError, match="SOURCE_(THICKNESS|FLANGE_HEIGHT)_MISMATCH"):
+        api.replay_v_miter_relief_trial_snapshot(
+            render.scene, tampered, part_spec=spec,
+        )
+    bad_args=dict(args)
+    bad_args[field]=bad
+    with pytest.raises(GeometryError, match="SOURCE_(THICKNESS|FLANGE_HEIGHT)_MISMATCH"):
+        api.capture_v_miter_relief_trial_snapshot(
+            render.scene, first, second, **bad_args,
+            part_spec=spec, corner_key="bottom_left",
         )
