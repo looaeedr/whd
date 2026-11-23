@@ -77,6 +77,16 @@ def test_real_finite_bend_intersection_is_explicit_formed_vertex(
     # Every displayed chord's source interval lies entirely on one physical
     # formed face; it may end on the BEND but not bridge both sides.
     assert any(dist(point, expected) < 1e-8 for point in path[1:-1])
+    # Material-face proof: every *formed stroke chord midpoint* lies on one
+    # of the two true planar surfaces adjacent to the real y20 hinge.
+    # A 0.319-mm bridge through the 90-degree corner fails this check even
+    # if its endpoints look plausible.
+    for a, b in zip(path, path[1:]):
+        chord_mid = tuple((u + v) / 2 for u, v in zip(a, b))
+        assert (abs(chord_mid[1] - expected[1]) < 1e-8
+                or abs(chord_mid[2] - expected[2]) < 1e-8), (
+                    "FORMED_MARKING_CHORD_MUST_LIE_ON_REAL_FACE"
+                )
 
 
 def _custom_saved_mark():
@@ -212,13 +222,19 @@ def test_cancel_of_stale_saved_mark_destroys_editor_without_sync_or_validation(
         )
         controller.cancel_all()
         assert live == original_features
-        assert not root.tk.call("info", "commands", "winfo")
+        try:
+            still_open = root.winfo_exists()
+        except tk.TclError:  # Tcl interpreter was destroyed with the root
+            still_open = 0
+        assert not still_open
         assert sync_calls == []
         assert on_closes == ["closed"]
         controller.cancel_all()  # already closed is an inert repeat
     finally:
-        if root.tk.call("info", "commands", "destroy"):
+        try:
             root.destroy()
+        except tk.TclError:
+            pass
 
 
 def test_native_tk_canvas_place_confirm_save_new_instance_open_and_normal_dxf(
@@ -321,8 +337,10 @@ def test_native_tk_canvas_place_confirm_save_new_instance_open_and_normal_dxf(
         lifecycle.confirm_all()
         assert len(staged) == 1 and staged[0] == (original_mark,)
     finally:
-        if tk_root.tk.call("info", "commands", "destroy"):
+        try:
             tk_root.destroy()
+        except tk.TclError:
+            pass
 
     saved_source = dict(source)
     saved_source["workspace"] = dict(saved_source.get("workspace") or {})
