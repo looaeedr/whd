@@ -204,6 +204,44 @@ def test_actual_whd_gui_d4_check_window_four_factory_holes_and_native_world(
         # Repaired integral Body thickness removes the left/right 1-mm
         # overlap; the independent rear Tail/Body overlap is still 1 mm.
         assert min(-90.5,-89.5)-max(-92.5,-91.5)==pytest.approx(1.)
+        # Compare an UNMODIFIED Factory Tail folded by the original WHD
+        # Fold/FinalScene owner, not an alternate Ø4 surrogate. A raw
+        # straight Tail rear can mate the corrected Body rear inside face
+        # while the Ø4 root still overlaps: these claims are independent.
+        from ae_engine.endcap_factory_fold import build_endcap_xy_fold_profiles
+        from ae_engine.v_miter_tail_no_ba_sequential import (
+            exact_tail_y_fold_profile_from_original_bends,
+        )
+        from ae_engine.assembly_geometry_folded_mesh import folded_mesh_from_polygon
+        from ae_engine.manufacturing_render_data import (
+            material_polygon_from_final_scene,fold_guides_from_final_scene,
+        )
+        spec=flat.source_spec
+        original_profiles=build_endcap_xy_fold_profiles({
+            "model":spec.model_name,"w":spec.width,"d":spec.depth,
+            "t":spec.thickness,"fw":spec.frame_width,
+            "yl1":spec.fold_left,"yr1":spec.fold_right,
+            "ytop1":spec.fold_top,"ybottom1":spec.fold_bottom,
+        },part_key="tail")
+        original_surface=folded_mesh_from_polygon(
+            material_polygon_from_final_scene(flat.original_scene),
+            original_profiles["X"],
+            exact_tail_y_fold_profile_from_original_bends(flat),
+            fold_guides=fold_guides_from_final_scene(flat.original_scene),
+        )
+        original_world=api.resolve_assembled_endcap_world_skins(
+            original_surface,placement="bottom",
+            box_body_world=body,thickness=spec.thickness,
+            preserve_core_origin=False,
+        ).solid_triangles
+        original_rear_hits=probe_native_world_mesh_axis_faces(
+            original_world,axis=2,fixed_xyz=(100.,-275.,0.),
+        )
+        record_property("ISSUE3317_UNMODIFIED_FACTORY_REAR_Z",repr(original_rear_hits))
+        assert all(any(abs(z-v)<1e-4 for z in original_rear_hits)
+                   for v in (-90.5,-88.5)),(
+            "ORIGINAL_TAIL_REAR_DATUM_DIFFERS",original_rear_hits,
+        )
         # Reuse the SAME actual GUI Body and native approved 2D for Y-first;
         # do not substitute a 36/312-face separate Body mesh.
         from ae_engine.v_miter_tail_d4_check import (
