@@ -170,6 +170,102 @@ def deliver_tail_d4_check_only(
     return tuple(files),flat,checks
 
 
+
+def project_tail_d4_shared_original_fold_candidate(
+    flat, *, first_axis, box_body_world,
+):
+    """Isolated development candidate: original EndCap owner, V CUTTING only.
+
+    No alternate global XYZ/skin/datum solver. This exact FinalScene retains
+    its original BEND, four Factory holes, and authenticated Ø4 boundary.
+    The original EndCap Engine supplies *both* formed material and world-T
+    skins; first-axis remains an operator provenance field and is NOT
+    represented as a verified first-stage kinematic motion.
+    This API is read-only CHECK, never a machining-authorized fallback.
+    """
+    from .assembly_geometry_folded_mesh import folded_mesh_from_polygon
+    from .receiving_settings_assembly_mesh import (
+        resolve_assembled_endcap_world_skins,
+    )
+    from .manufacturing_render_data import (
+        fold_guides_from_final_scene,material_polygon_from_final_scene,
+    )
+    from .v_miter_tail_no_ba_sequential import (
+        stations_from_real_flat,exact_tail_y_fold_profile_from_original_bends,
+    )
+    from .endcap_factory_fold import build_endcap_xy_fold_profiles
+    from .v_miter_tail_d4_check import (
+        _require_authored_cutting_source,
+        _require_exact_d4_outer_from_trusted_sharp,
+    )
+    if first_axis not in ("x","y"):
+        raise GeometryError("TAIL_D4_SHARED_FACTORY_FOLD_ORDER_REQUIRED")
+    st=stations_from_real_flat(flat)
+    source=material_polygon_from_final_scene(flat.result_scene)
+    _require_authored_cutting_source(flat,source)
+    _require_exact_d4_outer_from_trusted_sharp(flat,source)
+    spec=flat.source_spec
+    snapshot=dict(
+        model=spec.model_name,w=spec.width,d=spec.depth,
+        t=spec.thickness,fw=spec.frame_width,
+        yl1=spec.fold_left,yr1=spec.fold_right,
+        ytop1=spec.fold_top,ybottom1=spec.fold_bottom,
+    )
+    owned=build_endcap_xy_fold_profiles(snapshot,part_key="tail")
+    exact_y=exact_tail_y_fold_profile_from_original_bends(flat,st)
+    original_bends=fold_guides_from_final_scene(flat.original_scene)
+    candidate_bends=fold_guides_from_final_scene(flat.result_scene)
+    if tuple(original_bends)!=tuple(candidate_bends):
+        raise GeometryError("TAIL_D4_SHARED_FACTORY_BEND_CHANGED")
+    # SAME current WHD 3D folding primitive as an unmodified EndCap.
+    surface=folded_mesh_from_polygon(
+        source,owned["X"],exact_y,fold_guides=original_bends,
+    )
+    baseline_surface=folded_mesh_from_polygon(
+        material_polygon_from_final_scene(flat.original_scene),
+        owned["X"],exact_y,fold_guides=original_bends,
+    )
+    if not surface or not baseline_surface:
+        raise GeometryError("TAIL_D4_SHARED_FACTORY_SOURCE_MESH_MISSING")
+    if any(
+        abs((tri[1][0]-tri[0][0])*(tri[2][1]-tri[0][1])
+            -(tri[1][1]-tri[0][1])*(tri[2][0]-tri[0][0]))<1e-12
+        and abs((tri[1][2]-tri[0][2])*(tri[2][0]-tri[0][0])
+                -(tri[1][0]-tri[0][0])*(tri[2][2]-tri[0][2]))<1e-12
+        and abs((tri[1][1]-tri[0][1])*(tri[2][2]-tri[0][2])
+                -(tri[1][2]-tri[0][2])*(tri[2][1]-tri[0][1]))<1e-12
+        for tri in surface
+    ):
+        raise GeometryError("TAIL_D4_SHARED_FACTORY_COLLAPSED_SOURCE_TRIANGLE")
+    # SAME world-assembly + symmetric physical T as original WHD EndCap,
+    # rather than Ø4's independently invented inner_xyz full-T offset.
+    baseline=resolve_assembled_endcap_world_skins(
+        baseline_surface,placement="bottom",
+        box_body_world=box_body_world,thickness=spec.thickness,
+        preserve_core_origin=False,
+    )
+    candidate=resolve_assembled_endcap_world_skins(
+        surface,placement="bottom",
+        box_body_world=box_body_world,thickness=spec.thickness,
+        preserve_core_origin=False,
+    )
+    if not candidate.solid_triangles or not baseline.solid_triangles:
+        raise GeometryError("TAIL_D4_SHARED_FACTORY_PHYSICAL_T_MISSING")
+    return {
+        "first_axis":first_axis,
+        "original_surface":baseline.formed_surface,
+        "original_solid":baseline.solid_triangles,
+        "v_surface":candidate.formed_surface,
+        "v_solid":candidate.solid_triangles,
+        "original_material":material_polygon_from_final_scene(
+            flat.original_scene,
+        ),
+        "v_material":source,
+        "manufacturing_approved":False,
+        "status":"D4_SHARED_ORIGINAL_FOLD_CANDIDATE_UNVERIFIED",
+    }
+
+
 def build_tail_d4_check_preview_render(flat, *, first_axis):
     """Read-only 2D/3D PartRenderData for the existing native Tail V renderer.
 
