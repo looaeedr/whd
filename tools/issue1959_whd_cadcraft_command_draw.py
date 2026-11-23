@@ -9,6 +9,7 @@ import argparse
 import json
 from pathlib import Path
 import subprocess
+import sys
 
 
 from ae_engine.sheetmetal_features import ResolvedCircle, ResolvedProfile, ResolvedRect
@@ -42,6 +43,57 @@ def cadcraft_argv(cli: str, instructions: tuple[DrawInstruction, ...],
     return args
 
 
+
+def _verify_dxf_in_short_lived_process(
+    output: Path, instructions: tuple[DrawInstruction, ...],
+) -> dict:
+    """Same Engine DXF proof; transfer detached values, never GUI/Tk objects.
+
+    This is a source-Python candidate only: a frozen WHD executable cannot
+    automatically be used as a Python -m interpreter. Fail closed until that
+    packaging case has an independently proven supported subprocess runtime.
+    """
+    if getattr(sys, "frozen", False):
+        raise CadcraftCommandProofError("CADCRAFT_PROOF_PYTHON_RUNTIME_REQUIRED")
+    request = json.dumps([
+        {"kind": item.kind, "points": [list(point) for point in item.points],
+         "radius": item.radius}
+        for item in instructions
+    ], ensure_ascii=True, allow_nan=False, separators=(",", ":"))
+    try:
+        process = subprocess.run(
+            [sys.executable, "-m", "tools.issue1959_cadcraft_proof_child",
+             str(output)],
+            input=request, capture_output=True, text=True, check=False,
+            timeout=120,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise CadcraftCommandProofError("CADCRAFT_PROOF_CHILD_TIMEOUT") from exc
+    except OSError as exc:
+        raise CadcraftCommandProofError("CADCRAFT_PROOF_CHILD_START_FAILED") from exc
+    if process.returncode != 0:
+        raise CadcraftCommandProofError(
+            "CADCRAFT_PROOF_CHILD_FAILED:" + process.stderr[-350:]
+        )
+    try:
+        proof = json.loads(process.stdout)
+    except (ValueError, TypeError) as exc:
+        raise CadcraftCommandProofError("CADCRAFT_PROOF_CHILD_INVALID_JSON") from exc
+    required = {
+        "status": "PASS",
+        "scope": "new blank metric CADCraft drawing, isolated CHECK, not WHD manufacturing",
+        "units": "millimetre",
+        "entity_count": len(instructions),
+        "geometry": [
+            {"index": n, "kind": item.kind, "check": "PASS"}
+            for n, item in enumerate(instructions)
+        ],
+    }
+    if proof != required:
+        raise CadcraftCommandProofError("CADCRAFT_PROOF_CHILD_INVALID_RESULT")
+    return proof
+
+
 def run_proof(cli: str, instructions: tuple[DrawInstruction, ...],
               output: Path, preview: Path | None = None) -> dict:
     """Create a NEW disposable CADCraft drawing and independently inspect it."""
@@ -54,7 +106,7 @@ def run_proof(cli: str, instructions: tuple[DrawInstruction, ...],
         proc = subprocess.run(args, capture_output=True, text=True, check=False, timeout=120)
         if proc.returncode != 0:
             raise CadcraftCommandProofError("CADCRAFT_COMMAND_FAILED:" + proc.stderr[-350:])
-        result = verify_dxf(output, instructions)
+        result = _verify_dxf_in_short_lived_process(output, instructions)
         if preview is not None and not Path(preview).is_file():
             raise CadcraftCommandProofError("PREVIEW_NOT_CREATED")
         return result
