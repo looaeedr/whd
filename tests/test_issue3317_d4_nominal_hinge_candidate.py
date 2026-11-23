@@ -482,9 +482,22 @@ def test_d4_isolated_y225_source_taper_keeps_original_cutting_and_lower_solid(fi
     assert trial["v_material"].symmetric_difference(
         old["v_material"],
     ).area<=1e-8
-    assert trial["v_material"].symmetric_difference(
-        flat.result_material,
+    from shapely.geometry import Polygon
+    # flat.result_material is the authorized *outer* D4 perimeter.
+    # v_material is the fully resolved material with all four Factory
+    # CUTTING holes removed. Compare boundaries independently, not the
+    # area of the legal Factory holes against a hole-free perimeter.
+    assert Polygon(trial["v_material"].exterior).symmetric_difference(
+        Polygon(flat.result_material.exterior),
     ).area<=1e-8
+    assert len(trial["v_material"].interiors)==4
+    assert len(old["v_material"].interiors)==4
+    for ring_a,ring_b in zip(
+        trial["v_material"].interiors,old["v_material"].interiors,
+    ):
+        assert Polygon(ring_a).symmetric_difference(
+            Polygon(ring_b),
+        ).area<=1e-8
     assert trial["v_world_four_edges"]==8
     assert trial["v_world_open_seam_edges"]==0
     assert trial["v_world_open_edges"]==16
