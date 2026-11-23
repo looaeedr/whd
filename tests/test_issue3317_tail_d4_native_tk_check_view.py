@@ -184,9 +184,18 @@ def test_actual_whd_gui_d4_check_window_four_factory_holes_and_native_world(
         front_corner_tail=probe_native_world_mesh_axis_faces(
             placed,axis=2,fixed_xyz=(-294.,-297.,0.),
         )
-        assert front_corner_body and front_corner_tail,(
+        assert len(front_corner_body)>=2 and len(front_corner_tail)>=2,(
             "D4_REAL_FRONT_FRAME_SOURCE_MISSING",
             front_corner_body,front_corner_tail,
+        )
+        body_front=tuple(sorted(front_corner_body)[-2:])
+        tail_front=tuple(sorted(front_corner_tail)[-2:])
+        front_overlap=min(body_front[1],tail_front[1])-max(
+            body_front[0],tail_front[0],
+        )
+        assert front_overlap==pytest.approx(1.,abs=1e-5),(
+            "D4_FRONT_FRAME_PHYSICAL_INTERIOR_OVERLAP",
+            body_front,tail_front,front_overlap,
         )
         for value in (-91.5,-89.5):
             assert any(abs(z-value)<1e-4 for z in rear_tail),(
