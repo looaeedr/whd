@@ -17,6 +17,7 @@ from __future__ import annotations
 from .assembly_mesh_reuse import reuse_local_mesh
 
 from dataclasses import dataclass
+import math
 
 
 from .assembly_geometry_primitives import (
@@ -1629,18 +1630,23 @@ def build_joint_world_geometry(parts, finished_dimensions, sheet_thickness):
                 world_mid_piece = fit_receiving_left_zl1_world_mid(
                     piece, mapped, world_mid_piece, sheet_thickness=sheet_thickness,
                 )
-                skins = []
-                for item, world_mid in zip(mapped, world_mid_piece):
-                    normal = _triangle_unit_normal(world_mid)
-                    if normal is None:
-                        continue
-                    for side in (-1, 1):
-                        delta = tuple(float(side) * half * value for value in normal)
-                        world = tuple(
-                            tuple(float(point[i]) + delta[i] for i in range(3))
-                            for point in world_mid
-                        )
-                        skins.append(MappedSkinTriangle(flat=item.flat, world=world, side=side))
+                if str(getattr(piece,"role","") or "").lower()=="integral":
+                    skins=list(_integral_body_formed_outside_skins(
+                        mapped,world_mid_piece,thickness=sheet_thickness,
+                    ))
+                else:
+                    skins = []
+                    for item, world_mid in zip(mapped, world_mid_piece):
+                        normal = _triangle_unit_normal(world_mid)
+                        if normal is None:
+                            continue
+                        for side in (-1, 1):
+                            delta = tuple(float(side) * half * value for value in normal)
+                            world = tuple(
+                                tuple(float(point[i]) + delta[i] for i in range(3))
+                                for point in world_mid
+                            )
+                            skins.append(MappedSkinTriangle(flat=item.flat, world=world, side=side))
                 piece_key = f"box_body:{str(getattr(piece, 'role', '') or '').strip().lower()}"
                 flat_material_by_part[piece_key] = piece.render_data.material
                 mapped_skin_triangles_by_part[piece_key] = tuple(skins)
