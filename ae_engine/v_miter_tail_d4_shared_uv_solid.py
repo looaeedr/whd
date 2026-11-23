@@ -124,7 +124,7 @@ def _wall_contact(groups,corner):
 
 def project_d4_original_owner_uv_solid(
     flat,stock,st,first_axis,x_profile,y_profile,original_bends,
-    original_surface,box_body_world,thickness,
+    original_surface,box_body_world,thickness,*,nominal_hinge=False,
 ):
     """Form the actual FinalScene sheet with sourced two-stage lower corners.
 
@@ -134,7 +134,18 @@ def project_d4_original_owner_uv_solid(
     """
     if first_axis not in ("x","y"):
         raise GeometryError("TAIL_D4_SHARED_UV_ORDER_REQUIRED")
-    source,area=_single_sheet_triangles(stock,st)
+    nominal_h=None
+    if nominal_hinge:
+        from .v_miter_tail_d4_nominal_hinge import nominal_hinge_width
+        nominal_h=nominal_hinge_width(flat,thickness,st)
+        source,area=_single_sheet_triangles(
+            stock,st,
+            extra_x=tuple(v for c in (st.left_x,st.right_x)
+                          for v in (c-nominal_h,c+nominal_h)),
+            extra_y=(st.bottom_y-nominal_h,st.bottom_y+nominal_h),
+        )
+    else:
+        source,area=_single_sheet_triangles(stock,st)
     if abs(area-stock.area)>1e-5:
         raise GeometryError("TAIL_D4_SHARED_UV_MATERIAL_AREA_LOST")
     # Y threshold is authored by the actual two V cut legs, not by a
@@ -207,15 +218,29 @@ def project_d4_original_owner_uv_solid(
     world_vertices=tuple(world_vertices[i] for i in range(len(source_uv)))
     normals=tuple(_normal(tri) for tri in world_surface)
     t=float(thickness)
+    if nominal_hinge:
+        from .v_miter_tail_d4_nominal_hinge import nominal_adjacent_source_skins
+        nominal_skins=nominal_adjacent_source_skins(
+            faces,source_uv,world_surface,t,st,nominal_h,
+        )
+    else:
+        nominal_skins=None
     # Maintain the original Engine T/2 convention on EVERY physical panel;
     # finite source UV edges own edge walls, never coincident world XYZ.
     solid=[]
     solid_source_ids=[]
     edges=defaultdict(list)
+    skin_by_face=[]
     for fid,(face,tri,n) in enumerate(zip(faces,world_surface,normals)):
-        off=_scale(n,t/2.)
-        plus=tuple(_plus(p,off) for p in tri)
-        minus=tuple(_diff(p,off) for p in tri)
+        if nominal_skins is None:
+            off=_scale(n,t/2.)
+            plus=tuple(_plus(p,off) for p in tri)
+            minus=tuple(_diff(p,off) for p in tri)
+        else:
+            plus=tuple(pair[0] for pair in nominal_skins[fid])
+            minus=tuple(pair[1] for pair in nominal_skins[fid])
+        skin_by_face.append({i:(plus[j],minus[j])
+                             for j,i in enumerate(face)})
         solid.extend((plus,(minus[0],minus[2],minus[1])))
         solid_source_ids.extend((face,(face[0],face[2],face[1])))
         for j in range(3):
@@ -228,7 +253,12 @@ def project_d4_original_owner_uv_solid(
         a,b,n,fid=neighbors[0]
         pa,pb=world_vertices[a],world_vertices[b]
         if len(neighbors)==1:
-            walls=_make_wall(pa,pb,n,t)
+            if nominal_skins is None:
+                walls=_make_wall(pa,pb,n,t)
+            else:
+                aplus,aminus=skin_by_face[fid][a]
+                bplus,bminus=skin_by_face[fid][b]
+                walls=((aplus,bminus,bplus),(aplus,aminus,bminus))
             solid.extend(walls)
             solid_source_ids.extend(((a,b,b),(a,a,b)))
             line=LineString((source_uv[a],source_uv[b]))
@@ -241,11 +271,24 @@ def project_d4_original_owner_uv_solid(
             na=neighbors[1][2]
             if abs(_dot(n,na))>=1.-1e-6:
                 continue
-            oa,ob=_scale(n,t/2.),_scale(na,t/2.)
-            aplus,bplus=_plus(pa,oa),_plus(pb,oa)
-            cplus,dplus=_plus(pa,ob),_plus(pb,ob)
-            aminus,bminus=_diff(pa,oa),_diff(pb,oa)
-            cminus,dminus=_diff(pa,ob),_diff(pb,ob)
+            if nominal_skins is None:
+                oa,ob=_scale(n,t/2.),_scale(na,t/2.)
+                aplus,bplus=_plus(pa,oa),_plus(pb,oa)
+                cplus,dplus=_plus(pa,ob),_plus(pb,ob)
+                aminus,bminus=_diff(pa,oa),_diff(pb,oa)
+                cminus,dminus=_diff(pa,ob),_diff(pb,ob)
+            else:
+                other_fid=neighbors[1][3]
+                aplus,aminus=skin_by_face[fid][a]
+                bplus,bminus=skin_by_face[fid][b]
+                cplus,cminus=skin_by_face[other_fid][a]
+                dplus,dminus=skin_by_face[other_fid][b]
+                # Both source-adjacent panel skins now share the physical
+                # crease positions. A zero-width bridge has no material.
+                if (dist(aplus,cplus)<1e-7 and dist(bplus,dplus)<1e-7
+                        and dist(aminus,cminus)<1e-7
+                        and dist(bminus,dminus)<1e-7):
+                    continue
             solid.extend(((aplus,dplus,bplus),(aplus,cplus,dplus),
                           (aminus,dminus,cminus),(aminus,bminus,dminus)))
             solid_source_ids.extend(((a,b,b),(a,a,b),(a,b,a),(a,b,b)))
@@ -261,6 +304,7 @@ def project_d4_original_owner_uv_solid(
         "source_faces":tuple(faces),
         "v_surface":tuple(world_surface),
         "v_solid":tuple(solid),
+        "nominal_hinge_width_mm":nominal_h,
         "v_solid_source_ids":tuple(solid_source_ids),
         "straight_v_wall_sets":seams,
         "open_world_edges":open_count,
@@ -272,5 +316,7 @@ def project_d4_original_owner_uv_solid(
         "seam_uv_positions":seam_gaps,
         "source_area_mm2":area,
         "manufacturing_approved":False,
-        "status":"D4_SHARED_UV_SEQUENTIAL_ROOT_OPEN_CHECK_ONLY",
+        "status":("D4_SHARED_UV_NOMINAL_HINGE_UNVERIFIED"
+                  if nominal_hinge else
+                  "D4_SHARED_UV_SEQUENTIAL_ROOT_OPEN_CHECK_ONLY"),
     }
