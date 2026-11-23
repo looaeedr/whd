@@ -421,7 +421,7 @@ def test_d4_y225_same_source_skin_edge_gap_is_explicit_unresolved(first_axis,sid
     # back from the actual candidate source UV; fail if it is absent.
     upper_source_rows=tuple(sorted({
         round(float(uv[1]),7) for uv in candidate["v_source_uv"]
-        if uv[1]>st.upper_start+1e-7
+        if uv[1]>=min(st.left_side_end,st.right_side_end)-1e-7
     }))
     assert any(abs(y-225.)<1e-7 for y in upper_source_rows),(
         "D4_UPPER_SOURCE_Y225_ROW_NOT_FOUND",upper_source_rows,
