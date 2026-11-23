@@ -86,6 +86,11 @@ class VMiterOperatorGUICheck:
     factory_true_t_failure: str | None = None
     first_bend_source_gap_mm: float = 0.0
     second_bend_source_gap_mm: float = 0.0
+    # Original same-FinalScene finite BEND owners, not projected CHECK rays.
+    first_physical_bend: LinePrimitive | None = None
+    second_physical_bend: LinePrimitive | None = None
+    first_signed_fold_angle_deg: float = 0.0
+    second_signed_fold_angle_deg: float = 0.0
     manufacturing_status: str = V_MITER_GUI_UNCERTIFIED
     trial_defaults: VMiterTrialParameterDefaults | None = None
     factory_radius_ba_check: VMiterFactoryRadiusBADefaultCheck | None = None
@@ -802,6 +807,10 @@ def project_operator_v_miter_live_corner_check(
     return VMiterOperatorGUICheck(
         part_key=part_key, corner_key=corner_key,
         first_bend_axis=first[1], second_bend_axis=second[1],
+        first_physical_bend=x_real if first[1] == "x" else y_real,
+        second_physical_bend=y_real if second[1] == "y" else x_real,
+        first_signed_fold_angle_deg=angle_x if first[1] == "x" else angle_y,
+        second_signed_fold_angle_deg=angle_y if second[1] == "y" else angle_x,
         first_flange_height_mm=first[2], second_flange_height_mm=second[2],
         second_fold_angle_deg=second_angle, ideal=ideal, check_scene=check,
         material_check=stock_check,
