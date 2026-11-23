@@ -354,6 +354,11 @@ from .physical_sheet_editor_context import (
     PhysicalSheetEditorContext, resolve_physical_sheet_editor_context,
     propose_operator_physical_sheet_hole_features,
 )
+from .operator_manual_marking import (
+    MANUAL_MARK_SOURCE, is_manual_mark,
+    create_physical_manual_marking, validate_physical_manual_markings,
+    first_sheet_manual_marking_supported,
+)
 from .indicator_editor_geometry import (
     resolve_indicator_editor_components,
     resolve_indicator_box_editor_geometry,
@@ -929,6 +934,8 @@ def save_part_render_data_dxf(
 ) -> str:
     """Serialize an already-built authoritative FinalScene to DXF."""
     _manufacturing_export.require_dxf_overwrite_boolean(overwrite)
+    from .operator_manual_marking import verify_manual_marking_output
+    verify_manual_marking_output(render_data)
     metadata = getattr(render_data, "metadata", None) or {}
     # A CHECK-only V preview is never a production cutting plan.
     reject_tail_lower_v_preview_for_dxf(render_data)
@@ -1220,6 +1227,11 @@ def generate_part(
     # No registered-but-unimplemented Family may inherit the generic Vault
     # formula merely because its PartSpec has a familiar physical shape.
     require_implemented_manufacturing_family(getattr(spec, "model_name", None))
+    from .operator_manual_marking import (
+        is_manual_mark, require_first_sheet_manual_marking_spec,
+    )
+    if any(is_manual_mark(f) for f in tuple(getattr(spec, "features", ()) or ())):
+        require_first_sheet_manual_marking_spec(spec)
     ctx = context or ManufacturingContext()
     _manufacturing_export.require_dxf_overwrite_boolean(ctx.overwrite)
     destination = Path(output_path)

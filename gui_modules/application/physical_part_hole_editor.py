@@ -24,20 +24,32 @@ def open_workspace_sheet_editor(host, key):
         key, render, custom_spec=custom_spec,
     )
 
-    def commit():
+    def commit(pending=None):
         if key not in workspace.available_parts:
             raise ValueError(f'板件已不存在：{key}')
         accepted = manufacturing_api.propose_operator_physical_sheet_hole_features(
-            key, context, features,
+            key, context, features if pending is None else pending,
         )
         workspace.stash_features(key, accepted)
         if workspace.active_part == key:
             app._load_part_holes(key)
         app.submit_update_intent('geometry', commit=True)
 
+    # Physical edits remain transient until confirmed.  Cancel restores
+    # the session's original Features without re-submitting a stale mark.
+    def validate_before_confirm(pending):
+        commit(pending)
+
     return host._open_unified_hole_editor(
         key, operator_part_label(key, snapshot=payload),
         context.feature_surface, context.width, context.height,
         reference_guide=context.reference_guide, feature_list_override=features,
-        sync_callback=commit, baseline_scene=context.render_data.scene,
+        sync_callback=commit, on_confirm_features=validate_before_confirm,
+        baseline_scene=context.render_data.scene,
+        manual_marking_context=(
+            context if manufacturing_api.first_sheet_manual_marking_supported(
+                key, context.render_data,
+            ) else None
+        ),
+        defer_workspace_sync=True, skip_cancel_sync=True,
     ) or getattr(host, 'last_unified_hole_editor', None)

@@ -28,6 +28,32 @@ def project_independent_scene_bend_segments(scene, x_profile, y_profile, fold_gu
     ) for row in bends)
 
 
+def _manual_ink_fold_fractions(start, end, fold_guides):
+    """Find actual *finite* BEND intersections on this one ink segment.
+
+    The same Fold guides are used by the formed-material mapper.  Crossing a
+    station outside its physically finite span cannot introduce a kink.
+    """
+    x0, y0 = float(start.x), float(start.y)
+    dx, dy = float(end.x) - x0, float(end.y) - y0
+    fractions = []
+    for guide in fold_guides:
+        axis = str(getattr(guide, "axis", "") or "")
+        if axis == "x" and abs(dx) > 1e-12:
+            t = (float(guide.position) - x0) / dx
+            cross = y0 + t * dy
+        elif axis == "y" and abs(dy) > 1e-12:
+            t = (float(guide.position) - y0) / dy
+            cross = x0 + t * dx
+        else:
+            continue
+        if (1e-12 < t < 1.0 - 1e-12
+                and float(guide.span_start) - 1e-8 <= cross
+                <= float(guide.span_end) + 1e-8):
+            fractions.append(t)
+    return tuple(fractions)
+
+
 def project_independent_scene_annotation_paths(
     scene, x_profile, y_profile, fold_guides=(),
 ):
@@ -65,9 +91,42 @@ def project_independent_scene_annotation_paths(
                 _map_point(primitive.p2, map_x, map_y),
             )
         else:
-            pts = tuple(_map_point(p, map_x, map_y) for p in primitive.points)
-            if primitive.closed and pts:
-                pts = pts + (pts[0],)
+            if (layer == "MARKING" and
+                    getattr(primitive, "semantic_id", None) == "WHD_MANUAL_MARKING_V1"):
+                # A midpoint-only/endpoint-only world projection cuts through
+                # folded faces when the real source stroke crosses a finite BEND.
+                # Insert exact physical finite-BEND crossings in *each actual
+                # ink segment*, even when a 1-mm grid misses the hinge.
+                # This preserves the formed surface without drawing through it.
+                # 2D/DXF ink and dash gaps remain unchanged.
+                flat = tuple(primitive.points)
+                sampled = []
+                for start, end in zip(flat, flat[1:]):
+                    distance = math.hypot(end.x - start.x, end.y - start.y)
+                    steps = max(1, min(8192, math.ceil(distance)))
+                    fractions = sorted(
+                        tuple(index / steps for index in range(steps + 1))
+                        + _manual_ink_fold_fractions(
+                            start, end, fold_guides,
+                        )
+                    )
+                    unique = []
+                    for frac in fractions:
+                        if not unique or abs(frac - unique[-1]) > 1e-12:
+                            unique.append(frac)
+                    for frac in unique:
+                        if sampled and frac == 0.0:
+                            continue
+                        sampled.append(_map_point_xy(
+                            float(start.x) + (float(end.x) - float(start.x)) * frac,
+                            float(start.y) + (float(end.y) - float(start.y)) * frac,
+                            map_x, map_y,
+                        ))
+                pts = tuple(sampled)
+            else:
+                pts = tuple(_map_point(p, map_x, map_y) for p in primitive.points)
+                if primitive.closed and pts:
+                    pts = pts + (pts[0],)
         if len(pts) >= 2:
             paths.append((layer, pts))
     return tuple(paths)
