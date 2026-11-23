@@ -156,9 +156,13 @@ def test_actual_whd_gui_d4_check_window_four_factory_holes_and_native_world(
             assert any(abs(z-value)<1e-4 for z in rear_body),(
                 "BODY_REAR_PROBE",value,rear_body,
             )
+        for value in (-91.5,-89.5):
             assert any(abs(z-value)<1e-4 for z in rear_tail),(
                 "TAIL_REAR_PROBE",value,rear_tail,
             )
+        # Repaired integral Body thickness removes the left/right 1-mm
+        # overlap; the independent rear Tail/Body overlap is still 1 mm.
+        assert min(-90.5,-89.5)-max(-92.5,-91.5)==pytest.approx(1.)
         # Reuse the SAME actual GUI Body and native approved 2D for Y-first;
         # do not substitute a 36/312-face separate Body mesh.
         from ae_engine.v_miter_tail_d4_check import (
@@ -180,7 +184,8 @@ def test_actual_whd_gui_d4_check_window_four_factory_holes_and_native_world(
         assert second_assembly.crossing_pair_count>=0
         assert len(second_assembly.crossing_segments)>=0
         assert not second_assembly.manufacturing_approved
-        # Confirm the same 1-mm side and rear overlap for BOTH fold orders.
+        # Confirm BOTH fold orders now have side face contact, while the rear
+        # overlap remains an independent 1-mm unresolved witness.
         # Interval widths come from distinct physical face hits, not from
         # crossing lines or a nominal spec copied into a new solid.
         for shell_mesh in (placed,second_world):
