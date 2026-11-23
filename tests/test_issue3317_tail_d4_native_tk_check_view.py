@@ -767,3 +767,150 @@ def test_actual_whd_gui_d4_check_window_four_factory_holes_and_native_world(
             try:designer.root.destroy()
             except tk.TclError:pass
         root.destroy()
+
+
+@pytest.mark.parametrize("first_axis",("x","y"))
+def test_real_tk_w620_d4_check_button_uses_exact_preplaced_lower_v_solid(
+    first_axis,record_property,monkeypatch,tmp_path,
+):
+    """Real GUI click; world mesh & source triplets are Engine-owned.
+
+    No second placement, no production renderer metadata, no project writes.
+    """
+    if os.name!="nt" and not os.environ.get("DISPLAY"):
+        pytest.skip("requires real Tk/Xvfb GUI")
+    from copy import deepcopy
+    from ae_engine.assembly_geometry import triangle_bounds
+    root=tk.Tk()
+    root.withdraw()
+    designer=None
+    win=None
+    try:
+        main=gui.BoxCalculatorGUI(root)
+        main.baseline_var.set("金庫型")
+        main.w_var.set("620")
+        main.h_var.set("600")
+        main.d_var.set("185")
+        if hasattr(main,"t_var"):
+            main.t_var.set("2")
+        main._apply_existing_parts_from_fold_workspace(
+            ["box_body","head","tail"],
+        )
+        designer=main.open_original_fold_designer()
+        root.update_idletasks();root.update()
+        designer.activate_part("tail")
+        editor=designer.bend_ui
+        editor.nb.select(editor.tabs.index("Y"))
+        root.update_idletasks();root.update()
+        editor.on_tab(None);editor.render()
+        rows=editor.get_active_dict()["Y"]
+        index=next(i for i,seg in enumerate(rows)
+                   if seg.get("phase6_key")=="ybottom1")
+        candidate=[dict(seg) for seg in rows]
+        candidate[index]["len"]=48.
+        displayed=api.project_operator_fold_editor_display_rows(
+            candidate,getattr(designer.state,"phase6_thickness",2.),
+        )
+        editor.controls[index]["len"].set(str(displayed[index]["len"]))
+        editor.save()
+        designer._save_current_part(notify=False)
+        root.update_idletasks();root.update()
+        page=designer.settings_panel.render_context("tail")
+        state=page["extension_state"]
+        button=state["tail_d4_check_widget"]
+        assert button.winfo_exists()
+        designer._phase6_update_scheduler.flush_now()
+        root.update_idletasks();root.update()
+        before=deepcopy(designer._phase6_input_snapshot)
+        assert before["assembly_relief"]["source"]["ybottom1"]==pytest.approx(48.)
+        # Real native selection, not a test-supplied fold label. Both X/X
+        # and Y/Y must invoke the native Settings button with its true state.
+        if first_axis=="y":
+            from ae_engine.manufacturing_api import (
+                TAIL_LOWER_V_FIRST_BENDS_KEY,
+            )
+            current=deepcopy(designer._phase6_input_snapshot)
+            current[TAIL_LOWER_V_FIRST_BENDS_KEY]={
+                "bottom_left":"y","bottom_right":"y",
+            }
+            designer._phase6_input_snapshot=current
+            before=deepcopy(designer._phase6_input_snapshot)
+        button.invoke()
+        root.update_idletasks();root.update()
+        windows=[
+            w for w in designer.root.winfo_children()
+            if isinstance(w,tk.Toplevel) and "CHECK_NOT_CNC" in w.title()
+        ]
+        assert len(windows)==1,designer.settings_status_var.get()
+        win=windows[0]
+        flat=win._tail_d4_check_flat
+        original_check=win._tail_d4_check_shell
+        actual=win._tail_d4_check_world_candidate
+        body=win._tail_d4_check_body_world
+        placed=win._tail_d4_check_placed_world
+        source_faces=win._tail_d4_check_world_source_faces
+        source_uv=win._tail_d4_check_world_source_uv
+        assert actual is not None,(
+            "D4_REAL_TK_EXACT_W620_ADAPTER_DID_NOT_ACTIVATE",
+            designer.settings_status_var.get(),
+        )
+        assert not actual["manufacturing_approved"]
+        assert actual["nominal_lower_v_taper"] is True
+        assert actual["first_axis"]==first_axis
+        assert placed==actual["v_solid"]
+        assert source_faces==actual["v_solid_source_ids"]
+        assert source_uv==actual["v_source_uv"]
+        assert len(source_faces)==len(placed)
+        assert len(source_faces)>len(actual["v_source_faces"])
+        assert len(original_check.shell_faces)!=len(placed)
+        assert actual["v_world_four_edges"]==8
+        assert actual["v_world_open_seam_edges"]==0
+        assert actual["v_world_open_edges"]==24
+        assert actual["v_extra_world_open_edges"]==0
+        assert len(actual["straight_v_wall_sets"])==2
+        assert all(x["full_face_contact_proven"]
+                   for x in actual["straight_v_wall_sets"])
+        assert len([p for p in flat.result_scene.primitives
+                    if p.layer=="CUTTING"])==5
+        assert len([p for p in flat.result_scene.primitives
+                    if p.layer=="BEND"])==5
+        assembly=win._tail_d4_assembly_check
+        assert assembly.body_triangle_count==len(body)
+        assert assembly.tail_triangle_count==len(placed)
+        assert assembly.crossing_pair_count>=0
+        assert max(assembly.crossing_target_face_indices)<len(placed)
+        assert not assembly.manufacturing_approved
+        # Collision UV is indexed into the very same displayed triangle
+        # mesh. Never classify thick skins by v_source_faces.
+        from ae_engine.assembly_geometry import inspect_native_d4_assembly_world
+        expected=inspect_native_d4_assembly_world(
+            body,placed,tail_faces=source_faces,source_uv=source_uv,
+            openings=flat.opening_source_points_xy,
+        )
+        assert assembly.crossing_tail_uv_bounds==expected.crossing_tail_uv_bounds
+        assert assembly.crossing_target_face_indices==expected.crossing_target_face_indices
+        assert assembly.crossing_regions==expected.crossing_regions
+        fig=win._tail_d4_check_figure
+        assert fig.axes[3].collections and fig.axes[4].collections
+        assert triangle_bounds(placed)[0]==pytest.approx((-308.,308.),abs=1e-6)
+        # Same detached application snapshot before and after the CHECK
+        # click; no DXF save unless the separate CHECK-only toolbar is used.
+        assert designer._phase6_input_snapshot==before
+        record_property("ISSUE3317_NATIVE_D4_LOWER_V_TK_WORLD",repr((
+            first_axis,len(placed),len(source_faces),len(source_uv),
+            actual["v_world_open_edges"],actual["v_extra_world_open_edges"],
+            assembly.crossing_pair_count,
+        )))
+        raw=BytesIO()
+        fig.savefig(raw,format="png",dpi=75)
+        record_property("ISSUE3317_NATIVE_D4_LOWER_V_TK_FIGURE_PNG",
+                        base64.b64encode(raw.getvalue()).decode("ascii"))
+        assert len(raw.getvalue())>3000
+    finally:
+        if win is not None:
+            try:win.destroy()
+            except tk.TclError:pass
+        if designer is not None:
+            try:designer.root.destroy()
+            except tk.TclError:pass
+        root.destroy()
