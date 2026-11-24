@@ -505,7 +505,9 @@ def test_same_existing_editor_and_export_ordinary_signed_endcap(tmp_path, monkey
                 assert tuple(f for f in state.live_context.feature_list if api.is_manual_mark(f)) == authored
                 editor._manual_marking_controls[1].invoke()
             button.invoke()
-            canvas_click(Vec2(p.x + 24, p.y))
+            # Keep the actual round ink clear of other authored strokes at
+            # native Windows DPI and smaller editor canvas sizes.
+            canvas_click(Vec2(p.x + 105, p.y))
             radius_mark, = tuple(f for f in state.live_context.feature_list if is_manual_round_mark(f))
             state.manual_mark_pattern.set("dashed")
             state.manual_mark_length.set("28")
@@ -689,12 +691,25 @@ def test_same_existing_editor_and_export_ordinary_signed_endcap(tmp_path, monkey
                 def xy(v):
                     x, y = reopened_drawing.canvas_view.transform.world_to_canvas(v)
                     return {"x": round(x), "y": round(y)}
-                edit_canvas.event_generate("<ButtonPress-1>", **xy(live_circle().offset), time=event_time)
+                initial = live_circle()
+                offset = initial.diameter / 2
+
+                def at_ink(center):
+                    return xy(Vec2(center.x + offset, center.y))
+
+                press = at_ink(initial.offset)
+                idx = reopened_drawing.canvas_view.hit_test(press["x"], press["y"])
+                assert idx is not None and reopened_drawing.live_context.feature_list[idx] is initial
+                edit_canvas.event_generate("<ButtonPress-1>", **press, time=event_time)
                 root.update()
+                assert reopened_drawing.hole_session.selected_index == idx
+                assert reopened_drawing.dragging[0]
                 for n, point in enumerate(points):
-                    edit_canvas.event_generate("<B1-Motion>", **xy(point), time=event_time+20+n*20)
+                    edit_canvas.event_generate("<B1-Motion>", **at_ink(point), time=event_time+20+n*20)
                     root.update()
-                edit_canvas.event_generate("<ButtonRelease-1>", **xy(points[-1]), time=event_time+100)
+                    if n == 0:
+                        assert live_circle() != initial  # actual valid preview before drop
+                edit_canvas.event_generate("<ButtonRelease-1>", **at_ink(points[-1]), time=event_time+100)
                 root.update()
 
             initial_circle = live_circle()
