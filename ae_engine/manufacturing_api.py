@@ -3364,3 +3364,10 @@ from .operator_scoped_base_plate_marks import (
     require_scoped_base_plate_export_held, require_scoped_base_plate_spec_export_held,
     plan_scoped_base_plate_normal_output,
 )
+
+from .operator_physical_sheet_marking import (
+    open_physical_sheet_marking,
+    create_physical_sheet_mark,
+    validate_physical_sheet_marking_draft,
+    commit_physical_sheet_marking,
+)

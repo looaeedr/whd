@@ -228,7 +228,7 @@ def _build_sidebar_workspace_state(s):
     s.manual_mark_dash = None
     s.manual_mark_gap = None
     s.manual_mark_status = None
-    if getattr(s, 'manual_marking_context', None) is not None:
+    if getattr(s, "manual_marking_draft", None) is not None:
         mark_bar = d.tk.Frame(s.center, bg=host.COLOR_PANEL)
         mark_bar.pack(before=s.canvas, fill=d.tk.X, padx=4, pady=3)
         s.manual_mark_length = d.tk.StringVar(master=s.editor, value="60")
@@ -259,7 +259,7 @@ def _build_sidebar_workspace_state(s):
             mark_bar, text="選取", bg="#636366", fg="white",
         )
         s.manual_mark_select_button.pack(side=d.tk.LEFT, padx=2)
-        if not getattr(s, "manual_marking_straight_only", False):
+        if "circle" in s.manual_marking_draft.allowed_tools:
             s.manual_round_diameter = d.tk.StringVar(master=s.editor, value="")
             d.tk.Label(mark_bar, text="直徑 mm", fg=host.COLOR_TEXT,
                        bg=host.COLOR_PANEL).pack(side=d.tk.LEFT, padx=(6, 1))
@@ -294,12 +294,14 @@ def _build_sidebar_workspace_state(s):
         s.manual_group_offset_y = d.tk.StringVar(master=s.editor, value="0")
         s.manual_group_tools = {}
         group_bar = d.tk.Frame(s.center, bg=host.COLOR_PANEL)
-        if not getattr(s, "manual_marking_straight_only", False):
+        if _has_group_mark_tools(s):
             group_bar.pack(before=s.canvas, fill=d.tk.X, padx=4, pady=(0, 2))
         for kind, label in (
             ("cross", "十字：交點"), ("l", "L：轉角"),
             ("pair_l", "一對L：群組中心"), ("quad_l", "四角L：群組中心"),
         ):
+            if kind not in s.manual_marking_draft.allowed_tools:
+                continue
             button = d.tk.Button(group_bar, text=label, bg="#3a3a44", fg="white")
             button.pack(side=d.tk.LEFT, padx=2)
             s.manual_group_tools[kind] = button
@@ -314,7 +316,7 @@ def _build_sidebar_workspace_state(s):
                        fg=host.COLOR_TEXT).pack(side=d.tk.LEFT, padx=(5, 1))
             d.tk.Entry(group_bar, textvariable=var, width=5).pack(side=d.tk.LEFT)
         edit_bar = d.tk.Frame(s.center, bg=host.COLOR_PANEL)
-        if not getattr(s, "manual_marking_straight_only", False):
+        if _has_group_mark_tools(s):
             edit_bar.pack(before=s.canvas, fill=d.tk.X, padx=4, pady=(0, 2))
         d.tk.Label(edit_bar, text="雙擊角點選成員：", bg=host.COLOR_PANEL,
                    fg=host.COLOR_TEXT).pack(side=d.tk.LEFT)
@@ -869,6 +871,12 @@ def _build_navigation_and_lifecycle(s):
 
 
 
+def _has_group_mark_tools(s):
+    return bool({"cross", "l", "pair_l", "quad_l"}.intersection(
+        s.manual_marking_draft.allowed_tools,
+    ))
+
+
 def _guard_manual_marking_sync(s):
     """Keep stale mark and conflicting new hole in the editor for correction.
 
@@ -877,7 +885,7 @@ def _guard_manual_marking_sync(s):
     unrelated legacy hole sync failures preserve their original exception.
     Called before pointer actions capture the session sync callback.
     """
-    if getattr(s, "manual_marking_context", None) is None:
+    if getattr(s, "manual_marking_draft", None) is None:
         return
     authoritative_sync = s.sync_all
 
@@ -888,12 +896,9 @@ def _guard_manual_marking_sync(s):
             current = tuple(s.live_context.feature_list)
             if not any(s.d.manufacturing_api.is_manual_mark(row) for row in current):
                 raise
-            context = s.manual_marking_context
             try:
-                s.d.manufacturing_api.validate_physical_manual_markings(
-                    s.part_key, context.render_data, current,
-                    surface=context.feature_surface,
-                    width=context.width, height=context.height,
+                s.d.manufacturing_api.validate_physical_sheet_marking_draft(
+                    s.manual_marking_draft, current,
                 )
             except (ValueError, TypeError, RuntimeError) as mark_error:
                 s.manual_mark_status.configure(
@@ -916,7 +921,7 @@ def _install_manual_marking_actions(s):
     member for its local offset, and dragging moves the group center only.
     No member-level deletion or GUI-owned geometry.
     """
-    if getattr(s, "manual_marking_context", None) is None:
+    if getattr(s, "manual_marking_draft", None) is None:
         return
     from phase6_hole_editor_session import HoleEditorAction
     from math import hypot
@@ -934,8 +939,8 @@ def _install_manual_marking_actions(s):
 
     def checked_redraw():
         try:
-            api.propose_operator_physical_sheet_hole_features(
-                s.part_key, s.manual_marking_context,
+            api.validate_physical_sheet_marking_draft(
+                s.manual_marking_draft,
                 tuple(s.live_context.feature_list),
             )
         except (ValueError, TypeError, RuntimeError) as exc:
@@ -1004,7 +1009,7 @@ def _install_manual_marking_actions(s):
 
     def draw_mode(kind="line"):
         nonlocal pending_copy
-        if getattr(s, "manual_marking_straight_only", False) and kind != "line":
+        if kind not in s.manual_marking_draft.allowed_tools:
             return
         if pending_copy is not None or copy_rejection is not None:
             select_mode()
@@ -1039,7 +1044,7 @@ def _install_manual_marking_actions(s):
             return False
         try:
             changed = api.edit_physical_manual_group(
-                old, part_key=s.part_key, context=s.manual_marking_context,
+                old, part_key=s.part_key, context=s.manual_marking_draft.context,
                 existing_features=tuple(s.live_context.feature_list), **values,
             )
         except (ValueError, TypeError, RuntimeError) as exc:
@@ -1152,15 +1157,13 @@ def _install_manual_marking_actions(s):
             return original_down(event)
         try:
             if s.manual_group_tool[0] == "circle":
-                mark = api.create_physical_manual_round_marking(
-                    s.part_key, s.manual_marking_context,
-                    tuple(s.live_context.feature_list),
+                mark = api.create_physical_sheet_mark(
+                    s.manual_marking_draft, tuple(s.live_context.feature_list), tool="circle",
                     centre=point, diameter=s.manual_round_diameter.get(),
                 )
             elif s.manual_group_tool[0] == "line":
-                mark = api.create_physical_manual_marking(
-                    s.part_key, s.manual_marking_context,
-                    tuple(s.live_context.feature_list),
+                mark = api.create_physical_sheet_mark(
+                    s.manual_marking_draft, tuple(s.live_context.feature_list), tool="line",
                     midpoint=point, length=s.manual_mark_length.get(),
                     angle_deg=s.manual_mark_angle.get(),
                     pattern=s.manual_mark_pattern.get(),
@@ -1172,10 +1175,9 @@ def _install_manual_marking_actions(s):
                 # their corner spacing before pair/four-corner placement.
                 sx = s.manual_group_spacing_x.get() if kind in ("pair_l", "quad_l") else 0
                 sy = s.manual_group_spacing_y.get() if kind == "quad_l" else 0
-                mark = api.create_physical_manual_marking_group(
-                    s.part_key, s.manual_marking_context,
-                    tuple(s.live_context.feature_list),
-                    kind=kind, center=point,
+                mark = api.create_physical_sheet_mark(
+                    s.manual_marking_draft, tuple(s.live_context.feature_list),
+                    tool=kind, center=point,
                     arm_x=s.manual_group_arm_x.get(), arm_y=s.manual_group_arm_y.get(),
                     spacing_x=sx, spacing_y=sy,
                     angle=s.manual_group_angle.get(),
@@ -1238,7 +1240,7 @@ def _install_manual_marking_actions(s):
             try:
                 moved = api.edit_physical_manual_group(
                     items[idx], center=center, part_key=s.part_key,
-                    context=s.manual_marking_context,
+                    context=s.manual_marking_draft.context,
                     existing_features=tuple(items),
                 )
             except (ValueError, TypeError, RuntimeError):
@@ -1251,9 +1253,9 @@ def _install_manual_marking_actions(s):
         return original_drag(event)
 
     def mark_double(event):
-        # Tk can emit multi-click sequences while operators rapidly change
-        # insertion tools. Keep the original insert paths for these modes.
-        if s.manual_mark_mode[0] or s.insert_mode[0]:
+        # A native multi-click must obey the active insertion/copy tool.
+        # Selecting group members is meaningful only in selection mode.
+        if pending_copy is not None or s.manual_mark_mode[0] or s.insert_mode[0]:
             return mark_down(event)
         clear_member_edit()
         drag_origin[0] = None
@@ -1484,7 +1486,7 @@ def _install_manual_marking_actions(s):
             # Recheck both the opened and current physical target before
             # any retryable placement error can retain the source receipt.
             api.verify_saved_manual_marking_copy_sources(
-                **{**args, "target_context": s.manual_marking_context},
+                **{**args, "target_context": s.manual_marking_draft.context},
             )
             clone = api.copy_saved_manual_marking_group_to_selected_sheet(
                 **args, target_features=tuple(s.live_context.feature_list),
@@ -1593,7 +1595,7 @@ def _install_manual_marking_actions(s):
             args = verified_copy_args(receipt)
             group = api.verify_saved_manual_marking_copy_sources(**args)
             api.verify_saved_manual_marking_copy_sources(
-                **{**args, "target_context": s.manual_marking_context},
+                **{**args, "target_context": s.manual_marking_draft.context},
             )
             kind = api.group_parameters(group)["kind"]
             prompt = ("跨板複製：點選目標轉角" if kind == "l" else
@@ -1634,7 +1636,7 @@ def _install_manual_marking_actions(s):
     s.insert_btn.configure(command=hole_insert_mode)
     s.on_catalog_double_click = hole_catalog_double
 
-    if not getattr(s, "manual_marking_straight_only", False):
+    if _has_group_mark_tools(s):
         s.manual_mark_copy_button.configure(command=copy_from_other_saved_project)
         s.editor._manual_group_copy_from_saved = copy_from_other_saved_project
     select_mode()
@@ -1644,7 +1646,7 @@ def _install_manual_marking_actions(s):
     s.manual_mark_escape = mark_escape
     s.editor._manual_marking_place = mark_down
     s.editor._manual_marking_select = select_mode
-    if not getattr(s, "manual_marking_straight_only", False):
+    if _has_group_mark_tools(s):
         s.editor._manual_group_double = mark_double
         s.canvas.bind("<Double-Button-1>", mark_double)
         s.canvas.bind("<Triple-Button-1>", mark_double)
@@ -1960,7 +1962,7 @@ def _bind_editor_events(s):
     s.editor.bind("<Control-z>", s.undo_last_action)
     s.editor.bind("<Control-Z>", s.undo_last_action)
     s.editor.bind("<Escape>", (
-        s.manual_mark_escape if getattr(s, 'manual_marking_context', None) is not None else s.on_escape
+        s.manual_mark_escape if getattr(s, "manual_marking_draft", None) is not None else s.on_escape
     ))
     s.editor.protocol("WM_DELETE_WINDOW", s.cancel_all)
     s.catalog_list.bind(
@@ -1997,9 +1999,8 @@ def open_unified_hole_editor(
     on_close=None, on_confirm=None, on_confirm_features=None,
     baseline_scene=None, baseline_status_text=None,
     indicator_component_context_provider=None, cabinet_reference_guide=None,
-    local_reference_guide=None, manual_marking_context=None,
-    defer_workspace_sync=False, skip_cancel_sync=False,
-    manual_marking_straight_only=False, *, dependencies,
+    local_reference_guide=None, manual_marking_draft=None,
+    defer_workspace_sync=False, skip_cancel_sync=False, *, dependencies,
 ):
     s = SimpleNamespace(
         host=host, d=dependencies, part_key=part_key, title=title, surface=surface,
@@ -2016,8 +2017,7 @@ def open_unified_hole_editor(
         on_confirm_features=on_confirm_features, baseline_scene=baseline_scene,
         baseline_status_text=baseline_status_text,
         indicator_component_context_provider=indicator_component_context_provider,
-        manual_marking_context=manual_marking_context,
-        manual_marking_straight_only=manual_marking_straight_only,
+        manual_marking_draft=manual_marking_draft,
         defer_workspace_sync=defer_workspace_sync,
         skip_cancel_sync=skip_cancel_sync,
     )

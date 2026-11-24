@@ -103,12 +103,13 @@ def test_primary_true_canvas_target_selected_saved_group_copy_undo_reopen_normal
         monkeypatch.setattr(
             filedialog, "askopenfilename", lambda **kwargs: str(origin),
         )
-        def click_target(point):
+        def click_target(point, *, event_time=None):
             px, py = state.canvas_view.transform.world_to_canvas(point)
             world = state.canvas_view.canvas_to_world(round(px), round(py))
             assert world is not None
-            state.canvas.event_generate("<ButtonPress-1>", x=round(px), y=round(py))
-            state.canvas.event_generate("<ButtonRelease-1>", x=round(px), y=round(py))
+            event_options = {} if event_time is None else {"time": event_time}
+            state.canvas.event_generate("<ButtonPress-1>", x=round(px), y=round(py), **event_options)
+            state.canvas.event_generate("<ButtonRelease-1>", x=round(px), y=round(py), **event_options)
             root.update()
             return world
 
@@ -268,10 +269,12 @@ def test_primary_true_canvas_target_selected_saved_group_copy_undo_reopen_normal
         assert state.manual_mark_status.cget("text") == stale_warning
         origin.write_bytes(source_before)
         assert not state.manual_mark_mode[0]
-        click_target(Vec2(200, 140))
+        # Native Tk can classify the second physical press at the same
+        # coordinates as a multi-click, even after the user rearms Copy.
+        click_target(Vec2(200, 140), event_time=20000)
         assert not any(api.is_manual_group(f) for f in state.live_context.feature_list)
         choose()
-        placed_at = click_target(Vec2(200, 140))
+        placed_at = click_target(Vec2(200, 140), event_time=20050)
         candidates = [
             f for f in state.live_context.feature_list if api.is_manual_group(f)
         ]
