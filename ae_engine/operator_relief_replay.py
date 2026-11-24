@@ -33,10 +33,26 @@ def build_operator_current_relief_source_signature(
         raise ValueError("RELIEF_SCALAR_SOURCE_MAPPING_REQUIRED")
     if not isinstance(joint_state, Mapping):
         raise ValueError("RELIEF_JOINT_SOURCE_MAPPING_REQUIRED")
+    # The saved source signature is a manufacturing provenance identity, not
+    # a place to accept float(True) as 1-mm thickness or NaN Fold lengths.
+    # Validate before formed-FW or Joint fingerprint creation, but preserve
+    # the author's original values in the persisted signature payload.
+    from .operator_settings_transactions import normalize_operator_source_dimension
+    from .door_operator_part_spec import _finite_operator_number
+
     scalar = dict(scalar_source)
+    physical = {
+        name: normalize_operator_source_dimension(scalar.get(name), field=name)
+        for name in ("w", "h", "d", "t", "fw")
+    }
+    for name in (
+        "zl1", "zl2", "zr1", "zr2", "yl1", "yr1", "ytop1", "ybottom1",
+    ):
+        if name in scalar:
+            _finite_operator_number(scalar[name], name)
     profile = deepcopy(list(box_body_profile or ()))
     left, right = formed_box_body_fw_widths(
-        profile, float(scalar.get("t", 0.0) or 0.0),
+        profile, physical["t"],
     )
     return build_current_source_signature(
         scalar_source=scalar,
