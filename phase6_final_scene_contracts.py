@@ -74,6 +74,7 @@ class FinalSceneViewRequest:
     # not an alternate GUI manufacturer or a saved project field.
     receiving_collision_geometry: object | None = None
     receiving_collision_identity: tuple[str, str] | None = None
+    show_operator_marking: bool = True  # session-only view effect
 
 
 @dataclass(frozen=True)

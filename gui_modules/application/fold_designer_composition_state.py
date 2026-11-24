@@ -249,6 +249,8 @@ def final_scene_set_preview_enabled(self, enabled):
     app = self.app
     enabled = bool(enabled)
     app.preview_3d_enabled = enabled
+    from phase6_navigation_view_adapter import refresh_content_switch
+    refresh_content_switch(app)
     var = getattr(app, "preview_3d_var", None)
     if var is not None and bool(var.get()) != enabled:
         var.set(enabled)

@@ -276,6 +276,7 @@ def workspace_shell_owner(self, namespace):
             "_phase6_install_keyboard_shortcuts"
         )(app),
         toggle_fullscreen=lambda: self.toggle_fullscreen(),
+        refresh_3d_marking_visibility=lambda: app.submit_update_intent("display", commit=True),
     )
     owner = WorkspaceShellOwner(shell_state, actions)
     self._workspace_shell_owner = owner

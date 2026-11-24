@@ -167,7 +167,9 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
             materials = []
             box_body_piece_dimension_lines = []
             physical_dimension_lines = []
-            owner_views = dict(getattr(render_data, "owner_marking_views", ()) or ())
+            show_operator_marking = getattr(request, "show_operator_marking", True)
+            owner_views = (dict(getattr(render_data, "owner_marking_views", ()) or ())
+                           if show_operator_marking else {})
             owner_warnings = []
             box_body_world = None
             box_body_collision_mesh = None
@@ -395,8 +397,12 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                         interference_segments.extend(diagnostic.intersection_segments)
                         interference_pairs += int(diagnostic.pair_count)
                 self._draw_joint_marking_world_rows(part_data)
+                marking_scene = (
+                    part_data.scene if show_operator_marking else
+                    manufacturing_api.project_scene_without_operator_marking(part_data.scene)
+                )
                 self._draw_assembly_scene_markings(
-                    part_data.scene,
+                    marking_scene,
                     tuple(dict(seg) for seg in part.x_profile),
                     tuple(dict(seg) for seg in part.y_profile),
                     tuple(getattr(part_data, "fold_guides", ()) or ()),
@@ -732,7 +738,12 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
         else:
             self._draw_scene_bends(scene, request.x_profile, request.y_profile, fold_guides=fold_guides)
         metadata = getattr(render_data, "metadata", None) or {}
-        if metadata.get(manufacturing_api.OWNER_MARKING_VIEW_ONLY):
+        if not getattr(request, "show_operator_marking", True):
+            self._draw_scene_markings(
+                manufacturing_api.project_scene_without_operator_marking(scene),
+                x_profile, y_profile, fold_guides=fold_guides,
+            )
+        elif metadata.get(manufacturing_api.OWNER_MARKING_VIEW_ONLY):
             paths, warning = manufacturing_api.project_checked_owner_marking_standalone_paths(scene, mesh)
             self._paint_scene_marking_paths(paths)
             warning = metadata.get(manufacturing_api.OWNER_MARKING_VIEW_DIAGNOSTIC) or warning
