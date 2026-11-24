@@ -735,7 +735,8 @@ def _compose_phase6_project_snapshot_from_main_gui(self):
         workspace["assembly_placements"] = deepcopy(snapshot["assembly_placements"])
     if "custom_parts" in workspace_state:
         workspace["custom_parts"] = deepcopy(workspace_state["custom_parts"])
-    for key in ("active_mode", "quantity", "custom_parts", "receiving_quantity_box", "receiving_layout"):
+    for key in ("active_mode", "quantity", "custom_parts", "receiving_quantity_box", "receiving_layout",
+                manufacturing_api.HEAD_OCCUPANCY_KEY):
         if key in workspace_state:
             snapshot[key] = deepcopy(workspace_state[key])
     # This is the primary main-GUI project save (not the separate Fold
@@ -862,6 +863,8 @@ def _apply_original_fold_designer_snapshot(self, snapshot):
         "part_features": snapshot.get("part_features") or ws_source.get("part_features", {}),
         "part_face_features": snapshot.get("part_face_features") or ws_source.get("part_face_features", {}),
         "custom_parts": deepcopy(snapshot.get("custom_parts", ws_source.get("custom_parts"))),
+        # An explicit new project load clears a prior project's occupant.
+        manufacturing_api.HEAD_OCCUPANCY_KEY: deepcopy(snapshot.get(manufacturing_api.HEAD_OCCUPANCY_KEY)),
         **{key: deepcopy(snapshot[key]) for key in ("active_mode", "quantity", "receiving_quantity_box", "receiving_layout") if key in snapshot},
     })
     self._sync_fold_designer_manual_corner_context(snapshot.get("active_part"))
@@ -922,7 +925,8 @@ def _store_fold_designer_workspace(self, workspace):
         committed_workspace["part_face_features"] = deepcopy(workspace["part_face_features"])
     if "assembly_placements" in workspace:
         committed_workspace["assembly_placements"] = deepcopy(workspace["assembly_placements"])
-    for key in ("active_mode", "quantity", "custom_parts", "receiving_quantity_box", "receiving_layout"):
+    for key in ("active_mode", "quantity", "custom_parts", "receiving_quantity_box", "receiving_layout",
+                manufacturing_api.HEAD_OCCUPANCY_KEY):
         if key in workspace:
             committed_workspace[key] = deepcopy(workspace[key])
     self.workspace_controller.commit_workspace(committed_workspace)

@@ -26,6 +26,7 @@ class Phase6WorkspaceController:
         self._receiving_quantity_box = None
         self._receiving_layout = None
         self._receiving_mode_session = None
+        self._head_occupancy = None
         self._shared_state = SharedWorkspaceState(existing_parts=self._fallback_existing_parts, active_repair="first")
         self._box_body_profile: list | None = None
         self._assembly_placements: dict[str, dict[str, object]] = {}
@@ -149,6 +150,11 @@ class Phase6WorkspaceController:
 
     def commit_workspace(self, workspace: Mapping[str, object]) -> dict:
         raw = dict(workspace or {})
+        occupancy_key = manufacturing_api.HEAD_OCCUPANCY_KEY
+        occupancy = getattr(self, "_head_occupancy", None)
+        if occupancy_key in raw:
+            occupancy = (manufacturing_api.normalize_receiving_head_occupancy(raw[occupancy_key])
+                         if raw[occupancy_key] is not None else None)
         quantity = None
         if raw.get("quantity") is not None:
             quantity = QuantityModel.from_payload(raw["quantity"])
@@ -205,6 +211,7 @@ class Phase6WorkspaceController:
                         self._quantity_model.set_features(part, self._part_features[part])
         if "part_face_features" in raw:
             self._part_face_features = self._clone(dict(raw.get("part_face_features") or {}))
+        self._head_occupancy = occupancy
         return self.workspace_snapshot()
 
     def clear_authoritative_workspace(self) -> None:
@@ -214,6 +221,7 @@ class Phase6WorkspaceController:
         self._receiving_quantity_box = None
         self._receiving_layout = None
         self._receiving_mode_session = None
+        self._head_occupancy = None
         self._shared_state = SharedWorkspaceState(existing_parts=self._fallback_existing_parts, active_repair="first")
         self._box_body_profile = None
         self._assembly_placements = {}
@@ -272,6 +280,8 @@ class Phase6WorkspaceController:
             "active_part": result["active_part"],
             "part_profiles": result["part_profiles"],
         }
+        if getattr(self, "_head_occupancy", None) is not None:
+            snapshot[manufacturing_api.HEAD_OCCUPANCY_KEY] = self._clone(self._head_occupancy)
         if "custom_parts" in result:
             snapshot["custom_parts"] = result["custom_parts"]
         part_features = self.part_features_snapshot()
