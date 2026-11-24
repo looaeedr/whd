@@ -268,6 +268,20 @@ def validate_physical_manual_markings(part_key, render, features, *,
         render, normalized, surface, width, height,
     )
     from .operator_manual_marking_groups import is_manual_group, source_group
+
+    def same_stroke_multiset(left, right):
+        """Count actual strokes without depending on source/member order."""
+        if len(left) != len(right):
+            return False
+        unmatched = list(right)
+        for stroke in left:
+            index = next((i for i, other in enumerate(unmatched)
+                          if stroke.equals(other)), None)
+            if index is None:
+                return False
+            unmatched.pop(index)
+        return not unmatched
+
     seen = []
     for mark in marks:
         if is_manual_group(mark):
@@ -283,11 +297,9 @@ def validate_physical_manual_markings(part_key, render, features, *,
                 raise ValueError("手動打標不可沿 CUTTING 邊界")
             if any(full.intersects(hole) for hole in blind):
                 raise ValueError("手動打標完整筆畫碰觸孔位（含虛線留白）")
-        if any(prior_pattern == pattern and len(prior_strokes) == len(full_strokes)
-               and all(one.equals(two) for one, two in zip(prior_strokes, full_strokes))
-               for prior_pattern, prior_strokes in seen):
-            raise ValueError("手動打標不可完全重複同線型")
-        # The complete stroke is the gate.  Independently audit actual ink too.
+        # The complete stroke is the gate. Independently audit actual ink
+        # including dashed visible-phase segments before duplicate comparison.
+        ink_strokes = []
         for layer, points, _ in mark.layered_profiles:
             translated = tuple(Vec2(pt.x + mark.offset.x, pt.y + mark.offset.y)
                                for pt in points) if is_manual_group(mark) else points
@@ -297,7 +309,26 @@ def validate_physical_manual_markings(part_key, render, features, *,
                 raise ValueError("手動打標有實段落在無材料區")
             if any(segment.intersects(hole) for hole in blind):
                 raise ValueError("手動打標實段碰觸孔位")
-        seen.append((pattern, full_strokes))
+            ink_strokes.append(segment)
+        for prior_pattern, prior_full, prior_ink, prior_is_group in seen:
+            if prior_pattern != pattern:
+                continue
+            if is_manual_group(mark) and prior_is_group:
+                # Mirroring a symmetric quad L changes source ordering
+                # without changing physical ink. For dashed groups compare
+                # actual visible segments too: different dash phases must
+                # remain distinguishable even if their full arms coincide.
+                repeated = (same_stroke_multiset(full_strokes, prior_full)
+                            and same_stroke_multiset(ink_strokes, prior_ink))
+            else:
+                # Retain the existing original V1 line matching contract.
+                repeated = (len(prior_full) == len(full_strokes)
+                            and all(one.equals(two) for one, two in
+                                    zip(prior_full, full_strokes)))
+            if repeated:
+                raise ValueError("手動打標不可完全重複同線型")
+        seen.append((pattern, full_strokes, tuple(ink_strokes),
+                     is_manual_group(mark)))
     return marks
 
 

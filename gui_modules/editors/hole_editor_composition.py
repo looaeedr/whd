@@ -928,6 +928,7 @@ def _install_manual_marking_actions(s):
     # hit by the latest valid double-click, never to a reused member name.
     s.manual_group_edit_identity = [None]  # (stable group_id, member_id)
     s.manual_group_edit_context = [None]   # (Session context, list identity)
+    drag_origin = [None]  # (list, context, group_id, cursor_down, center_down)
 
     def clear_member_edit():
         s.manual_group_edit_identity[0] = None
@@ -938,6 +939,7 @@ def _install_manual_marking_actions(s):
 
     def select_mode():
         clear_member_edit()
+        drag_origin[0] = None
         s.manual_mark_mode[0] = False
         s.manual_group_tool[0] = "select"
         s.manual_mark_draw_button.configure(relief=d.tk.RAISED)
@@ -947,6 +949,7 @@ def _install_manual_marking_actions(s):
 
     def draw_mode(kind="line"):
         clear_member_edit()
+        drag_origin[0] = None
         s.set_insert_mode(False)
         s.manual_mark_mode[0] = True
         s.manual_group_tool[0] = kind
@@ -1036,6 +1039,7 @@ def _install_manual_marking_actions(s):
         # Also clear when the legacy pointer handler leaves its old selection
         # active on empty canvas; a subsequent double must hit a real corner.
         clear_member_edit()
+        drag_origin[0] = None
         point = s.canvas_view.canvas_to_world(event.x, event.y)
         if point is None:
             return
@@ -1048,6 +1052,12 @@ def _install_manual_marking_actions(s):
                 corners = api.group_member_world_points(item)
                 if (hypot(point.x-item.offset.x, point.y-item.offset.y) <= 5
                     or any(hypot(point.x-p.x, point.y-p.y) <= 5 for _, p in corners)):
+                    drag_origin[0] = (
+                        id(s.live_context.feature_list),
+                        s.hole_session.active_context_key,
+                        api.group_parameters(item)["group_id"],
+                        point, item.offset,
+                    )
                     s.hole_session.execute(HoleEditorAction.select(idx))
                     s.dragging[0] = True
                     s.refresh_created()
@@ -1101,6 +1111,13 @@ def _install_manual_marking_actions(s):
 
     original_down = s.on_canvas_down
     original_drag = s.on_canvas_drag
+    original_up = s.on_canvas_up
+
+    def safe_up(event):
+        try:
+            return original_up(event)
+        finally:
+            drag_origin[0] = None
 
     def safe_drag(event):
         idx = s.hole_session.selected_index
@@ -1110,11 +1127,23 @@ def _install_manual_marking_actions(s):
             if not api.is_manual_group(items[idx]) or not s.dragging[0]:
                 return "break"
             point = s.canvas_view.canvas_to_world(event.x, event.y)
-            if point is None:
+            grab = drag_origin[0]
+            if point is None or grab is None:
                 return "break"
+            list_id, context_key, group_id, cursor_down, center_down = grab
+            if (list_id != id(items)
+                    or context_key != s.hole_session.active_context_key
+                    or group_id != api.group_parameters(items[idx])["group_id"]):
+                return "break"
+            # GUI only preserves the operator's grab delta: canonical
+            # full-arm and local-mm geometry stays in the Engine API.
+            center = type(center_down)(
+                center_down.x + point.x - cursor_down.x,
+                center_down.y + point.y - cursor_down.y,
+            )
             try:
                 moved = api.edit_physical_manual_group(
-                    items[idx], center=point, part_key=s.part_key,
+                    items[idx], center=center, part_key=s.part_key,
                     context=s.manual_marking_context,
                     existing_features=tuple(items),
                 )
@@ -1127,42 +1156,46 @@ def _install_manual_marking_actions(s):
         return original_drag(event)
 
     def mark_double(event):
-        # Tk may classify quick successive operator clicks at the same
-        # canvas point as Double even after switching cross -> L tools.
-        # While placing, the current tool owns that click; only selection
-        # mode may interpret a double-click as "edit this member".
-        if s.manual_mark_mode[0]:
+        # Tk can emit multi-click sequences while operators rapidly change
+        # insertion tools. Keep the original insert paths for these modes.
+        if s.manual_mark_mode[0] or s.insert_mode[0]:
             return mark_down(event)
+        clear_member_edit()
+        drag_origin[0] = None
         point = s.canvas_view.canvas_to_world(event.x, event.y)
+        if point is None:
+            return "break"
+
+        # Resolve the *current* pointer hot spot, not the old Session
+        # selection. A and B can both have a "top_right" member.
+        hits = []
+        for idx, item in enumerate(s.live_context.feature_list):
+            if not api.is_manual_group(item):
+                continue
+            for member_id, corner in api.group_member_world_points(item):
+                distance = hypot(point.x-corner.x, point.y-corner.y)
+                if distance <= 5.0:
+                    hits.append((distance, idx, member_id))
+        if not hits:
+            return "break"
+        hits.sort()
+        distance, target_idx, member = hits[0]
+        if (any(idx != target_idx for _, idx, _ in hits)
+                or (len(hits) > 1 and abs(hits[1][0]-distance) < 1e-9)):
+            # Two coincident group corners are not an implicit selection.
+            return "break"
+        if s.hole_session.selected_index != target_idx:
+            s.hole_session.execute(HoleEditorAction.select(target_idx))
+            s.refresh_created()
         group = selected_group()
-        if point is None or group is None:
-            clear_member_edit()
-            return "break"
-        # Use the SAME local 5-mm corner hot zone as single-click selection.
-        # nearest_group_member alone accepts arbitrarily remote empty space.
-        members = api.group_member_world_points(group)
-        member, corner = min(
-            members, key=lambda row: hypot(point.x-row[1].x, point.y-row[1].y),
-        )
-        if hypot(point.x-corner.x, point.y-corner.y) > 5.0:
-            clear_member_edit()
-            return "break"
-        # If a coincident corner from another group is equally clickable,
-        # do not silently choose a group from the stale selection.
-        if any(
-            other is not group and api.is_manual_group(other)
-            and any(hypot(point.x-p.x, point.y-p.y) <= 5.0
-                    for _, p in api.group_member_world_points(other))
-            for other in s.live_context.feature_list
-        ):
-            clear_member_edit()
+        if group is None:
             return "break"
         p = api.group_parameters(group)
+        dx, dy = next((x, y) for mid, x, y in p["members"] if mid == member)
         s.manual_group_edit_identity[0] = (p["group_id"], member)
         s.manual_group_edit_context[0] = (
             s.hole_session.active_context_key, id(s.live_context.feature_list),
         )
-        dx, dy = next((x, y) for mid, x, y in p["members"] if mid == member)
         s.manual_group_member.set(member)
         s.manual_group_offset_x.set(str(dx))
         s.manual_group_offset_y.set(str(dy))
@@ -1213,6 +1246,7 @@ def _install_manual_marking_actions(s):
 
     def safe_delete():
         clear_member_edit()
+        drag_origin[0] = None
         chosen = selected_feature()
         if (chosen is not None and getattr(chosen, "layer", None) == "MARKING"
                 and not api.is_manual_mark(chosen)):
@@ -1238,15 +1272,27 @@ def _install_manual_marking_actions(s):
     original_activate_context = s.hole_session.activate_context
 
     def safe_created_select(event=None):
-        clear_member_edit()
+        # A ListboxSelect event may be generated by refresh_created() for
+        # the *same* group after its valid Canvas double-click. Do not
+        # invalidate that authorization unless the selected identity changes.
+        chosen = s.created_list.curselection()
+        binding = s.manual_group_edit_identity[0]
+        if binding is not None:
+            idx = chosen[0] if chosen else -1
+            rows = s.live_context.feature_list
+            if (not 0 <= idx < len(rows) or not api.is_manual_group(rows[idx])
+                    or api.group_parameters(rows[idx])["group_id"] != binding[0]):
+                clear_member_edit()
         return original_created_select(event)
 
     def safe_undo(event=None):
         clear_member_edit()
+        drag_origin[0] = None
         return original_undo(event)
 
     def safe_activate_context(*args, **kwargs):
         clear_member_edit()
+        drag_origin[0] = None
         return original_activate_context(*args, **kwargs)
 
     s.on_created_select = safe_created_select
@@ -1269,6 +1315,7 @@ def _install_manual_marking_actions(s):
     select_mode()
     s.on_canvas_down = mark_down
     s.on_canvas_drag = safe_drag
+    s.on_canvas_up = safe_up
     s.manual_mark_escape = mark_escape
     s.editor._manual_marking_place = mark_down
     s.editor._manual_marking_select = select_mode
