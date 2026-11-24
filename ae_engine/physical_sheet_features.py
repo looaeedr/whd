@@ -28,7 +28,7 @@ def with_physical_sheet_features(key, render, features):
         key, render, normalized, surface=surface, width=width, height=height,
     )
     resolved = ae.resolve_surface_features(
-        surface, (f for f in normalized if not is_manual_round_mark(f)), width, height,
+        surface, tuple(f for f in normalized if not is_manual_round_mark(f)), width, height,
     )
     scene = DrawingScene()
     scene.extend(render.scene.primitives)

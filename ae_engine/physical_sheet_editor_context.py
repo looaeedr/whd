@@ -96,7 +96,7 @@ def propose_operator_physical_sheet_hole_features(
         surface=context.feature_surface, width=context.width, height=context.height,
     )
     resolve_surface_features(
-        context.feature_surface, (f for f in normalized if not is_manual_round_mark(f)),
+        context.feature_surface, tuple(f for f in normalized if not is_manual_round_mark(f)),
         context.width, context.height,
     )
     return detached
