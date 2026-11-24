@@ -201,16 +201,30 @@ def show_tail_d4_check_window(
         placed_world,facecolors="#0284c7",edgecolors="none",alpha=.43,
     ))
     _fit_equal_3d(assembly_ax,tuple(body_world)+tuple(placed_world))
+    strict_kind="STRICT_TRIANGLE_INTERIOR"
+    classified=assembly_check.classified_surface_pairs
+    strict=tuple(row for row in classified if row.kind==strict_kind)
+    original=assembly_check.original_classified_surface_pairs
+    original_note=(
+        "；原樣 %d 對／內部 %d"
+        % (len(original),sum(row.kind==strict_kind for row in original))
+        if original is not None else ""
+    )
     for first,last in assembly_check.crossing_segments:
         assembly_ax.plot(
             (first[0],last[0]),(first[1],last[1]),(first[2],last[2]),
-            color="#d97706",linewidth=.9,
+            color="#94a3b8",linewidth=.65,
+        )
+    for row in strict:
+        first,last=row.segment
+        assembly_ax.plot(
+            (first[0],last[0]),(first[1],last[1]),(first[2],last[2]),
+            color="#d97706",linewidth=1.15,
         )
     _native_world_y_up(assembly_ax,elev=18,azim=-32)
     assembly_ax.set_title(
-        "實際箱身＋Ø4：非共面穿越 %d 對／%d 段；非體積證明" % (
-            assembly_check.crossing_pair_count,
-            len(assembly_check.crossing_segments),
+        "網格相交 %d 對／雙三角內部 %d%s；非體積證明" % (
+            assembly_check.crossing_pair_count,len(strict),original_note,
         ),fontsize=10,
     )
     assembly_ax.set_xlabel("World X");assembly_ax.set_ylabel("World Y")
@@ -261,7 +275,7 @@ def show_tail_d4_check_window(
         if not assembly_check.body_edges_manifold_closed
         else "體積干涉未由表面穿越證實"
     )
-    # Amber lines are confirmed surface crossings, NOT certified volume
+    # Amber lines are strict triangle-interior crossings, NOT certified volume
     # penetration. Coplanar mates and isolated single-point touches are not
     # counted by this detector; no unmeasured material is inferred.
     regions=dict(assembly_check.crossing_regions)
@@ -286,7 +300,8 @@ def show_tail_d4_check_window(
     )
     # Inspection-only annotation; no changes to actual physical triangles.
     figure.text(
-        .50,.012,location+"；橘線=非共面表面穿越，非體積證明",
+        .50,.012,location+"\n灰：原偵測交線；橘：兩三角片內部穿越。"
+        "網格邊不等於板件邊、間隙或體積判定。",
         ha="center",fontsize=9,
     )
     win._tail_d4_cjk_font=_use_available_cjk_font(figure)

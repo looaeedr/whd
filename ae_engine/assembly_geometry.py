@@ -165,7 +165,9 @@ def _segment_triangle_intersection(p0, p1, tri, *, tolerance=1e-7):
     return add(p0, mul(direction, t))
 
 
-def detect_world_mesh_surface_interference(source_triangles, target_triangles, *, tolerance=1e-6):
+def detect_world_mesh_surface_interference(
+    source_triangles, target_triangles, *, tolerance=1e-6, _pair_observer=None,
+):
     """Detect non-coplanar physical surface crossings in shared world space.
 
     This is a diagnostic overlay, not yet the production relief solver.  It
@@ -237,6 +239,9 @@ def detect_world_mesh_surface_interference(source_triangles, target_triangles, *
                             best = (a, b)
                 if best is not None and best_d2 > tolerance * tolerance:
                     pair_count += 1
+                    if _pair_observer is not None:
+                        _pair_observer(int(idx), face_index, source_tri, target_tri,
+                                       best, tolerance)
                     hit_target = True
                     skey = tuple(sorted((
                         tuple(round(v, 6) for v in best[0]),
@@ -293,6 +298,70 @@ def probe_native_world_mesh_axis_faces(triangles, *, axis, fixed_xyz,
 
 
 @dataclass(frozen=True)
+class NativeD4SurfacePair:
+    body_triangle_index: int
+    tail_triangle_index: int
+    kind: str
+    segment: tuple
+
+
+def _classify_native_d4_pair(body_tri, tail_tri, segment, tolerance):
+    """Classify only reported segments, not real mating or enclosed volume."""
+    import numpy as np
+
+    def triangle_geometry(triangle):
+        points = np.asarray(triangle, dtype=float)
+        edges = np.roll(points, -1, axis=0) - points
+        normal = np.cross(edges[0], edges[1])
+        size = np.linalg.norm(normal)
+        if size <= tolerance * max(np.linalg.norm(edges, axis=1)):
+            return points, edges, None
+        return points, edges, normal / size
+
+    a, ae, an = triangle_geometry(body_tri)
+    b, be, bn = triangle_geometry(tail_tri)
+    if an is None or bn is None:
+        return "DEGENERATE_UNRESOLVED"
+    if (max(abs((b - a[0]) @ an)) <= tolerance
+            and max(abs((a - b[0]) @ bn)) <= tolerance):
+        return "NEAR_COPLANAR_UNRESOLVED"
+
+    midpoint = (np.asarray(segment[0]) + segment[1]) / 2.0
+
+    def containment(points, edges, normal):
+        if abs((midpoint - points[0]) @ normal) > tolerance:
+            return None
+        # Signed in-plane edge distances in mm, with the same existing
+        # intersection tolerance (not a second machining clearance).
+        d = (np.cross(edges, midpoint - points) @ normal) / np.linalg.norm(edges, axis=1)
+        if min(d) < -tolerance:
+            return None
+        return min(d) > tolerance
+
+    ia = containment(a, ae, an)
+    ib = containment(b, be, bn)
+    if ia is None or ib is None:
+        return "PAIR_CLASSIFICATION_UNRESOLVED"
+    if ia and ib:
+        return "STRICT_TRIANGLE_INTERIOR"
+    if ia:
+        return "TAIL_TRIANGLE_EDGE"
+    if ib:
+        return "BODY_TRIANGLE_EDGE"
+    return "BOTH_TRIANGLE_EDGES"
+
+
+def _native_d4_surface_crossing_records(body, tail):
+    rows = []
+    def record(i, j, source, target, segment, tolerance):
+        rows.append(NativeD4SurfacePair(
+            i, j, _classify_native_d4_pair(source, target, segment, tolerance), segment,
+        ))
+    result = detect_world_mesh_surface_interference(body, tail, _pair_observer=record)
+    return result, tuple(rows)
+
+
+@dataclass(frozen=True)
 class NativeD4AssemblyCheck:
     """CHECK-only result for the exact meshes displayed in the native window."""
 
@@ -308,11 +377,13 @@ class NativeD4AssemblyCheck:
     crossing_regions: tuple = ()
     crossing_target_face_indices: tuple = ()
     manufacturing_approved: bool = False
+    classified_surface_pairs: tuple[NativeD4SurfacePair, ...] = ()
+    original_classified_surface_pairs: tuple[NativeD4SurfacePair, ...] | None = None
 
 
 def inspect_native_d4_assembly_world(
     body_world, placed_world, *, tail_faces=None, source_uv=None,
-    openings=None,
+    openings=None, original_tail_world=None,
 ):
     """Inspect *the displayed* Body and Ø4 Tail, without remesh or relocation.
 
@@ -325,7 +396,10 @@ def inspect_native_d4_assembly_world(
     if not body or not tail:
         raise ValueError("TAIL_D4_ASSEMBLY_NATIVE_MESH_REQUIRED")
     closure = diagnose_world_mesh_triangle_edge_incidence(body)
-    crossing = detect_world_mesh_surface_interference(body, tail)
+    crossing, records = _native_d4_surface_crossing_records(body, tail)
+    original_records = None
+    if original_tail_world:
+        _, original_records = _native_d4_surface_crossing_records(body, original_tail_world)
     # Map actual hit Tail triangles back to their ORIGINAL source UV.
     # This is evidence, not material removal or a second fold model.
     uv_bounds = None
@@ -378,6 +452,8 @@ def inspect_native_d4_assembly_world(
         crossing_world_bounds=world_bounds,
         crossing_regions=regions,
         crossing_target_face_indices=crossing.target_face_indices,
+        classified_surface_pairs=records,
+        original_classified_surface_pairs=original_records,
         volume_verdict=(
             "VOLUME_INTERFERENCE_UNVERIFIABLE_BODY_OPEN"
             if not closure.edges_manifold_closed

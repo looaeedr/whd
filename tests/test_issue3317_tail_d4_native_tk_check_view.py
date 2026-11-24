@@ -917,6 +917,48 @@ def test_real_tk_w620_d4_check_button_uses_exact_preplaced_lower_v_solid(
         assert assembly.crossing_regions==expected.crossing_regions
         fig=win._tail_d4_check_figure
         assert fig.axes[3].collections and fig.axes[4].collections
+        if record_selection and (width, height, depth, bottom) == (620., 600., 185., 48.):
+            # Only the pinned native X/X and Y/Y specimen has this known
+            # mating datum. Compare geometric support, not tessellation count.
+            from collections import defaultdict
+            from shapely.geometry import LineString
+            from shapely.ops import unary_union
+            classified = assembly.classified_surface_pairs
+            original = assembly.original_classified_surface_pairs
+            assert len(classified) == assembly.crossing_pair_count == 318
+            assert len(original) == 131
+            rear = tuple(
+                row for row in classified
+                if all(abs(p[2] + 90.5) <= 1e-6
+                       for p in body[row.body_triangle_index])
+            )
+            assert len(rear) == 267
+            assert {row.kind for row in rear} == {"TAIL_TRIANGLE_EDGE"}
+
+            def strict_support(rows):
+                groups = defaultdict(list)
+                for row in rows:
+                    if row.kind != "STRICT_TRIANGLE_INTERIOR":
+                        continue
+                    x = body[row.body_triangle_index][0][0]
+                    assert all(abs(p[0] - x) <= 1e-6
+                               for p in body[row.body_triangle_index] + row.segment)
+                    groups[round(x, 6)].append(LineString([p[1:] for p in row.segment]))
+                return {x: unary_union(segments) for x, segments in groups.items()}
+
+            old, new = strict_support(original), strict_support(classified)
+            assert set(old) == set(new) == {-285., -283., 283., 285.}
+            for x in old:
+                assert old[x].length == pytest.approx(3., abs=1e-6)
+                assert new[x].length == pytest.approx(3., abs=1e-6)
+                assert new[x].bounds == pytest.approx((-298., 88.5, -297., 90.5))
+                assert old[x].hausdorff_distance(new[x]) <= 1e-6
+                assert new[x].difference(old[x].buffer(1e-6)).is_empty
+                assert old[x].difference(new[x].buffer(1e-6)).is_empty
+            assert any(
+                "灰：原偵測交線；橘：兩三角片內部穿越" in text.get_text()
+                for text in fig.texts
+            )
         # World dimensions come from the SAME already-assembled Engine
         # source, not the old CHECK's independently placed local skin.
         # In exact W620 this physically measures X=-307..+307.
