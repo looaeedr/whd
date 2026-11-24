@@ -90,8 +90,10 @@ def test_invalid_optional_indicator_does_not_erase_separate_saved_features(monke
                         ))
     kwargs = _source()
     kwargs["thickness"] = True
+    from types import SimpleNamespace
     assert api.project_operator_door_cell_features(
-        object(), ["original-saved-feature"], _state("indicator_box"),
+        SimpleNamespace(width=420.0, height=600.0),
+        ["original-saved-feature"], _state("indicator_box"),
         **kwargs,
     ) == [token]
 
