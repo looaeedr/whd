@@ -1539,7 +1539,7 @@ def _install_manual_marking_actions(s):
 
     def copy_from_other_saved_project():
         """Select one saved group; wait for the operator's target anchor."""
-        nonlocal pending_copy
+        nonlocal pending_copy, copy_rejection
         from hashlib import sha256
         from pathlib import Path
         from tkinter import filedialog, simpledialog
@@ -1550,17 +1550,16 @@ def _install_manual_marking_actions(s):
             getattr(s.host, "project_controller", None), "project_path", None,
         )
         if not target_project:
-            s.manual_mark_status.configure(
-                text="跨板複製：請先儲存目標專案，再選擇其他已存來源", fg="#ff453a",
-            )
-            return False
-        source_project = filedialog.askopenfilename(
-            parent=s.editor, title="選擇有手動打標的來源專案 .p6fold",
-            filetypes=(("WHD 專案", "*.p6fold"),),
-        )
-        if not source_project:
+            copy_rejection = "跨板複製：請先儲存目標專案，再選擇其他已存來源"
+            checked_redraw()
             return False
         try:
+            source_project = filedialog.askopenfilename(
+                parent=s.editor, title="選擇有手動打標的來源專案 .p6fold",
+                filetypes=(("WHD 專案", "*.p6fold"),),
+            )
+            if not source_project:
+                return False
             source_path = Path(source_project).resolve(strict=True)
             target_path = Path(target_project).resolve(strict=True)
             source_sha = sha256(source_path.read_bytes()).hexdigest()
@@ -1601,9 +1600,10 @@ def _install_manual_marking_actions(s):
                       "跨板複製：點選目標交點" if kind == "cross" else
                       "跨板複製：點選目標群組中心") + "（Esc 取消）"
         except (ValueError, TypeError, KeyError, OSError, RuntimeError) as exc:
-            s.manual_mark_status.configure(
-                text="跨板複製被拒絕：" + str(exc), fg="#ff453a",
-            )
+            # No copy is pending yet. Preserve the warning on passive
+            # redraw without disabling Confirm for unrelated valid edits.
+            copy_rejection = "跨板複製被拒絕：" + str(exc)
+            checked_redraw()
             return False
         draw_mode("copy")
         pending_copy = {

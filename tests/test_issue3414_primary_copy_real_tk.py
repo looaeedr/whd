@@ -119,6 +119,64 @@ def test_primary_true_canvas_target_selected_saved_group_copy_undo_reopen_normal
             assert "目標群組中心" in state.manual_mark_status.cget("text")
 
         source_before, target_before = origin.read_bytes(), destination.read_bytes()
+
+        # Keep an unrelated valid hole draft while exercising the real
+        # Copy button's file-selection stage (not canvas placement).
+        state.selected_catalog_text.set("＋ 自訂圓孔")
+        state.var_d.set("6")
+        state.var_blind.set(False)
+        state.insert_btn.invoke()
+        click_target(Vec2(200, 140))
+        assert len(state.live_context.feature_list) == 2
+        assert not any(api.is_manual_group(f) for f in state.live_context.feature_list)
+        if state.insert_mode[0]:
+            state.insert_btn.invoke()
+        root.update()
+        unrelated = state.hole_session.snapshot()
+        assert str(state.confirm_all_btn.cget("state")) == "normal"
+
+        # Canceling the chooser is not a rejected source.
+        monkeypatch.setattr(filedialog, "askopenfilename", lambda **kw: "")
+        state.manual_mark_copy_button.invoke()
+        root.update()
+        state.canvas.event_generate("<Configure>")
+        root.update()
+        assert not state.manual_mark_status.cget("text")
+        assert not state.manual_mark_mode[0]
+        assert state.hole_session.snapshot() == unrelated
+
+        # Replace the selected saved source with another valid project
+        # containing no manual group, before opening the file chooser.
+        clean_source = _configured("受電箱")
+        clean_source["part_features"] = {"base_plate": []}
+        clean_source["workspace"] = {"part_features": {"base_plate": []}}
+        write_project(origin, {"schema": PROJECT_SCHEMA, "snapshot": clean_source})
+        clean_bytes = origin.read_bytes()
+        assert not read_project(origin)["snapshot"]["part_features"]["base_plate"]
+        monkeypatch.setattr(filedialog, "askopenfilename", lambda **kw: str(origin))
+        state.manual_mark_copy_button.invoke()
+        root.update()
+        selection_warning = state.manual_mark_status.cget("text")
+        assert "MANUAL_COPY_SOURCE_GROUP_MISSING" in selection_warning
+        assert not state.manual_mark_mode[0]
+        state.canvas.event_generate("<Configure>")
+        root.update()
+        assert state.manual_mark_status.cget("text") == selection_warning
+        assert str(state.confirm_all_btn.cget("state")) == "normal"
+        assert state.hole_session.snapshot() == unrelated
+        assert origin.read_bytes() == clean_bytes
+        assert destination.read_bytes() == target_before
+
+        # A deliberate tool selection clears the warning, not the draft.
+        state.manual_mark_select_button.invoke()
+        root.update()
+        assert not state.manual_mark_status.cget("text")
+        assert state.hole_session.snapshot() == unrelated
+        state.undo_btn.invoke()
+        root.update()
+        assert tuple(state.live_context.feature_list) == (existing_hole,)
+        origin.write_bytes(source_before)
+
         # Source selection alone never inserts a draft or Undo action.
         depth = state.hole_session.snapshot().undo_depth
         choose()
