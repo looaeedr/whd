@@ -229,6 +229,22 @@ def create_physical_manual_marking_group(
     if context is None or part_key != context.part_key:
         raise ValueError("MANUAL_GROUP_PHYSICAL_ID_CHANGED")
     require_first_sheet_manual_marking_render(part_key, context.render_data)
+    result = _build_manual_marking_group(
+        kind=kind, center=center, arm_x=arm_x, arm_y=arm_y,
+        spacing_x=spacing_x, spacing_y=spacing_y, pattern=pattern, dash=dash,
+        gap=gap, angle=angle, mirror_vertical=mirror_vertical,
+    )
+    validate_physical_manual_markings(
+        part_key, context.render_data, tuple(existing_features)+(result,),
+        surface=context.feature_surface, width=context.width, height=context.height,
+    )
+    return result
+
+
+def _build_manual_marking_group(
+    *, kind, center, arm_x, arm_y, spacing_x=0, spacing_y=0,
+    pattern="solid", dash=10, gap=5, angle=0, mirror_vertical=False,
+):
     if kind not in KINDS or not isinstance(center, Vec2):
         raise ValueError("MANUAL_GROUP_INVALID_KIND_OR_CENTER")
     params = dict(kind=kind, group_id=uuid4().hex,
@@ -241,18 +257,22 @@ def create_physical_manual_marking_group(
         offset=center, layer="MARKING", source_type=MANUAL_GROUP_SOURCE,
         rotation_deg=0,
     )
-    result = _rebuild(empty, params)
-    validate_physical_manual_markings(
-        part_key, context.render_data, tuple(existing_features)+(result,),
-        surface=context.feature_surface, width=context.width, height=context.height,
-    )
-    return result
+    return _rebuild(empty, params)
 
 
 def edit_physical_manual_group(feature, *, member_id=None, offset_x=None, offset_y=None,
                                spacing_x=None, spacing_y=None, arm_x=None, arm_y=None,
                                angle=None, mirror_vertical=None, center=None,
-                               part_key=None, context=None, existing_features=None):
+                               part_key=None, context=None, existing_features=None,
+                               marking_draft=None):
+    from .operator_selected_marking_receipt import SelectedPhysicalMarkingReceipt
+    selected = isinstance(marking_draft, SelectedPhysicalMarkingReceipt)
+    if selected:
+        if (marking_draft.output_capability != "verified_normal"
+                or part_key != marking_draft.part_key or existing_features is None
+                or not any(row is feature for row in existing_features)):
+            raise ValueError("MANUAL_GROUP_PHYSICAL_ID_CHANGED")
+        context = None
     p = _parameters(feature)
     changes = {}
     for key, value in (("spacing_x", spacing_x), ("spacing_y", spacing_y),
@@ -283,4 +303,8 @@ def edit_physical_manual_group(feature, *, member_id=None, offset_x=None, offset
                 part_key, context.render_data, updated, surface=context.feature_surface,
                 width=context.width, height=context.height,
             )
+    if selected:
+        from .operator_physical_sheet_marking import validate_physical_sheet_marking_draft
+        updated = tuple(candidate if row is feature else row for row in existing_features)
+        validate_physical_sheet_marking_draft(marking_draft, updated)
     return candidate

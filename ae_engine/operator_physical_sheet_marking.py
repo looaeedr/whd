@@ -110,7 +110,14 @@ def validate_physical_sheet_marking_draft(draft, features):
         parts = tuple(features)
         role_rows = tuple(row for row in parts if not is_manual_mark(row))
         accepted_role = propose_operator_physical_sheet_hole_features(draft.part_key, draft.context, role_rows)
-        marks = draft.validate(tuple(row for row in parts if is_manual_mark(row)))
+        from .operator_manual_marking import _validate_manual_strokes
+        candidates = tuple(row for row in parts if is_manual_mark(row))
+        marks = draft.validate(candidates)
+        if accepted_role and marks:
+            ctx = draft.context
+            _validate_manual_strokes(ctx.render_data, (*accepted_role, *marks), marks,
+                                     part_key=ctx.part_key, surface=ctx.feature_surface,
+                                     width=ctx.width, height=ctx.height)
         return (*accepted_role, *marks)
     ctx = _require_draft(draft)
     checked = propose_operator_physical_sheet_hole_features(ctx.part_key, ctx, features)
@@ -125,13 +132,21 @@ def create_physical_sheet_mark(draft, features, *, tool="line", **raw):
     """Produce a single candidate; the caller's draft and storage are untouched."""
     from .operator_selected_marking_receipt import SelectedPhysicalMarkingReceipt
     if isinstance(draft, SelectedPhysicalMarkingReceipt) and draft.output_capability == "verified_normal":
-        from .operator_manual_marking import is_manual_mark
-        if tool != "line" or raw.get("pattern", "solid") != "solid":
+        from .operator_manual_marking import _build_manual_round_feature, _build_manual_straight_feature
+        from .operator_manual_marking_groups import _build_manual_marking_group
+        if tool not in draft.allowed_tools:
             raise ValueError("PHYSICAL_SHEET_MARKING_TOOL_UNSUPPORTED")
-        return draft.create(
-            tuple(row for row in features if is_manual_mark(row)),
-            midpoint=raw["midpoint"], length=raw["length"], angle_deg=raw["angle_deg"],
-        )
+        if tool == "line":
+            feature = _build_manual_straight_feature(
+                raw["midpoint"], raw["length"], raw["angle_deg"],
+                raw.get("pattern", "solid"), raw.get("dash", 10.0), raw.get("gap", 5.0),
+            )
+        elif tool == "circle":
+            feature = _build_manual_round_feature(**raw)
+        else:
+            feature = _build_manual_marking_group(kind=tool, **raw)
+        validate_physical_sheet_marking_draft(draft, (*features, feature))
+        return feature
     ctx = _require_draft(draft)
     if tool not in draft.allowed_tools:
         raise ValueError("PHYSICAL_SHEET_MARKING_TOOL_UNSUPPORTED")

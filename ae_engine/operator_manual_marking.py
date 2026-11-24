@@ -426,18 +426,22 @@ def create_physical_manual_round_marking(part_key, context, existing_features, *
     from .physical_sheet_editor_context import PhysicalSheetEditorContext
     if not isinstance(context, PhysicalSheetEditorContext) or context.part_key != part_key:
         raise ValueError("ROUND_MARKING_PHYSICAL_OWNER_MISMATCH")
-    if not isinstance(centre, Vec2):
-        raise ValueError("ROUND_MARKING_CENTRE_INVALID")
-    mark = CircleFeature(
-        _finite(diameter, "直徑", positive=True), FeatureAnchor.ABSOLUTE_FINISHED_FACE,
-        Vec2(_finite(centre.x, "圓心 X"), _finite(centre.y, "圓心 Y")), "MARKING",
-        source_type=MANUAL_ROUND_MARK_SOURCE,
-    )
+    mark = _build_manual_round_feature(centre, diameter)
     validate_physical_manual_markings(
         part_key, context.render_data, tuple(existing_features) + (mark,),
         surface=context.feature_surface, width=context.width, height=context.height,
     )
     return mark
+
+
+def _build_manual_round_feature(centre, diameter):
+    if not isinstance(centre, Vec2):
+        raise ValueError("ROUND_MARKING_CENTRE_INVALID")
+    return CircleFeature(
+        _finite(diameter, "直徑", positive=True), FeatureAnchor.ABSOLUTE_FINISHED_FACE,
+        Vec2(_finite(centre.x, "圓心 X"), _finite(centre.y, "圓心 Y")), "MARKING",
+        source_type=MANUAL_ROUND_MARK_SOURCE,
+    )
 
 
 def _validate_round_marking(scene, material, circle):

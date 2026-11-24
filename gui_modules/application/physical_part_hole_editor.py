@@ -210,7 +210,7 @@ def _open_owner_bound_workspace_marking_editor(host, key, *, editing_context, ro
     return _present_physical_sheet_editor(
         host, key, operator_part_label(key, snapshot=snapshot), editing_context,
         (*role_features, *saved_marks), modal, confirm,
-        solid_marking_only=(opened.output_capability == "verified_normal"),
+        solid_marking_only=("circle" not in modal.allowed_tools),
     )
 
 

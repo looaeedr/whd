@@ -60,13 +60,16 @@ def _read_current(snapshot, geometry, part_key):
     from . import manufacturing_api as api
     require_ordinary_selected_marking_stock(snapshot, geometry, part_key)
     receipt = api.open_physical_sheet_marking(part_key, snapshot=snapshot, geometry=geometry)
+    if receipt.output_capability == "check_only":
+        # Here the ordinary selected stock gate above has already passed;
+        # publication still additionally requires _verify_original.
+        receipt = replace(receipt, output_capability="verified_normal")
     draft = open_workspace_owner_marking_draft(snapshot, receipt)
     if not draft.saved_marks:
         raise ValueError("OWNER_MARKING_PERSISTED_RECORD_REQUIRED")
 
-    # Reuse the canonical straight MARKING source; layered profiles were
-    # audited against the entire stroke and real holes by receipt.validate.
-    # Nothing here changes the source scene, material, folds or inventory.
+    # Resolve the audited typed intent through the existing physical feature
+    # path. Nothing here changes the source scene, material, folds or inventory.
     if receipt.output_capability == "existing_normal":
         from .physical_sheet_features import with_physical_sheet_features
         original = tuple(receipt.source._render.scene.primitives)
@@ -75,7 +78,9 @@ def _read_current(snapshot, geometry, part_key):
             raise ValueError("OWNER_MARKING_SELECTED_INK_CHANGED")
         ink = tuple(marked.scene.primitives[len(original):])
     else:
-        ink = project_selected_physical_marking_features(receipt.source, draft.saved_marks)
+        ink = project_selected_physical_marking_features(
+            receipt.source, draft.saved_marks, _allow_shapes=True,
+        )
     return receipt, draft, VerifiedOwnerMarkingCandidate(
         part_key, receipt.owner_id, receipt.source_sha256, ink,
         receipt.output_capability == "existing_normal",
