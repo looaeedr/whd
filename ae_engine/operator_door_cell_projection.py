@@ -149,32 +149,44 @@ def project_operator_door_cell_baseline(
     )
     if not baseline_model or not ae.has_baseline_part(baseline_model, "門.dxf"):
         return None, ae.baseline_source_label("", "門.dxf")
-    source_fp = ae.baseline_source_fingerprint(
-        ae.baseline_expected_path(baseline_model, "門.dxf")
-    )
-    key = (
-        source_fp, family_model, baseline_model,
-        float(cell_width), float(cell_height),
-        float(values["t"]), float(values["fw"]),
-        float(values["door_gap_w"]), float(values["door_gap_h"]),
-        float(values["door_fold_l"]), float(values["door_fold_r"]),
-        float(values["door_fold_t"]), float(values["door_fold_b"]),
-        bool(frame_edges.left), bool(frame_edges.right),
-        bool(frame_edges.top), bool(frame_edges.bottom),
-    )
-    if cache is not None and key in cache:
-        return cache[key], ae.baseline_source_label(baseline_model, "門.dxf")
     try:
-        material_fw = cabinet_family_policy.door_material_frame_width(
-            family_model,
-            frame_width=float(values["fw"]), thickness=float(values["t"]),
+        # Source validation precedes the fingerprint/cache lookup.  A cached
+        # visible DXF preview must not reauthorize bool(True) as a 1-mm plate
+        # or allow NaN/Inf to leak into the baseline stretcher.
+        from .operator_settings_transactions import (
+            normalize_operator_source_dimension,
         )
+        from .door_operator_part_spec import _finite_operator_number
+
+        w = normalize_operator_source_dimension(cell_width, field="w")
+        h = normalize_operator_source_dimension(cell_height, field="h")
+        t = normalize_operator_source_dimension(values["t"], field="t")
+        fw = normalize_operator_source_dimension(values["fw"], field="fw")
+        gap_w = _finite_operator_number(values["door_gap_w"], "door_gap_w")
+        gap_h = _finite_operator_number(values["door_gap_h"], "door_gap_h")
+        fold_l = _finite_operator_number(values["door_fold_l"], "door_fold_l")
+        fold_r = _finite_operator_number(values["door_fold_r"], "door_fold_r")
+        fold_t = _finite_operator_number(values["door_fold_t"], "door_fold_t")
+        fold_b = _finite_operator_number(values["door_fold_b"], "door_fold_b")
+        material_fw = cabinet_family_policy.door_material_frame_width(
+            family_model, frame_width=fw, thickness=t,
+        )
+        source_fp = ae.baseline_source_fingerprint(
+            ae.baseline_expected_path(baseline_model, "門.dxf")
+        )
+        key = (
+            source_fp, family_model, baseline_model, w, h, t, fw,
+            gap_w, gap_h, fold_l, fold_r, fold_t, fold_b,
+            bool(frame_edges.left), bool(frame_edges.right),
+            bool(frame_edges.top), bool(frame_edges.bottom),
+        )
+        if cache is not None and key in cache:
+            return cache[key], ae.baseline_source_label(baseline_model, "門.dxf")
+
         data = ae.get_stretched_door_data(
             baseline_model,
-            cell_width, cell_height, values["t"], material_fw,
-            values["door_gap_w"], values["door_gap_h"],
-            values["door_fold_l"], values["door_fold_r"],
-            values["door_fold_t"], values["door_fold_b"],
+            w, h, t, material_fw,
+            gap_w, gap_h, fold_l, fold_r, fold_t, fold_b,
             frame_edges=frame_edges,
             nameplate_center_datum_top=(
                 cabinet_family_policy.door_nameplate_center_datum_top(family_model)
