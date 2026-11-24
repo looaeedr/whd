@@ -294,17 +294,16 @@ def build_part_scene(
                 )
                 scene = data.scene
             elif resolved.corner_policy is not None:
-                # A certified Receiving Head relief may restore stock as well
+                # Certified Receiving EndCap relief may restore stock as well
                 # as trim it. Identify the producer-owned shell explicitly;
                 # coverage of the restored polygon cannot identify old ink.
-                receiving_head = (
-                    not resolved.is_tail
-                    and cabinet_family_policy.canonical_family_name(resolved.model_name) == "受電箱"
+                receiving_endcap = (
+                    cabinet_family_policy.canonical_family_name(resolved.model_name) == "受電箱"
                 )
                 scene = _call(
                     ae._build_unknown_end_cap_scene,
                     corner_policy=resolved.corner_policy,
-                    **({"outline_semantic_id": "OUTER_BOUNDARY"} if receiving_head else {}),
+                    **({"outline_semantic_id": "OUTER_BOUNDARY"} if receiving_endcap else {}),
                     **common,
                 )
             else:
