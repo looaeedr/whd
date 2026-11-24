@@ -562,6 +562,38 @@ def _bound_endcap_corner_bends(part_spec, scene, material, corner_key):
     return (*sources, x_angle, y_angle)
 
 
+def _bound_vault_tail_v90_corner_bends(part_spec, scene, material, corner_key):
+    """The illustrated bilateral sharp/Ø4 CHECK cannot consume non-90 folds."""
+    if not (part_spec.fold_profile_x or part_spec.fold_profile_y):
+        # No source override: the established Factory V90 path remains.
+        return _physical_corner_bends(scene, material, corner_key)
+    try:
+        *sources, angle_x, angle_y = _bound_endcap_corner_bends(
+            part_spec, scene, material, corner_key,
+        )
+    except GeometryError as exc:
+        if str(exc) == "V_MITER_GUI_PARTSPEC_BEND_SOURCE_MISMATCH":
+            raise GeometryError(
+                "V_MITER_FIRST_BEND_SOURCE_CHANGED_RESELECT_REQUIRED"
+            ) from exc
+        raise
+    if any(abs(abs(angle) - 90.) > 1e-8 for angle in (angle_x, angle_y)):
+        raise GeometryError("V_MITER_VAULT_TAIL_V90_AUTHORED_FOLD_NOT_90_DEG")
+    if angle_x * angle_y <= 0:
+        raise GeometryError("V_MITER_VAULT_TAIL_V90_AUTHORED_FOLD_OPPOSITE_SENSE")
+    # The specialized mesh still uses signed Factory moves. Both
+    # authored signs can be inverted while preserving their mutual
+    # sense and finite line geometry; that is not the same source move.
+    from dataclasses import replace
+    canonical = replace(part_spec, fold_profile_x=(), fold_profile_y=())
+    *_, factory_x, factory_y = _bound_endcap_corner_bends(
+        canonical, scene, material, corner_key,
+    )
+    if abs(angle_x - factory_x) > 1e-8 or abs(angle_y - factory_y) > 1e-8:
+        raise GeometryError("V_MITER_VAULT_TAIL_V90_AUTHORED_FOLD_SENSE_UNSUPPORTED")
+    return tuple(sources)
+
+
 def _endcap_existing_fold_angle_sources(part_spec: EndCapPartSpec, part_key: str):
     """Reuse canonical authored Fold; if missing, Engine's *existing* Factory Fold.
 

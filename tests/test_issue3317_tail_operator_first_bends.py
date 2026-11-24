@@ -286,3 +286,44 @@ def test_only_active_v_final_scene_may_override_bend_labels(actual_tail):
         api.project_operator_tail_lower_v_first_bend_options(
             spec, raw, active_v_render_data=changed,
         )
+
+
+def test_same_finite_bends_do_not_authorize_changed_signed_angles(actual_tail, tmp_path):
+    from ae_engine.v_miter_operator_gui_check import _endcap_existing_fold_angle_sources
+
+    spec, raw = actual_tail
+    snapshot, saved = _selected(spec, raw, "y")
+    saved_key = api.TAIL_LOWER_V_FIRST_BENDS_KEY
+    path = write_project(tmp_path / "authored-angle-source.p6fold", {
+        "schema": PROJECT_SCHEMA, "snapshot": saved,
+    })
+    reopened = read_project(path)["snapshot"]
+    assert reopened[saved_key] == saved[saved_key]
+    x, y = _endcap_existing_fold_angle_sources(spec, "tail")
+    changes = [
+        (x, tuple(replace(p, angle=-60.) if p.phase6_key == "ybottom1" else p for p in y),
+         "AUTHORED_FOLD_NOT_90"),
+        (tuple(replace(p, angle=-p.angle) if p.angle is not None else p for p in x),
+         tuple(replace(p, angle=-p.angle) if p.angle is not None else p for p in y),
+         "AUTHORED_FOLD_SENSE_UNSUPPORTED"),
+    ]
+    raw_bends = tuple(p for p in raw.scene.primitives if p.layer == "BEND")
+    for authored_x, authored_y, code in changes:
+        changed = replace(spec, fold_profile_x=authored_x, fold_profile_y=authored_y)
+        with pytest.raises(GeometryError, match=code):
+            api.commit_operator_tail_lower_v_first_bends(
+                snapshot, dict.fromkeys(("bottom_left", "bottom_right"), "y"),
+                spec=changed, render_data=raw,
+            )
+        with pytest.raises(GeometryError, match=code):
+            api.validate_operator_tail_lower_v_first_bends(
+                reopened[saved_key], spec=changed, render_data=raw,
+            )
+        with pytest.raises(GeometryError, match=code):
+            api.build_operator_tail_d4_check_from_original(
+                changed, original_render_data=raw,
+            )
+        assert tuple(p for p in raw.scene.primitives if p.layer == "BEND") == raw_bends
+    assert api.validate_operator_tail_lower_v_first_bends(
+        reopened[saved_key], spec=spec, render_data=raw,
+    ) == "y"
