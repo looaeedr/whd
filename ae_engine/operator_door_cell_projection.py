@@ -32,20 +32,43 @@ def project_operator_door_cell_result(
     An older headless caller may still supply pre-resolved material FW, but
     the two mutually exclusive sources can never silently override each other.
     """
+    # Qualify physical W/H/T and all four authored folds before building the
+    # canonical structural scene.  The low-level legacy builder historically
+    # accepted float(True) as a 1-mm face/fold; the operator PartSpec never does.
+    from .operator_settings_transactions import normalize_operator_source_dimension
+    from .door_operator_part_spec import _finite_operator_number
+
+    w = normalize_operator_source_dimension(cell_width, field="w")
+    h = normalize_operator_source_dimension(cell_height, field="h")
+    t = normalize_operator_source_dimension(values["t"], field="t")
+    gaps_folds = {
+        key: _finite_operator_number(values[key], key)
+        for key in (
+            "door_gap_w", "door_gap_h",
+            "door_fold_l", "door_fold_r", "door_fold_t", "door_fold_b",
+        )
+    }
     if family_model is not None and material_frame_width is not None:
         raise ValueError("DOOR_CELL_PREVIEW_COMPETING_FRAME_WIDTH_SOURCES")
     if family_model is not None:
         material_frame_width = cabinet_family_policy.door_material_frame_width(
-            family_model, frame_width=values["fw"], thickness=values["t"],
+            family_model, frame_width=values["fw"], thickness=t,
         )
     elif material_frame_width is None:
         raise ValueError("DOOR_CELL_PREVIEW_FRAME_WIDTH_SOURCE_REQUIRED")
+    else:
+        # Existing headless callers supplying pre-resolved material FW must
+        # obey the same physical-type gate as Family-resolved callers.
+        material_frame_width = normalize_operator_source_dimension(
+            material_frame_width, field="fw",
+        )
     return build_door_result(
-        w=cell_width, h=cell_height, t=values["t"],
-        fw=material_frame_width,
-        gap_w=values["door_gap_w"], gap_h=values["door_gap_h"],
-        fold_left=values["door_fold_l"], fold_right=values["door_fold_r"],
-        fold_top=values["door_fold_t"], fold_bottom=values["door_fold_b"],
+        w=w, h=h, t=t, fw=material_frame_width,
+        gap_w=gaps_folds["door_gap_w"], gap_h=gaps_folds["door_gap_h"],
+        fold_left=gaps_folds["door_fold_l"],
+        fold_right=gaps_folds["door_fold_r"],
+        fold_top=gaps_folds["door_fold_t"],
+        fold_bottom=gaps_folds["door_fold_b"],
         frame_edges=frame_edges,
     )
 
