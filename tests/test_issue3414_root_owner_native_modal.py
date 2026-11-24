@@ -185,7 +185,7 @@ def test_established_ordinary_left_cursor_first_confirm_and_replacement_isolated
         _actual_editor_confirm(editor)
         root.update()
         assert not editor.winfo_exists()
-        _, copy_snapshot = save_path("owned-saved-group")
+        group_path, copy_snapshot = save_path("owned-saved-group")
         from ae_engine.operator_manual_marking_copy import _saved_source_features
         assert _saved_source_features(copy_snapshot) == grouped
 
@@ -246,6 +246,120 @@ def test_established_ordinary_left_cursor_first_confirm_and_replacement_isolated
         assert tuple(app.final_scene_view.last_cutting_mesh) == installed_mesh
         assert shown == amber() + tuple(path for _, path in projected)
         assert marked_dxf.read_bytes() == previous_bytes
+
+        # Exercise the actual Copy chooser from this owner-bound Save As
+        # source, not an old role-only .p6fold fixture. It must list the one
+        # group under its saved ID, then reject if source bytes drift.
+        group_source, = tuple(row for row in grouped if api.is_manual_group(row))
+        source_bytes, destination_bytes = group_path.read_bytes(), legacy.read_bytes()
+        from hashlib import sha256
+        assert api.list_saved_manual_marking_copy_groups(
+            source_snapshot=copy_snapshot,
+            source_project_path=group_path,
+            source_project_sha256=sha256(source_bytes).hexdigest(),
+        ) == (api.group_parameters(group_source)["group_id"],)
+
+        # Real Save As changes the project path, not the physical occupant.
+        alias_path, same_snapshot = save_path("different-path-same-physical-occupant")
+        assert alias_path != group_path
+        assert api.resolve_workspace_physical_root_owner(same_snapshot, key) == owner
+        alias_bytes = alias_path.read_bytes()
+        open_path(alias_path)
+        editor, state = edit()
+        monkeypatch.setattr(filedialog, "askopenfilename", lambda **kw: str(group_path))
+        state.manual_mark_copy_button.invoke()
+        root.update()
+        assert "MANUAL_COPY_SAME_PHYSICAL_OWNER" in state.manual_mark_status.cget("text")
+        assert tuple(state.live_context.feature_list) == grouped
+        assert not state.manual_mark_mode[0]
+        state.cancel_all_btn.invoke()
+        root.update()
+        assert alias_path.read_bytes() == alias_bytes and group_path.read_bytes() == source_bytes
+
+        open_path(legacy)
+        editor, state = edit()
+        monkeypatch.setattr(filedialog, "askopenfilename", lambda **kw: str(group_path))
+        state.manual_mark_copy_button.invoke()
+        root.update()
+        assert "目標轉角" in state.manual_mark_status.cget("text")
+        x, y = state.canvas_view.transform.world_to_canvas(Vec2(200, 140))
+        canvas = host.last_hole_editor_canvas
+
+        def copy_click(event_time):
+            canvas.event_generate("<ButtonPress-1>", x=round(x), y=round(y), time=event_time)
+            canvas.event_generate("<ButtonRelease-1>", x=round(x), y=round(y), time=event_time)
+            root.update()
+
+        group_path.write_bytes(source_bytes + b"\n")
+        copy_click(9000)
+        assert "SOURCE_SAVED_SOURCE_CHANGED" in state.manual_mark_status.cget("text")
+        assert not any(api.is_manual_mark(f) for f in state.live_context.feature_list)
+        group_path.write_bytes(source_bytes)
+        state.manual_mark_copy_button.invoke()
+        root.update()
+        copy_click(9650)
+        cloned, = tuple(row for row in state.live_context.feature_list if api.is_manual_group(row))
+        orig_params, copy_params = map(api.group_parameters, (group_source, cloned))
+        assert orig_params.pop("group_id") != copy_params.pop("group_id")
+        assert orig_params == copy_params and group_source.offset != cloned.offset
+        _actual_editor_confirm(editor)
+        root.update()
+        assert not editor.winfo_exists()
+        new_owner = api.resolve_workspace_physical_root_owner(current(), key)
+        assert new_owner is not None and new_owner != owner
+        assert api.read_workspace_marking_owner_record(current(), new_owner)["features"] == (cloned,)
+        assert group_path.read_bytes() == source_bytes and legacy.read_bytes() == destination_bytes
+
+        target_path, target_snapshot = save_path("owned-copy-target")
+        target_bytes = target_path.read_bytes()
+        assert target_snapshot[KEY]["records"][new_owner]["features"] == (cloned,)
+        open_path(target_path)
+        editor, state = edit()
+
+        def arm_owned_target():
+            monkeypatch.setattr(filedialog, "askopenfilename", lambda **kw: str(group_path))
+            state.manual_mark_copy_button.invoke()
+            root.update()
+            assert "目標轉角" in state.manual_mark_status.cget("text")
+
+        def owned_click(position, event_time):
+            x, y = state.canvas_view.transform.world_to_canvas(position)
+            canv = host.last_hole_editor_canvas
+            canv.event_generate("<ButtonPress-1>", x=round(x), y=round(y), time=event_time)
+            canv.event_generate("<ButtonRelease-1>", x=round(x), y=round(y), time=event_time)
+            root.update()
+
+        arm_owned_target()
+        assert app.remove_part(key)
+        app.add_part(key)
+        root.update()
+        changed_owner = api.resolve_workspace_physical_root_owner(current(), key)
+        assert changed_owner and changed_owner != new_owner
+        owned_click(Vec2(290, 140), 10800)
+        assert "TARGET_EDITOR_SESSION_STALE" in state.manual_mark_status.cget("text")
+        assert tuple(f for f in state.live_context.feature_list if api.is_manual_group(f)) == (cloned,)
+        assert api.read_workspace_marking_owner_record(current(), new_owner)["features"] == (cloned,)
+        assert api.read_workspace_marking_owner_record(current(), changed_owner) is None
+        state.cancel_all_btn.invoke()
+        root.update()
+        assert target_path.read_bytes() == target_bytes
+
+        open_path(target_path)
+        editor, state = edit()
+        arm_owned_target()
+        owned_click(Vec2(290, 140), 11600)
+        retained, appended = tuple(row for row in state.live_context.feature_list if api.is_manual_group(row))
+        assert retained == cloned
+        assert len({api.group_parameters(row)["group_id"] for row in (group_source, retained, appended)}) == 3
+        owned_click(Vec2(320, 140), 12200)  # no implicit second paste
+        assert tuple(row for row in state.live_context.feature_list if api.is_manual_group(row)) == (retained, appended)
+        _actual_editor_confirm(editor)
+        root.update()
+        assert not editor.winfo_exists()
+        assert api.resolve_workspace_physical_root_owner(current(), key) == new_owner
+        assert api.read_workspace_marking_owner_record(current(), new_owner)["features"] == (retained, appended)
+        assert group_path.read_bytes() == source_bytes and target_path.read_bytes() == target_bytes
+        open_path(group_path)
         editor, state = edit()
         state.selected_catalog_text.set("＋ 自訂圓孔")
         state.var_d.set("6")
