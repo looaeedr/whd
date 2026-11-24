@@ -3388,6 +3388,8 @@ from .operator_physical_sheet_marking import (
     open_physical_sheet_marking,
     create_physical_sheet_mark,
     move_physical_sheet_round_mark,
+    is_manual_straight_mark,
+    move_physical_sheet_straight_mark,
     validate_physical_sheet_marking_draft,
     commit_physical_sheet_marking,
     propose_legacy_root_occupancy_for_mark_confirm,

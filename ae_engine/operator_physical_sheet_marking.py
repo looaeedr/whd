@@ -179,6 +179,47 @@ def move_physical_sheet_round_mark(draft, features, *, selected_index, centre):
     return moved
 
 
+def is_manual_straight_mark(feature):
+    """Identify typed operator straight ink, never automatic or grouped marks."""
+    from .sheetmetal_features import ProfileFeature
+    return (isinstance(feature, ProfileFeature)
+            and feature.source_type == MANUAL_MARK_SOURCE
+            and feature.layer == "MARKING")
+
+
+def move_physical_sheet_straight_mark(draft, features, *, selected_index, displacement):
+    """Translate the saved whole stroke and exact literal ink together."""
+    from dataclasses import replace
+    from .operator_manual_marking import _finite, _source_pattern
+    from .sheetmetal_geometry import Vec2
+
+    rows = tuple(features)
+    if (type(selected_index) is not int or not 0 <= selected_index < len(rows)
+            or not is_manual_straight_mark(rows[selected_index])):
+        raise ValueError("STRAIGHT_MARKING_SELECTED_SOURCE_REQUIRED")
+    if "line" not in getattr(draft, "allowed_tools", ()):
+        raise ValueError("PHYSICAL_SHEET_MARKING_TOOL_UNSUPPORTED")
+    if not isinstance(displacement, Vec2):
+        raise ValueError("STRAIGHT_MARKING_DISPLACEMENT_REQUIRED")
+    dx = _finite(displacement.x, "移動 X")
+    dy = _finite(displacement.y, "移動 Y")
+    original = rows[selected_index]
+    _source_pattern(original)  # Verify the exact saved phase before moving it.
+
+    def moved_point(point):
+        return Vec2(point.x + dx, point.y + dy)
+
+    moved = replace(
+        original, points=tuple(moved_point(p) for p in original.points),
+        layered_profiles=tuple((layer, tuple(moved_point(p) for p in points), closed)
+                               for layer, points, closed in original.layered_profiles),
+    )
+    validate_physical_sheet_marking_draft(
+        draft, (*rows[:selected_index], moved, *rows[selected_index + 1:]),
+    )
+    return moved
+
+
 def commit_physical_sheet_marking(current, opened, features):
     """Compare freshly resolved receipt and return an existing transport update."""
     _require_draft(opened)
