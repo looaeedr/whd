@@ -2909,6 +2909,18 @@ def _fix11_add_part(self, key):
             default_profiles=defaults,
             default_features=(),
         )
+        if (key == "head" and manufacturing_api.operator_canonical_family_name(
+                self._phase6_input_snapshot) == "受電箱"):
+            # First render and Save/Open must derive from the same physical
+            # presence, not the Designer snapshot from before EndCap Add.
+            source = self._phase6_input_snapshot
+            projected = manufacturing_api.project_operator_assembly_joint_snapshot(
+                source,
+                existing_parts=self.designer_workspace.snapshot()["existing_parts"],
+                assembly_type=assembly_intent_value(self._phase6_assembly_type),
+            )
+            for field in ("existing_parts", "assembly_joint_schema_version", "assembly_joints"):
+                source[field] = projected[field]
         self._refresh_part_buttons()
         self._refresh_add_part_menu()
     self.activate_part(key)
