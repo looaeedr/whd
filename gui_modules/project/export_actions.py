@@ -265,7 +265,7 @@ def _export_selected_resolved_parts(self, folder, flags, *, owner_guard_sink=Non
     marking_source = mode_source
     if workspace is not None:
         from gui_modules.application.physical_part_hole_editor import current_workspace_marking_source
-        marking_source = current_workspace_marking_source(designer)
+        marking_source = current_workspace_marking_source(designer) or mode_source
     if workspace is not None and active_mode == "quantity":
         manufacturing_api.require_existing_normal_owner_marking_route(marking_source, flags, ordinary=False)
         from phase6_manufacturing_adapter import (
@@ -385,7 +385,10 @@ def _export_selected_resolved_parts(self, folder, flags, *, owner_guard_sink=Non
         source_guard()
         if owner_session_guard is not None:
             owner_session_guard()
-        return current_workspace_marking_source(designer), geometry
+        snapshot = current_workspace_marking_source(designer)
+        if not snapshot:
+            raise ValueError("ROOT_MARKING_PROJECT_SOURCE_REQUIRED")
+        return snapshot, geometry
 
     outputs = manufacturing_api.save_selected_resolved_manufacturing_dxf(
         marking_source, resolved, flags, folder,

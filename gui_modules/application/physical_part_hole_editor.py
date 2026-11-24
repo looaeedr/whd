@@ -41,7 +41,7 @@ def open_workspace_sheet_editor(host, key, *, verified_only=False):
     legacy_marks = any(manufacturing_api.is_manual_mark(row) for row in features)
     if claim and legacy_marks:
         raise ValueError("ROOT_MARKING_SOURCE_STALE")
-    if (opened is not None or verified_only) and not legacy_marks:
+    if snapshot and (opened is not None or verified_only) and not legacy_marks:
         try:
             return _open_owner_bound_workspace_marking_editor(
                 host, key, editing_context=context, role_features=features,
@@ -93,10 +93,25 @@ def open_workspace_sheet_editor(host, key, *, verified_only=False):
 
 def current_workspace_marking_source(app):
     """Transport selected workspace authority; GUI does not classify records."""
+    from collections.abc import Mapping
     from ae_engine import manufacturing_api as api
 
-    snapshot = dict(app._phase6_input_snapshot)
-    state = app.designer_workspace.snapshot()
+    source = getattr(app, "_phase6_input_snapshot", None)
+    reader = getattr(getattr(app, "designer_workspace", None), "snapshot", None)
+    # The legacy independent sheet editor owns only surface + Features. It
+    # has no project-owned marking capability and must retain its hole path.
+    state = reader() if callable(reader) else None
+    if not isinstance(source, Mapping) or not isinstance(state, Mapping):
+        for readable in (source, state):
+            if not isinstance(readable, Mapping):
+                continue
+            nested = readable.get("workspace")
+            nested = nested if isinstance(nested, Mapping) else {}
+            raw = readable.get(api.ROOT_MARKING_STORE_KEY, nested.get(api.ROOT_MARKING_STORE_KEY))
+            if api.normalize_workspace_root_marking_store(raw)["records"]:
+                raise ValueError("ROOT_MARKING_PROJECT_SOURCE_REQUIRED")
+        return {}
+    snapshot = dict(source)
     for field in ("existing_parts", "part_features", api.ROOT_PHYSICAL_OCCUPANCY_KEY, api.ROOT_MARKING_STORE_KEY):
         if field in state:
             snapshot[field] = state[field]
@@ -125,6 +140,8 @@ def _open_owner_bound_workspace_marking_editor(host, key, *, editing_context, ro
         if key not in workspace.available_parts:
             raise ValueError("ROOT_MARKING_SELECTION_STALE")
         snapshot = current_workspace_marking_source(app)
+        if not snapshot:
+            raise ValueError("ROOT_MARKING_PROJECT_SOURCE_REQUIRED")
         if (expected_owner is not unset
                 and api.resolve_workspace_physical_root_owner(snapshot, key) != expected_owner):
             raise ValueError("ROOT_MARKING_OWNER_STALE")

@@ -2543,6 +2543,10 @@ from .receiving_factory_requests import (
     ReceivingFactoryConfirmedDoorHandoff,
     plan_receiving_factory_confirmed_door_handoff,
 )
+from .receiving_part_only_door_handoff import (
+    ReceivingPartOnlyDoorIndicatorIntent,
+    resolve_receiving_part_only_door_request,
+)
 
 
 def build_receiving_factory_confirmed_inner_door_frames(
