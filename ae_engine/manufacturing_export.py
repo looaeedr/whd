@@ -322,6 +322,11 @@ def _save_resolved_rows_atomic(
     require_dxf_overwrite_boolean(overwrite)
     # Check all physical-part evidence before any output path is created.
     rows = tuple(rows)
+    # #3414: selected-only saved marking source before any stage is created.
+    from .operator_manual_marking_batch import witness_selected_manual_marking_rows
+    marking_witness = witness_selected_manual_marking_rows(
+        (str(key), render) for key, _filename, render in rows
+    )
     _reject_unapproved_nfb_pad_ear_manufacturing(rows)
     for output_key, _, render_data in rows:
         reject_unverified_receiving_nfb_tier_base(
@@ -374,8 +379,10 @@ def _save_resolved_rows_atomic(
                         )
                     )
             staged[str(output_key)] = stage_path
+        marking_witness.assert_current()
         if pre_commit_guard is not None:
             pre_commit_guard()  # fail closed after Save→Reload, before replace
+        marking_witness.assert_current()
         if durable_stage_commit is not None:
             # Explicit private W-06 hook ONLY, after WHD owned Save->Reload
             # verification of ALL 1..20 staged physical DXFs. This path does
@@ -384,7 +391,12 @@ def _save_resolved_rows_atomic(
         return _atomic_commit_staged_dxfs(
             staged, root, overwrite=overwrite,
             pre_commit_guard=(
-                pre_commit_guard if guard_during_atomic_move else None
+                (lambda: (marking_witness.assert_current(),
+                          pre_commit_guard() if guard_during_atomic_move
+                          and pre_commit_guard is not None else None))
+                if marking_witness.selected else (
+                    pre_commit_guard if guard_during_atomic_move else None
+                )
             ),
         )
     finally:

@@ -63,7 +63,9 @@ def test_two_panels_and_multi_parts_one_dxf_full_primitive_reopen(tmp_path):
         panels, path, pre_commit_guard=lambda: validations.append("verified"),
     )
     assert result.path == str(path)
-    assert len(validations) == 2
+    # Original before-stage/after-stage guard plus 3 atomic boundary checks:
+    # before backups, before stage→target, and after replacement.
+    assert len(validations) == 5
     assert tuple(p.panel_name for p in result.sheets) == ("P1", "P2", "P2", "P2")
     assert tuple(p.physical_id for p in result.sheets) == (
         "tail", "box_body:left", "box_body:right", "door",

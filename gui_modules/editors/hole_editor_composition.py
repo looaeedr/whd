@@ -326,10 +326,14 @@ def _build_sidebar_workspace_state(s):
             edit_bar, text="鏡射（群組中心垂直軸）", bg="#3a3a44", fg="white",
         )
         s.manual_group_mirror.pack(side=d.tk.LEFT, padx=2)
+        s.manual_mark_copy_button = d.tk.Button(
+            edit_bar, text="從另存專案複製群組", bg="#3a3a44", fg="white",
+        )
+        s.manual_mark_copy_button.pack(side=d.tk.LEFT, padx=3)
         s.editor._manual_group_controls = (
             *s.manual_group_tools.values(), s.manual_group_apply_offset,
             s.manual_group_apply_size, s.manual_group_rotate,
-            s.manual_group_mirror,
+            s.manual_group_mirror, s.manual_mark_copy_button,
         )
     s.dragging = [False]
     s.editor_closed = [False]
@@ -1346,6 +1350,82 @@ def _install_manual_marking_actions(s):
     s.manual_group_apply_size.configure(command=edit_group_size)
     s.manual_group_rotate.configure(command=rotate_group)
     s.manual_group_mirror.configure(command=mirror_group)
+
+    def copy_from_other_saved_project():
+        """Operator selected current physical target + explicitly chosen file."""
+        from hashlib import sha256
+        from pathlib import Path
+        from tkinter import filedialog, simpledialog
+        from phase6_project_file import read_project
+
+        select_mode()
+        target_project = getattr(
+            getattr(s.host, "project_controller", None), "project_path", None,
+        )
+        if not target_project:
+            s.manual_mark_status.configure(
+                text="跨板複製：請先儲存目標專案，再選擇其他已存來源", fg="#ff453a",
+            )
+            return False
+        source_project = filedialog.askopenfilename(
+            parent=s.editor, title="選擇有手動打標的來源專案 .p6fold",
+            filetypes=(("WHD 專案", "*.p6fold"),),
+        )
+        if not source_project:
+            return False
+        try:
+            source_path = Path(source_project).resolve(strict=True)
+            target_path = Path(target_project).resolve(strict=True)
+            source_sha = sha256(source_path.read_bytes()).hexdigest()
+            target_sha = sha256(target_path.read_bytes()).hexdigest()
+            source_data = read_project(source_path)["snapshot"]
+            target_data = read_project(target_path)["snapshot"]
+            source_rows = tuple((source_data.get("part_features") or {}).get("base_plate") or ())
+            candidates = tuple(
+                api.group_parameters(mark)["group_id"]
+                for mark in source_rows if api.is_manual_group(mark)
+            )
+            if not candidates:
+                raise ValueError("MANUAL_COPY_SOURCE_GROUP_MISSING")
+            if len(candidates) == 1:
+                selected_id = candidates[0]
+            else:
+                selected_id = simpledialog.askstring(
+                    "選擇打標群組", "來源有多個群組，請輸入要複製的群組 ID：\n"
+                    + "\n".join(candidates), parent=s.editor,
+                )
+                if selected_id is None:
+                    return False
+            clone = api.copy_saved_manual_marking_group_to_selected_sheet(
+                source_snapshot=source_data, source_project_path=source_path,
+                source_project_sha256=source_sha,
+                target_snapshot=target_data, target_project_path=target_path,
+                target_project_sha256=target_sha,
+                target_context=s.manual_marking_context,
+                target_features=tuple(s.live_context.feature_list),
+                source_group_id=selected_id,
+            )
+            # File dialogs and other callbacks must not change either saved
+            # physical source between Engine validation and Session insert.
+            if (sha256(source_path.read_bytes()).hexdigest() != source_sha
+                    or sha256(target_path.read_bytes()).hexdigest() != target_sha
+                    or getattr(s.host.project_controller, "project_path", None)
+                    != str(target_project)):
+                raise ValueError("MANUAL_COPY_SAVED_SOURCE_CHANGED")
+        except (ValueError, TypeError, KeyError, OSError, RuntimeError) as exc:
+            s.manual_mark_status.configure(
+                text="跨板複製被拒絕：" + str(exc), fg="#ff453a",
+            )
+            return False
+        s.hole_session.execute(HoleEditorAction.insert(clone))
+        s.hole_session.execute(HoleEditorAction.commit_active())
+        s.refresh_created()
+        s.sync_all()
+        s.redraw()
+        return True
+
+    s.manual_mark_copy_button.configure(command=copy_from_other_saved_project)
+    s.editor._manual_group_copy_from_saved = copy_from_other_saved_project
     select_mode()
     s.on_canvas_down = mark_down
     s.on_canvas_drag = safe_drag
