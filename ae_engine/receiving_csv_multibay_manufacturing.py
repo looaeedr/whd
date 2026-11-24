@@ -254,11 +254,12 @@ def export_current_receiving_multibay_dxf(
         if not callable(pre_commit_guard):
             raise ValueError("SCOPED_MARK_LIVE_SOURCE_GUARD_REQUIRED")
         original_snapshot = deepcopy(saved_snapshot)
-        original_flags = deepcopy(flags)
+        source_flags = flags
+        original_flags = deepcopy(source_flags)
 
         def scoped_guard():
             pre_commit_guard()
-            if saved_snapshot != original_snapshot or flags != original_flags:
+            if saved_snapshot != original_snapshot or source_flags != original_flags:
                 raise ValueError("SCOPED_MARK_SAVED_SOURCE_CHANGED_DURING_OUTPUT")
 
     layout=normalize_receiving_layout(saved_snapshot.get("receiving_layout"))
@@ -320,7 +321,13 @@ def export_current_receiving_multibay_dxf(
                 )
                 for si,bi in all_bays
             )
-    if len(all_bays)<1 or (len(all_bays)<2 and group_mode is None):
+    scoped_singleton = len(all_bays) == 1 and bool(scoped_marks)
+    if scoped_singleton:
+        from .manufacturing_export_selection import normalize_operator_selected_export_flags
+        # Use exactly the same checked intent as the scoped owner planner.
+        # Keep the original mutable caller source separately for the guard.
+        flags = normalize_operator_selected_export_flags(flags)
+    if not all_bays or (len(all_bays) < 2 and group_mode is None and not scoped_singleton):
         raise ValueError("RECEIVING_MULTIBAY_REQUIRES_MULTIPLE_PHYSICAL_BAYS")
     if not callable(physical_bay_geometry_provider):
         raise TypeError("RECEIVING_MULTIBAY_LIVE_BAY_RESOLVER_REQUIRED")
@@ -379,7 +386,7 @@ def export_current_receiving_multibay_dxf(
         is_csv=(source.get("nfb_config_submitted") is True
                 and not independent_core_with_nfb_pair)
         selected_logical=tuple(p for p in actual.parts
-            if (p.part_key.startswith("custom:")
+            if ((p.part_key.startswith("custom:") and not scoped_singleton)
                 or receiving_export_part_selected(p.part_key,flags))
             and not (nfb_pair_requests is not None and (
                 p.part_key.startswith("inner_door:")

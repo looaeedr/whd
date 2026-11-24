@@ -212,9 +212,14 @@ def plan_scoped_base_plate_normal_output(snapshot, flags, group_mode):
     saved = normalize_scoped_base_plate_marks(snapshot)
     if not saved:
         return {}
+    from .manufacturing_export_selection import normalize_operator_selected_export_flags
+    flags = normalize_operator_selected_export_flags(flags)
+    if not flags.get("base_plate"):
+        return {}
     owners = _current_owners(snapshot)
-    if (group_mode is not None or len(owners) < 2
-            or any(bool(value) for key, value in flags.items() if key != "base_plate")):
+    if (group_mode is not None or not owners
+            or snapshot.get("active_mode", "set_bay") != "set_bay"
+            or any(value for key, value in flags.items() if key != "base_plate")):
         require_scoped_base_plate_export_held(snapshot, flags)
     active = {owner: location for location, owner in owners.items() if owner is not None}
     if set(saved) - set(active):

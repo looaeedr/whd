@@ -36,7 +36,8 @@ def plan_receiving_multibay_export_source(
 ) -> ReceivingMultiBayExportPlan:
     """Choose original multi-Bay exporter; all actual DXF gates remain unchanged.
 
-    Ungrouped legacy one-Bay snapshots retain the established exporter.
+    Ungrouped legacy one-Bay snapshots retain the established exporter unless
+    a persisted, owner-scoped BasePlate mark must use the verified Bay sink.
     Explicit grouping includes a single physical Bay for any sheet selection;
     all NFB/CSV/EAR/PAD and FinalScene gates still run in the actual exporter.
     """
@@ -59,10 +60,18 @@ def plan_receiving_multibay_export_source(
         and not any(bool(value) for key, value in flags.items()
                     if key not in {"head", "tail", "door"})
     )
-    eligible = (
+    receiving_set_bay = (
         resolve_live_cabinet_family(saved_snapshot) == "受電箱"
         and saved_snapshot.get("active_mode", "set_bay") == "set_bay"
-        and (count > 1 or (count == 1 and group_mode is not None))
+    )
+    scoped_singleton = False
+    if receiving_set_bay and count == 1 and group_mode is None:
+        from .operator_scoped_base_plate_marks import plan_scoped_base_plate_normal_output
+        scoped_singleton = bool(plan_scoped_base_plate_normal_output(
+            saved_snapshot, flags, group_mode,
+        ))
+    eligible = receiving_set_bay and (
+        count > 1 or (count == 1 and group_mode is not None) or scoped_singleton
     )
     if not eligible:
         return ReceivingMultiBayExportPlan(False, count, independent, None)
