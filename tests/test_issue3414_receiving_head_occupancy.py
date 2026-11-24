@@ -143,3 +143,65 @@ def test_primary_head_occupant_file_menu_remove_readd(tmp_path, monkeypatch):
         assert workspace().features_for("head") == [hole]
     finally:
         root.destroy()
+
+
+def test_primary_family_selector_retires_head_and_allocates_on_return(tmp_path, monkeypatch):
+    """The real Family selector has a workspace port; standalone Settings does not."""
+    import tkinter as tk
+    from tkinter import filedialog
+    import gui
+
+    source, _ = _snapshot()
+    initial = _write(tmp_path / "family-initial.p6fold", source)
+    saved_path = tmp_path / "family-return.p6fold"
+    root = tk.Tk()
+    try:
+        host = gui.Phase6PrimaryApplication(root)
+        designer = host.fold_designer_app
+        menu = designer.project_file_menu
+        monkeypatch.setattr(filedialog, "askopenfilename", lambda **_: str(initial))
+        menu.invoke(0)
+        root.update_idletasks()
+        root.update()
+        assert host.project_controller.project_path == str(initial)
+
+        def live():
+            return _live(designer._phase6_input_snapshot, designer.designer_workspace)
+
+        first = live()[KEY]["active"]
+        assert first
+        assert api.receiving_head_occupant_status(live(), first) == "present"
+        designer.baseline_model_var.set("金庫型")
+        root.update_idletasks()
+        root.update()
+        assert designer.baseline_model_var.get() == "金庫型"
+        assert live()["model"] == "金庫型"
+        assert live()[KEY]["active"] is None
+        assert first in live()[KEY]["retired"]
+        assert api.receiving_head_occupant_status(live(), first) == "orphaned"
+
+        designer.baseline_model_var.set("受電箱")
+        root.update_idletasks()
+        root.update()
+        assert designer.baseline_model_var.get() == "受電箱"
+        assert live()["model"] == "受電箱"
+        assert "head" in designer.designer_workspace.available_parts
+        second = live()[KEY]["active"]
+        assert second and second != first
+        assert api.receiving_head_occupant_status(live(), first) == "orphaned"
+        assert api.receiving_head_occupant_status(live(), second) == "present"
+        assert not any(api.is_manual_mark(f) for f in designer.designer_workspace.features_for("head"))
+
+        monkeypatch.setattr(filedialog, "asksaveasfilename", lambda **_: str(saved_path))
+        menu.invoke(2)
+        root.update()
+        persisted = read_project(saved_path)["snapshot"]
+        assert persisted[KEY] == live()[KEY]
+        assert api.receiving_head_occupant_status(persisted, first) == "orphaned"
+        monkeypatch.setattr(filedialog, "askopenfilename", lambda **_: str(saved_path))
+        menu.invoke(0)
+        root.update()
+        assert host.project_controller.project_path == str(saved_path)
+        assert live()[KEY] == persisted[KEY]
+    finally:
+        root.destroy()

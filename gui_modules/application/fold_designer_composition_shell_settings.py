@@ -672,7 +672,10 @@ def settings_application_project_ui_values(
         return
 
     if baseline_stage == "commit" and plan is not None:
-        sync_occupancy = getattr(app.designer_workspace, "sync_head_occupancy", None)
+        # Standalone Family settings clients need not own a physical
+        # workspace. Only an actual Designer exposes this lifecycle port.
+        workspace = getattr(app, "designer_workspace", None)
+        sync_occupancy = getattr(workspace, "sync_head_occupancy", None)
         if callable(sync_occupancy):
             occupancy = sync_occupancy({**app._phase6_input_snapshot, "model": new_model})
             if occupancy is not None:
