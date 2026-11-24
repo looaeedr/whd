@@ -1136,7 +1136,7 @@ def _install_manual_marking_actions(s):
                     drag_origin[0] = (
                         id(s.live_context.feature_list),
                         s.hole_session.active_context_key,
-                        group_id, point, item.offset,
+                        ("group", idx, item), point, item.offset, item,
                     )
                     nearest = min(
                         ((hypot(point.x-corner.x, point.y-corner.y), member_id)
@@ -1225,7 +1225,12 @@ def _install_manual_marking_actions(s):
     def safe_up(event):
         grab = drag_origin[0]
         try:
-            if grab is not None and len(grab) == 6:
+            if grab is not None:
+                kind, _, source = grab[2]
+                if (kind == "group" and grab[-1] is source
+                        and s.canvas_view.canvas_to_world(event.x, event.y) == grab[3]):
+                    # A pure click arms a corner for double-click editing.
+                    return original_up(event)
                 # The release position is authoritative even if Tk
                 # coalesces away a final motion event.
                 safe_drag(event)
@@ -1251,66 +1256,47 @@ def _install_manual_marking_actions(s):
             grab = drag_origin[0]
             if grab is None:
                 return "break"
-            if len(grab) == 6:
-                list_id, context_key, (kind, selection, source), cursor_down, center_down, previous = grab
-                if (id(items) != list_id or s.hole_session.active_context_key != context_key
-                        or selection != idx or items[idx] is not previous):
-                    return "break"
-                label = "圓打標" if kind == "round" else "線打標"
-                if point is None:
-                    marking_rejection = label + "移動被拒絕：請在圖面內放置"
-                    s.redraw()
-                    return "break"
-                # Tk forwards only the actual cursor displacement.
-                dx, dy = point.x - cursor_down.x, point.y - cursor_down.y
-                try:
-                    if kind == "round":
-                        moved = api.move_physical_sheet_round_mark(
-                            s.manual_marking_draft, items, selected_index=idx,
-                            centre=type(center_down)(center_down.x + dx, center_down.y + dy),
-                        )
-                    else:
-                        # Every preview is relative to the press, not to the
-                        # last replaced row; release must not accumulate motion.
-                        original = (*items[:idx], source, *items[idx + 1:])
-                        moved = api.move_physical_sheet_straight_mark(
-                            s.manual_marking_draft, original, selected_index=idx,
-                            displacement=type(cursor_down)(dx, dy),
-                        )
-                except (ValueError, TypeError, RuntimeError) as exc:
-                    marking_rejection = label + "移動被拒絕：" + str(exc)
-                    s.redraw()
-                    return "break"
-                marking_rejection = None
-                s.hole_session.execute(HoleEditorAction.replace_selected(moved))
-                drag_origin[0] = (*grab[:-1], moved)
+            list_id, context_key, (kind, selection, source), cursor_down, center_down, previous = grab
+            if (id(items) != list_id or s.hole_session.active_context_key != context_key
+                    or selection != idx or items[idx] is not previous):
+                return "break"
+            label = {"round": "圓打標", "straight": "線打標", "group": "群組打標"}[kind]
+            if point is None:
+                marking_rejection = label + "移動被拒絕：請在圖面內放置"
                 s.redraw()
                 return "break"
-            if point is None or not api.is_manual_group(items[idx]):
-                return "break"
-            list_id, context_key, group_id, cursor_down, center_down = grab
-            if (list_id != id(items)
-                    or context_key != s.hole_session.active_context_key
-                    or group_id != api.group_parameters(items[idx])["group_id"]):
-                return "break"
-            # GUI only preserves the operator's grab delta: canonical
-            # full-arm and local-mm geometry stays in the Engine API.
-            center = type(center_down)(
-                center_down.x + point.x - cursor_down.x,
-                center_down.y + point.y - cursor_down.y,
-            )
+            # Tk forwards only the actual cursor displacement.
+            dx, dy = point.x - cursor_down.x, point.y - cursor_down.y
             try:
-                moved = api.edit_physical_manual_group(
-                    items[idx], center=center, part_key=s.part_key,
-                    context=s.manual_marking_draft.context,
-                    marking_draft=s.manual_marking_draft,
-                    existing_features=tuple(items),
-                )
-            except (ValueError, TypeError, RuntimeError):
+                if kind == "round":
+                    moved = api.move_physical_sheet_round_mark(
+                        s.manual_marking_draft, items, selected_index=idx,
+                        centre=type(center_down)(center_down.x + dx, center_down.y + dy),
+                    )
+                elif kind == "group":
+                    moved = api.edit_physical_manual_group(
+                        previous, center=type(center_down)(center_down.x + dx, center_down.y + dy),
+                        part_key=s.part_key, context=s.manual_marking_draft.context,
+                        marking_draft=s.manual_marking_draft, existing_features=tuple(items),
+                    )
+                else:
+                    # Every preview is relative to the press, not to the
+                    # last replaced row; release must not accumulate motion.
+                    original = (*items[:idx], source, *items[idx + 1:])
+                    moved = api.move_physical_sheet_straight_mark(
+                        s.manual_marking_draft, original, selected_index=idx,
+                        displacement=type(cursor_down)(dx, dy),
+                    )
+            except (ValueError, TypeError, RuntimeError) as exc:
+                marking_rejection = label + "移動被拒絕：" + str(exc)
+                s.redraw()
                 return "break"
-            clear_member_edit()
-            corner_arm[0] = None
+            marking_rejection = None
+            if kind == "group":
+                clear_member_edit()
+                corner_arm[0] = None
             s.hole_session.execute(HoleEditorAction.replace_selected(moved))
+            drag_origin[0] = (*grab[:-1], moved)
             s.redraw()
             return "break"
         return original_drag(event)
