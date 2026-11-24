@@ -24,9 +24,22 @@ from .sheetmetal_part_adapters import build_door_result
 
 def project_operator_door_cell_result(
     values: Mapping[str, object], *, cell_width, cell_height, frame_edges,
-    material_frame_width,
+    material_frame_width=None, family_model=None,
 ):
-    """Preserve the legacy selected-cell structural preview through Engine."""
+    """Project a physical Door cell using the same Family FW owner as PartSpec.
+
+    Modern GUI callers supply the original authored FW/T and actual Family.
+    An older headless caller may still supply pre-resolved material FW, but
+    the two mutually exclusive sources can never silently override each other.
+    """
+    if family_model is not None and material_frame_width is not None:
+        raise ValueError("DOOR_CELL_PREVIEW_COMPETING_FRAME_WIDTH_SOURCES")
+    if family_model is not None:
+        material_frame_width = cabinet_family_policy.door_material_frame_width(
+            family_model, frame_width=values["fw"], thickness=values["t"],
+        )
+    elif material_frame_width is None:
+        raise ValueError("DOOR_CELL_PREVIEW_FRAME_WIDTH_SOURCE_REQUIRED")
     return build_door_result(
         w=cell_width, h=cell_height, t=values["t"],
         fw=material_frame_width,

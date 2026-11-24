@@ -84,10 +84,11 @@ def _door_layout_indicator_state_for_key(self, key):
 
 def _door_layout_cell_result(self, cell, val=None):
     val = val or self.get_float_values()
+    # Send the original operator FW/T and selected Family to Engine. The
+    # material-space frame width is a manufacturing value, not a GUI input.
     return manufacturing_api.project_operator_door_cell_result(
         val, cell_width=cell.start_width, cell_height=cell.start_height,
-        frame_edges=cell.edges,
-        material_frame_width=self._door_material_frame_width(val["fw"], val["t"]),
+        frame_edges=cell.edges, family_model=self._baseline_source_model(),
     )
 
 
