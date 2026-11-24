@@ -11,7 +11,7 @@ from collections.abc import Mapping
 from math import atan2, cos, hypot, isfinite, radians, sin
 from shapely.geometry import LineString, Point, Polygon
 
-from .sheetmetal_feature_core import FeatureAnchor, ProfileFeature
+from .sheetmetal_feature_core import CircleFeature, FeatureAnchor, ProfileFeature
 from .sheetmetal_geometry import Vec2
 from .sheetmetal_drawing import (
     CirclePrimitive, DrawingScene, LinePrimitive, PolylinePrimitive,
@@ -19,6 +19,7 @@ from .sheetmetal_drawing import (
 )
 
 MANUAL_MARK_SOURCE = "WHD_MANUAL_MARKING_V1"
+MANUAL_ROUND_MARK_SOURCE = "WHD_MANUAL_ROUND_MARKING_V1"
 _EPS = 1e-7
 
 def require_first_sheet_manual_marking_spec(spec):
@@ -100,7 +101,7 @@ def _manual_marking_scene_primitives(scene):
     rows = tuple(getattr(scene, "primitives", ()) or ())
     return tuple(row for row in rows
                  if getattr(row, "semantic_id", None) == MANUAL_MARK_SOURCE
-                 or getattr(row, "source_type", None) == MANUAL_MARK_SOURCE)
+                 or getattr(row, "source_type", None) in (MANUAL_MARK_SOURCE, MANUAL_ROUND_MARK_SOURCE))
 
 
 def verify_manual_marking_output(render):
@@ -124,11 +125,16 @@ def verify_manual_marking_output(render):
         raise ValueError("MANUAL_MARKING_V1_MISSING_AUTHORED_STROKE")
     validate_physical_manual_markings(part_id, render, authored)
     from .operator_manual_marking_groups import is_manual_group
+    expected_rounds = tuple(_round_mark_primitive(f) for f in authored if is_manual_round_mark(f))
+    actual_rounds = tuple(r for r in marked if isinstance(r, CirclePrimitive))
+    if actual_rounds != expected_rounds:
+        raise ValueError("ROUND_MARKING_SCENE_CHANGED")
+    marked = tuple(r for r in marked if not isinstance(r, CirclePrimitive))
     expected = tuple((
         tuple(Vec2(point.x + mark.offset.x, point.y + mark.offset.y)
               for point in points) if is_manual_group(mark) else tuple(points),
         closed,
-    ) for mark in authored for layer, points, closed in mark.layered_profiles)
+    ) for mark in authored if not is_manual_round_mark(mark) for layer, points, closed in mark.layered_profiles)
     actual = tuple((tuple(row.points), row.closed) for row in marked
                    if isinstance(row, PolylinePrimitive)
                    and row.semantic_id == MANUAL_MARK_SOURCE)
@@ -139,6 +145,8 @@ def verify_manual_marking_output(render):
 
 def is_manual_mark(feature):
     from .operator_manual_marking_groups import MANUAL_GROUP_SOURCE
+    if is_manual_round_mark(feature):
+        return True
     if isinstance(feature, Mapping):
         return feature.get("source_type") in (MANUAL_MARK_SOURCE, MANUAL_GROUP_SOURCE)
     return getattr(feature, "source_type", None) in (MANUAL_MARK_SOURCE, MANUAL_GROUP_SOURCE)
@@ -223,6 +231,11 @@ def _real_material_and_blind_holes(render, features, surface, width, height):
         resolved = resolve_surface_features(surface, ordinary, width, height)
         scene.extend(resolved_features_to_primitives(resolved))
     material = material_polygon_from_final_scene(scene)
+    if any(is_manual_round_mark(f) for f in features):
+        live = material_polygon_from_final_scene(render.scene) if ordinary else material
+        if (not isinstance(live, Polygon) or not live.is_valid
+                or not live.equals(render.material)):
+            raise ValueError("ROUND_MARKING_MATERIAL_SOURCE_MISMATCH")
     if material is None or material.is_empty:
         raise ValueError("手動打標沒有有效的真實材料")
     blind = []
@@ -235,7 +248,7 @@ def _real_material_and_blind_holes(render, features, surface, width, height):
             blind.append(Polygon([(p.x, p.y) for p in row.points]))
         elif isinstance(row, LinePrimitive):
             blind.append(LineString(((row.p1.x, row.p1.y), (row.p2.x, row.p2.y))))
-    return material, tuple(blind)
+    return material, tuple(blind), scene
 
 
 def validate_physical_manual_markings(part_key, render, features, *,
@@ -264,7 +277,7 @@ def validate_physical_manual_markings(part_key, render, features, *,
         raise ValueError("手動打標需要原板件有效的有限 BEND 折線")
     if surface is None:
         surface, width, height, _ = physical_sheet_feature_context(part_key, render)
-    material, blind = _real_material_and_blind_holes(
+    material, blind, scene = _real_material_and_blind_holes(
         render, normalized, surface, width, height,
     )
     from .operator_manual_marking_groups import is_manual_group, source_group
@@ -283,7 +296,16 @@ def validate_physical_manual_markings(part_key, render, features, *,
         return not unmatched
 
     seen = []
+    rings = []
     for mark in marks:
+        if is_manual_round_mark(mark):
+            circle = _round_mark_primitive(mark)
+            _validate_round_marking(scene, material, circle)
+            if any(hypot(circle.center.x-r.center.x, circle.center.y-r.center.y) <= _EPS
+                   and abs(circle.radius-r.radius) <= _EPS for r in rings):
+                raise ValueError("手動打標不可完全重複同線型")
+            rings.append(circle)
+            continue
         if is_manual_group(mark):
             _kind, pattern, full_strokes = source_group(mark)
         else:
@@ -367,3 +389,87 @@ def create_physical_manual_marking(part_key, context, existing_features, *,
         surface=context.feature_surface, width=context.width, height=context.height,
     )
     return candidate
+
+
+def is_manual_round_mark(feature):
+    source = feature.get("source_type", feature.get("type")) if isinstance(feature, Mapping) else getattr(feature, "source_type", None)
+    return source == MANUAL_ROUND_MARK_SOURCE
+
+
+def _round_mark_primitive(mark):
+    if (not isinstance(mark, CircleFeature) or mark.layer != "MARKING"
+            or mark.anchor is not FeatureAnchor.ABSOLUTE_FINISHED_FACE
+            or mark.rotation_deg != 0 or mark.add_centerline is not False
+            or mark.source_params != ()):
+        raise ValueError("ROUND_MARKING_SAVED_SOURCE_INVALID")
+    x, y = _finite(mark.offset.x, "圓心 X"), _finite(mark.offset.y, "圓心 Y")
+    radius = _finite(mark.diameter, "直徑", positive=True) / 2
+    if radius <= _EPS or not all(isfinite(n) for n in (x-radius, x+radius, y-radius, y+radius)):
+        raise ValueError("ROUND_MARKING_DIAMETER_INVALID")
+    return CirclePrimitive(Vec2(x, y), radius, "MARKING", 211,
+                           source_type=MANUAL_ROUND_MARK_SOURCE)
+
+
+def create_physical_manual_round_marking(part_key, context, existing_features, *, centre, diameter):
+    """Build a typed solid circle; validate current holes before any edit."""
+    from .physical_sheet_editor_context import PhysicalSheetEditorContext
+    if not isinstance(context, PhysicalSheetEditorContext) or context.part_key != part_key:
+        raise ValueError("ROUND_MARKING_PHYSICAL_OWNER_MISMATCH")
+    if not isinstance(centre, Vec2):
+        raise ValueError("ROUND_MARKING_CENTRE_INVALID")
+    mark = CircleFeature(
+        _finite(diameter, "直徑", positive=True), FeatureAnchor.ABSOLUTE_FINISHED_FACE,
+        Vec2(_finite(centre.x, "圓心 X"), _finite(centre.y, "圓心 Y")), "MARKING",
+        source_type=MANUAL_ROUND_MARK_SOURCE,
+    )
+    validate_physical_manual_markings(
+        part_key, context.render_data, tuple(existing_features) + (mark,),
+        surface=context.feature_surface, width=context.width, height=context.height,
+    )
+    return mark
+
+
+def _validate_round_marking(scene, material, circle):
+    x, y, radius = circle.center.x, circle.center.y, circle.radius
+    point = Point(x, y)
+    witness = Point(x + radius, y)
+
+    def crosses_path(path):
+        # Segment distance takes its interior minimum, maximum is attained
+        # at an endpoint. Continuity then proves if r occurs on the segment.
+        rows = tuple(path.coords)
+        for a, b in zip(rows, rows[1:]):
+            low = point.distance(LineString((a, b))) if a != b else hypot(a[0]-x, a[1]-y)
+            high = max(hypot(a[0]-x, a[1]-y), hypot(b[0]-x, b[1]-y))
+            if low - _EPS <= radius <= high + _EPS:
+                return True
+        return False
+
+    error = "ROUND_MARKING_CIRCUMFERENCE_OUTSIDE_RETAINED_MATERIAL"
+    if (not isinstance(material, Polygon) or not material.is_valid
+            or not material.contains(witness)
+            or any(crosses_path(ring) for ring in (material.exterior, *material.interiors))):
+        raise ValueError(error)
+
+    for row in scene.primitives:
+        layer = str(row.layer).upper()
+        if layer in ("CUTTING", "BLIND_HOLE") and isinstance(row, CirclePrimitive):
+            # Test precise original circles too: Final Material's chord
+            # approximation otherwise leaves a small false-valid fringe.
+            d = hypot(row.center.x - x, row.center.y - y)
+            h = row.radius
+            if not isfinite(d) or not isfinite(h) or h <= 0.0:
+                raise ValueError(error)
+            if abs(d - radius) <= h + _EPS:
+                raise ValueError(error)
+        elif layer == "BLIND_HOLE":
+            if isinstance(row, PolylinePrimitive) and row.closed and len(row.points) >= 3:
+                hole = Polygon([(p.x,p.y) for p in row.points])
+                if not hole.is_valid or hole.covers(witness) or crosses_path(hole.exterior):
+                    raise ValueError(error)
+            elif isinstance(row, LinePrimitive):
+                blind = LineString(((row.p1.x, row.p1.y), (row.p2.x, row.p2.y)))
+                if crosses_path(blind):
+                    raise ValueError(error)
+            else:
+                raise ValueError(error)

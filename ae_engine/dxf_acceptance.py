@@ -479,6 +479,52 @@ def _marking_rows_close(expected, actual, tolerance: float) -> bool:
     return _one_to_one_tolerance_match(expected, actual, same)
 
 
+def _expected_marking_circles(scene):
+    """Check circle ink only for the newly authorized manual-round source."""
+    from .operator_manual_marking import is_manual_round_mark
+
+    circles = tuple(
+        row for row in scene.primitives
+        if isinstance(row, CirclePrimitive) and str(row.layer).upper() == "MARKING"
+    )
+    if not any(is_manual_round_mark(row) for row in circles):
+        return ()
+    expected = tuple(
+        (float(row.center.x), float(row.center.y), float(row.radius),
+         row.color if row.color is not None else 211)
+        for row in circles
+    )
+    if any(not all(isfinite(v) for v in row[:3]) or row[2] <= 0 for row in expected):
+        raise ValueError("canonical MARKING circle must have finite centre and positive radius")
+    return expected
+
+
+def _actual_marking_circles(msp):
+    return tuple(
+        (tuple(map(float, row.dxf.center)), float(row.dxf.radius),
+         row.dxf.get("color", 256), str(row.dxf.get("linetype", "BYLAYER")).upper(),
+         float(row.dxf.get("thickness", 0)),
+         tuple(map(float, row.dxf.get("extrusion", (0, 0, 1)))))
+        for row in msp
+        if row.dxftype() == "CIRCLE" and str(row.dxf.layer).upper() == "MARKING"
+    )
+
+
+def _marking_circles_close(expected, actual, tolerance):
+    def same(source, saved):
+        x, y, radius, color = source
+        (u, v, z), r, ink_color, linetype, thickness, extrusion = saved
+        return (
+            all(isfinite(n) for n in (u, v, z, r)) and r > 0
+            and color == ink_color and linetype in {"BYLAYER", "CONTINUOUS"}
+            and z == 0 and thickness == 0 and extrusion == (0, 0, 1)
+            and abs(u-x) <= tolerance and abs(v-y) <= tolerance
+            and abs(r-radius) <= tolerance
+        )
+
+    return _one_to_one_tolerance_match(expected, actual, same)
+
+
 def _find_layer_mismatches(scene, msp, tolerance: float):
     issues = []
     actual_lines = []
@@ -648,11 +694,8 @@ def verify_saved_part_render_data_dxf(
     # Read back each physical LWPOLYLINE from the staged DXF independently.
     try:
         expected_marks = _expected_marking_polylines(render_data.scene)
-        # Generic entity counts already reject unrequested ink. Preserve
-        # the established receipt for a scene with no canonical MARKING
-        # polylines; this extra check proves expected physical ink.
-        if expected_marks:
-            actual_marks = _actual_marking_polylines(msp)
+        expected_rings = _expected_marking_circles(render_data.scene)
+        if expected_marks or expected_rings:
             try:
                 marking_layer = doc.layers.get("MARKING")
                 layer_ok = (
@@ -661,6 +704,8 @@ def verify_saved_part_render_data_dxf(
                 )
             except Exception:
                 layer_ok = False
+        if expected_marks:
+            actual_marks = _actual_marking_polylines(msp)
             if (not layer_ok or not _marking_rows_close(
                     expected_marks, actual_marks, float(coordinate_tolerance))):
                 issues.append(DxfAcceptanceIssue(
@@ -668,6 +713,16 @@ def verify_saved_part_render_data_dxf(
                     "saved MARKING LWPOLYLINE differs from canonical points/style",
                     expected_marks,
                     actual_marks,
+                ))
+        if expected_rings:
+            actual_rings = _actual_marking_circles(msp)
+            if (not layer_ok or not _marking_circles_close(
+                    expected_rings, actual_rings, float(coordinate_tolerance))):
+                issues.append(DxfAcceptanceIssue(
+                    "MARKING_MISMATCH",
+                    "saved MARKING CIRCLE differs from canonical centre/radius/plane/style",
+                    expected_rings,
+                    actual_rings,
                 ))
     except ValueError as exc:
         issues.append(DxfAcceptanceIssue("INVALID_SOURCE", str(exc)))

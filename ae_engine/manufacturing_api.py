@@ -356,6 +356,7 @@ from .physical_sheet_editor_context import (
 )
 from .operator_manual_marking import (
     MANUAL_MARK_SOURCE, is_manual_mark,
+    create_physical_manual_round_marking,
     create_physical_manual_marking, validate_physical_manual_markings,
     first_sheet_manual_marking_supported,
 )
