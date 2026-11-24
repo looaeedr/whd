@@ -262,7 +262,7 @@ def test_copy_invalid_target_and_missing_position_never_insert(actual_sheet, tmp
     a, b, group, ctx = _persisted_pair(actual_sheet, tmp_path)
     before = (a.read_bytes(), b.read_bytes())
     gid = api.group_parameters(group)["group_id"]
-    with pytest.raises(ValueError, match="完整筆畫|無材料"):
+    with pytest.raises(api.ManualCopyPlacementRejected, match="完整筆畫|無材料"):
         _copy(a, b, ctx, gid, target_position=Vec2(-10, -10))
     with pytest.raises(ValueError, match="TARGET_POSITION_REQUIRED"):
         _copy(a, b, ctx, gid, target_position=None)
@@ -279,6 +279,16 @@ def test_relocated_copy_full_dash_blank_is_checked_at_new_anchor(actual_sheet, t
     p = full.interpolate(4)
     hole = CircleFeature(diameter=.4, anchor=FeatureAnchor.ABSOLUTE_FINISHED_FACE,
                          offset=Vec2(p.x, p.y), layer="CUTTING")
-    with pytest.raises(ValueError, match="完整筆畫|碰觸孔位"):
+    with pytest.raises(api.ManualCopyPlacementRejected, match="完整筆畫|碰觸孔位"):
         _copy(a, b, ctx, gid, target_position=position, features=(hole,))
     assert read_project(b)["snapshot"]["part_features"]["base_plate"] == []
+
+
+def test_copy_stale_source_is_not_retryable_geometry_rejection(actual_sheet, tmp_path):
+    a, b, group, ctx = _persisted_pair(actual_sheet, tmp_path)
+    claimed = read_project(a)["snapshot"]
+    a.write_bytes(b.read_bytes())
+    with pytest.raises(ValueError, match="SOURCE_SAVED_SNAPSHOT_MISMATCH") as exc:
+        _copy(a, b, ctx, api.group_parameters(group)["group_id"],
+              source_snapshot=claimed)
+    assert not isinstance(exc.value, api.ManualCopyPlacementRejected)

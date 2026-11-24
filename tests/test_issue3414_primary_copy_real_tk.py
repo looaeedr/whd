@@ -11,6 +11,7 @@ import pytest
 
 from ae_engine import manufacturing_api as api
 from ae_engine.sheetmetal_geometry import Vec2
+from ae_engine.sheetmetal_feature_core import CircleFeature, FeatureAnchor
 from phase6_project_file import write_project, read_project, PROJECT_SCHEMA
 from tests.test_issue3412_manual_marking_first_sheet import actual_sheet
 from tests.test_issue3413_manual_group_engine import _group
@@ -37,8 +38,12 @@ def test_primary_true_canvas_target_selected_saved_group_copy_undo_reopen_normal
         {"schema": PROJECT_SCHEMA, "snapshot": source},
     ))
     target = _configured("受電箱")
-    target["part_features"] = {"base_plate": []}
-    target["workspace"] = {"part_features": {"base_plate": []}}
+    # Bottom-left corner of the copied group at (150, 110) is (130, 95).
+    # The real target already has a CUTTING hole at that point.
+    existing_hole = CircleFeature(diameter=12, anchor=FeatureAnchor.ABSOLUTE_FINISHED_FACE,
+                                  offset=Vec2(130, 95), layer="CUTTING")
+    target["part_features"] = {"base_plate": [existing_hole]}
+    target["workspace"] = {"part_features": {"base_plate": [existing_hole]}}
     destination = Path(write_project(
         tmp_path / "target-B.p6fold",
         {"schema": PROJECT_SCHEMA, "snapshot": target},
@@ -107,20 +112,80 @@ def test_primary_true_canvas_target_selected_saved_group_copy_undo_reopen_normal
         state.undo_btn.invoke()
         root.update()
         assert state.hole_session.snapshot().undo_depth == depth
-        # A valid source cannot authorize an invalid destination.
+        # A valid source cannot authorize a real hole collision. Configure
+        # events and passive redraw must retain the warning and pending source.
         choose()
-        click_target(Vec2(2, 100))
+        click_target(Vec2(150, 110))
         assert not any(api.is_manual_group(f) for f in state.live_context.feature_list)
         assert state.hole_session.snapshot().undo_depth == depth
+        warning = state.manual_mark_status.cget("text")
+        assert "跨板定位被拒絕" in warning and "重新選點" in warning
+        state.canvas.event_generate("<Configure>")
+        root.update()
+        assert state.manual_mark_status.cget("text") == warning
+        assert str(state.confirm_all_btn.cget("state")) == "disabled"
+        # No second file picker: a new valid click immediately places it.
+        click_target(Vec2(200, 140))
+        assert len([f for f in state.live_context.feature_list if api.is_manual_group(f)]) == 1
+        state.undo_btn.invoke()
+        root.update()
+        assert tuple(state.live_context.feature_list) == (existing_hole,)
+        assert state.hole_session.snapshot().undo_depth == depth
+
+        # Native insert button and ordinary catalog double-click must both
+        # abandon the copy before the very first real hole canvas click.
+        for route in ("button", "catalog"):
+            choose()
+            if route == "button":
+                state.selected_catalog_text.set("＋ 自訂圓孔")
+                state.var_d.set("6")
+                state.var_blind.set(False)
+                state.insert_btn.invoke()
+            else:
+                # A real small round catalog opening, not a custom shortcut.
+                rows = state.catalog_list.get(0, "end")
+                index = next(i for i, label in enumerate(rows)
+                             if label in state.catalog_by_label
+                             and state.catalog_by_label[label].shape == "circle"
+                             and 0 < float(state.catalog_by_label[label].diameter) <= 25)
+                state.catalog_list.see(index)
+                root.update()
+                x, y, w, h = state.catalog_list.bbox(index)
+                # Tk synthesizes Double from consecutive real presses.
+                for _ in range(2):
+                    state.catalog_list.event_generate("<ButtonPress-1>", x=x+3, y=y+h//2)
+                    state.catalog_list.event_generate("<ButtonRelease-1>", x=x+3, y=y+h//2)
+                root.update()
+            assert state.insert_mode[0]
+            assert not state.manual_mark_mode[0]
+            assert "目標群組中心" not in state.manual_mark_status.cget("text")
+            click_target(Vec2(200, 140))
+            assert len(state.live_context.feature_list) == 2
+            assert not any(api.is_manual_group(f) for f in state.live_context.feature_list)
+            assert state.live_context.feature_list[-1].layer in ("CUTTING", "BLIND_HOLE")
+            state.undo_btn.invoke()
+            root.update()
+            assert tuple(state.live_context.feature_list) == (existing_hole,)
+            if state.insert_mode[0]:
+                state.insert_btn.invoke()
+            root.update()
+
         # Saved source changed while waiting for the click.
         choose()
         origin.write_bytes(source_before + b"\n")
         click_target(Vec2(150, 110))
         assert not any(api.is_manual_group(f) for f in state.live_context.feature_list)
         assert "SOURCE_SAVED_SOURCE_CHANGED" in state.manual_mark_status.cget("text")
+        stale_warning = state.manual_mark_status.cget("text")
+        state.canvas.event_generate("<Configure>")
+        root.update()
+        assert state.manual_mark_status.cget("text") == stale_warning
         origin.write_bytes(source_before)
+        assert not state.manual_mark_mode[0]
+        click_target(Vec2(200, 140))
+        assert not any(api.is_manual_group(f) for f in state.live_context.feature_list)
         choose()
-        placed_at = click_target(Vec2(150, 110))
+        placed_at = click_target(Vec2(200, 140))
         candidates = [
             f for f in state.live_context.feature_list if api.is_manual_group(f)
         ]
@@ -144,7 +209,7 @@ def test_primary_true_canvas_target_selected_saved_group_copy_undo_reopen_normal
         assert not any(api.is_manual_group(f)
                        for f in state.live_context.feature_list)
         choose()
-        placed_at = click_target(Vec2(160, 110))
+        placed_at = click_target(Vec2(210, 140))
         assert len([f for f in state.live_context.feature_list
                     if api.is_manual_group(f)]) == 1
         # The source and target files are checked again at final Confirm,
@@ -156,7 +221,7 @@ def test_primary_true_canvas_target_selected_saved_group_copy_undo_reopen_normal
         root.update()
         assert editor.winfo_exists(), errors
         assert errors and "TARGET_SAVED_SOURCE_CHANGED" in errors[-1]
-        assert not designer.designer_workspace.features_for("base_plate")
+        assert designer.designer_workspace.features_for("base_plate") == [existing_hole]
         destination.write_bytes(target_before)
         _actual_editor_confirm(editor)
         root.update()
@@ -177,8 +242,10 @@ def test_primary_true_canvas_target_selected_saved_group_copy_undo_reopen_normal
         assert final_target.is_file()
         stored = read_project(final_target)["snapshot"]["part_features"]["base_plate"]
         assert len([f for f in stored if api.is_manual_group(f)]) == 1
-        assert api.group_parameters(stored[0])["group_id"] == api.group_parameters(final_mark)["group_id"]
-        assert (stored[0].offset.x, stored[0].offset.y) == pytest.approx(
+        assert existing_hole in stored
+        stored_group = next(f for f in stored if api.is_manual_group(f))
+        assert api.group_parameters(stored_group)["group_id"] == api.group_parameters(final_mark)["group_id"]
+        assert (stored_group.offset.x, stored_group.offset.y) == pytest.approx(
             (placed_at.x, placed_at.y),
         )
 

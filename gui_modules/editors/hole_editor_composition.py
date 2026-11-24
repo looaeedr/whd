@@ -929,6 +929,7 @@ def _install_manual_marking_actions(s):
     # A source selection is not a Feature or an Undo record. The pending
     # receipt lives only in this editor until the operator clicks a target.
     pending_copy = None
+    copy_rejection = None
     placed_copy_receipts = {}
 
     def checked_redraw():
@@ -946,8 +947,11 @@ def _install_manual_marking_actions(s):
             s.manual_mark_status.configure(text=round_rejection or "", fg="#ff453a")
             s.confirm_all_btn.configure(state=d.tk.NORMAL)
         result = real_redraw()
-        if pending_copy is not None:
+        if copy_rejection is not None:
+            s.manual_mark_status.configure(text=copy_rejection, fg="#ff453a")
+        elif pending_copy is not None:
             s.manual_mark_status.configure(text=pending_copy["prompt"], fg="#007aff")
+        if pending_copy is not None:
             s.confirm_all_btn.configure(state=d.tk.DISABLED)
         if round_rejection:
             # The canvas renderer updates generic confirmation controls.
@@ -979,9 +983,10 @@ def _install_manual_marking_actions(s):
         s.manual_group_offset_y.set("")
 
     def select_mode():
-        nonlocal pending_copy
-        was_pending = pending_copy is not None
+        nonlocal pending_copy, copy_rejection
+        was_pending = pending_copy is not None or copy_rejection is not None
         pending_copy = None
+        copy_rejection = None
         clear_member_edit()
         drag_origin[0] = None
         corner_arm[0] = None
@@ -1001,7 +1006,7 @@ def _install_manual_marking_actions(s):
         nonlocal pending_copy
         if getattr(s, "manual_marking_straight_only", False) and kind != "line":
             return
-        if pending_copy is not None:
+        if pending_copy is not None or copy_rejection is not None:
             select_mode()
         clear_member_edit()
         drag_origin[0] = None
@@ -1105,6 +1110,12 @@ def _install_manual_marking_actions(s):
         point = s.canvas_view.canvas_to_world(event.x, event.y)
         if point is None:
             return
+        # The ordinary hole insertion route always wins when armed,
+        # including shortcuts that reach the original catalog controller.
+        if s.insert_mode[0]:
+            if s.manual_mark_mode[0] or pending_copy is not None or copy_rejection is not None:
+                select_mode()
+            return original_down(event)
         if pending_copy is not None:
             return place_pending_copy(point)
         if not s.manual_mark_mode[0]:
@@ -1459,7 +1470,7 @@ def _install_manual_marking_actions(s):
         return {**receipt, "target_context": context, "target_live_snapshot": live_snapshot}
 
     def place_pending_copy(point):
-        nonlocal pending_copy
+        nonlocal pending_copy, copy_rejection
         if pending_copy is None:
             return "break"
         pending = pending_copy
@@ -1470,21 +1481,23 @@ def _install_manual_marking_actions(s):
                     or s.insert_mode[0]):
                 raise ValueError("MANUAL_COPY_TARGET_EDITOR_SESSION_STALE")
             args = verified_copy_args(pending["receipt"])
+            # Recheck both the opened and current physical target before
+            # any retryable placement error can retain the source receipt.
+            api.verify_saved_manual_marking_copy_sources(
+                **{**args, "target_context": s.manual_marking_context},
+            )
             clone = api.copy_saved_manual_marking_group_to_selected_sheet(
                 **args, target_features=tuple(s.live_context.feature_list),
                 target_position=point,
             )
-            # Also check the actual editor coordinate guide. The Engine
-            # compares both current and opened geometry to the saved target.
-            api.verify_saved_manual_marking_copy_sources(
-                **{**args, "target_context": s.manual_marking_context},
-            )
-            # No candidate enters the Session on any invalid point/source.
+        except api.ManualCopyPlacementRejected as exc:
+            copy_rejection = "跨板定位被拒絕：" + str(exc) + "；請重新選點（Esc 取消）"
+            s.redraw()
+            return "break"
         except (ValueError, TypeError, KeyError, OSError, RuntimeError) as exc:
             select_mode()
-            s.manual_mark_status.configure(
-                text="跨板定位被拒絕：" + str(exc), fg="#ff453a",
-            )
+            copy_rejection = "跨板定位被拒絕：" + str(exc)
+            s.redraw()
             return "break"
         select_mode()
         s.hole_session.execute(HoleEditorAction.commit_active())
@@ -1498,9 +1511,8 @@ def _install_manual_marking_actions(s):
             s.hole_session.execute(HoleEditorAction.undo())
             s.refresh_created()
             s.redraw()
-            s.manual_mark_status.configure(
-                text="跨板定位被拒絕：" + str(exc), fg="#ff453a",
-            )
+            copy_rejection = "跨板定位被拒絕：" + str(exc)
+            s.redraw()
             return "break"
         placed_copy_receipts[api.group_parameters(clone)["group_id"]] = pending["receipt"]
         return "break"
@@ -1602,6 +1614,25 @@ def _install_manual_marking_actions(s):
         }
         s.redraw()
         return True
+
+    original_insert_mode = s.set_insert_mode
+    original_catalog_double = s.on_catalog_double_click
+
+    def hole_insert_mode(force=None):
+        entering = not s.insert_mode[0] if force is None else bool(force)
+        if entering and (s.manual_mark_mode[0] or pending_copy is not None or copy_rejection is not None):
+            select_mode()
+        return original_insert_mode(force)
+
+    def hole_catalog_double(event=None, source_list=None):
+        result = original_catalog_double(event, source_list)
+        if s.insert_mode[0] and (s.manual_mark_mode[0] or pending_copy is not None or copy_rejection is not None):
+            select_mode()
+        return result
+
+    s.set_insert_mode = hole_insert_mode
+    s.insert_btn.configure(command=hole_insert_mode)
+    s.on_catalog_double_click = hole_catalog_double
 
     if not getattr(s, "manual_marking_straight_only", False):
         s.manual_mark_copy_button.configure(command=copy_from_other_saved_project)

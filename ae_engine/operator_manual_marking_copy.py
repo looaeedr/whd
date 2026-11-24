@@ -213,6 +213,14 @@ def verify_saved_manual_marking_copy_sources(
     return source_rows[0]
 
 
+class ManualCopyPlacementRejected(ValueError):
+    """Only a rejected candidate on an already verified physical target.
+
+    Source/owner/session failures and invalid pre-existing target features
+    are intentionally not classified as retryable placement errors.
+    """
+
+
 def copy_saved_manual_marking_group_to_selected_sheet(
     *, source_snapshot, source_project_path, source_project_sha256,
     target_snapshot, target_project_path, target_project_sha256,
@@ -247,9 +255,18 @@ def copy_saved_manual_marking_group_to_selected_sheet(
     if (api.group_parameters(clone)["group_id"] == source_group_id
             or clone is group or not isinstance(clone, ProfileFeature)):
         raise ValueError("MANUAL_COPY_NEW_GROUP_ID_REQUIRED")
-    # The target's actual current holes, full stroke and every hidden dash
-    # space are checked by the *original* first-sheet Engine gate.
+    # Validate the unmodified draft first: a bad existing source is not
+    # something the operator can repair by clicking another copy position.
+    existing = tuple(target_features)
     api.propose_operator_physical_sheet_hole_features(
-        "base_plate", target_context, tuple(target_features) + (clone,),
+        "base_plate", target_context, existing,
     )
+    # The same authoritative validator checks all full strokes and holes.
+    # Only the candidate-specific ValueError permits another click.
+    try:
+        api.propose_operator_physical_sheet_hole_features(
+            "base_plate", target_context, existing + (clone,),
+        )
+    except ValueError as exc:
+        raise ManualCopyPlacementRejected(str(exc)) from exc
     return clone
