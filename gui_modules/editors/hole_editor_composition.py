@@ -929,6 +929,7 @@ def _install_manual_marking_actions(s):
     s.manual_group_edit_identity = [None]  # (stable group_id, member_id)
     s.manual_group_edit_context = [None]   # (Session context, list identity)
     drag_origin = [None]  # (list, context, group_id, cursor_down, center_down)
+    corner_arm = [None]   # (group_id, member_id, Session context, list)
 
     def clear_member_edit():
         s.manual_group_edit_identity[0] = None
@@ -940,6 +941,7 @@ def _install_manual_marking_actions(s):
     def select_mode():
         clear_member_edit()
         drag_origin[0] = None
+        corner_arm[0] = None
         s.manual_mark_mode[0] = False
         s.manual_group_tool[0] = "select"
         s.manual_mark_draw_button.configure(relief=d.tk.RAISED)
@@ -950,6 +952,7 @@ def _install_manual_marking_actions(s):
     def draw_mode(kind="line"):
         clear_member_edit()
         drag_origin[0] = None
+        corner_arm[0] = None
         s.set_insert_mode(False)
         s.manual_mark_mode[0] = True
         s.manual_group_tool[0] = kind
@@ -1040,6 +1043,7 @@ def _install_manual_marking_actions(s):
         # active on empty canvas; a subsequent double must hit a real corner.
         clear_member_edit()
         drag_origin[0] = None
+        corner_arm[0] = None
         point = s.canvas_view.canvas_to_world(event.x, event.y)
         if point is None:
             return
@@ -1052,12 +1056,23 @@ def _install_manual_marking_actions(s):
                 corners = api.group_member_world_points(item)
                 if (hypot(point.x-item.offset.x, point.y-item.offset.y) <= 5
                     or any(hypot(point.x-p.x, point.y-p.y) <= 5 for _, p in corners)):
+                    group_id = api.group_parameters(item)["group_id"]
                     drag_origin[0] = (
                         id(s.live_context.feature_list),
                         s.hole_session.active_context_key,
-                        api.group_parameters(item)["group_id"],
-                        point, item.offset,
+                        group_id, point, item.offset,
                     )
+                    nearest = min(
+                        ((hypot(point.x-corner.x, point.y-corner.y), member_id)
+                         for member_id, corner in corners),
+                        default=None,
+                    )
+                    if nearest is not None and nearest[0] <= 5.0:
+                        corner_arm[0] = (
+                            group_id, nearest[1],
+                            s.hole_session.active_context_key,
+                            id(s.live_context.feature_list),
+                        )
                     s.hole_session.execute(HoleEditorAction.select(idx))
                     s.dragging[0] = True
                     s.refresh_created()
@@ -1150,6 +1165,7 @@ def _install_manual_marking_actions(s):
             except (ValueError, TypeError, RuntimeError):
                 return "break"
             clear_member_edit()
+            corner_arm[0] = None
             s.hole_session.execute(HoleEditorAction.replace_selected(moved))
             s.redraw()
             return "break"
@@ -1177,12 +1193,14 @@ def _install_manual_marking_actions(s):
                 if distance <= 5.0:
                     hits.append((distance, idx, member_id))
         if not hits:
+            corner_arm[0] = None
             return "break"
         hits.sort()
         distance, target_idx, member = hits[0]
         if (any(idx != target_idx for _, idx, _ in hits)
                 or (len(hits) > 1 and abs(hits[1][0]-distance) < 1e-9)):
             # Two coincident group corners are not an implicit selection.
+            corner_arm[0] = None
             return "break"
         if s.hole_session.selected_index != target_idx:
             s.hole_session.execute(HoleEditorAction.select(target_idx))
@@ -1191,6 +1209,16 @@ def _install_manual_marking_actions(s):
         if group is None:
             return "break"
         p = api.group_parameters(group)
+        target = (
+            p["group_id"], member, s.hole_session.active_context_key,
+            id(s.live_context.feature_list),
+        )
+        if corner_arm[0] != target:
+            # A first click just after Undo/delete may be classified by Tk
+            # as Double/Triple from an earlier click sequence. It may arm
+            # the *new* real corner, never authorize Apply on its own.
+            corner_arm[0] = target
+            return "break"
         dx, dy = next((x, y) for mid, x, y in p["members"] if mid == member)
         s.manual_group_edit_identity[0] = (p["group_id"], member)
         s.manual_group_edit_context[0] = (
@@ -1247,6 +1275,7 @@ def _install_manual_marking_actions(s):
     def safe_delete():
         clear_member_edit()
         drag_origin[0] = None
+        corner_arm[0] = None
         chosen = selected_feature()
         if (chosen is not None and getattr(chosen, "layer", None) == "MARKING"
                 and not api.is_manual_mark(chosen)):
@@ -1277,22 +1306,27 @@ def _install_manual_marking_actions(s):
         # invalidate that authorization unless the selected identity changes.
         chosen = s.created_list.curselection()
         binding = s.manual_group_edit_identity[0]
-        if binding is not None:
+        if binding is not None or corner_arm[0] is not None:
             idx = chosen[0] if chosen else -1
             rows = s.live_context.feature_list
+            expected_group_id = (binding[0] if binding is not None
+                                 else corner_arm[0][0])
             if (not 0 <= idx < len(rows) or not api.is_manual_group(rows[idx])
-                    or api.group_parameters(rows[idx])["group_id"] != binding[0]):
+                    or api.group_parameters(rows[idx])["group_id"] != expected_group_id):
                 clear_member_edit()
+                corner_arm[0] = None
         return original_created_select(event)
 
     def safe_undo(event=None):
         clear_member_edit()
         drag_origin[0] = None
+        corner_arm[0] = None
         return original_undo(event)
 
     def safe_activate_context(*args, **kwargs):
         clear_member_edit()
         drag_origin[0] = None
+        corner_arm[0] = None
         return original_activate_context(*args, **kwargs)
 
     s.on_created_select = safe_created_select
