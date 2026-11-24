@@ -171,6 +171,7 @@ class Phase6WorkspaceNavigationController:
         default_profiles: Mapping[str, object] | None = None,
         default_features=(),
         default_face_features: Mapping[str, object] | None = None,
+        explicit_root_source=None,
     ) -> WorkspaceMutationResult:
         candidate = str(key or "")
         changed = bool(self._workspace.add_part(
@@ -178,6 +179,7 @@ class Phase6WorkspaceNavigationController:
             default_profiles=default_profiles,
             default_features=default_features,
             default_face_features=default_face_features,
+            **({"explicit_root_source": explicit_root_source} if explicit_root_source is not None else {}),
         ))
         return WorkspaceMutationResult(key=candidate, changed=changed)
 

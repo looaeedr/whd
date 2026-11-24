@@ -159,7 +159,8 @@ from .project_feature_codec import (
 from .workspace_state import (
     MANDATORY_PART, PART_ORDER, ACTIVE_REPAIR_POLICIES,
     normalize_existing_parts, _repair_active as repair_workspace_active_part,
-    SharedWorkspaceState,
+    SharedWorkspaceState, ROOT_PHYSICAL_OCCUPANCY_KEY,
+    normalize_workspace_root_occupancy, resolve_workspace_physical_root_owner,
     OperatorWorkspaceSnapshotPresence,
     project_operator_fold_designer_workspace_presence,
 )
@@ -938,17 +939,13 @@ def build_operator_part_render_data(
     return build_part_render_data(spec, context)
 
 
-def save_part_render_data_dxf(
-    render_data: PartRenderData,
-    output_path: str | os.PathLike[str],
-    *,
-    overwrite: bool = False,
-    verify_reopen: bool = False,
-) -> str:
-    """Serialize an already-built authoritative FinalScene to DXF."""
-    _manufacturing_export.require_dxf_overwrite_boolean(overwrite)
+def _require_single_part_dxf_source(render_data, *, selected_owner_witness=None):
+    """Reuse existing source checks without creating an output file."""
     from .operator_manual_marking import verify_manual_marking_output
-    verify_manual_marking_output(render_data)
+    if selected_owner_witness is None:
+        verify_manual_marking_output(render_data)
+    else:
+        selected_owner_witness.assert_render(render_data)
     metadata = getattr(render_data, "metadata", None) or {}
     # A CHECK-only V preview is never a production cutting plan.
     reject_tail_lower_v_preview_for_dxf(render_data)
@@ -968,6 +965,32 @@ def save_part_render_data_dxf(
     # Specific V5 trial guard takes priority, then the more general tier
     # physical-base gate handles unsourced/forged non-V5 scenes.
     _manufacturing_export.reject_unverified_receiving_nfb_tier_base(render_data)
+    return metadata
+
+
+def save_part_render_data_dxf(
+    render_data: PartRenderData,
+    output_path: str | os.PathLike[str],
+    *,
+    overwrite: bool = False,
+    verify_reopen: bool = False,
+    selected_owner_marking_source=None,
+) -> str:
+    """Serialize the authoritative FinalScene through the original verified sink.
+
+    A selected owner source must be a trusted ordinary GUI/Engine callback
+    returning the current project snapshot and its actual selected inventory.
+    It cannot supply loose Features, a cutter approval flag or detached geometry.
+    """
+    _manufacturing_export.require_dxf_overwrite_boolean(overwrite)
+    owner_witness = None
+    if selected_owner_marking_source is not None:
+        if render_data is not None or verify_reopen is not True:
+            raise ValueError("PHYSICAL_MARKING_SELECTED_VERIFIED_OUTPUT_REQUIRED")
+        from .operator_persisted_marking_candidate import _prepare_single_selected_owner_marking
+        owner_witness = _prepare_single_selected_owner_marking(*selected_owner_marking_source)
+        render_data = owner_witness.render
+    metadata = _require_single_part_dxf_source(render_data, selected_owner_witness=owner_witness)
     if type(verify_reopen) is not bool:
         raise TypeError("verify_reopen must be bool")
     from .operator_manual_marking_batch import _has_saved_manual_intent
@@ -980,9 +1003,8 @@ def save_part_render_data_dxf(
         # The chosen DXF filename is an output label, NOT the physical
         # identity of a marked saved sheet. Keep its verified stable_id as
         # the selected source key while retaining the operator filename.
-        selected_key = (
-            metadata.get("stable_id") if operator_marked else destination.name
-        )
+        selected_key = (owner_witness.selected[0] if owner_witness is not None else
+                        metadata.get("stable_id") if operator_marked else destination.name)
         if operator_marked and (not isinstance(selected_key, str) or not selected_key):
             raise ValueError("MANUAL_BATCH_PHYSICAL_OWNER_MISSING")
         staged = _manufacturing_export._save_resolved_rows_atomic(
@@ -995,6 +1017,7 @@ def save_part_render_data_dxf(
                 ),
             overwrite=overwrite,
             verify_all_staged=True,
+            _selected_owner_witness=owner_witness,
         )
         return staged[selected_key]
     return _manufacturing_export.save_part_render_data_dxf(
@@ -3370,4 +3393,31 @@ from .operator_physical_sheet_marking import (
     create_physical_sheet_mark,
     validate_physical_sheet_marking_draft,
     commit_physical_sheet_marking,
+    propose_legacy_root_occupancy_for_mark_confirm,
 )
+
+from .operator_root_marking_store import (
+    ROOT_MARKING_STORE_KEY, normalize_workspace_root_marking_store,
+    read_workspace_marking_owner_record, open_workspace_owner_marking_draft,
+    require_existing_normal_owner_marking_route,
+    prepare_workspace_owner_marking_commit, prepare_workspace_initial_owner_marking_commit,
+)
+
+from .operator_physical_sheet_marking_preview import (
+    open_selected_physical_marking_preview, project_selected_physical_marking_preview,
+)
+
+from .operator_selected_marking_receipt import (
+    open_selected_ordinary_marking_modal_source, selected_normal_marking_inventory,
+)
+
+
+def save_confirmed_workspace_owner_marking_dxf(part_key, output_path, *, read_current, overwrite=False):
+    """Compatibility public name, same authoritative normal writer."""
+    return save_part_render_data_dxf(
+        None, output_path, overwrite=overwrite, verify_reopen=True,
+        selected_owner_marking_source=(part_key, read_current),
+    )
+
+
+from .operator_persisted_marking_candidate import read_verified_owner_marking_candidate

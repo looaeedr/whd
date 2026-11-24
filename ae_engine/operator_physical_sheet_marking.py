@@ -56,8 +56,14 @@ def _source(context):
 
 
 def open_physical_sheet_marking(part_key, *, context=None, features=(),
-                                snapshot=None, selection=None, expected_owner=None):
+                                snapshot=None, selection=None, expected_owner=None,
+                                geometry=None):
     """Bind current stock; a scoped owner witness only rejects a mismatch."""
+    if geometry is not None:
+        if selection is not None or expected_owner is not None or context is not None or features:
+            raise ValueError("PHYSICAL_SHEET_MARKING_SELECTION_UNSUPPORTED")
+        from .operator_selected_marking_receipt import open_selected_owner_receipt
+        return open_selected_owner_receipt(snapshot, geometry, part_key)
     if selection is not None:
         if (part_key != "base_plate" or context is not None or features
                 or not isinstance(snapshot, dict)
@@ -98,6 +104,14 @@ def _require_draft(draft):
 
 def validate_physical_sheet_marking_draft(draft, features):
     """Use the same existing full-stroke/material/hole validator for all receipts."""
+    from .operator_selected_marking_receipt import SelectedPhysicalMarkingReceipt
+    if isinstance(draft, SelectedPhysicalMarkingReceipt) and draft.output_capability == "verified_normal":
+        from .operator_manual_marking import is_manual_mark
+        parts = tuple(features)
+        role_rows = tuple(row for row in parts if not is_manual_mark(row))
+        accepted_role = propose_operator_physical_sheet_hole_features(draft.part_key, draft.context, role_rows)
+        marks = draft.validate(tuple(row for row in parts if is_manual_mark(row)))
+        return (*accepted_role, *marks)
     ctx = _require_draft(draft)
     checked = propose_operator_physical_sheet_hole_features(ctx.part_key, ctx, features)
     if draft._selection is not None and any(
@@ -109,6 +123,15 @@ def validate_physical_sheet_marking_draft(draft, features):
 
 def create_physical_sheet_mark(draft, features, *, tool="line", **raw):
     """Produce a single candidate; the caller's draft and storage are untouched."""
+    from .operator_selected_marking_receipt import SelectedPhysicalMarkingReceipt
+    if isinstance(draft, SelectedPhysicalMarkingReceipt) and draft.output_capability == "verified_normal":
+        from .operator_manual_marking import is_manual_mark
+        if tool != "line" or raw.get("pattern", "solid") != "solid":
+            raise ValueError("PHYSICAL_SHEET_MARKING_TOOL_UNSUPPORTED")
+        return draft.create(
+            tuple(row for row in features if is_manual_mark(row)),
+            midpoint=raw["midpoint"], length=raw["length"], angle_deg=raw["angle_deg"],
+        )
     ctx = _require_draft(draft)
     if tool not in draft.allowed_tools:
         raise ValueError("PHYSICAL_SHEET_MARKING_TOOL_UNSUPPORTED")
@@ -135,3 +158,55 @@ def commit_physical_sheet_marking(current, opened, features):
         return PhysicalSheetMarkingUpdate(rows)
     store = commit_scoped_base_plate_marks(current._snapshot, opened._selection, rows)
     return PhysicalSheetMarkingUpdate(rows, store)
+
+
+def propose_legacy_root_occupancy_for_mark_confirm(
+    snapshot, *, selected_spec, manufacturing_context, current, opened, features,
+):
+    """Detached first-mark owner proposal; no store, UI or DXF authority mutation.
+
+    Consumers must obtain the fresh receipt from the actual selected root and
+    recheck the project/session at their eventual atomic commit. An ordinary
+    copy of a context alone is not a durable project owner.
+    """
+    from collections.abc import Mapping
+    from .workspace_state import (
+        SharedWorkspaceState, ROOT_PHYSICAL_OCCUPANCY_KEY,
+        normalize_workspace_root_occupancy,
+    )
+    if (not isinstance(snapshot, Mapping) or not isinstance(current, PhysicalSheetMarkingDraft)
+            or current._selection is not None):
+        raise ValueError("PHYSICAL_ROOT_MARK_CONFIRM_SOURCE_REQUIRED")
+    update = commit_physical_sheet_marking(current, opened, features)
+    key = current.context.part_key
+    if not any(is_manual_mark(row) for row in update.features):
+        raise ValueError("PHYSICAL_ROOT_FIRST_MARK_REQUIRED")
+    nested = snapshot.get("workspace")
+    nested = nested if isinstance(nested, Mapping) else {}
+    parts = snapshot.get("existing_parts", nested.get("existing_parts", ()))
+    if key not in (parts or ()):
+        raise ValueError("PHYSICAL_ROOT_MARK_CONFIRM_SOURCE_REQUIRED")
+    from .cabinet_types.policy import canonical_family_name
+    from .manufacturing_api import build_part_render_data
+    family = canonical_family_name(snapshot.get("model"))
+    selected_family = canonical_family_name(getattr(selected_spec, "model_name", None))
+    if not family or family != selected_family:
+        raise ValueError("PHYSICAL_ROOT_MARK_CONFIRM_SOURCE_REQUIRED")
+    # Rebuild from the selected typed source with the existing canonical
+    # engine, not from GUI geometry, and compare the same full material
+    # witness against the freshly resolved editor receipt.
+    canonical = resolve_physical_sheet_editor_context(
+        key, build_part_render_data(selected_spec, manufacturing_context),
+    )
+    if _source(canonical) != current._source:
+        raise ValueError("PHYSICAL_ROOT_MARK_CONFIRM_SOURCE_STALE")
+    existing = normalize_workspace_root_occupancy(
+        snapshot.get(ROOT_PHYSICAL_OCCUPANCY_KEY, nested.get(ROOT_PHYSICAL_OCCUPANCY_KEY)),
+        existing_parts=parts, model=family,
+    )
+    if key in existing:
+        return existing
+    return SharedWorkspaceState(
+        existing_parts=parts, root_occupancy=existing,
+        custom_parts=snapshot.get("custom_parts", nested.get("custom_parts")),
+    )._propose_marked_legacy_root(key, family)

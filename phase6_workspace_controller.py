@@ -189,6 +189,10 @@ class Phase6WorkspaceController:
             part_profiles=profiles,
             box_body_structure=structure,
             custom_parts=raw.get("custom_parts", self._shared_state.snapshot().get("custom_parts")),
+            root_marking_store=raw.get(manufacturing_api.ROOT_MARKING_STORE_KEY,
+                                       self._shared_state.snapshot().get(manufacturing_api.ROOT_MARKING_STORE_KEY)),
+            root_occupancy=raw.get(manufacturing_api.ROOT_PHYSICAL_OCCUPANCY_KEY,
+                                   self._shared_state.snapshot().get(manufacturing_api.ROOT_PHYSICAL_OCCUPANCY_KEY)),
             active_repair="first",
         )
         self._authoritative = True
@@ -272,6 +276,10 @@ class Phase6WorkspaceController:
             "active_part": result["active_part"],
             "part_profiles": result["part_profiles"],
         }
+        if manufacturing_api.ROOT_MARKING_STORE_KEY in result:
+            snapshot[manufacturing_api.ROOT_MARKING_STORE_KEY] = result[manufacturing_api.ROOT_MARKING_STORE_KEY]
+        if manufacturing_api.ROOT_PHYSICAL_OCCUPANCY_KEY in result:
+            snapshot[manufacturing_api.ROOT_PHYSICAL_OCCUPANCY_KEY] = result[manufacturing_api.ROOT_PHYSICAL_OCCUPANCY_KEY]
         if "custom_parts" in result:
             snapshot["custom_parts"] = result["custom_parts"]
         part_features = self.part_features_snapshot()

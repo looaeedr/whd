@@ -100,7 +100,8 @@ def plan_unconfigured_receiving_base_export_retry(
 
 
 def save_selected_resolved_manufacturing_dxf(
-    receiving_snapshot, resolved, flags, folder,
+    receiving_snapshot, resolved, flags, folder, *, read_current_owner_source=None,
+    owner_guard_sink=None,
 ):
     """Return verified physical output paths; derive all decisions from source."""
     from . import manufacturing_api
@@ -108,6 +109,53 @@ def save_selected_resolved_manufacturing_dxf(
     auto_side, committed_csv = selected_export_manufacturing_policy(
         receiving_snapshot, flags,
     )
+
+    from .operator_root_marking_store import (
+        require_existing_normal_owner_marking_route,
+    )
+    owner_marking_keys = require_existing_normal_owner_marking_route(
+        receiving_snapshot, flags,
+        ordinary=not auto_side and not (committed_csv and bool(flags.get("door") or flags.get("base_plate"))),
+    )
+    if owner_marking_keys:
+        from . import manufacturing_export
+        from .operator_persisted_marking_candidate import _prepare_selected_ordinary_marking_batch
+
+        rows, witness = _prepare_selected_ordinary_marking_batch(
+            receiving_snapshot, resolved, flags, owner_marking_keys, read_current_owner_source,
+        )
+        encoded = []
+        owned_by_render_id = {}
+        for key, render in rows:
+            owner_row = witness.owner_row(key)
+            if owner_row is not None:
+                render = owner_row.render
+                owned_by_render_id[id(render)] = owner_row
+            name = manufacturing_export.resolved_physical_dxf_filename(
+                key, box_body_physical_piece_roles=manufacturing_api._BOX_BODY_PHYSICAL_PIECE_ROLES,
+            )
+            encoded.append((key, name, render))
+
+        def serialize(render, filename, *, overwrite):
+            owner_row = owned_by_render_id.get(id(render))
+            if owner_row is None:
+                return manufacturing_api.save_part_render_data_dxf(render, filename, overwrite=overwrite)
+            manufacturing_api._require_single_part_dxf_source(render, selected_owner_witness=owner_row)
+            return manufacturing_export.save_part_render_data_dxf(
+                render.scene, filename, serializer=manufacturing_api.save_scene_dxf, overwrite=overwrite,
+            )
+
+        if owner_guard_sink is not None and not callable(owner_guard_sink):
+            raise ValueError("PHYSICAL_MARKING_OWNER_GUARD_SINK_INVALID")
+        byte_seals = []
+        outputs = manufacturing_export._save_resolved_rows_atomic(
+            encoded, folder, save_part_render_data_dxf=serialize, overwrite=True,
+            verify_all_staged=True, _selected_owner_witness=witness,
+            _verified_byte_seals_sink=byte_seals.extend if owner_guard_sink is not None else None,
+        )
+        if owner_guard_sink is not None:
+            owner_guard_sink(witness.assert_current, tuple(byte_seals))
+        return outputs
 
     if auto_side:
         from ae_engine.receiving_ear_side_manufacturing_marking import (

@@ -240,6 +240,11 @@ def _snapshot_workspace_state(self, snapshot, *, defer_joint_commit=False):
     bay_layout = manufacturing_api.project_receiving_single_bay_door_controls(snapshot)
     if bay_layout is not None:
         snapshot["receiving_layout"] = bay_layout
+    for root_key in (manufacturing_api.ROOT_PHYSICAL_OCCUPANCY_KEY, manufacturing_api.ROOT_MARKING_STORE_KEY):
+        if workspace_state.get(root_key):
+            snapshot[root_key] = deepcopy(workspace_state[root_key])
+        else:
+            snapshot.pop(root_key, None)
     custom = workspace_state.get("custom_parts")
     if custom is not None:
         snapshot["custom_parts"] = deepcopy(custom)

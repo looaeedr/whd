@@ -317,7 +317,10 @@ def test_primary_true_canvas_target_selected_saved_group_copy_undo_reopen_normal
         assert not editor.winfo_exists(), errors
         assert origin.read_bytes() == source_before
         assert destination.read_bytes() == target_before
-        live = designer.designer_workspace.features_for("base_plate")
+        from tests.test_issue3415_primary_marking_menu_roundtrip import _workspace_confirmed_marks, _bound_marking_export
+        from gui_modules.application.physical_part_hole_editor import current_workspace_marking_source
+        assert designer.designer_workspace.features_for("base_plate") == [existing_hole]
+        live = _workspace_confirmed_marks(current_workspace_marking_source(designer))
         final_mark = next(f for f in live if api.is_manual_group(f))
         assert api.group_parameters(final_mark)["group_id"] != old_id
 
@@ -329,9 +332,10 @@ def test_primary_true_canvas_target_selected_saved_group_copy_undo_reopen_normal
         project_menu.invoke(2)
         root.update()
         assert final_target.is_file()
-        stored = read_project(final_target)["snapshot"]["part_features"]["base_plate"]
+        saved = read_project(final_target)["snapshot"]
+        stored = _workspace_confirmed_marks(saved)
         assert len([f for f in stored if api.is_manual_group(f)]) == 1
-        assert existing_hole in stored
+        assert tuple(saved["part_features"]["base_plate"]) == (existing_hole,)
         stored_group = next(f for f in stored if api.is_manual_group(f))
         assert api.group_parameters(stored_group)["group_id"] == api.group_parameters(final_mark)["group_id"]
         assert (stored_group.offset.x, stored_group.offset.y) == pytest.approx(
@@ -346,16 +350,16 @@ def test_primary_true_canvas_target_selected_saved_group_copy_undo_reopen_normal
         assert host.project_controller.project_path == str(final_target)
         assert host.fold_designer_app is designer
         spec, ctx = _real_part(host)
-        assert api.group_parameters(next(f for f in spec.features
-                                         if api.is_manual_group(f)))["group_id"] != old_id
-        assert host._export_authoritative_part(spec, str(dxf), ctx)
+        reopened = _workspace_confirmed_marks(current_workspace_marking_source(designer))
+        assert api.group_parameters(next(f for f in reopened if api.is_manual_group(f)))["group_id"] != old_id
+        baseline = _bound_marking_export(host, dxf, spec, ctx)
         assert dxf.is_file()
         data = ezdxf.readfile(dxf)
         assert data.header["$INSUNITS"] == 4
         assert {"CUTTING", "BEND", "MARKING"} <= {
             row.dxf.layer for row in data.modelspace()
         }
-        render = api.build_part_render_data(spec, ctx)
+        render = api.with_physical_sheet_features("base_plate", baseline, reopened)
         assert api.verify_saved_part_render_data_dxf(render, dxf).ok
     finally:
         if root.winfo_exists():

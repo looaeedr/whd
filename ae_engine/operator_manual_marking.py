@@ -258,7 +258,6 @@ def validate_physical_manual_markings(part_key, render, features, *,
     No existing stroke is silently shortened, moved, dropped or hidden.  A
     stale mark keeps its saved Feature, but blocks that sheet's manufacturing.
     """
-    from .physical_sheet_features import physical_sheet_feature_context
     from .sheetmetal_features import legacy_hole_to_feature
 
     if not isinstance(part_key, str) or not part_key or render is None:
@@ -275,6 +274,15 @@ def validate_physical_manual_markings(part_key, render, features, *,
                and hypot(p.p2.x-p.p1.x, p.p2.y-p.p1.y) > _EPS
                for p in getattr(render.scene, "primitives", ())):
         raise ValueError("手動打標需要原板件有效的有限 BEND 折線")
+    return _validate_manual_strokes(
+        render, normalized, marks, surface=surface, width=width, height=height,
+        part_key=part_key,
+    )
+
+
+def _validate_manual_strokes(render, normalized, marks, *, part_key, surface, width=None, height=None):
+    from .physical_sheet_features import physical_sheet_feature_context
+
     if surface is None:
         surface, width, height, _ = physical_sheet_feature_context(part_key, render)
     material, blind, scene = _real_material_and_blind_holes(
@@ -363,6 +371,15 @@ def create_physical_manual_marking(part_key, context, existing_features, *,
     if not isinstance(context, PhysicalSheetEditorContext) or context.part_key != part_key:
         raise ValueError("手動打標物理板件身分不一致")
     require_first_sheet_manual_marking_render(part_key, context.render_data)
+    candidate = _build_manual_straight_feature(midpoint, length, angle_deg, pattern, dash, gap)
+    validate_physical_manual_markings(
+        part_key, context.render_data, tuple(existing_features) + (candidate,),
+        surface=context.feature_surface, width=context.width, height=context.height,
+    )
+    return candidate
+
+
+def _build_manual_straight_feature(midpoint, length, angle_deg, pattern, dash, gap):
     if not isinstance(midpoint, Vec2):
         raise ValueError("手動打標中點必須是物理座標")
     mx, my = _finite(midpoint.x, "中點 X"), _finite(midpoint.y, "中點 Y")
@@ -378,18 +395,12 @@ def create_physical_manual_marking(part_key, context, existing_features, *,
     dx, dy = cos(axis) * length / 2.0, sin(axis) * length / 2.0
     p1, p2 = Vec2(mx - dx, my - dy), Vec2(mx + dx, my + dy)
     segments = _segments(p1, p2, pattern, dash, gap)
-    candidate = ProfileFeature(
+    return ProfileFeature(
         points=(p1, p2), anchor=FeatureAnchor.ABSOLUTE_FINISHED_FACE,
         offset=Vec2(0.0, 0.0), layer="MARKING", source_type=MANUAL_MARK_SOURCE,
         source_params=(("pattern", pattern), ("dash", dash), ("gap", gap)),
         layered_profiles=tuple(("MARKING", pair, False) for pair in segments),
     )
-    validate_physical_manual_markings(
-        part_key, context.render_data, tuple(existing_features) + (candidate,),
-        surface=context.feature_surface, width=context.width, height=context.height,
-    )
-    return candidate
-
 
 def is_manual_round_mark(feature):
     source = feature.get("source_type", feature.get("type")) if isinstance(feature, Mapping) else getattr(feature, "source_type", None)

@@ -1,7 +1,7 @@
 """Connect physical preview identities to their existing hole owners."""
 
 
-def open_workspace_sheet_editor(host, key):
+def open_workspace_sheet_editor(host, key, *, verified_only=False):
     from phase6_manufacturing_adapter import build_scene_payload_for_app
     from phase6_part_navigation import operator_part_label
     from ae_engine import manufacturing_api
@@ -35,6 +35,32 @@ def open_workspace_sheet_editor(host, key):
     )
     project_epoch = host.project_controller.project_load_epoch if opened is not None else None
 
+    snapshot = current_workspace_marking_source(app)
+    owner = manufacturing_api.resolve_workspace_physical_root_owner(snapshot, key)
+    claim = owner is not None and manufacturing_api.read_workspace_marking_owner_record(snapshot, owner)
+    legacy_marks = any(manufacturing_api.is_manual_mark(row) for row in features)
+    if claim and legacy_marks:
+        raise ValueError("ROOT_MARKING_SOURCE_STALE")
+    if (opened is not None or verified_only) and not legacy_marks:
+        try:
+            return _open_owner_bound_workspace_marking_editor(
+                host, key, editing_context=context, role_features=features,
+            )
+        except ValueError as exc:
+            # Only explicit ordinary capability absence selects legacy. A
+            # stale/corrupt bound source must not silently fall through.
+            if claim:
+                raise
+            if not (str(exc) == "PHYSICAL_MARKING_NORMAL_OUTPUT_UNSUPPORTED"
+                    or (verified_only and str(exc).startswith((
+                        "OWNER_MARKING_", "MARKING_PREVIEW_",
+                    )))):
+                raise
+    if verified_only:
+        return None
+    if claim:
+        raise ValueError("ROOT_MARKING_SOURCE_STALE")
+
     def commit(pending):
         if key not in workspace.available_parts:
             raise ValueError(f'板件已不存在：{key}')
@@ -65,8 +91,115 @@ def open_workspace_sheet_editor(host, key):
     )
 
 
+def current_workspace_marking_source(app):
+    """Transport selected workspace authority; GUI does not classify records."""
+    from ae_engine import manufacturing_api as api
+
+    snapshot = dict(app._phase6_input_snapshot)
+    state = app.designer_workspace.snapshot()
+    for field in ("existing_parts", "part_features", api.ROOT_PHYSICAL_OCCUPANCY_KEY, api.ROOT_MARKING_STORE_KEY):
+        if field in state:
+            snapshot[field] = state[field]
+        elif field in (api.ROOT_PHYSICAL_OCCUPANCY_KEY, api.ROOT_MARKING_STORE_KEY):
+            snapshot.pop(field, None)
+    workspace = snapshot.get("workspace")
+    if isinstance(workspace, dict):
+        snapshot["workspace"] = {k: v for k, v in workspace.items()
+                                 if k not in (api.ROOT_PHYSICAL_OCCUPANCY_KEY, api.ROOT_MARKING_STORE_KEY)}
+    return snapshot
+
+
+def _open_owner_bound_workspace_marking_editor(host, key, *, editing_context, role_features):
+    from ae_engine import manufacturing_api as api
+    from phase6_part_navigation import operator_part_label
+    from phase6_manufacturing_adapter import build_scene_payload_for_app
+
+    app = host.fold_designer_app
+    workspace = app.designer_workspace
+    project_epoch = host.project_controller.project_load_epoch
+
+    unset = object()
+
+    def selected_snapshot(expected_owner):
+        _require_current_project(host, app, workspace, project_epoch)
+        if key not in workspace.available_parts:
+            raise ValueError("ROOT_MARKING_SELECTION_STALE")
+        snapshot = current_workspace_marking_source(app)
+        if (expected_owner is not unset
+                and api.resolve_workspace_physical_root_owner(snapshot, key) != expected_owner):
+            raise ValueError("ROOT_MARKING_OWNER_STALE")
+        return snapshot
+
+    def read_current(expected_owner=unset, next_holes=None):
+        selected_snapshot(expected_owner)
+        payload = build_scene_payload_for_app(app, key)
+        if next_holes is not None:
+            payload["features"] = next_holes
+        render = host._query_fold_designer_render_data(key, payload)
+        geometry = api.selected_normal_marking_inventory(key, render)
+        snapshot = selected_snapshot(expected_owner)
+        if next_holes is not None:
+            snapshot["part_features"] = {**snapshot.get("part_features", {}), key: next_holes}
+        return snapshot, api.open_selected_ordinary_marking_modal_source(snapshot, geometry, key)
+
+    snapshot, opened = read_current()
+    draft = (api.open_workspace_owner_marking_draft(snapshot, opened)
+             if opened.owner_id is not None else None)
+    role_features = tuple(role_features)
+    modal = (api.open_physical_sheet_marking(key, context=editing_context, features=role_features)
+             if opened.output_capability == "existing_normal" else opened)
+
+    def confirm(pending):
+        def guarded_source(next_holes=None):
+            state = read_current(opened.owner_id, next_holes)
+            if tuple(workspace.features_for(key)) != role_features:
+                raise ValueError("ROOT_MARKING_ROLE_FEATURES_STALE")
+            return state
+
+        current_snapshot, fresh = guarded_source()
+        accepted = api.validate_physical_sheet_marking_draft(modal, pending)
+        pending_holes = tuple(row for row in accepted if not api.is_manual_mark(row))
+        pending = tuple(row for row in accepted if api.is_manual_mark(row))
+        holes_changed = pending_holes != role_features
+        if holes_changed and not pending and (draft is None or not draft.saved_marks):
+            workspace.stash_features(key, pending_holes)
+            if workspace.active_part == key:
+                app._load_part_holes(key)
+            app.submit_update_intent("geometry", commit=True)
+            return
+        prospective = guarded_source(pending_holes)[1] if holes_changed else None
+        if draft is None:
+            proposal = api.prepare_workspace_initial_owner_marking_commit(
+                current_snapshot, opened, fresh, pending, proposed_receipt=prospective,
+            )
+        else:
+            proposal = api.prepare_workspace_owner_marking_commit(
+                current_snapshot, draft, fresh, pending, proposed_receipt=prospective,
+            )
+        if proposal is not None:
+            workspace.commit_owner_marking_update(
+                proposal, model=current_snapshot["model"],
+                read_current_receipt=lambda: guarded_source()[1],
+                read_proposed_receipt=(lambda: guarded_source(pending_holes)[1]) if holes_changed else None,
+                pending_role_features=pending_holes if holes_changed else None,
+            )
+            if holes_changed:
+                if workspace.active_part == key:
+                    app._load_part_holes(key)
+                app.submit_update_intent("geometry", commit=True)
+            app._phase6_publish_live_state(force=True)
+
+    saved_marks = draft.saved_marks if draft is not None else ()
+    return _present_physical_sheet_editor(
+        host, key, operator_part_label(key, snapshot=snapshot), editing_context,
+        (*role_features, *saved_marks), modal, confirm,
+        solid_marking_only=(opened.output_capability == "verified_normal"),
+    )
+
+
 def _present_physical_sheet_editor(
     host, key, title, context, features, draft, confirm, *, sync_callback=None, on_close=None,
+    solid_marking_only=False,
 ):
     editor_features = list(features)
 
@@ -82,6 +215,7 @@ def _present_physical_sheet_editor(
         sync_callback=sync_editor_features if sync_callback is not None else None,
         baseline_scene=context.render_data.scene, manual_marking_draft=draft,
         defer_workspace_sync=True, skip_cancel_sync=True,
+        **({"solid_marking_only": True} if solid_marking_only else {}),
     ) or getattr(host, "last_unified_hole_editor", None)
 
 

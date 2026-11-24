@@ -51,6 +51,26 @@ def _real_part(host):
     return spec, ctx
 
 
+def _workspace_confirmed_marks(snapshot, key="base_plate"):
+    owner = api.resolve_workspace_physical_root_owner(snapshot, key)
+    assert owner
+    record = api.read_workspace_marking_owner_record(snapshot, owner)
+    assert record
+    return tuple(record["features"])
+
+
+def _bound_marking_export(host, path, spec, ctx):
+    from gui_modules.application.physical_part_hole_editor import current_workspace_marking_source
+    baseline = host._authoritative_render_data(spec, ctx)
+    geometry = api.selected_normal_marking_inventory("base_plate", baseline)
+    def read_current():
+        return current_workspace_marking_source(host.fold_designer_app), geometry
+    assert api.save_confirmed_workspace_owner_marking_dxf(
+        "base_plate", path, read_current=read_current,
+    )
+    return baseline
+
+
 def _dxf_entities(path):
     drawing = ezdxf.readfile(path)
     assert drawing.header["$INSUNITS"] == 4
@@ -203,10 +223,9 @@ def test_primary_designer_file_menu_opens_marked_a_then_unconfigured_b(
         _actual_editor_confirm(editor)
         root.update()
         assert not editor.winfo_exists()
-        marks = tuple(
-            f for f in designer.designer_workspace.features_for("base_plate")
-            if api.is_manual_mark(f)
-        )
+        from gui_modules.application.physical_part_hole_editor import current_workspace_marking_source
+        assert not any(api.is_manual_mark(row) for row in designer.designer_workspace.features_for("base_plate"))
+        marks = _workspace_confirmed_marks(current_workspace_marking_source(designer))
         assert len(marks) == 1
 
         # Save with the real Primary File > Save As menu, not old toolbar.
@@ -217,10 +236,8 @@ def test_primary_designer_file_menu_opens_marked_a_then_unconfigured_b(
         assert marked_path.is_file()
         saved = read_project(marked_path)["snapshot"]
         assert saved["receiving_base_plate"] == LEFT
-        assert tuple(
-            f for f in saved["part_features"]["base_plate"]
-            if api.is_manual_mark(f)
-        ) == marks
+        assert _workspace_confirmed_marks(saved) == marks
+
 
         # True Primary File > Open A. Without the lifecycle root guard this
         # destroys the sole Tk root and causes Tcl/default-root failure.
@@ -239,8 +256,9 @@ def test_primary_designer_file_menu_opens_marked_a_then_unconfigured_b(
         assert spec.corner_policy is None
         assert spec.receiving_nfb_depth_pair_mm is None
         assert not spec.seam_positions
-        assert tuple(f for f in spec.features if api.is_manual_mark(f)) == marks
-        host._export_authoritative_part(spec, dxf_path, ctx)
+        assert _workspace_confirmed_marks(current_workspace_marking_source(designer)) == marks
+        assert not any(api.is_manual_mark(f) for f in spec.features)
+        baseline = _bound_marking_export(host, dxf_path, spec, ctx)
         assert dxf_path.is_file()
         _dxf_entities(dxf_path)  # INSUNITS mm + CUTTING/BEND/MARKING
         document = ezdxf.readfile(dxf_path)
@@ -272,7 +290,7 @@ def test_primary_designer_file_menu_opens_marked_a_then_unconfigured_b(
             for e in ink
         ), "PRIMARY_MARKING_NOT_CONTINUOUS"
         assert api.verify_saved_part_render_data_dxf(
-            host._authoritative_render_data(spec, ctx), dxf_path
+            api.with_physical_sheet_features("base_plate", baseline, marks), dxf_path
         ).ok
 
         # Same Primary instance: File > Open B with no physical BasePlate
