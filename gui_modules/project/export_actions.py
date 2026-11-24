@@ -161,33 +161,6 @@ def _selected_resolved_geometry(resolved_geometry, flags):
     )
 
 
-def _assert_export_model_matches_snapshot(snapshot, operator_source):
-    """Reject an already-stale GUI Family before any manufacturing publication.
-
-    Capturing the selector only prevents changes *after* this witness. Compare
-    the initial raw GUI model with the saved Engine model as well, using the
-    same public legacy Family projection as the main GUI controller. GUI does
-    not select physical topology or infer manufacturing geometry here.
-    """
-    if not isinstance(snapshot, Mapping) or not isinstance(operator_source, Mapping):
-        return
-    model_selection = operator_source.get("model_selection")
-    if (not isinstance(model_selection, Mapping)
-            or model_selection.get("reader_present") is not True):
-        return  # Legacy/headless callers have no live model selector.
-    saved_model = manufacturing_api.resolve_operator_manufacturing_family_source(snapshot)
-    if not saved_model:
-        return  # A source-free legacy project still uses the existing Engine gate.
-    live_model = model_selection.get("value")
-    if (not isinstance(live_model, str) or not live_model.strip()
-            or manufacturing_api.operator_resolve_legacy_baseline_manufacturing_family(
-                live_model
-            ) != manufacturing_api.operator_resolve_legacy_baseline_manufacturing_family(
-                saved_model
-            )):
-        raise ValueError("DXF 即時箱型與製造快照不一致，請先同步並重新確認箱型")
-
-
 def _current_authoritative_export_guard(
     designer, snapshot, *, operator_source=None, operator_source_reader=None, host=None,
 ):
@@ -201,7 +174,9 @@ def _current_authoritative_export_guard(
         raise ValueError("DXF_OPERATOR_SOURCE_WITNESS_INCOMPLETE")
     if operator_source_reader is not None and not callable(operator_source_reader):
         raise TypeError("DXF_OPERATOR_SOURCE_READER_INVALID")
-    _assert_export_model_matches_snapshot(snapshot, operator_source)
+    manufacturing_api.require_selected_export_matching_operator_family(
+        snapshot, operator_source,
+    )
     witness = deepcopy(snapshot)
     operator_witness = deepcopy(operator_source)
     workspace = getattr(designer, "designer_workspace", None)
