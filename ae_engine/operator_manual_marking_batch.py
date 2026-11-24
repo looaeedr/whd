@@ -20,8 +20,10 @@ def _marking_source_signature(render):
 
     scene = getattr(render, "scene", None)
     meta = getattr(render, "metadata", None) or {}
-    if not isinstance(meta, Mapping) or scene is None:
-        raise ValueError("MANUAL_BATCH_SELECTED_RENDER_UNRESOLVED")
+    if not isinstance(meta, Mapping):
+        # Existing non-marked manufacturing preview errors remain owned by
+        # their original NFB/PAD/EAR gates, not by #3414.
+        return None
     authored = meta.get("manual_marking_v1_features") or ()
     owned = tuple(
         row for row in getattr(scene, "primitives", ()) or ()
@@ -30,6 +32,8 @@ def _marking_source_signature(render):
     )
     if not authored and not owned:
         return None
+    if scene is None:
+        raise ValueError("MANUAL_BATCH_SELECTED_RENDER_UNRESOLVED")
 
     # Reuse the *whole original* source/CUTTING/hole and stored-ink gate.
     # No new GUI geometry, partial dash-only validation, or family bypass.
@@ -85,12 +89,14 @@ def witness_selected_manual_marking_rows(rows):
     selected = []
     seen = set()
     for key, render in tuple(rows):
+        proof = _marking_source_signature(render)
+        if proof is None:
+            # Leave original unmarked inventory, previews and duplicate-
+            # filename errors to their established manufacturing owners.
+            continue
         if not isinstance(key, str) or not key or key in seen:
             raise ValueError("MANUAL_BATCH_SELECTED_PHYSICAL_ID_AMBIGUOUS")
         seen.add(key)
-        proof = _marking_source_signature(render)
-        if proof is None:
-            continue
         stable, digest = proof
         if key != stable and not key.endswith(":" + stable):
             raise ValueError("MANUAL_BATCH_SELECTED_PHYSICAL_ID_MISMATCH:" + key)
