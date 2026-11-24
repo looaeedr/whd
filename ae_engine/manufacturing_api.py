@@ -368,6 +368,7 @@ from .operator_manual_marking_copy import (
     copy_saved_manual_marking_group_to_selected_sheet,
 )
 from .indicator_editor_geometry import (
+    resolve_operator_indicator_editor_components,
     resolve_indicator_editor_components,
     resolve_indicator_box_editor_geometry,
     resolve_indicator_door_editor_geometry,

@@ -1761,17 +1761,12 @@ class Phase6ApplicationHost:
             if state["mode"] != "indicator_box":
                 return
             val = self.get_float_values()
-            groups = tuple(state["groups"][:state["layers"]])
-            # The canonical shared Indicator geometry is already consumed by
-            # Phase6's _indicator_component_editor_contexts. Never generate
-            # another manufacturing surface or finished-face guide in GUI.
+            # Use the same canonical source-to-component projection as Phase6.
+            # Group selection and Small Door manufacturing spec belong to Engine.
             door_features = self.door_layout_indicator_door_features.get(key, [])
-            door_spec = self._indicator_door_part_spec(
-                val, groups, features=door_features,
-            )
-            info = manufacturing_api.resolve_indicator_editor_components(
-                groups, thickness=val["t"], door_spec=door_spec,
-            )[component]
+            info = manufacturing_api.resolve_operator_indicator_editor_components(
+                raw, val, door_features=door_features,
+            ).components[component]
         except Exception as exc:
             messagebox.showerror("開孔失敗", str(exc))
             return
