@@ -47,7 +47,7 @@ def _box_body_part_spec_from_values(
     """Collect operator/workspace inputs; Engine builds the real BoxBodyPartSpec."""
     controller = self.workspace_controller
     # Pass the authored Fold source untouched. The Engine owns which axis
-    # and physical ybottom1 segment supplies each EndCap outside dimension.
+    # and physical lower Fold segment supplies each EndCap outside dimension.
     endcap_y_profiles = {}
     for key, override in (("head", head_ybottom1), ("tail", tail_ybottom1)):
         if override is None:
