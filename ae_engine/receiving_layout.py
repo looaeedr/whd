@@ -12,9 +12,33 @@ from .panel_naming import normalize_panel_name, PANEL_NUMBER_RE
 from ae_engine.receiving_shared_settings import normalize_set_settings, setting_value
 from typing import Mapping
 import re
+from uuid import uuid4
 
 RECEIVING_LAYOUT_SCHEMA = "receiving-layout-v1"
 RECEIVING_RUNTIME_SELECTION_KEY = "_receiving_runtime_selection"
+_BASE_PLATE_OWNER = "base_plate_owner_id"
+_BASE_PLATE_NAMESPACE = "base_plate_owner_namespace"
+_NEXT_BASE_PLATE_GENERATION = "next_base_plate_owner_generation"
+_BASE_PLATE_NAMESPACE_RE = re.compile(r"[0-9a-f]{12}4[0-9a-f]{3}[89ab][0-9a-f]{15}")
+_BASE_PLATE_OWNER_RE = re.compile(r"receiving:base_plate:([0-9a-f]{32}):([1-9][0-9]{0,17})")
+_MAX_BASE_PLATE_GENERATION = 10 ** 18
+
+
+def _base_plate_owner(namespace, generation):
+    return f"receiving:base_plate:{namespace}:{generation}"
+
+
+def _assign_new_base_plate_owner(layout, bay):
+    namespace = layout.get(_BASE_PLATE_NAMESPACE)
+    if namespace is None:
+        return  # Unprovisioned legacy lineage must never acquire an implicit owner.
+    generation = layout[_NEXT_BASE_PLATE_GENERATION]
+    if generation >= _MAX_BASE_PLATE_GENERATION:
+        raise ValueError("RECEIVING_BASE_PLATE_OWNER_GENERATION_EXHAUSTED")
+    bay[_BASE_PLATE_OWNER] = _base_plate_owner(namespace, generation)
+    layout[_NEXT_BASE_PLATE_GENERATION] = generation + 1
+
+
 _ALLOWED_BACK_PANEL_MODES = {"FULL", "HALF", "BACK_OPENING"}
 _DERIVED_LAYOUT_KEYS = {
     "left_locked",
@@ -69,17 +93,24 @@ def _back_panel_mode(value: object) -> str:
     return mode
 
 
-def new_receiving_layout(*, width: object, height: object, depth: object, back_panel_mode: object = "FULL") -> dict[str, object]:
-    """Return the deterministic fresh/migrated one-Set one-Bay layout."""
+def new_receiving_layout(*, width: object, height: object, depth: object,
+                         back_panel_mode: object = "FULL",
+                         new_physical_board: bool = False) -> dict[str, object]:
+    """Build a one-Bay layout; only explicit cabinet creation allocates an owner."""
+    namespace = uuid4().hex if new_physical_board else None
     return {
         "schema": RECEIVING_LAYOUT_SCHEMA,
         "next_panel_number": 2,
+        **({_BASE_PLATE_NAMESPACE: namespace, _NEXT_BASE_PLATE_GENERATION: 2}
+           if namespace is not None else {}),
         "sets": [
             {
                 "stable_id": "receiving:set:1",
                 "bays": [
                     {
                         "stable_id": "receiving:set:1:bay:1",
+                        **({_BASE_PLATE_OWNER: _base_plate_owner(namespace, 1)}
+                           if namespace is not None else {}),
                         "panel_name": "P1",
                         "width": _number(width, label="Receiving Bay width"),
                         "height": _number(height, label="Receiving Bay height"),
@@ -226,7 +257,18 @@ def normalize_receiving_layout(layout: Mapping[str, object] | None) -> dict[str,
         raise ValueError("next_panel_number 不能重用已使用 P 編號")
     next_number = raw_next if has_counter else highest_p + 1
 
+    namespace = None
+    next_owner = None
+    if _BASE_PLATE_NAMESPACE in layout or _NEXT_BASE_PLATE_GENERATION in layout:
+        namespace = layout.get(_BASE_PLATE_NAMESPACE)
+        if not isinstance(namespace, str) or not _BASE_PLATE_NAMESPACE_RE.fullmatch(namespace):
+            raise ValueError("RECEIVING_BASE_PLATE_OWNER_NAMESPACE_INVALID")
+        next_owner = layout.get(_NEXT_BASE_PLATE_GENERATION)
+        if type(next_owner) is not int or not 2 <= next_owner <= _MAX_BASE_PLATE_GENERATION:
+            raise ValueError("RECEIVING_BASE_PLATE_OWNER_GENERATION_INVALID")
+
     seen_ids: set[str] = set()
+    seen_base_plate_owners: set[str] = set()
     sets: list[dict[str, object]] = []
     for set_index, raw_set in enumerate(raw_sets, start=1):
         if not isinstance(raw_set, Mapping):
@@ -265,6 +307,17 @@ def normalize_receiving_layout(layout: Mapping[str, object] | None) -> dict[str,
                 "depth": _number(raw_bay.get("depth"), label=f"Receiving Set{set_index} Bay{bay_index} depth"),
                 "back_panel_mode": _back_panel_mode(raw_bay.get("back_panel_mode")),
             }
+            if namespace is not None or _BASE_PLATE_OWNER in raw_bay:
+                owner = raw_bay.get(_BASE_PLATE_OWNER)
+                token = _BASE_PLATE_OWNER_RE.fullmatch(owner) if isinstance(owner, str) else None
+                if token is None or namespace is None or token[1] != namespace:
+                    raise ValueError("RECEIVING_BASE_PLATE_OWNER_INVALID")
+                if int(token[2]) >= next_owner:
+                    raise ValueError("RECEIVING_BASE_PLATE_OWNER_GENERATION_INVALID")
+                if owner in seen_base_plate_owners:
+                    raise ValueError("RECEIVING_BASE_PLATE_OWNER_DUPLICATE")
+                seen_base_plate_owners.add(owner)
+                bay[_BASE_PLATE_OWNER] = owner
             if "door_state" in raw_bay:
                 if not isinstance(raw_bay["door_state"], Mapping):
                     raise ValueError("每連門分割必須為物件")
@@ -337,7 +390,13 @@ def normalize_receiving_layout(layout: Mapping[str, object] | None) -> dict[str,
                 bay["back_panel_mode"] = setting_value(selected, index, "back_panel_mode")
         sets.append(selected)
 
-    return {"schema": RECEIVING_LAYOUT_SCHEMA, "next_panel_number": next_number, "sets": sets}
+    return {
+        "schema": RECEIVING_LAYOUT_SCHEMA,
+        "next_panel_number": next_number,
+        "sets": sets,
+        **({_BASE_PLATE_NAMESPACE: namespace, _NEXT_BASE_PLATE_GENERATION: next_owner}
+           if namespace is not None else {}),
+    }
 
 
 def primary_bay(layout: Mapping[str, object]) -> dict[str, object]:
@@ -567,6 +626,7 @@ def resize_receiving_bays(layout: Mapping[str, object], *, set_index: int, bay_c
             previous_bay,
             stable_id=f"receiving:set:{set_number}:bay:{bay_number}",
         )
+        _assign_new_base_plate_owner(normalized, new_bay)
         previous_joint = joints[-1] if joints else None
         joints.append(
             _new_joint(
@@ -603,18 +663,11 @@ def append_receiving_set(layout: Mapping[str, object]) -> dict[str, object]:
     normalized = normalize_receiving_layout(layout)
     template = normalized["sets"][0]["bays"][0]
     set_number = len(normalized["sets"]) + 1
-    normalized["sets"].append(
-        {
-            "stable_id": f"receiving:set:{set_number}",
-            "bays": [
-                _copy_bay_fields(
-                    template,
-                    stable_id=f"receiving:set:{set_number}:bay:1",
-                )
-            ],
-            "joints": [],
-        }
-    )
+    new_bay = _copy_bay_fields(template, stable_id=f"receiving:set:{set_number}:bay:1")
+    _assign_new_base_plate_owner(normalized, new_bay)
+    normalized["sets"].append({
+        "stable_id": f"receiving:set:{set_number}", "bays": [new_bay], "joints": [],
+    })
     return normalize_receiving_layout(normalized)
 
 

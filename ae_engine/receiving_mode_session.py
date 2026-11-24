@@ -45,7 +45,9 @@ def fresh_receiving_mode(mode, dimensions, *, thickness=2.0, auto_nfb=False):
         columns.append([width, list(partition.values)])
     result["door_layout_columns"] = columns
     result["receiving_layout"] = new_receiving_layout(
-        width=dims["w"], height=dims["h"], depth=dims["d"])
+        width=dims["w"], height=dims["h"], depth=dims["d"],
+        new_physical_board=(mode == SET_BAY_MODE),
+    )
     result = ensure_receiving_layout(result)
     result["active_mode"] = mode
     _validate_common_receiving_state(result)
