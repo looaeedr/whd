@@ -95,10 +95,10 @@ def _export(route, render, folder):
     if route == "resolved_single":
         return api.save_resolved_manufacturing_geometry_dxf(
             _one(render), folder, overwrite=True)
-    if route == "resolved_batch_default":
-        return api.save_resolved_manufacturing_geometry_batch_dxf(
-            (("set1__bay1", _one(render)),), folder,
-            overwrite=True, verify_reopen=False)
+    if route == "final_scene_batch":
+        return api.save_verified_final_scene_batch_dxf(
+            (("base_plate", render),), folder,
+            overwrite=True, pre_commit_guard=lambda: None)
     raise AssertionError(route)
 
 
@@ -108,7 +108,7 @@ def _outpath(value):
 
 @pytest.mark.parametrize("route", (
     "single_default", "single_verified", "resolved_single",
-    "resolved_batch_default",
+    "final_scene_batch",
 ))
 def test_actual_left_public_normal_exports_are_reopened_and_unchanged(
     actual_sheet, tmp_path, route,
@@ -128,7 +128,7 @@ def test_actual_left_public_normal_exports_are_reopened_and_unchanged(
     ("single_default", "first_x_plus_half"),
     ("single_verified", "linetype"),
     ("resolved_single", "bulge"),
-    ("resolved_batch_default", "end_width"),
+    ("final_scene_batch", "end_width"),
 ))
 def test_corrupted_stage_cannot_replace_preexisting_public_dxf(
     actual_sheet, tmp_path, monkeypatch, route, kind,
@@ -170,3 +170,16 @@ def test_unmarked_optional_verification_remains_optional(actual_sheet, tmp_path,
         (("plain", _one(render)),), tmp_path / "plain-batch",
         verify_reopen=False)
     assert len(result) == 1 and not unexpected
+
+
+def test_unverified_namespace_cannot_claim_another_real_marking_owner(
+    actual_sheet, tmp_path,
+):
+    render = _marked(actual_sheet)
+    destination = tmp_path / "wrong-owner"
+    with pytest.raises(ValueError, match="MANUAL_BATCH_SELECTED_PHYSICAL_ID_MISMATCH"):
+        api.save_resolved_manufacturing_geometry_batch_dxf(
+            (("set1__bay1", _one(render)),), destination,
+            verify_reopen=False,
+        )
+    assert not destination.exists()
