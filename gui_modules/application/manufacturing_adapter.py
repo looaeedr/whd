@@ -245,17 +245,11 @@ def _door_layout_part_spec(self, cell, val):
     )
 
 def _validate_indicator_state_fit(self, state, *, finished_width, finished_height, thickness):
-    # Use the same strictly validated source that DoorPartSpec and Hole Editor
-    # consume. The GUI may not sanitize live physical groups or hole offsets.
-    source = manufacturing_api.project_operator_door_cell_indicator_manufacturing_source(state)
-    if source["mode"] == "none":
-        return (0.0, 0.0)
-    return manufacturing_api.validate_door_indicator_fit(
-        mode=source["mode"],
-        groups=tuple(source["groups"][:source["layers"]]),
-        finished_width=finished_width, finished_height=finished_height,
-        thickness=thickness,
-        offset=(source["offset_x"], source["offset_y"]),
+    # Pass original saved/live physical source; Engine alone qualifies the
+    # active mode, layer selection, offsets, and actual finished-face fit.
+    return manufacturing_api.validate_operator_indicator_state_fit(
+        state, finished_width=finished_width,
+        finished_height=finished_height, thickness=thickness,
     )
 
 def _validate_single_door_indicator_fit(self, val, state=None):

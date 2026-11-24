@@ -677,6 +677,7 @@ from .manufacturing_door_indicator import (
     indicator_small_door_finished_size,
     indicator_box_opening_feature,
     validate_door_indicator_fit,
+    validate_operator_indicator_state_fit,
     _validate_door_part_indicator_fit,
     indicator_small_door_spec,
     indicator_small_door_operator_spec,
