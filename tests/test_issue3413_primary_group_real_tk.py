@@ -284,21 +284,33 @@ def test_primary_group_four_l_member_edit_rotate_mirror_undo_save_reopen_dxf_b(
         assert dict(api.group_member_world_points(group))["top_right"].x == pytest.approx(
             original_center.x + 26)
 
-        # Whole-group canvas drag moves the center and survives native Undo.
-        cx, cy = state.canvas_view.transform.world_to_canvas(group.offset)
+        # Actual Tk drag starts at a *corner*, not the nominal center.
+        # The cursor changes by ≈(+3,+2) mm; the group center must only
+        # change by that displacement, never jump to the grabbed corner.
+        corner = dict(api.group_member_world_points(group))["top_right"]
+        cx, cy = state.canvas_view.transform.world_to_canvas(corner)
         tx, ty = state.canvas_view.transform.world_to_canvas(
-            Vec2(group.offset.x + 5, group.offset.y + 5))
+            Vec2(corner.x + 3, corner.y + 2))
+        grab = state.canvas_view.canvas_to_world(round(cx), round(cy))
+        end = state.canvas_view.canvas_to_world(round(tx), round(ty))
+        assert grab is not None and end is not None
+        assert end.x-grab.x == pytest.approx(3, abs=1)
+        assert end.y-grab.y == pytest.approx(2, abs=1)
+        member_offsets = api.group_parameters(group)["members"]
         canvas.event_generate("<Button-1>", x=round(cx), y=round(cy))
         canvas.event_generate("<B1-Motion>", x=round(tx), y=round(ty))
         canvas.event_generate("<ButtonRelease-1>", x=round(tx), y=round(ty))
         root.update()
         moved = next(f for f in rows if api.is_manual_group(f))
-        assert moved.offset != original_center
+        assert moved.offset.x == pytest.approx(original_center.x + end.x - grab.x)
+        assert moved.offset.y == pytest.approx(original_center.y + end.y - grab.y)
+        assert api.group_parameters(moved)["members"] == member_offsets
         state.undo_btn.invoke()
         root.update()
         group = next(f for f in rows if api.is_manual_group(f))
         assert group.offset == original_center
         assert api.group_parameters(group)["group_id"] == old_id
+        assert api.group_parameters(group)["members"] == member_offsets
         assert len(tuple(f for f in rows if api.is_manual_mark(f))) == 1
         _actual_editor_confirm(editor)
         root.update()
@@ -563,11 +575,18 @@ def test_primary_group_double_hit_and_stale_a_to_b_member_apply_is_inert():
         state.manual_mark_select_button.invoke()
         click(dict(api.group_member_world_points(revised_b))["top_right"])
         double(dict(api.group_member_world_points(revised_b))["top_right"])
+        # Existing Session semantics: when selected, the first Undo only
+        # cancels the active selection edit. The second undoes the committed
+        # (4,2) edit; neither may reactivate a stale corner authorization.
+        assert state.hole_session.has_active_edit
         state.undo_btn.invoke()
         root.update()
-        assert group_by_id(b_id) == before_b
+        assert group_by_id(b_id) == revised_b
         state.manual_group_offset_x.set("9")
         state.manual_group_apply_offset.invoke()
+        assert group_by_id(b_id) == revised_b
+        state.undo_btn.invoke()
+        root.update()
         assert group_by_id(b_id) == before_b
 
         # The original created-feature list is another real selection route.

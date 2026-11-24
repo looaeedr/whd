@@ -250,3 +250,54 @@ def test_real_saved_project_dxf_3d_and_reeditable_group(actual_sheet, tmp_path):
     assert document.layers.get("MARKING").dxf.linetype == "CONTINUOUS"
     # Crucially neither primary group center nor hidden dash gaps are DXF ink.
     assert all(e.dxftype() == "LWPOLYLINE" and len(e) == 2 for e in actual_marks)
+
+
+def test_mirror_symmetric_four_corner_strokes_are_duplicate_unordered(actual_sheet):
+    """Two symmetric 4-L groups can have opposite source order, same real ink.
+
+    Distinct group_id alone must not bypass identical physical MARKING ink.
+    Real partial overlaps must remain legal.
+    """
+    _source, _render, ctx, _, _ = actual_sheet
+    original = _group(actual_sheet, kind="quad_l", center=Vec2(100, 100),
+                      arm_x=12, arm_y=12, spacing_x=40, spacing_y=30)
+    mirrored = _validated_change(actual_sheet, original, mirror_vertical=True)
+    from dataclasses import replace
+    mirrored = replace(mirrored, source_params=tuple(
+        (key, "different-group-id" if key == "group_id" else value)
+        for key, value in mirrored.source_params
+    ))
+    _, pattern_a, strokes_a = source_group(original)
+    _, pattern_b, strokes_b = source_group(mirrored)
+    assert pattern_a == pattern_b == "solid"
+    assert len(strokes_a) == len(strokes_b) == 8
+    assert not all(a.equals(b) for a, b in zip(strokes_a, strokes_b))
+    assert all(any(a.equals(b) for b in strokes_b) for a in strokes_a)
+    with pytest.raises(ValueError, match="重複"):
+        api.propose_operator_physical_sheet_hole_features(
+            "base_plate", ctx, (original, mirrored),
+        )
+
+    # Unrelated offset must not be rejected merely for partial intersection.
+    shifted = _group(actual_sheet, kind="quad_l", center=Vec2(101, 100),
+                     arm_x=12, arm_y=12, spacing_x=40, spacing_y=30)
+    assert api.propose_operator_physical_sheet_hole_features(
+        "base_plate", ctx, (original, shifted),
+    ) == (original, shifted)
+
+
+def test_mirror_symmetric_dashed_group_same_phase_is_duplicate(actual_sheet):
+    _source, _render, ctx, _, _ = actual_sheet
+    original = _group(actual_sheet, kind="quad_l", center=Vec2(100, 100),
+                      arm_x=12, arm_y=12, spacing_x=40, spacing_y=30,
+                      pattern="dashed", dash=3, gap=4)
+    mirrored = _validated_change(actual_sheet, original, mirror_vertical=True)
+    from dataclasses import replace
+    mirrored = replace(mirrored, source_params=tuple(
+        (key, "different-dash-id" if key == "group_id" else value)
+        for key, value in mirrored.source_params
+    ))
+    with pytest.raises(ValueError, match="重複"):
+        api.propose_operator_physical_sheet_hole_features(
+            "base_plate", ctx, (original, mirrored),
+        )
