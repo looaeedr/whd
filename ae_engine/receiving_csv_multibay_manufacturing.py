@@ -9,6 +9,7 @@ sheet CUTTING coordinate. One atomic output includes all selected Bays.
 from __future__ import annotations
 
 from dataclasses import replace
+from collections.abc import Mapping
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -252,6 +253,28 @@ def export_current_receiving_multibay_dxf(
             raise ValueError("RECEIVING_COMPOSED_NFB_INDEPENDENT_CORE_SCOPE_REQUIRED")
     all_bays=tuple((i,j) for i,s in enumerate(layout["sets"])
                    for j,_ in enumerate(s["bays"]))
+    # #3414: a root/workspace BasePlate mark has no persisted Set/Bay owner.
+    # Even a namespaced output filename cannot turn that one unscoped intent
+    # into one independently authored marking for EACH physical Bay.  Do not
+    # let a provider silently drop it from the new per-Bay FinalScene.
+    # Other selected roles remain governed by their own original sources.
+    if len(all_bays) > 1 and bool(flags.get("base_plate")):
+        from .operator_manual_marking import is_manual_mark
+        workspace = saved_snapshot.get("workspace")
+        for stored in (
+            saved_snapshot.get("part_features"),
+            workspace.get("part_features") if isinstance(workspace, Mapping) else None,
+        ):
+            if not isinstance(stored, Mapping):
+                continue
+            authored = stored.get("base_plate")
+            if is_manual_mark(authored) or (
+                isinstance(authored, (tuple, list))
+                and any(is_manual_mark(feature) for feature in authored)
+            ):
+                raise ValueError(
+                    "MANUAL_BATCH_SET_BAY_OWNER_UNRESOLVED:base_plate"
+                )
     # The original main export button has no second NFB output directory.
     # If the operator selected both physical pair roles, derive the immutable
     # original Door/Base Requests from THIS saved Set/Bay layout in Engine.
@@ -420,6 +443,18 @@ def export_current_receiving_multibay_dxf(
             formed={}
             uv=()
         physical_rows=tuple(resolved_physical_render_parts(selected))
+        if len(all_bays) > 1:
+            # Canonical physical role alone is not scoped ownership.  A live
+            # marked sheet must carry a real owner all the way from its
+            # persisted Set/Bay/version, which this legacy route does not.
+            # Preserve the old DXF; never infer the owner from a panel label.
+            from .operator_manual_marking_batch import _has_saved_manual_intent
+            for key, render in physical_rows:
+                if _has_saved_manual_intent(render):
+                    raise ValueError(
+                        "MANUAL_BATCH_SET_BAY_OWNER_UNRESOLVED:"
+                        + ns + ":" + key
+                    )
         if not physical_rows:
             raise ValueError("RECEIVING_MULTIBAY_SELECTED_FINALSCENE_EMPTY")
         if len({key for key,_ in physical_rows})!=len(physical_rows):
