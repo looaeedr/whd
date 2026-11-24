@@ -86,9 +86,9 @@ def _unique_single_sheet(snapshot, role):
 
 def _saved_source_features(snapshot):
     all_features = snapshot.get("part_features") or {}
-    if not isinstance(all_features, Mapping) or "base_plate" not in all_features:
+    if not isinstance(all_features, Mapping):
         raise ValueError("MANUAL_COPY_SOURCE_SAVED_MARKING_MISSING")
-    features = tuple(all_features["base_plate"])
+    features = tuple(all_features.get("base_plate", ()))
     workspace = snapshot.get("workspace") or {}
     if isinstance(workspace, Mapping):
         other = workspace.get("part_features")
@@ -96,7 +96,26 @@ def _saved_source_features(snapshot):
             tuple(other["base_plate"]) != features
         ):
             raise ValueError("MANUAL_COPY_SOURCE_WORKSPACE_MARKING_DRIFT")
-    return features
+    from . import manufacturing_api as api
+    owner = api.resolve_workspace_physical_root_owner(snapshot, "base_plate")
+    record = api.read_workspace_marking_owner_record(snapshot, owner) if owner is not None else None
+    if record is None:
+        if "base_plate" not in all_features:
+            raise ValueError("MANUAL_COPY_SOURCE_SAVED_MARKING_MISSING")
+        return features  # untouched legacy role transport
+    if any(api.is_manual_mark(f) for f in features):
+        raise ValueError("PHYSICAL_MARKING_LEGACY_ROLE_MARKS_UNBOUND")
+    from .contracts import ManufacturingContext
+    source = api.build_part_render_data(
+        _base_part_spec(snapshot, features),
+        ManufacturingContext(resource_root=Path(__file__).resolve().parents[1]),
+    )
+    geometry = api.selected_normal_marking_inventory("base_plate", source)
+    receipt = api.open_physical_sheet_marking("base_plate", snapshot=snapshot, geometry=geometry)
+    if receipt.output_capability != "existing_normal":
+        raise ValueError("PHYSICAL_MARKING_NORMAL_OUTPUT_UNSUPPORTED")
+    saved = api.open_workspace_owner_marking_draft(snapshot, receipt)
+    return (*features, *saved.saved_marks)
 
 
 def _base_part_spec(snapshot, features):

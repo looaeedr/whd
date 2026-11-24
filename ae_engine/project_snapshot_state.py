@@ -247,6 +247,34 @@ def normalize_project_snapshot_authority(snapshot):
         if result.get(TAIL_LOWER_V_SNAPSHOT_KEY)!="v90":
             raise ValueError("V_MITER_FIRST_BEND_REQUIRES_SAVED_V_CHOICE")
         project_operator_tail_lower_v_first_bend_status(result)
+    from .workspace_state import ROOT_PHYSICAL_OCCUPANCY_KEY, normalize_workspace_root_occupancy
+    owner_key = ROOT_PHYSICAL_OCCUPANCY_KEY
+    workspace = result.get("workspace")
+    nested = workspace.pop(owner_key, None) if isinstance(workspace, dict) else None
+    if owner_key in result or nested is not None:
+        root = result.pop(owner_key, nested)
+        if nested is not None and root != nested:
+            raise ValueError("PHYSICAL_ROOT_OCCUPANCY_CONFLICT")
+        presence = result.get("existing_parts") or (
+            workspace.get("existing_parts", ()) if isinstance(workspace, dict) else ()
+        )
+        owners = normalize_workspace_root_occupancy(
+            root, existing_parts=presence, model=result.get("model", ""),
+        )
+        if owners:
+            result[owner_key] = owners
+    from .operator_root_marking_store import ROOT_MARKING_STORE_KEY, normalize_workspace_root_marking_store
+    marking_key = ROOT_MARKING_STORE_KEY
+    nested_marks = workspace.pop(marking_key, None) if isinstance(workspace, dict) else None
+    if marking_key in result or nested_marks is not None:
+        root_marks = result.pop(marking_key, nested_marks)
+        if nested_marks is not None and (
+            normalize_workspace_root_marking_store(nested_marks) != normalize_workspace_root_marking_store(root_marks)
+        ):
+            raise ValueError("ROOT_MARKING_STORE_CONFLICT")
+        marks = normalize_workspace_root_marking_store(root_marks)
+        if marks["records"]:
+            result[marking_key] = marks
     from .operator_scoped_base_plate_marks import SCOPED_BASE_PLATE_MARKS, normalize_scoped_base_plate_marks
     if SCOPED_BASE_PLATE_MARKS in result:
         result[SCOPED_BASE_PLATE_MARKS] = normalize_scoped_base_plate_marks(result)

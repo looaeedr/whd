@@ -672,6 +672,16 @@ def settings_application_project_ui_values(
         return
 
     if baseline_stage == "commit" and plan is not None:
+        if old_model != new_model:
+            workspace = getattr(app, "designer_workspace", None)
+            retire = getattr(workspace, "reconcile_root_occupancy_family", None)
+            if callable(retire):
+                retire(new_model)
+            root_key = manufacturing_api.ROOT_PHYSICAL_OCCUPANCY_KEY
+            app._phase6_input_snapshot.pop(root_key, None)
+            saved_workspace = app._phase6_input_snapshot.get("workspace")
+            if isinstance(saved_workspace, dict):
+                saved_workspace.pop(root_key, None)
         if old_model != "受電箱" and new_model == "受電箱":
             # FamilyModelPlan already committed the newly initialized
             # Set1/Bay1 NFB source to _phase6_input_snapshot. An old loaded

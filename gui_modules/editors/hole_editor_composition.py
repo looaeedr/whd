@@ -236,16 +236,14 @@ def _build_sidebar_workspace_state(s):
         s.manual_mark_pattern = d.tk.StringVar(master=s.editor, value="solid")
         s.manual_mark_dash = d.tk.StringVar(master=s.editor, value="10")
         s.manual_mark_gap = d.tk.StringVar(master=s.editor, value="5")
-        for name, var, width in (
-            ("長度 mm", s.manual_mark_length, 6),
-            ("角度 °", s.manual_mark_angle, 5),
-            ("實段 mm", s.manual_mark_dash, 5),
-            ("留白 mm", s.manual_mark_gap, 5),
-        ):
+        mark_fields = (("長度 mm", s.manual_mark_length, 6), ("角度 °", s.manual_mark_angle, 5))
+        if not s.solid_marking_only:
+            mark_fields += (("實段 mm", s.manual_mark_dash, 5), ("留白 mm", s.manual_mark_gap, 5))
+        for name, var, width in mark_fields:
             d.tk.Label(mark_bar, text=name, fg=host.COLOR_TEXT,
                        bg=host.COLOR_PANEL).pack(side=d.tk.LEFT, padx=(6, 1))
             d.tk.Entry(mark_bar, textvariable=var, width=width).pack(side=d.tk.LEFT)
-        for label, value in (("實線", "solid"), ("虛線", "dashed")):
+        for label, value in (() if s.solid_marking_only else (("實線", "solid"), ("虛線", "dashed"))):
             d.tk.Radiobutton(
                 mark_bar, text=label, value=value,
                 variable=s.manual_mark_pattern, bg=host.COLOR_PANEL,
@@ -2000,7 +1998,7 @@ def open_unified_hole_editor(
     baseline_scene=None, baseline_status_text=None,
     indicator_component_context_provider=None, cabinet_reference_guide=None,
     local_reference_guide=None, manual_marking_draft=None,
-    defer_workspace_sync=False, skip_cancel_sync=False, *, dependencies,
+    defer_workspace_sync=False, skip_cancel_sync=False, solid_marking_only=False, *, dependencies,
 ):
     s = SimpleNamespace(
         host=host, d=dependencies, part_key=part_key, title=title, surface=surface,
@@ -2017,7 +2015,7 @@ def open_unified_hole_editor(
         on_confirm_features=on_confirm_features, baseline_scene=baseline_scene,
         baseline_status_text=baseline_status_text,
         indicator_component_context_provider=indicator_component_context_provider,
-        manual_marking_draft=manual_marking_draft,
+        manual_marking_draft=manual_marking_draft, solid_marking_only=solid_marking_only,
         defer_workspace_sync=defer_workspace_sync,
         skip_cancel_sync=skip_cancel_sync,
     )

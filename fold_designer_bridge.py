@@ -2908,6 +2908,7 @@ def _fix11_add_part(self, key):
             key,
             default_profiles=defaults,
             default_features=(),
+            explicit_root_source=self._phase6_input_snapshot,
         )
         if (key == "head" and manufacturing_api.operator_canonical_family_name(
                 self._phase6_input_snapshot) == "受電箱"):

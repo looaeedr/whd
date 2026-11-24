@@ -156,6 +156,11 @@ class Phase6ProjectController:
             "assembly_placements": deepcopy(owner.get("assembly_placements") or {}),
             "assembly_relief": deepcopy(assembly_relief or {}),
         })
+        for root_key in (manufacturing_api.ROOT_PHYSICAL_OCCUPANCY_KEY, manufacturing_api.ROOT_MARKING_STORE_KEY):
+            if owner.get(root_key):
+                snapshot[root_key] = deepcopy(owner[root_key])
+            else:
+                snapshot.pop(root_key, None)
         if "custom_parts" in owner:
             snapshot["custom_parts"] = deepcopy(owner["custom_parts"])
         else:
@@ -241,6 +246,8 @@ class Phase6ProjectController:
             ),
         }
 
+        for root_key in (manufacturing_api.ROOT_PHYSICAL_OCCUPANCY_KEY, manufacturing_api.ROOT_MARKING_STORE_KEY):
+            result[root_key] = deepcopy(owner.get(root_key))
         if "custom_parts" in owner:
             result["custom_parts"] = deepcopy(owner["custom_parts"])
         for optional_key in (

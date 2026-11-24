@@ -733,6 +733,12 @@ def _compose_phase6_project_snapshot_from_main_gui(self):
         workspace["assembly_placements"] = deepcopy(workspace_state["assembly_placements"])
     elif "assembly_placements" in snapshot:
         workspace["assembly_placements"] = deepcopy(snapshot["assembly_placements"])
+    for root_key in (manufacturing_api.ROOT_PHYSICAL_OCCUPANCY_KEY, manufacturing_api.ROOT_MARKING_STORE_KEY):
+        if workspace_state.get(root_key):
+            snapshot[root_key] = deepcopy(workspace_state[root_key])
+            workspace[root_key] = deepcopy(workspace_state[root_key])
+        else:
+            snapshot.pop(root_key, None)
     if "custom_parts" in workspace_state:
         workspace["custom_parts"] = deepcopy(workspace_state["custom_parts"])
     for key in ("active_mode", "quantity", "custom_parts", "receiving_quantity_box", "receiving_layout"):
@@ -862,6 +868,16 @@ def _apply_original_fold_designer_snapshot(self, snapshot):
         "part_features": snapshot.get("part_features") or ws_source.get("part_features", {}),
         "part_face_features": snapshot.get("part_face_features") or ws_source.get("part_face_features", {}),
         "custom_parts": deepcopy(snapshot.get("custom_parts", ws_source.get("custom_parts"))),
+        manufacturing_api.ROOT_MARKING_STORE_KEY: manufacturing_api.normalize_workspace_root_marking_store(
+            snapshot.get(manufacturing_api.ROOT_MARKING_STORE_KEY,
+                         ws_source.get(manufacturing_api.ROOT_MARKING_STORE_KEY)),
+        ),
+        manufacturing_api.ROOT_PHYSICAL_OCCUPANCY_KEY: manufacturing_api.normalize_workspace_root_occupancy(
+            snapshot.get(manufacturing_api.ROOT_PHYSICAL_OCCUPANCY_KEY,
+                         ws_source.get(manufacturing_api.ROOT_PHYSICAL_OCCUPANCY_KEY)),
+            existing_parts=snapshot.get("existing_parts") or ws_source.get("existing_parts") or (),
+            model=snapshot.get("model"),
+        ),
         **{key: deepcopy(snapshot[key]) for key in ("active_mode", "quantity", "receiving_quantity_box", "receiving_layout") if key in snapshot},
     })
     self._sync_fold_designer_manual_corner_context(snapshot.get("active_part"))
@@ -925,6 +941,9 @@ def _store_fold_designer_workspace(self, workspace):
     for key in ("active_mode", "quantity", "custom_parts", "receiving_quantity_box", "receiving_layout"):
         if key in workspace:
             committed_workspace[key] = deepcopy(workspace[key])
+    for root_key in (manufacturing_api.ROOT_PHYSICAL_OCCUPANCY_KEY, manufacturing_api.ROOT_MARKING_STORE_KEY):
+        if root_key in workspace:
+            committed_workspace[root_key] = deepcopy(workspace[root_key])
     self.workspace_controller.commit_workspace(committed_workspace)
 
 def _apply_fold_designer_live_snapshot(self, payload):
