@@ -323,7 +323,9 @@ def _save_resolved_rows_atomic(
     # Check all physical-part evidence before any output path is created.
     rows = tuple(rows)
     # #3414: selected-only saved marking source before any stage is created.
-    from .operator_manual_marking_batch import witness_selected_manual_marking_rows
+    from .operator_manual_marking_batch import (
+        _has_saved_manual_intent, witness_selected_manual_marking_rows,
+    )
     marking_witness = witness_selected_manual_marking_rows(
         (str(key), render) for key, _filename, render in rows
     )
@@ -367,7 +369,10 @@ def _save_resolved_rows_atomic(
             paired_door = (isinstance(metadata, Mapping)
                            and metadata.get("nfb_pair_roundtrip_required") is True
                            and metadata.get("nfb_trial_export_approved") is True)
-            if verify_all_staged or str(output_key) in verified_nfb_parts or paired_door:
+            # Saved operator MARKING is manufacturing ink: mandatory staged
+            # reopen even when the legacy public batch verify flag is off.
+            if (verify_all_staged or str(output_key) in verified_nfb_parts
+                    or paired_door or _has_saved_manual_intent(render_data)):
                 from .manufacturing_verification import verify_saved_part_render_data_dxf
                 verified = verify_saved_part_render_data_dxf(render_data, stage_path)
                 if not verified.ok:

@@ -412,6 +412,73 @@ def _same_line_geometry(a, b, tolerance: float) -> bool:
     return direct or reverse
 
 
+def _expected_marking_polylines(scene):
+    """Canonical MARKING strokes, including every vertex and open/closed intent."""
+    rows = []
+    for primitive in getattr(scene, "primitives", ()):
+        if (not isinstance(primitive, PolylinePrimitive)
+                or str(primitive.layer).upper() != "MARKING"):
+            continue
+        vertices = []
+        for point in primitive.points:
+            raw = (point.x, point.y)
+            if any(isinstance(value, bool) for value in raw):
+                raise ValueError("canonical MARKING vertex must have real coordinates")
+            try:
+                x, y = (float(value) for value in raw)
+            except (TypeError, ValueError, OverflowError) as exc:
+                raise ValueError("canonical MARKING vertex must have real coordinates") from exc
+            if not all(isfinite(value) for value in (x, y)):
+                raise ValueError("canonical MARKING vertex must have finite coordinates")
+            vertices.append((x, y))
+        color = primitive.color if primitive.color is not None else 211
+        rows.append(("MARKING", bool(primitive.closed), color, tuple(vertices)))
+    return tuple(rows)
+
+
+def _actual_marking_polylines(msp):
+    """Read saved MARKING vertices AND machining attributes; no serializer callback."""
+    return tuple(
+        (
+            str(entity.dxf.layer).upper(),
+            bool(entity.closed),
+            entity.dxf.get("color", 256),
+            str(entity.dxf.get("linetype", "BYLAYER")).upper(),
+            float(entity.dxf.get("const_width", 0)),
+            float(entity.dxf.get("elevation", 0)),
+            tuple(map(float, entity.dxf.get("extrusion", (0, 0, 1)))),
+            tuple(tuple(map(float, point)) for point in entity.get_points("xyseb")),
+        )
+        for entity in msp
+        if entity.dxftype() == "LWPOLYLINE"
+        and str(entity.dxf.layer).upper() == "MARKING"
+    )
+
+
+def _marking_rows_close(expected, actual, tolerance: float) -> bool:
+    """One-to-one ink matching; never silently accept bulge or variable width."""
+    def same(source, saved):
+        layer, closed, color, points = source
+        actual_layer, actual_closed, actual_color, linetype, width, elevation, extrusion, vertices = saved
+        if (layer != actual_layer or closed != actual_closed
+                or color != actual_color
+                or linetype not in {"BYLAYER", "CONTINUOUS"}
+                or width != 0.0 or elevation != 0.0
+                or extrusion != (0.0, 0.0, 1.0)
+                or len(points) != len(vertices)):
+            return False
+        return all(
+            len(v) == 5
+            and all(isfinite(n) for n in v)
+            and abs(x - v[0]) <= tolerance
+            and abs(y - v[1]) <= tolerance
+            and v[2] == 0.0 and v[3] == 0.0 and v[4] == 0.0
+            for (x, y), v in zip(points, vertices)
+        )
+
+    return _one_to_one_tolerance_match(expected, actual, same)
+
+
 def _find_layer_mismatches(scene, msp, tolerance: float):
     issues = []
     actual_lines = []
@@ -575,5 +642,34 @@ def verify_saved_part_render_data_dxf(
             expected_circles,
             actual_circles,
         ))
+
+    # Neither entity counts nor CUTTING area detects an unchanged number
+    # of MARKING strokes whose positions, widths or curve bulges were altered.
+    # Read back each physical LWPOLYLINE from the staged DXF independently.
+    try:
+        expected_marks = _expected_marking_polylines(render_data.scene)
+        # Generic entity counts already reject unrequested ink. Preserve
+        # the established receipt for a scene with no canonical MARKING
+        # polylines; this extra check proves expected physical ink.
+        if expected_marks:
+            actual_marks = _actual_marking_polylines(msp)
+            try:
+                marking_layer = doc.layers.get("MARKING")
+                layer_ok = (
+                    str(marking_layer.dxf.linetype).upper() == "CONTINUOUS"
+                    and marking_layer.dxf.color == 211
+                )
+            except Exception:
+                layer_ok = False
+            if (not layer_ok or not _marking_rows_close(
+                    expected_marks, actual_marks, float(coordinate_tolerance))):
+                issues.append(DxfAcceptanceIssue(
+                    "MARKING_MISMATCH",
+                    "saved MARKING LWPOLYLINE differs from canonical points/style",
+                    expected_marks,
+                    actual_marks,
+                ))
+    except ValueError as exc:
+        issues.append(DxfAcceptanceIssue("INVALID_SOURCE", str(exc)))
 
     return DxfAcceptanceResult(ok=not issues, issues=tuple(issues))

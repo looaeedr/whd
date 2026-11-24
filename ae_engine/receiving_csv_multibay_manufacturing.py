@@ -621,11 +621,13 @@ def export_current_receiving_multibay_dxf(
                 save_scene_dxf(path,render.scene)
             else:
                 save_part_render_data_dxf(render,path,overwrite=False)
+            if filename in scoped_output_filenames:
+                # Keep the owner-aware diagnosis before the shared receipt;
+                # both checks still run on every valid scoped staged sheet.
+                verify_scoped_base_plate_dxf(render, path)
             if not verify_saved_part_render_data_dxf(render,path).ok:
                 raise ValueError("RECEIVING_MULTIBAY_SAVED_DXF_ROUNDTRIP_FAILED:"+
                                  namespace+":"+key)
-            if filename in scoped_output_filenames:
-                verify_scoped_base_plate_dxf(render, path)
             staged[namespace+":"+key]=path
         for filename,segments,source_scene in marking_proofs:
             _readback_marking_lines(
