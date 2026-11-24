@@ -32,17 +32,28 @@ def _file_identity(path, digest, role):
 def _unique_single_sheet(snapshot, role):
     if not isinstance(snapshot, Mapping):
         raise ValueError("MANUAL_COPY_" + role + "_SNAPSHOT_REQUIRED")
-    # A root base_plate name cannot resolve Set/Bay/Quantity versions.
-    # Until an authoritative scoped owner is wired, reject rather than
-    # attach an otherwise valid mark to a similarly named Bay.
-    if snapshot.get("_receiving_runtime_selection"):
-        raise ValueError("MANUAL_COPY_SET_BAY_OWNER_UNRESOLVED")
+    # Project readback legitimately projects the persisted Set1/Bay1
+    # as a *transient* runtime selection, even for one legacy BasePlate.
+    # Prove that selection matches its only true saved physical owner.
+    # Multiple bays/sets are unsupported, never mapped by shared part name.
+    if snapshot.get("active_mode") == "quantity":
+        raise ValueError("MANUAL_COPY_VERSION_OWNER_UNRESOLVED")
     layout = snapshot.get("receiving_layout") or {}
-    if isinstance(layout, Mapping) and (
-        len(tuple(layout.get("sets") or ())) > 1
-        or any(len(tuple(row.get("bays") or ())) > 1
-               for row in tuple(layout.get("sets") or ())
-               if isinstance(row, Mapping))
+    if not isinstance(layout, Mapping):
+        raise ValueError("MANUAL_COPY_SET_BAY_OWNER_UNRESOLVED")
+    sets = tuple(layout.get("sets") or ())
+    if len(sets) != 1 or not isinstance(sets[0], Mapping):
+        raise ValueError("MANUAL_COPY_SET_BAY_OWNER_UNRESOLVED")
+    bays = tuple(sets[0].get("bays") or ())
+    if len(bays) != 1 or not isinstance(bays[0], Mapping):
+        raise ValueError("MANUAL_COPY_SET_BAY_OWNER_UNRESOLVED")
+    active = snapshot.get("_receiving_runtime_selection")
+    if active is not None and (
+        not isinstance(active, Mapping)
+        or active.get("set_index") != 0 or active.get("bay_index") != 0
+        or active.get("set_id") != sets[0].get("stable_id")
+        or active.get("bay_id") != bays[0].get("stable_id")
+        or set(active) != {"set_index", "bay_index", "set_id", "bay_id"}
     ):
         raise ValueError("MANUAL_COPY_SET_BAY_OWNER_UNRESOLVED")
     quantity = snapshot.get("quantity") or {}
