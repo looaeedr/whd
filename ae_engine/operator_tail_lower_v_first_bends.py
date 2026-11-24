@@ -15,7 +15,9 @@ from .contracts import EndCapPartSpec
 from .manufacturing_render_data import PartRenderData, material_polygon_from_final_scene
 from .sheetmetal_drawing import LinePrimitive
 from .sheetmetal_geometry_core import GeometryError
-from .v_miter_operator_gui_check import _physical_corner_bends
+from .v_miter_operator_gui_check import (
+    _bound_vault_tail_v90_corner_bends, _physical_corner_bends,
+)
 
 TAIL_LOWER_V_FIRST_BENDS_KEY = "tail_lower_v_first_bends"
 _CORNERS = ("bottom_left", "bottom_right")
@@ -100,7 +102,9 @@ def project_operator_tail_lower_v_first_bend_options(
                 ).area > 1e-5):
             raise GeometryError("V_MITER_FIRST_BEND_ACTIVE_V_MATERIAL_MISMATCH")
     for corner in _CORNERS:
-        selected = _physical_corner_bends(render_data.scene, material, corner)
+        selected = _bound_vault_tail_v90_corner_bends(
+            spec, render_data.scene, material, corner,
+        )
         vx, hy = selected[6], selected[7]  # ACTUAL finite source lines.
         xs, ys = _segment(vx), _segment(hy)
         if (xs[0][0] != xs[1][0] or ys[0][1] != ys[1][1]

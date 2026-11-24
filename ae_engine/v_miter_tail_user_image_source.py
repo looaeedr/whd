@@ -26,7 +26,7 @@ from .sheetmetal_geometry_core import GeometryError, Vec2
 from .v_miter_factory_mother_check import (
     _factory_original_shape, _selected_original_corner_component,
 )
-from .v_miter_operator_gui_check import _physical_corner_bends
+from .v_miter_operator_gui_check import _bound_vault_tail_v90_corner_bends
 
 
 @dataclass(frozen=True)
@@ -121,7 +121,7 @@ def project_tail_illustrated_side_v90_flat(
     side_bend_replacements={}
     side_bend_extensions=[]
     for key in ("bottom_left","bottom_right"):
-        real=_physical_corner_bends(render.scene,original,key)
+        real=_bound_vault_tail_v90_corner_bends(spec,render.scene,original,key)
         # Fold stations, not physical guide ENDPOINTS: the original
         # side BEND begins at y=49 and bottom BEND at x=16/506.
         vertical,horizontal=real[:2]
