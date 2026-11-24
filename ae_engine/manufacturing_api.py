@@ -3358,6 +3358,11 @@ from .v_miter_tail_pair_sheet_check import (
     project_v_miter_custom_tail_bottom_pair_one_sheet_2d_check,
 )
 
+from .operator_receiving_head_occupancy import (
+    HEAD_OCCUPANCY_KEY, receiving_head_scope, normalize_receiving_head_occupancy,
+    transition_receiving_head_occupancy, reconcile_receiving_head_occupancy,
+    receiving_head_occupant_status,
+)
 from .operator_scoped_base_plate_marks import (
     SCOPED_BASE_PLATE_MARKS, normalize_scoped_base_plate_mark_ledger, open_scoped_base_plate_editor,
     commit_scoped_base_plate_marks, scoped_base_plate_mark_status,

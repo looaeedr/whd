@@ -163,6 +163,16 @@ class ReceivingModeSession:
             candidate[SCOPED_BASE_PLATE_MARKS] = normalize_scoped_base_plate_marks(current)
         else:
             candidate.pop(SCOPED_BASE_PLATE_MARKS, None)
+        from .operator_receiving_head_occupancy import (
+            HEAD_OCCUPANCY_KEY, reconcile_receiving_head_occupancy,
+        )
+        # Mode buffers must not resurrect a prior physical Head occupant.
+        if HEAD_OCCUPANCY_KEY in current:
+            candidate[HEAD_OCCUPANCY_KEY] = reconcile_receiving_head_occupancy(
+                candidate, raw=current[HEAD_OCCUPANCY_KEY], allocate=False,
+            )
+        else:
+            candidate.pop(HEAD_OCCUPANCY_KEY, None)
         self._buffers[self._mode] = current
         self._active = candidate
         self._mode = target

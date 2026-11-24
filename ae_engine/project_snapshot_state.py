@@ -250,6 +250,15 @@ def normalize_project_snapshot_authority(snapshot):
     from .operator_scoped_base_plate_marks import SCOPED_BASE_PLATE_MARKS, normalize_scoped_base_plate_marks
     if SCOPED_BASE_PLATE_MARKS in result:
         result[SCOPED_BASE_PLATE_MARKS] = normalize_scoped_base_plate_marks(result)
+    from .operator_receiving_head_occupancy import (
+        HEAD_OCCUPANCY_KEY, reconcile_receiving_head_occupancy,
+    )
+    if HEAD_OCCUPANCY_KEY in result:
+        result[HEAD_OCCUPANCY_KEY] = reconcile_receiving_head_occupancy(result)
+    # No nested workspace alias may resurrect retired owners.
+    if isinstance(result.get("workspace"), dict) and HEAD_OCCUPANCY_KEY in result["workspace"]:
+        result["workspace"] = {k: v for k, v in result["workspace"].items()
+                               if k != HEAD_OCCUPANCY_KEY}
     result = normalize_authoritative_door_state(result)
     if is_receiving_snapshot(result):
         from ae_engine.receiving_layout import RECEIVING_DOOR_STATE_KEYS

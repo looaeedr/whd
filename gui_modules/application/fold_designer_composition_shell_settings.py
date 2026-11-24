@@ -672,6 +672,11 @@ def settings_application_project_ui_values(
         return
 
     if baseline_stage == "commit" and plan is not None:
+        sync_occupancy = getattr(app.designer_workspace, "sync_head_occupancy", None)
+        if callable(sync_occupancy):
+            occupancy = sync_occupancy({**app._phase6_input_snapshot, "model": new_model})
+            if occupancy is not None:
+                app._phase6_input_snapshot[manufacturing_api.HEAD_OCCUPANCY_KEY] = occupancy
         if old_model != "受電箱" and new_model == "受電箱":
             # FamilyModelPlan already committed the newly initialized
             # Set1/Bay1 NFB source to _phase6_input_snapshot. An old loaded

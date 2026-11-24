@@ -8,6 +8,10 @@ from typing import Any, Mapping
 from phase6_box_body_structure import normalize_box_body_structure_state, legacy_box_body_structure_locked
 from phase6_workspace_state import MANDATORY_PART, SharedWorkspaceState
 from phase6_quantity_model import QuantityModel, normalize_quantity_snapshot
+from ae_engine.manufacturing_api import (
+    HEAD_OCCUPANCY_KEY, normalize_receiving_head_occupancy,
+    transition_receiving_head_occupancy, reconcile_receiving_head_occupancy,
+)
 
 
 class Phase6DesignerWorkspace:
@@ -24,6 +28,7 @@ class Phase6DesignerWorkspace:
         active_mode: str = "quantity",
         quantity: Mapping[str, object] | None = None,
         receiving_quantity_box: Mapping[str, object] | None = None,
+        head_occupancy: Mapping[str, object] | None = None,
     ) -> None:
         self._shared_state = shared_state or SharedWorkspaceState(active_repair="none")
         self._selected_part = selected_part
@@ -34,6 +39,8 @@ class Phase6DesignerWorkspace:
         self._switching = bool(switching)
         self._active_mode = active_mode
         self._receiving_quantity_box = deepcopy(receiving_quantity_box)
+        self._head_occupancy = (normalize_receiving_head_occupancy(head_occupancy)
+                                if head_occupancy is not None else None)
         self._quantity_model = None
         if active_mode == "quantity":
             self._quantity_model = (
@@ -75,6 +82,9 @@ class Phase6DesignerWorkspace:
             active_mode=source["active_mode"],
             quantity=source.get("quantity"),
             receiving_quantity_box=source.get("receiving_quantity_box"),
+            head_occupancy=reconcile_receiving_head_occupancy(
+                source, parts=shared.existing_parts, allocate=True,
+            ),
         )
 
     def replace_receiving_snapshot(self, snapshot):
@@ -84,6 +94,24 @@ class Phase6DesignerWorkspace:
         if self._quantity_model is not None:
             self._quantity_model._on_change = self.mark_dirty
         self.mark_dirty()
+
+    def sync_head_occupancy(self, snapshot):
+        """Apply the Engine lifecycle to the committed live Family/Bay scope."""
+        value = reconcile_receiving_head_occupancy(
+            snapshot, raw=self._head_occupancy, parts=self.available_parts,
+            allocate=True,
+        )
+        if value != self._head_occupancy:
+            self._head_occupancy = value
+            self.mark_dirty()
+        return deepcopy(value)
+
+    def _head_presence_changed(self):
+        if self._head_occupancy is not None:
+            self._head_occupancy = transition_receiving_head_occupancy(
+                self._head_occupancy, self._head_occupancy["scope"],
+                "head" in self.available_parts,
+            )
 
     def set_receiving_common_box(self, box):
         if self._quantity_model is None:
@@ -112,6 +140,7 @@ class Phase6DesignerWorkspace:
     def replace_available_parts(self, values) -> tuple[str, ...]:
         previous = set(self.available_parts)
         parts = self._shared_state.set_existing_parts(values, active_repair="none")
+        self._head_presence_changed()
         if self._selected_part not in parts:
             self._selected_part = None
         self._drop_assembly_placements_for_removed_parts(previous.difference(parts))
@@ -211,6 +240,8 @@ class Phase6DesignerWorkspace:
         if key in self.available_parts:
             return False
         self._shared_state.set_part_presence(key, True, active_repair="none")
+        if key == "head":
+            self._head_presence_changed()
         if not self._shared_state.has_profile(key) and default_profiles is not None:
             self._shared_state.stash_profiles(key, default_profiles)
         if key not in self._part_features:
@@ -228,6 +259,8 @@ class Phase6DesignerWorkspace:
             return False
         custom = self.custom_part(key) is not None
         self._shared_state.set_part_presence(key, False, active_repair="none")
+        if key == "head":
+            self._head_presence_changed()
         if custom:
             self._part_features.pop(key, None)
             self._part_face_features.pop(key, None)
@@ -461,6 +494,8 @@ class Phase6DesignerWorkspace:
             profiles[str(active)] = deepcopy(dict(live_active_profiles or {}))
             result["part_profiles"] = profiles
         result["active_mode"] = self._active_mode
+        if self._head_occupancy is not None:
+            result[HEAD_OCCUPANCY_KEY] = deepcopy(self._head_occupancy)
         if self._quantity_model is not None:
             result["quantity"] = self._quantity_model.snapshot()
         if self._receiving_quantity_box is not None:
@@ -476,6 +511,8 @@ class Phase6DesignerWorkspace:
             "assembly_placements": self.assembly_placements_snapshot(),
             "active_mode": self._active_mode,
         })
+        if self._head_occupancy is not None:
+            result[HEAD_OCCUPANCY_KEY] = deepcopy(self._head_occupancy)
         if self._quantity_model is not None:
             result["quantity"] = self._quantity_model.snapshot()
         if self._receiving_quantity_box is not None:

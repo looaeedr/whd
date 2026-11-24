@@ -185,6 +185,11 @@ def sync_receiving_current_bay(
         app, "_phase6_box_whd", physical
     )
     workspace = app.designer_workspace
+    sync_occupancy = getattr(workspace, "sync_head_occupancy", None)
+    if callable(sync_occupancy):
+        occupancy = sync_occupancy(projected)
+        if occupancy is not None:
+            app._phase6_input_snapshot[manufacturing_api.HEAD_OCCUPANCY_KEY] = occupancy
     feature_plan = manufacturing_api.project_operator_receiving_live_bay_features(
         projected, available_parts=workspace.available_parts,
         layout=adapter.layout,

@@ -156,6 +156,13 @@ class Phase6ProjectController:
             "assembly_placements": deepcopy(owner.get("assembly_placements") or {}),
             "assembly_relief": deepcopy(assembly_relief or {}),
         })
+        # Only the live workspace owns the current physical Head occupant.
+        occupancy_key = manufacturing_api.HEAD_OCCUPANCY_KEY
+        shared_workspace.pop(occupancy_key, None)
+        if occupancy_key in owner:
+            snapshot[occupancy_key] = deepcopy(owner[occupancy_key])
+        else:
+            snapshot.pop(occupancy_key, None)
         if "custom_parts" in owner:
             snapshot["custom_parts"] = deepcopy(owner["custom_parts"])
         else:

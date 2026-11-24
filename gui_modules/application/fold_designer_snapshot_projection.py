@@ -233,7 +233,8 @@ def _snapshot_workspace_state(self, snapshot, *, defer_joint_commit=False):
     )
     ordered = list(presence.existing_parts)
     snapshot["existing_parts"] = ordered
-    for key in ("active_mode", "quantity", "receiving_quantity_box", "receiving_layout"):
+    for key in ("active_mode", "quantity", "receiving_quantity_box", "receiving_layout",
+                manufacturing_api.HEAD_OCCUPANCY_KEY):
         if key in workspace_state:
             snapshot[key] = deepcopy(workspace_state[key])
     # Engine alone decides whether root Door controls own the sole Receiving Bay.

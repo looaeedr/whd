@@ -3015,6 +3015,11 @@ def _fix11_export(self):
     result["part_profiles"] = deepcopy(owner_workspace["part_profiles"])
     if "custom_parts" in owner_workspace:
         result["custom_parts"] = deepcopy(owner_workspace["custom_parts"])
+    occupancy_key = manufacturing_api.HEAD_OCCUPANCY_KEY
+    if occupancy_key in owner_workspace:
+        result[occupancy_key] = deepcopy(owner_workspace[occupancy_key])
+    else:
+        result.pop(occupancy_key, None)
     result["part_features"] = deepcopy(owner_workspace["part_features"])
     result["part_face_features"] = deepcopy(owner_workspace["part_face_features"])
     result["settings"] = dict(self._settings_values)
