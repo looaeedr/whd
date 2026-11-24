@@ -479,8 +479,9 @@ def test_r4_52_folded_mesh_bounds_reject_nonphysical_world_xyz(bad):
     )
     normal = (((0., 0., 0.), (100., 0., 0.), (0., 100., 0.)),)
     dimensions, bounds = folded_outside_envelope(normal, thickness=2.)
-    assert dimensions == pytest.approx((100., 100., 4.))
-    assert bounds[2] == pytest.approx((-2., 2.))
+    # A real folded T2 mid-sheet has two skins at Z=-1/+1.
+    assert dimensions == pytest.approx((100., 100., 2.))
+    assert bounds[2] == pytest.approx((-1., 1.))
 
     corrupt = (((bad, 0., 0.), (100., 0., 0.), (0., 100., 0.)),)
     with pytest.raises(ValueError, match="FOLDED_ENVELOPE_INVALID_WORLD_MESH"):

@@ -1,0 +1,335 @@
+"""#3414 explicit copy of one saved manual-marking group into another real sheet.
+
+The receiving LEFT BasePlate is the *only* currently proven copy source
+and destination.  A same-named Bay/version must never be inferred from the
+part name; multi-scope projects fail closed until a physical scoped resolver
+exists. The caller selects the destination editor and one saved source file.
+No auto-sync and no import of another project's manufacturing permission.
+"""
+from __future__ import annotations
+
+from collections.abc import Mapping
+from dataclasses import replace
+from hashlib import sha256
+import json
+from pathlib import Path
+from uuid import uuid4
+
+from .sheetmetal_feature_core import ProfileFeature
+
+
+def _file_identity(path, digest, role):
+    if not isinstance(path, (str, Path)):
+        raise ValueError("MANUAL_COPY_" + role + "_PROJECT_REQUIRED")
+    target = Path(path).resolve(strict=True)
+    if target.suffix.lower() != ".p6fold" or not target.is_file():
+        raise ValueError("MANUAL_COPY_" + role + "_PROJECT_REQUIRED")
+    raw = target.read_bytes()
+    if not isinstance(digest, str) or digest != sha256(raw).hexdigest():
+        raise ValueError("MANUAL_COPY_" + role + "_SAVED_SOURCE_CHANGED")
+    return str(target), raw
+
+
+def _bound_project_snapshot(raw, claimed, role):
+    """Decode the same hash-verified bytes using the existing project API."""
+    from . import manufacturing_api as api
+
+    try:
+        decoded = api.decode_project_value(json.loads(raw.decode("utf-8")))
+        saved = api.project_operator_project_for_read(decoded)["snapshot"]
+    except (ValueError, TypeError, KeyError, OverflowError) as error:
+        raise ValueError("MANUAL_COPY_" + role + "_SAVED_PROJECT_INVALID") from error
+    # Mapping equality ignores serialization/key ordering, but not changed
+    # authored geometry, features, physical owners or runtime scope.
+    if saved != claimed:
+        raise ValueError("MANUAL_COPY_" + role + "_SAVED_SNAPSHOT_MISMATCH")
+    return saved
+
+
+def _unique_single_sheet(snapshot, role):
+    if not isinstance(snapshot, Mapping):
+        raise ValueError("MANUAL_COPY_" + role + "_SNAPSHOT_REQUIRED")
+    # Project readback legitimately projects the persisted Set1/Bay1
+    # as a *transient* runtime selection, even for one legacy BasePlate.
+    # Prove that selection matches its only true saved physical owner.
+    # Multiple bays/sets are unsupported, never mapped by shared part name.
+    if snapshot.get("active_mode") == "quantity":
+        raise ValueError("MANUAL_COPY_VERSION_OWNER_UNRESOLVED")
+    layout = snapshot.get("receiving_layout") or {}
+    if not isinstance(layout, Mapping):
+        raise ValueError("MANUAL_COPY_SET_BAY_OWNER_UNRESOLVED")
+    sets = tuple(layout.get("sets") or ())
+    if len(sets) != 1 or not isinstance(sets[0], Mapping):
+        raise ValueError("MANUAL_COPY_SET_BAY_OWNER_UNRESOLVED")
+    bays = tuple(sets[0].get("bays") or ())
+    if len(bays) != 1 or not isinstance(bays[0], Mapping):
+        raise ValueError("MANUAL_COPY_SET_BAY_OWNER_UNRESOLVED")
+    active = snapshot.get("_receiving_runtime_selection")
+    if active is not None and (
+        not isinstance(active, Mapping)
+        or active.get("set_index") != 0 or active.get("bay_index") != 0
+        or active.get("set_id") != sets[0].get("stable_id")
+        or active.get("bay_id") != bays[0].get("stable_id")
+        or set(active) != {"set_index", "bay_index", "set_id", "bay_id"}
+    ):
+        raise ValueError("MANUAL_COPY_SET_BAY_OWNER_UNRESOLVED")
+    quantity = snapshot.get("quantity") or {}
+    if isinstance(quantity, Mapping) and len(tuple(quantity.get("versions") or ())) > 1:
+        raise ValueError("MANUAL_COPY_VERSION_OWNER_UNRESOLVED")
+    for key in ("model", "w", "h", "t", "fw", "receiving_base_plate"):
+        if key not in snapshot:
+            raise ValueError("MANUAL_COPY_" + role + "_ORIGINAL_SOURCE_MISSING")
+    if not isinstance(snapshot["receiving_base_plate"], Mapping):
+        raise ValueError("MANUAL_COPY_" + role + "_ORIGINAL_SOURCE_MISSING")
+    return snapshot
+
+
+def _saved_source_features(snapshot):
+    all_features = snapshot.get("part_features") or {}
+    if not isinstance(all_features, Mapping):
+        raise ValueError("MANUAL_COPY_SOURCE_SAVED_MARKING_MISSING")
+    features = tuple(all_features.get("base_plate", ()))
+    workspace = snapshot.get("workspace") or {}
+    if isinstance(workspace, Mapping):
+        other = workspace.get("part_features")
+        if isinstance(other, Mapping) and "base_plate" in other and (
+            tuple(other["base_plate"]) != features
+        ):
+            raise ValueError("MANUAL_COPY_SOURCE_WORKSPACE_MARKING_DRIFT")
+    from . import manufacturing_api as api
+    owner = api.resolve_workspace_physical_root_owner(snapshot, "base_plate")
+    record = api.read_workspace_marking_owner_record(snapshot, owner) if owner is not None else None
+    if record is None:
+        if "base_plate" not in all_features:
+            raise ValueError("MANUAL_COPY_SOURCE_SAVED_MARKING_MISSING")
+        return features  # untouched legacy role transport
+    if any(api.is_manual_mark(f) for f in features):
+        raise ValueError("PHYSICAL_MARKING_LEGACY_ROLE_MARKS_UNBOUND")
+    from .contracts import ManufacturingContext
+    source = api.build_part_render_data(
+        _base_part_spec(snapshot, features),
+        ManufacturingContext(resource_root=Path(__file__).resolve().parents[1]),
+    )
+    geometry = api.selected_normal_marking_inventory("base_plate", source)
+    receipt = api.open_physical_sheet_marking("base_plate", snapshot=snapshot, geometry=geometry)
+    if receipt.output_capability != "existing_normal":
+        raise ValueError("PHYSICAL_MARKING_NORMAL_OUTPUT_UNSUPPORTED")
+    saved = api.open_workspace_owner_marking_draft(snapshot, receipt)
+    return (*features, *saved.saved_marks)
+
+
+def list_saved_manual_marking_copy_groups(*, source_snapshot, source_project_path,
+                                          source_project_sha256):
+    """List IDs from the same byte-bound physical source that Copy will recheck."""
+    from .operator_manual_marking_groups import group_parameters, is_manual_group
+
+    _unique_single_sheet(source_snapshot, "SOURCE")
+    _file, raw = _file_identity(source_project_path, source_project_sha256, "SOURCE")
+    saved = _bound_project_snapshot(raw, source_snapshot, "SOURCE")
+    rows = _saved_source_features(saved)
+    return tuple(group_parameters(row)["group_id"] for row in rows if is_manual_group(row))
+
+
+def project_live_manual_marking_copy_target_state(snapshot, part_key, *, editor_features=None):
+    """Compare role holes and saved owner marks independently for the open target."""
+    from .operator_manual_marking import is_manual_mark
+    from .operator_root_marking_store import read_workspace_marking_owner_record
+    from .workspace_state import resolve_workspace_physical_root_owner
+
+    error = "MANUAL_COPY_TARGET_EDITOR_SESSION_STALE"
+    if not isinstance(snapshot, Mapping) or part_key != "base_plate":
+        raise ValueError(error)
+    role = snapshot.get("part_features") or {}
+    if not isinstance(role, Mapping):
+        raise ValueError(error)
+    role_features = tuple(role.get(part_key, ()))
+    owner = resolve_workspace_physical_root_owner(snapshot, part_key)
+    saved = read_workspace_marking_owner_record(snapshot, owner) if owner else None
+    if saved is not None and any(is_manual_mark(row) for row in role_features):
+        raise ValueError(error)
+    marks = () if saved is None else saved["features"]
+    if editor_features is not None and tuple(editor_features) != (*role_features, *marks):
+        raise ValueError(error)
+    return owner, role_features, saved
+
+
+def _base_part_spec(snapshot, features):
+    from . import manufacturing_api as api
+    values, policy = api.resolve_fold_designer_base_plate_source(
+        "base_plate", snapshot,
+        width=snapshot["w"], height=snapshot["h"],
+        thickness=snapshot["t"], frame_width=snapshot["fw"],
+        model_name=snapshot["model"], corner_policy=None,
+    )
+    if policy is not None:
+        raise ValueError("MANUAL_COPY_PHYSICAL_CORNER_POLICY_UNSUPPORTED")
+    spec = api.build_base_plate_operator_part_spec(
+        values, features=tuple(features), corner_policy=policy,
+    )
+    from .operator_manual_marking import require_first_sheet_manual_marking_spec
+    require_first_sheet_manual_marking_spec(spec)
+    return spec
+
+
+def _live_owner_scope(snapshot):
+    """Read actual canonical single-Bay ownership, never a GUI label."""
+    from .cabinet_types.policy import canonical_family_name
+    from .receiving_layout import normalize_receiving_layout
+    if (not isinstance(snapshot, Mapping)
+            or canonical_family_name(snapshot) != "受電箱"
+            or snapshot.get("active_mode") == "quantity"):
+        raise ValueError("MANUAL_COPY_TARGET_LIVE_OWNER_CHANGED")
+    layout = normalize_receiving_layout(snapshot.get("receiving_layout"))
+    sets = layout["sets"]
+    if len(sets) != 1 or len(sets[0]["bays"]) != 1:
+        raise ValueError("MANUAL_COPY_TARGET_LIVE_OWNER_CHANGED")
+    bay = sets[0]["bays"][0]
+    return (sets[0]["stable_id"], bay["stable_id"],
+            layout.get("base_plate_owner_namespace"), bay.get("base_plate_owner_id"),
+            layout.get("next_panel_number"), layout.get("next_base_plate_owner_generation"))
+
+
+def verify_saved_manual_marking_copy_sources(
+    *, source_snapshot, source_project_path, source_project_sha256,
+    target_snapshot, target_project_path, target_project_sha256,
+    target_context, source_group_id, target_live_snapshot=None,
+):
+    """Revalidate the two saved byte-bound sources and the selected live sheet.
+
+    No feature is inserted, and the source's old position is not tested
+    against the destination. Reuse at selection, placement and confirmation.
+    """
+    from . import manufacturing_api as api
+    from .contracts import ManufacturingContext
+    from .operator_manual_marking import require_first_sheet_manual_marking_render
+
+    source_file, source_bytes = _file_identity(
+        source_project_path, source_project_sha256, "SOURCE",
+    )
+    target_file, target_bytes = _file_identity(
+        target_project_path, target_project_sha256, "TARGET",
+    )
+    if source_file == target_file:
+        raise ValueError("MANUAL_COPY_SAME_PHYSICAL_PROJECT")
+    # Preserve the scoped error for existing callers supplying an invalid
+    # claim; no geometry is resolved from that claim before byte binding.
+    _unique_single_sheet(source_snapshot, "SOURCE")
+    _unique_single_sheet(target_snapshot, "TARGET")
+    _saved_source_features(source_snapshot)
+    source = _bound_project_snapshot(source_bytes, source_snapshot, "SOURCE")
+    target = _bound_project_snapshot(target_bytes, target_snapshot, "TARGET")
+    if target_live_snapshot is not None and (
+        _live_owner_scope(target_live_snapshot) != _live_owner_scope(target)
+    ):
+        raise ValueError("MANUAL_COPY_TARGET_LIVE_OWNER_CHANGED")
+    original = _saved_source_features(source)
+    from .workspace_state import resolve_workspace_physical_root_owner
+    source_owner = resolve_workspace_physical_root_owner(source, "base_plate")
+    if source_owner is not None and (
+        source_owner == resolve_workspace_physical_root_owner(target, "base_plate")
+        or source_owner == resolve_workspace_physical_root_owner(target_live_snapshot, "base_plate")
+    ):
+        # Save As does not create a different physical occupant. Older
+        # ownerless files continue through their existing scoped witnesses.
+        raise ValueError("MANUAL_COPY_SAME_PHYSICAL_OWNER")
+    if not isinstance(source_group_id, str) or not source_group_id:
+        raise ValueError("MANUAL_COPY_EXPLICIT_GROUP_ID_REQUIRED")
+    source_rows = [f for f in original if api.is_manual_group(f)
+                   and api.group_parameters(f)["group_id"] == source_group_id]
+    if len(source_rows) != 1:
+        raise ValueError("MANUAL_COPY_SOURCE_GROUP_AMBIGUOUS")
+    if (target_context is None
+            or target_context.part_key != "base_plate"):
+        raise ValueError("MANUAL_COPY_TARGET_PHYSICAL_OWNER_UNRESOLVED")
+    require_first_sheet_manual_marking_render(
+        "base_plate", target_context.render_data,
+    )
+
+    resource = ManufacturingContext(resource_root=Path(__file__).resolve().parents[1])
+    source_render = api.build_part_render_data(
+        _base_part_spec(source, original), resource,
+    )
+    from .operator_manual_marking import verify_manual_marking_output
+    verify_manual_marking_output(source_render)
+    source_context = api.resolve_physical_sheet_editor_context(
+        "base_plate", source_render,
+    )
+    api.propose_operator_physical_sheet_hole_features(
+        "base_plate", source_context, original,
+    )
+
+    # Re-resolve the saved TARGET source, not a reused "base_plate" label
+    # from another file or Bay. Uncommitted dimensions cannot be silently
+    # mistaken for the saved physical sheet.
+    target_render = api.build_part_render_data(
+        _base_part_spec(target, ()), resource,
+    )
+    require_first_sheet_manual_marking_render("base_plate", target_render)
+    if (target_render.unfolded_topology != target_context.render_data.unfolded_topology
+            or not target_render.material.equals(target_context.render_data.material)
+            or tuple(row for row in target_render.scene.primitives
+                     if row.layer in ("CUTTING", "BEND", "BLIND_HOLE"))
+            != tuple(row for row in target_context.render_data.scene.primitives
+                     if row.layer in ("CUTTING", "BEND", "BLIND_HOLE"))):
+        raise ValueError("MANUAL_COPY_TARGET_SAVED_PHYSICAL_SOURCE_CHANGED")
+
+    return source_rows[0]
+
+
+class ManualCopyPlacementRejected(ValueError):
+    """Only a rejected candidate on an already verified physical target.
+
+    Source/owner/session failures and invalid pre-existing target features
+    are intentionally not classified as retryable placement errors.
+    """
+
+
+def copy_saved_manual_marking_group_to_selected_sheet(
+    *, source_snapshot, source_project_path, source_project_sha256,
+    target_snapshot, target_project_path, target_project_sha256,
+    target_context, target_features, source_group_id, target_position,
+    target_live_snapshot=None,
+):
+    """Place a new independent group at the operator's destination anchor."""
+    from . import manufacturing_api as api
+    from .operator_manual_marking_groups import _rebuild
+    from .sheetmetal_geometry import Vec2
+
+    group = verify_saved_manual_marking_copy_sources(
+        source_snapshot=source_snapshot, source_project_path=source_project_path,
+        source_project_sha256=source_project_sha256, target_snapshot=target_snapshot,
+        target_project_path=target_project_path, target_project_sha256=target_project_sha256,
+        target_context=target_context, source_group_id=source_group_id,
+        target_live_snapshot=target_live_snapshot,
+    )
+    if not isinstance(target_position, Vec2) or target_features is None:
+        raise ValueError("MANUAL_COPY_TARGET_POSITION_REQUIRED")
+    params = dict(api.group_parameters(group))
+    # Single L uses its real turn point, cross its real intersection.
+    # Pair/four-corner L use the nominal group center. Preserve all local
+    # member offsets, rotation, mirror and dash phase.
+    anchor = group.offset
+    if params["kind"] in ("l", "cross"):
+        anchor = api.group_member_world_points(group)[0][1]
+    offset = Vec2(target_position.x + group.offset.x - anchor.x,
+                  target_position.y + group.offset.y - anchor.y)
+    params["group_id"] = uuid4().hex
+    clone = _rebuild(replace(group, offset=offset, source_params=()), params)
+    if (api.group_parameters(clone)["group_id"] == source_group_id
+            or clone is group or not isinstance(clone, ProfileFeature)):
+        raise ValueError("MANUAL_COPY_NEW_GROUP_ID_REQUIRED")
+    # Validate the unmodified draft first: a bad existing source is not
+    # something the operator can repair by clicking another copy position.
+    existing = tuple(target_features)
+    api.propose_operator_physical_sheet_hole_features(
+        "base_plate", target_context, existing,
+    )
+    # The same authoritative validator checks all full strokes and holes.
+    # Only the candidate-specific ValueError permits another click.
+    try:
+        api.propose_operator_physical_sheet_hole_features(
+            "base_plate", target_context, existing + (clone,),
+        )
+    except ValueError as exc:
+        raise ManualCopyPlacementRejected(str(exc)) from exc
+    return clone

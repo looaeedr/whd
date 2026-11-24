@@ -8,6 +8,7 @@ import inspect
 
 import pytest
 
+from ae_engine import receiving_nfb_pad_operator_parts as pad_source
 from ae_engine import manufacturing_api as api
 from ae_engine.receiving_layout import new_receiving_layout
 from gui_modules.project import export_actions as gui
@@ -138,7 +139,7 @@ def test_original_gui_pad_callback_only_consumes_engine_source_response(
     source = {"model": "受電箱", "nfb_config_submitted": True, "t": 2.}
     selected_source = {**source, "_receiving_runtime_selection": {"set_id": "a"}}
     hits = []
-    monkeypatch.setattr(api, "committed_nfb_pad_draft_parts",
+    monkeypatch.setattr(pad_source, "committed_nfb_pad_draft_parts",
                         lambda snapshot: ("verified-pad",))
     monkeypatch.setattr(
         bridge, "_phase6_final_scene_adapter",
@@ -229,3 +230,12 @@ def test_existing_named_dxf_for_registered_family_never_overwrites_without_confi
     assert calls and "DXF 檔名已存在" in str(calls[0][0])
     assert final.read_bytes() == b"EXISTING-PREVIOUS-DXF"
     assert not list(tmp_path.glob(".whd-export-stage-*"))
+
+
+def test_public_pad_base_preflight_rejects_missing_committed_config_after_submission():
+    # Submitted intent is not proof of a confirmed physical PAD / CSV owner.
+    source = {"model": " ReCeIvInG ", "nfb_config_submitted": True}
+    before = deepcopy(source)
+    with pytest.raises(ValueError, match="submitted NFBConfig missing from live Bay scope"):
+        api.require_receiving_pad_base_export_preflight(source)
+    assert source == before

@@ -130,7 +130,12 @@ def _profile_geometry(profile, *, enabled_folds=None):
     if enabled_folds is None:
         enabled_folds = (True,) * max(0, len(segs) - 1)
     else:
-        enabled_folds = tuple(bool(v) for v in enabled_folds)
+        # Existing 0/1 masks remain identical. A scoped source-owned
+        # finite BEND tip may now supply a fractional rotation between
+        # its actual endpoint and the connected sheet's outer boundary.
+        enabled_folds = tuple(float(v) for v in enabled_folds)
+        if any(not math.isfinite(v) or not 0.0 <= v <= 1.0 for v in enabled_folds):
+            raise ValueError("WHD_FOLD_TIP_WEIGHT_OUT_OF_RANGE")
 
     raw_u = [0.0]
     raw_z = [0.0]
@@ -170,8 +175,9 @@ def _profile_geometry(profile, *, enabled_folds=None):
         cumulative.append(cumulative[-1] + length)
         angle = _segment_value(seg, "angle", None)
         if index < len(segs) - 1 and angle is not None:
-            if index >= len(enabled_folds) or enabled_folds[index]:
-                current_angle -= _as_float(angle)
+            fraction = (enabled_folds[index] if index < len(enabled_folds) else 1.0)
+            if fraction:
+                current_angle -= _as_float(angle) * fraction
 
     base_idx = _profile_base_index(segs)
     base_angle = math.radians(angles[base_idx] if angles else 0.0)
@@ -315,13 +321,77 @@ def _fold_mask_for_cross_coordinate(profile, axis, cross_position, fold_guides, 
     return tuple(mask)
 
 
-def _profile_map_with_guides(position, cross_position, profile, *, axis, fold_guides):
-    mask = _fold_mask_for_cross_coordinate(profile, axis, cross_position, fold_guides)
-    boundaries, folded = _profile_geometry(profile, enabled_folds=mask)
+def _fold_tip_weights(
+    profile, axis, cross_position, fold_guides, fold_tip_continuity=(),
+):
+    """Keep one uncut source sheet continuous at a finite BEND endpoint.
+
+    Opt-in only. Every (axis, station, material_min, material_max) is an
+    actual FinalScene guide and original outer CUTTING limit. Stock beyond
+    a finite BEND tip which is still CONNECTED to the folded lip rides as
+    a rigid continuation of that lip; it is not independently folded on
+    a fabricated BEND and cannot be left behind in the flat plane.
+    This map does not edit CUTTING, BEND, material length or holes.
+    """
+    weights = list(_fold_mask_for_cross_coordinate(
+        profile, axis, cross_position, fold_guides,
+    ))
+    if not fold_tip_continuity:
+        return tuple(weights)
+    rows = tuple(profile or ())
+    boundaries = [0.0]
+    for seg in rows:
+        boundaries.append(boundaries[-1] + max(
+            0.0, _as_float(_segment_value(seg, "len",
+                                          _segment_value(seg, "length", 0.0)))
+        ))
+    cross = float(cross_position)
+    for target_axis, station, outer_min, outer_max in fold_tip_continuity:
+        if str(target_axis) != str(axis):
+            continue
+        matching = [
+            g for g in fold_guides
+            if str(g.axis) == str(axis)
+            and abs(float(g.position) - float(station)) <= 1e-6
+        ]
+        matching_boundary = [
+            index for index in range(len(boundaries) - 2)
+            if abs(boundaries[index + 1] - float(station)) <= 1e-6
+        ]
+        if len(matching) != 1 or len(matching_boundary) != 1:
+            raise ValueError("WHD_FOLD_TIP_MISSING_PHYSICAL_GUIDE")
+        guide = matching[0]
+        left, right = float(guide.span_start), float(guide.span_end)
+        a, b = float(outer_min), float(outer_max)
+        # A source-connected tip may extend only ONE end of an actual BEND.
+        # Preserve the other end exactly; requiring extension at both ends
+        # would falsely fold unrelated top-corner stock in the Tail.
+        if not (a <= left < right <= b and (a < left or right < b)):
+            raise ValueError("WHD_FOLD_TIP_OUTSIDE_CONNECTED_MATERIAL")
+        # This optional contract is only invoked after source topology
+        # proves that the outside corner is the same attached lower lip.
+        # Full rotation is carried continuously across the material.
+        # The true guide's finite span is unchanged in FinalScene.
+        weights[matching_boundary[0]] = (
+            1.0 if a - 1e-6 <= cross <= b + 1e-6 else 0.0
+        )
+    return tuple(weights)
+
+
+def _profile_map_with_guides(
+    position, cross_position, profile, *, axis, fold_guides,
+    fold_tip_continuity=(),
+):
+    weights = _fold_tip_weights(
+        profile, axis, cross_position, fold_guides, fold_tip_continuity,
+    )
+    boundaries, folded = _profile_geometry(profile, enabled_folds=weights)
     return _profile_map(position, boundaries, folded)
 
 
-def _prepare_profile_mapper(profile, *, axis, fold_guides, geometry):
+def _prepare_profile_mapper(
+    profile, *, axis, fold_guides, geometry, fold_tip_continuity=(),
+):
     """Reuse bend masks/chains within ONE mesh build, never across input edits.
 
     Thousands of triangle vertices share a small number of enabled-fold masks.
@@ -336,7 +406,9 @@ def _prepare_profile_mapper(profile, *, axis, fold_guides, geometry):
         cross = float(cross_position)
         mask = masks.get(cross)
         if mask is None:
-            mask = _fold_mask_for_cross_coordinate(rows, axis, cross, guides)
+            mask = _fold_tip_weights(
+                rows, axis, cross, guides, fold_tip_continuity,
+            )
             masks[cross] = mask
         chain = chains.get(mask)
         if chain is None:
@@ -439,6 +511,7 @@ def folded_mesh_from_polygon(
     *,
     fold_exemptions=(),
     fold_guides=(),
+    fold_tip_continuity=(),
 ):
     """Triangulate authoritative 2D material and fold it into local 3D space.
 
@@ -451,8 +524,21 @@ def folded_mesh_from_polygon(
 
     xb, xf = _profile_geometry(x_profile)
     yb, yf = _profile_geometry(y_profile)
-    x_mapper = _prepare_profile_mapper(x_profile, axis="x", fold_guides=fold_guides, geometry=(xb, xf))
-    y_mapper = _prepare_profile_mapper(y_profile, axis="y", fold_guides=fold_guides, geometry=(yb, yf))
+    # Source-owned finite BEND tip continuity is OPT-IN. Keep the original
+    # mapper call contract byte-for-byte when no tip extension was requested,
+    # including the pre-existing performance/legacy mapper consumers.
+    tip_kwargs = (
+        {"fold_tip_continuity": fold_tip_continuity}
+        if fold_tip_continuity else {}
+    )
+    x_mapper = _prepare_profile_mapper(
+        x_profile, axis="x", fold_guides=fold_guides,
+        geometry=(xb, xf), **tip_kwargs,
+    )
+    y_mapper = _prepare_profile_mapper(
+        y_profile, axis="y", fold_guides=fold_guides,
+        geometry=(yb, yf), **tip_kwargs,
+    )
     total_x, total_y = float(xb[-1]), float(yb[-1])
     display_material = material.simplify(0.05, preserve_topology=True)
     clipped_material = display_material.intersection(box(0.0, 0.0, total_x, total_y))
@@ -479,6 +565,25 @@ def folded_mesh_from_polygon(
             for value in (float(guide.span_start), float(guide.span_end)):
                 if 0.0 < value < total_y:
                     y_cuts.add(value)
+    # Split the attached source stock at the real finite BEND endpoints
+    # and its pre-existing outer limits. Extra subdivision affects only
+    # mesh tessellation, never the source CUTTING/BEND geometry:
+    # the original CUTTING and BEND primitives are unchanged.
+    for axis, station, outer_min, outer_max in tuple(fold_tip_continuity or ()):
+        dest = x_cuts if str(axis) == "y" else y_cuts
+        matched = [g for g in tuple(fold_guides or ())
+                   if str(g.axis) == str(axis)
+                   and abs(float(g.position) - float(station)) <= 1e-6]
+        if len(matched) != 1:
+            raise ValueError("WHD_FOLD_TIP_TESSELLATION_BEND_MISSING")
+        for start, stop in (
+            (float(outer_min), float(matched[0].span_start)),
+            (float(matched[0].span_end), float(outer_max)),
+        ):
+            for step in range(1, 8):
+                point = start + (stop - start) * step / 8.0
+                if 0.0 < point < (total_x if str(axis) == "y" else total_y):
+                    dest.add(point)
     x_cuts = sorted(x_cuts)
     y_cuts = sorted(y_cuts)
 

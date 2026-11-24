@@ -90,9 +90,9 @@ def test_malformed_submitted_source_cannot_bypass_engine_gate():
 
 def test_gui_quantity_export_only_uses_public_engine_policy():
     source = inspect.getsource(export_actions._export_selected_resolved_parts)
-    assert "manufacturing_api.plan_quantity_export_source(" in source
-    assert "source_policy.use_current_csv_export" in source
-    assert "export_current_csv_quantity_manufacturing" in source
+    assert "manufacturing_api.stage_quantity_operator_export(" in source
+    assert "use_current_csv_export" not in source
+    assert "export_current_csv_quantity_manufacturing" not in source
     assert "def submitted_facts(" not in source
     assert "parse_numeric_model_ref" not in source
     assert "numeric_submissions" not in source

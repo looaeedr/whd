@@ -138,10 +138,7 @@ def test_invalid_source_claims_are_rejected_not_turned_into_permitted_inventory(
 
 def test_gui_consumes_only_engine_quantity_physical_selection_plan():
     source = inspect.getsource(export_actions._export_selected_resolved_parts)
-    assert "manufacturing_api.plan_quantity_operator_export_selection(" in source
-    assert "selection.selected_demands" in source
-    assert "selection.checked_batch" in source
-    assert "selection.selected_reports" in source
+    assert "manufacturing_api.stage_quantity_operator_export(" in source
     assert "selected_keys =" not in source
     assert "selected_reports = tuple(" not in source
     assert "selected_versions =" not in source

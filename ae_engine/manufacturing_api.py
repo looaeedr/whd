@@ -159,7 +159,8 @@ from .project_feature_codec import (
 from .workspace_state import (
     MANDATORY_PART, PART_ORDER, ACTIVE_REPAIR_POLICIES,
     normalize_existing_parts, _repair_active as repair_workspace_active_part,
-    SharedWorkspaceState,
+    SharedWorkspaceState, ROOT_PHYSICAL_OCCUPANCY_KEY,
+    normalize_workspace_root_occupancy, resolve_workspace_physical_root_owner,
     OperatorWorkspaceSnapshotPresence,
     project_operator_fold_designer_workspace_presence,
 )
@@ -304,6 +305,7 @@ from .receiving_quantity_versions import (
 from .assembly_geometry import (
     restore_unrelieved_endcap_material, restored_endcap_relief_delta,
     thicken_triangle_surface, MeshInterferenceDiagnostic,
+    inspect_native_d4_assembly_world as inspect_operator_tail_d4_assembly_world,
     folded_mesh_from_polygon as folded_material_mid_mesh,
     place_box_body_structure_points as project_box_body_structure_world_points,
     triangle_bounds as physical_mesh_world_bounds,
@@ -353,7 +355,26 @@ from .physical_sheet_editor_context import (
     PhysicalSheetEditorContext, resolve_physical_sheet_editor_context,
     propose_operator_physical_sheet_hole_features,
 )
+from .operator_manual_marking import (
+    MANUAL_MARK_SOURCE, is_manual_mark, is_manual_round_mark,
+    create_physical_manual_round_marking,
+    create_physical_manual_marking, validate_physical_manual_markings,
+    first_sheet_manual_marking_supported,
+)
+from .operator_manual_marking_groups import (
+    MANUAL_GROUP_SOURCE, is_manual_group, group_parameters,
+    group_member_world_points, nearest_group_member,
+    create_physical_manual_marking_group, edit_physical_manual_group,
+)
+from .operator_manual_marking_copy import (
+    list_saved_manual_marking_copy_groups,
+    project_live_manual_marking_copy_target_state,
+    ManualCopyPlacementRejected,
+    copy_saved_manual_marking_group_to_selected_sheet,
+    verify_saved_manual_marking_copy_sources,
+)
 from .indicator_editor_geometry import (
+    resolve_operator_indicator_editor_components,
     resolve_indicator_editor_components,
     resolve_indicator_box_editor_geometry,
     resolve_indicator_door_editor_geometry,
@@ -504,19 +525,6 @@ from .corner_type_ui import (
 # GUI adapters must not import the private Family policy owner directly.
 operator_canonical_family_name = cabinet_family_policy.canonical_family_name
 
-def operator_resolve_legacy_baseline_manufacturing_family(source_model) -> str:
-    """Project the existing legacy GUI baseline onto a registered Engine Family.
-
-    This preserves the historical main-GUI fallback to the Vault family for
-    unregistered baseline folders/Custom; it does not certify an unknown
-    model or bypass manufacturing Family eligibility checks.
-    """
-    value = operator_normalize_custom_model_name(source_model)
-    try:
-        return resolve_cabinet_type(value).canonical_name
-    except (KeyError, ValueError):
-        return "金庫型"
-
 operator_family_fixes_box_body_structure = cabinet_family_policy.family_fixes_box_body_structure
 operator_box_body_profile_uses_outside_dimensions = cabinet_family_policy.box_body_profile_uses_outside_dimensions
 operator_supports_bottom_wrap_controls = cabinet_family_policy.supports_bottom_wrap_controls
@@ -560,7 +568,9 @@ from .display_dimensions import (
     OperatorDimensionGuidePlan, project_operator_dimension_guides,
 )
 from .live_cabinet_family import (
+    require_selected_export_matching_operator_family,
     resolve_live_cabinet_family, resolve_operator_manufacturing_family_source,
+    operator_resolve_legacy_baseline_manufacturing_family,
 )
 from .assembly_mesh_profiles import (
     resolve_material_mesh_profiles, project_operator_3d_mesh_profiles,
@@ -598,6 +608,20 @@ from .physical_part_identity import (
 )
 from .independent_part_view_mesh import (
     IndependentPartViewMesh, project_independent_part_view_mesh,
+)
+from .operator_tail_lower_v_first_bends import (
+    TAIL_LOWER_V_FIRST_BENDS_KEY,
+    project_operator_tail_lower_v_first_bend_options,
+    commit_operator_tail_lower_v_first_bends,
+    validate_operator_tail_lower_v_first_bends,
+    project_operator_tail_lower_v_first_bend_status,
+)
+from .operator_tail_lower_v import (
+    TAIL_LOWER_V_SNAPSHOT_KEY, normalize_operator_tail_lower_v_choice,
+    project_operator_tail_lower_v_settings, commit_operator_tail_lower_v_choice,
+    project_operator_tail_lower_v_preview_render, tail_lower_v_preview_mesh,
+    tail_lower_v_first_stage_mesh,
+    reject_tail_lower_v_preview_for_dxf,
 )
 
 from .part_dimension_projection import (
@@ -648,6 +672,7 @@ from .manufacturing_door_indicator import (
     indicator_small_door_finished_size,
     indicator_box_opening_feature,
     validate_door_indicator_fit,
+    validate_operator_indicator_state_fit,
     _validate_door_part_indicator_fit,
     indicator_small_door_spec,
     indicator_small_door_operator_spec,
@@ -809,7 +834,7 @@ from .assembly_collision import (
     serialize_joint_relief_polygons, restore_joint_relief_cut_geometry,
 )
 from .endcap_verified_replay import replay_resolved_endcap_render
-from .assembly_geometry import build_joint_world_geometry
+from .assembly_geometry import (build_joint_world_geometry, _has_integral_dwd_fold_owner as project_integral_box_body_formed_skin_eligible)
 from .assembly_geometry_folded_mesh import (
     expand_box_body_fw_world_mid, shift_multistage_terminal_fold_world_mid,
     fit_receiving_left_zl1_world_mid,
@@ -905,16 +930,16 @@ def build_operator_part_render_data(
     return build_part_render_data(spec, context)
 
 
-def save_part_render_data_dxf(
-    render_data: PartRenderData,
-    output_path: str | os.PathLike[str],
-    *,
-    overwrite: bool = False,
-    verify_reopen: bool = False,
-) -> str:
-    """Serialize an already-built authoritative FinalScene to DXF."""
-    _manufacturing_export.require_dxf_overwrite_boolean(overwrite)
+def _require_single_part_dxf_source(render_data, *, selected_owner_witness=None):
+    """Reuse existing source checks without creating an output file."""
+    from .operator_manual_marking import verify_manual_marking_output
+    if selected_owner_witness is None:
+        verify_manual_marking_output(render_data)
+    else:
+        selected_owner_witness.assert_render(render_data)
     metadata = getattr(render_data, "metadata", None) or {}
+    # A CHECK-only V preview is never a production cutting plan.
+    reject_tail_lower_v_preview_for_dxf(render_data)
     blocked = metadata.get("baseline_fit_error")
     if blocked:
         raise ValueError(str(blocked))
@@ -931,15 +956,50 @@ def save_part_render_data_dxf(
     # Specific V5 trial guard takes priority, then the more general tier
     # physical-base gate handles unsourced/forged non-V5 scenes.
     _manufacturing_export.reject_unverified_receiving_nfb_tier_base(render_data)
+    return metadata
+
+
+def save_part_render_data_dxf(
+    render_data: PartRenderData,
+    output_path: str | os.PathLike[str],
+    *,
+    overwrite: bool = False,
+    verify_reopen: bool = False,
+    selected_owner_marking_source=None,
+) -> str:
+    """Serialize the authoritative FinalScene through the original verified sink.
+
+    A selected owner source must be a trusted ordinary GUI/Engine callback
+    returning the current project snapshot and its actual selected inventory.
+    It cannot supply loose Features, a cutter approval flag or detached geometry.
+    """
+    _manufacturing_export.require_dxf_overwrite_boolean(overwrite)
+    owner_witness = None
+    if selected_owner_marking_source is not None:
+        if render_data is not None or verify_reopen is not True:
+            raise ValueError("PHYSICAL_MARKING_SELECTED_VERIFIED_OUTPUT_REQUIRED")
+        from .operator_persisted_marking_candidate import _prepare_single_selected_owner_marking
+        owner_witness = _prepare_single_selected_owner_marking(*selected_owner_marking_source)
+        render_data = owner_witness.render
+    metadata = _require_single_part_dxf_source(render_data, selected_owner_witness=owner_witness)
     if type(verify_reopen) is not bool:
         raise TypeError("verify_reopen must be bool")
-    if verify_reopen:
+    from .operator_manual_marking_batch import _has_saved_manual_intent
+    operator_marked = _has_saved_manual_intent(render_data)
+    if verify_reopen or operator_marked:
         # The same Engine-owned stage -> real DXF reopen -> canonical
         # geometry comparison -> atomic commit used by verified batch export.
         # Never verify after replacing a user's previously valid output.
         destination = Path(output_path)
+        # The chosen DXF filename is an output label, NOT the physical
+        # identity of a marked saved sheet. Keep its verified stable_id as
+        # the selected source key while retaining the operator filename.
+        selected_key = (owner_witness.selected[0] if owner_witness is not None else
+                        metadata.get("stable_id") if operator_marked else destination.name)
+        if operator_marked and (not isinstance(selected_key, str) or not selected_key):
+            raise ValueError("MANUAL_BATCH_PHYSICAL_OWNER_MISSING")
         staged = _manufacturing_export._save_resolved_rows_atomic(
-            ((destination.name, destination.name, render_data),),
+            ((selected_key, destination.name, render_data),),
             destination.parent,
             save_part_render_data_dxf=lambda part, target, *, overwrite:
                 _manufacturing_export.save_part_render_data_dxf(
@@ -948,8 +1008,9 @@ def save_part_render_data_dxf(
                 ),
             overwrite=overwrite,
             verify_all_staged=True,
+            _selected_owner_witness=owner_witness,
         )
-        return staged[destination.name]
+        return staged[selected_key]
     return _manufacturing_export.save_part_render_data_dxf(
         render_data.scene,
         output_path,
@@ -1203,6 +1264,11 @@ def generate_part(
     # No registered-but-unimplemented Family may inherit the generic Vault
     # formula merely because its PartSpec has a familiar physical shape.
     require_implemented_manufacturing_family(getattr(spec, "model_name", None))
+    from .operator_manual_marking import (
+        is_manual_mark, require_first_sheet_manual_marking_spec,
+    )
+    if any(is_manual_mark(f) for f in tuple(getattr(spec, "features", ()) or ())):
+        require_first_sheet_manual_marking_spec(spec)
     ctx = context or ManufacturingContext()
     _manufacturing_export.require_dxf_overwrite_boolean(ctx.overwrite)
     destination = Path(output_path)
@@ -1470,9 +1536,68 @@ def save_quantity_manufacturing_groups_dxf(
 # fully initialized: the existing source-profile reader consumes those exports.
 from .receiving_nfb_quantity_partial import (
     QuantityNfbPartialSelection, QuantityOperatorExportSelection,
+    QuantityOperatorStagedExport,
+    stage_quantity_operator_export as _stage_quantity_operator_export,
     verify_quantity_nfb_inner_door, select_quantity_nfb_partial,
     quantity_partial_live_manifests, plan_quantity_operator_export_selection,
 )
+
+def stage_quantity_operator_export(
+    request, workspace_snapshot, flags, staging_directory, *, operator_snapshot,
+):
+    """Resolve and stage Quantity DXFs from a single, current workspace.
+
+    The caller owns operator consent and final publication. Unrelated files
+    in an existing stage (such as a saved project) are left untouched.
+    """
+    require_scoped_base_plate_export_held(operator_snapshot, flags)
+    source = plan_quantity_export_source(operator_snapshot, workspace_snapshot)
+    if not isinstance(request, ManufacturingResolveRequest):
+        raise TypeError("QUANTITY_OPERATOR_EXPORT_REQUIRES_RESOLVE_REQUEST")
+    # Bind the raw authored inputs represented in the typed request to the
+    # operator snapshot. The request may add validated settings-derived
+    # dimensions that did not exist in legacy operator snapshots.
+    authored = request.input_snapshot
+    keys = ("quantity", "receiving_quantity_box", "active_mode", "model", "w", "h", "d")
+    if any(
+        key in operator_snapshot
+        and freeze_manufacturing_value(authored.get(key))
+        != freeze_manufacturing_value(operator_snapshot[key])
+        for key in keys
+    ):
+        raise ValueError("QUANTITY_OPERATOR_EXPORT_REQUEST_SOURCE_MISMATCH")
+    if ("t" in operator_snapshot
+            and normalize_operator_source_dimension(authored.get("t"), field="t")
+            != normalize_operator_source_dimension(operator_snapshot["t"], field="t")):
+        raise ValueError("QUANTITY_OPERATOR_EXPORT_REQUEST_SOURCE_MISMATCH")
+    stage = Path(staging_directory)
+    if stage.is_symlink() or not stage.is_dir():
+        raise ValueError("QUANTITY_OPERATOR_EXPORT_REQUIRES_STAGE_DIRECTORY")
+    batch = resolve_operator_quantity_manufacturing_batch(
+        request, workspace_snapshot, resolve_request=resolve_manufacturing_request,
+    )
+
+    def write_stage(target):
+        if source.use_current_csv_export:
+            outputs = export_current_csv_quantity_manufacturing(
+                batch, target, flags=flags, overwrite=False,
+            )
+            return QuantityOperatorStagedExport(
+                tuple(Path(path).name for path in outputs.values())
+            )
+        return _stage_quantity_operator_export(
+            batch, workspace_snapshot, flags, target,
+            save_groups=save_quantity_manufacturing_groups_dxf,
+        )
+
+    # The normal GUI owns an empty TemporaryDirectory and continues to use
+    # its current staging writer, including on Windows filesystems without
+    # hard links. Legacy direct callers may share a directory with .p6fold.
+    if not any(stage.iterdir()):
+        return write_stage(stage)
+    from .receiving_nfb_quantity_partial import stage_quantity_with_existing_files
+    return stage_quantity_with_existing_files(stage, write_stage)
+
 
 def rebase_receiving_set_parent_nfb_brand(set_row, proposed_brand):
     """Public Engine NFB brand proof transition; lazy owner import avoids a cycle."""
@@ -1985,18 +2110,83 @@ from .joint_diagnostic_display import (
     JointDiagnosticOverlaySource, project_joint_diagnostic_display_sources,
 )
 
+# #3317: replay true-T collision source from .p6fold original BEND/CUTTING.
+from .v_miter_trial_snapshot import replay_v_miter_true_thickness_collision_snapshot
+
+# #3317 measured inside R/BA/T formed-interface correction candidate; never CUTTING.
+from .v_miter_factory_relief_check import (
+    VMiterFactoryBottomReliefCheck,
+    project_v_miter_factory_bottom_relief_default_check,
+)
+from .v_miter_factory_radius_ba_check import (
+    VMiterFactoryRadiusBADefaultCheck,
+    project_v_miter_factory_radius_ba_default_check,
+)
+from .v_miter_factory_measurements import (
+    VMiterFactoryMeasuredInputs, require_v_miter_factory_measurement_source,
+)
+from .v_miter_trial_defaults import (
+    VMiterTrialParameterDefaults, project_v_miter_trial_parameter_defaults,
+)
+from .v_miter_radius_ba_interface_trial import (
+    VMiterRadiusCompensatedInterfaceTrial,
+    solve_v_miter_radius_ba_interface_trial,
+    VMiterRadiusBAFullSheetCheck,
+    project_v_miter_radius_ba_full_sheet_check,
+    build_v_miter_radius_ba_full_sheet_check_scene,
+    VMiterReverseCreaseMeasuredCurvedTTrial,
+    diagnose_v_miter_reverse_crease_measured_r_ba_trial,
+)
+
+# #3317: source V-miter folded true-T mesh collision shadow only.
+from .v_miter_true_t_collision import (
+    VMiterTrueThicknessCollisionShadow,
+    diagnose_v_miter_true_thickness_collision,
+    VMiterReverseCreaseTrueTTrial,
+    diagnose_v_miter_reverse_crease_true_t_trial,
+)
+
+# #3317: source-bound V tip relief preview save/reload, never saved CUTTING.
+from .v_miter_trial_snapshot import (
+    capture_v_miter_relief_trial_snapshot,
+    replay_v_miter_relief_trial_snapshot,
+    build_saved_v_miter_relief_trial_check_scene,
+    capture_v_miter_radius_ba_trial_snapshot,
+    replay_v_miter_radius_ba_trial_snapshot,
+    build_saved_v_miter_radius_ba_check_scene,
+    project_operator_v_miter_relief_preview_source,
+    project_operator_v_miter_radius_ba_preview_source,
+)
+
+# #3317: physical R-circle / hole-shaped V-tip trial, never a production CUTTING.
+from .v_miter_relief_trial import (
+    VMiterReliefTrial,
+    project_v_miter_relief_trial,
+    build_v_miter_relief_trial_check_scene,
+    VMiterReliefMatingTrial,
+    project_v_miter_relief_mating_trial,
+    VMiterReverseCreaseAsymmetricCutTrial,
+    project_v_miter_reverse_crease_asymmetric_cut_trial,
+    build_v_miter_reverse_crease_asymmetric_check_scene,
+)
+
 # #3317: same-source CUTTING outline subtraction, trial only (CHECK preview).
 from .v_miter_material_trial import (
-    VMiterMaterialOutlineTrial,
+    VMiterMaterialOutlineTrial, VMiterSourceBoundSharpCheck,
     project_v_miter_source_material_trial,
+    project_v_miter_sharp_source_perimeter_check,
     build_v_miter_trial_check_scene,
 )
 
 # #3317: bounded BEND/material reach and finite-t sharp-fold witness only.
 from .v_miter_bounded_contact import (
     VMiterBendReachWitness,
+    VMiterOriginalStockCreaseExtensionWitness,
+    VMiterPhysicalCreaseAfterReliefWitness,
     VMiterSharpThicknessWitness,
     diagnose_v_miter_bounded_bend_reach,
+    diagnose_v_miter_original_stock_crease_extension,
+    diagnose_v_miter_physical_crease_after_relief,
     project_v_miter_sharp_thickness_witness,
 )
 
@@ -2004,6 +2194,55 @@ from .v_miter_bounded_contact import (
 from .v_miter_ideal_mating import (
     VMiterIdealMatingCandidate,
     project_ideal_v_miter_mating_candidate,
+)
+
+# #3317: inspected complete sheet V contour; diagnostic DXF never has
+# manufacturing CUTTING/BEND/MARKING and is verified on disk before commit.
+from .v_miter_full_sheet_check import (
+    build_v_miter_whole_sheet_check_scene,
+    save_v_miter_whole_sheet_check_dxf,
+)
+
+# #3317: factory-owned pre-corner mother replacement, CHECK-only.
+from .v_miter_factory_mother_check import (
+    VMiterFactoryMotherReplacementCheck,
+    project_v_miter_replaced_factory_corner_check,
+)
+
+# #3317: full source-checked Factory V Fold → true-T zero-R formed mesh,
+# physical collision and source-tagged sidewalls, CHECK-only (not CNC).
+from .v_miter_factory_true_t_check import (
+    VMiterFactoryPostVTrueTCheck,
+    project_v_miter_factory_post_v_true_t_check,
+)
+
+# #3317: original typed Factory topology -> post-V prospective Fold,
+# verified against the existing FinalScene BEND and only displayed as CHECK.
+from .v_miter_factory_fold_check import (
+    VMiterFactoryPrecutFoldCheck,
+    project_v_miter_factory_precut_fold_check,
+)
+
+# #3317: actual FinalScene BEND + post-V stock survival -> CHECK strokes only.
+from .v_miter_source_marking_check import (
+    VMiterSourceBendMarkingCheck,
+    project_v_miter_source_bend_marking_check,
+)
+
+# #3317: live GUI CHECK choice, source-backed Fold/FinalScene projection only.
+from .v_miter_operator_gui_check import (
+    V_MITER_GUI_CHECK, V_MITER_GUI_UNCERTIFIED,
+    VMiterOperatorGUICheck,
+    normalize_operator_v_miter_gui_choices,
+    change_operator_v_miter_gui_choice,
+    normalize_operator_v_miter_gui_relief_modes,
+    project_operator_v_miter_gui_selected_relief_modes,
+    change_operator_v_miter_gui_relief_mode,
+    normalize_operator_v_miter_gui_first_bend_axes,
+    project_operator_v_miter_gui_selected_first_bend_axes,
+    change_operator_v_miter_gui_first_bend_axis,
+    require_no_operator_v_miter_gui_check_for_export,
+    project_operator_v_miter_live_corner_check,
 )
 
 # #3317: typed V-miter two-bend source facts; never a CUTTING certification.
@@ -2291,6 +2530,16 @@ def build_receiving_factory_confirmed_parts(
     )
 
 
+from .receiving_factory_requests import (
+    ReceivingFactoryConfirmedDoorHandoff,
+    plan_receiving_factory_confirmed_door_handoff,
+)
+from .receiving_part_only_door_handoff import (
+    ReceivingPartOnlyDoorIndicatorIntent,
+    resolve_receiving_part_only_door_request,
+)
+
+
 def build_receiving_factory_confirmed_inner_door_frames(
     source_dimensions, *, confirmation=None, confirmed_door_layout_columns=(),
 ):
@@ -2407,6 +2656,7 @@ from .receiving_settings_assembly_mesh import (
     resolve_box_body_true_world_piece_meshes,
     AssembledEndcapWorldSkins,
     resolve_assembled_endcap_world_skins,
+    place_prethickened_endcap_world_skins,
 )
 
 # #2517: physical material/outside/BEND dimension evidence for FinalScene UI.
@@ -2851,6 +3101,7 @@ from .receiving_raw_source_cache import (
 # belongs to Engine. This does not authorize partial or whole-cabinet MFG.
 from .receiving_pad_base_export_selection import (
     ReceivingPadBaseExportSource, resolve_receiving_pad_base_export_source,
+    require_receiving_pad_base_export_preflight,
 )
 
 # #2517 Receiving selected physical Bay Head/Tail Hole Editor geometry API.
@@ -3018,4 +3269,171 @@ from .receiving_nfb_ui1a import (
     effective_nfb_layer_brand as project_receiving_nfb_draft_layer_brand,
     effective_nfb_slot_brand as project_receiving_nfb_draft_slot_brand,
     nfb_ui1a_preview as preview_receiving_nfb_draft,
+)
+
+
+# #3317: public read-only native Tail Ø4 CHECK projection.  The Engine owns
+# source verification, thickness, finite BEND and independent DXF reopen;
+# GUI consumers may only paint typed primitives and inspect stations.
+# No manufacturing export, CornerType promotion or CNC permission is implied.
+from .sheetmetal_drawing import (
+    CirclePrimitive as TailD4PreviewCirclePrimitive,
+    LinePrimitive as TailD4PreviewLinePrimitive,
+    PolylinePrimitive as TailD4PreviewPolylinePrimitive,
+)
+from .v_miter_tail_no_ba_sequential import (
+    stations_from_real_flat as project_operator_tail_d4_source_stations,
+)
+from .v_miter_tail_d4_delivery import (
+    build_tail_d4_check_from_original as build_operator_tail_d4_check_from_original,
+)
+from .v_miter_tail_d4_check_dxf import (
+    save_tail_d4_check_dxf as save_operator_tail_d4_check_dxf,
+)
+
+
+def project_operator_tail_d4_check_native_world(
+    flat, *, first_axis, box_body_world,
+):
+    """CHECK-only true-T lower V from authenticated live Factory dimensions.
+
+    The W620/D185/H600/bottom48 specimen is regression evidence, not a
+    manufacturing size restriction. Preserve the verified Vault Tail T2,
+    FW25, left/right15, top16 source-profile scope. All four remaining
+    physical dimensions come from the caller's actual finite input.
+    Unsupported profiles retain their legacy CHECK; invalid physical sizes
+    fail closed, never silently use an example/default.
+    """
+    from math import isfinite
+    spec=flat.source_spec
+    def exact(value,expected):
+        return (type(value) in (int,float) and isfinite(value)
+                and abs(float(value)-expected)<=1e-7)
+    if (
+        spec.model_name!="金庫型"
+        or not spec.is_tail
+        or not exact(spec.thickness,2.)
+        or not exact(spec.frame_width,25.)
+        or not exact(spec.fold_left,15.)
+        or not exact(spec.fold_right,15.)
+        or not exact(spec.fold_top,16.)
+    ):
+        return None
+    for name in ("width","depth","height","fold_bottom"):
+        value=getattr(spec,name,None)
+        if (type(value) not in (int,float)
+                or not isfinite(value) or value<=0):
+            raise ValueError(
+                "TAIL_D4_CHECK_NATIVE_PHYSICAL_DIMENSIONS_INVALID:"+name
+            )
+
+    if first_axis not in ("x","y") or not box_body_world:
+        raise ValueError("TAIL_D4_CHECK_NATIVE_WORLD_SOURCE_REQUIRED")
+    from .v_miter_tail_d4_delivery import (
+        project_tail_d4_shared_original_fold_candidate,
+    )
+    candidate=project_tail_d4_shared_original_fold_candidate(
+        flat,first_axis=first_axis,box_body_world=tuple(box_body_world),
+        nominal_hinge=True,nominal_lower_v_taper=True,
+    )
+    solid=candidate["v_solid"]
+    ids=candidate["v_solid_source_ids"]
+    uv=candidate["v_source_uv"]
+    if (candidate["manufacturing_approved"]
+            or len(solid)!=len(ids) or not solid or not uv
+            or any(len(face)!=3 or any(
+                type(vertex_id) is not int or not 0<=vertex_id<len(uv)
+                for vertex_id in face
+            ) for face in ids)
+            or any(len(point)!=2 or any(
+                not isfinite(value) for value in point
+            ) for point in uv)
+            or candidate["v_world_four_edges"]!=8
+            or candidate["v_world_open_seam_edges"]!=0
+            or candidate["v_extra_world_open_edges"]!=0
+            or candidate["v_world_open_edges"]!=candidate[
+                "shared_original_world_open_edges"
+            ]
+            or len(candidate["straight_v_wall_sets"])!=2
+            or not all(
+                row["full_face_contact_proven"]
+                for row in candidate["straight_v_wall_sets"]
+            )):
+        raise ValueError("TAIL_D4_CHECK_NATIVE_WORLD_EVIDENCE_REJECTED")
+    return candidate
+
+# Explicit EndCap live CHECK source; independent of raw trial/manufacture.
+from .v_miter_endcap_live_snapshot import (
+    capture_endcap_live_v_miter_check_snapshot,
+    normalize_endcap_live_v_miter_check_snapshot,
+    replay_endcap_live_v_miter_check_snapshot,
+    capture_endcap_live_v_miter_bottom_pair_snapshots,
+    replay_endcap_live_v_miter_bottom_pair_snapshots,
+)
+
+# Source-verified two-bottom-V Custom Tail one-piece FLAT CHECK (never DXF/3D).
+from .v_miter_tail_pair_sheet_check import (
+    VMiterTailPairOneSheet2DCheck,
+    project_v_miter_custom_tail_bottom_pair_one_sheet_2d_check,
+)
+
+from .operator_scoped_base_plate_marks import (
+    SCOPED_BASE_PLATE_MARKS, normalize_scoped_base_plate_mark_ledger, open_scoped_base_plate_editor,
+    commit_scoped_base_plate_marks, scoped_base_plate_mark_status,
+    require_scoped_base_plate_export_held, require_scoped_base_plate_spec_export_held,
+    plan_scoped_base_plate_normal_output,
+)
+
+from .operator_physical_sheet_marking import (
+    open_physical_sheet_marking,
+    create_physical_sheet_mark,
+    move_physical_sheet_round_mark,
+    is_manual_straight_mark,
+    move_physical_sheet_straight_mark,
+    validate_physical_sheet_marking_draft,
+    commit_physical_sheet_marking,
+    propose_legacy_root_occupancy_for_mark_confirm,
+)
+
+from .operator_root_marking_store import (
+    ROOT_MARKING_STORE_KEY, normalize_workspace_root_marking_store,
+    read_workspace_marking_owner_record, open_workspace_owner_marking_draft,
+    require_existing_normal_owner_marking_route,
+    prepare_workspace_owner_marking_commit, prepare_workspace_initial_owner_marking_commit,
+)
+
+from .operator_physical_sheet_marking_preview import (
+    open_selected_physical_marking_preview, project_selected_physical_marking_preview,
+)
+
+from .operator_selected_marking_receipt import (
+    open_selected_ordinary_marking_modal_source, selected_normal_marking_inventory,
+)
+
+
+def save_confirmed_workspace_owner_marking_dxf(part_key, output_path, *, read_current, overwrite=False):
+    """Compatibility public name, same authoritative normal writer."""
+    return save_part_render_data_dxf(
+        None, output_path, overwrite=overwrite, verify_reopen=True,
+        selected_owner_marking_source=(part_key, read_current),
+    )
+
+
+from .operator_persisted_marking_candidate import read_verified_owner_marking_candidate
+
+from .operator_manual_marking import OWNER_MARKING_VIEW_ONLY
+from .operator_owner_marking_view import (
+    OWNER_MARKING_VIEW_DIAGNOSTIC,
+    project_scene_without_operator_marking,
+    project_workspace_owner_marking_display,
+)
+
+from .operator_owner_marking_3d_view import (
+    OWNER_MARKING_3D_PREVIEW_BUDGET,
+    project_checked_owner_marking_standalone_paths,
+)
+
+from .operator_owner_marking_assembly_view import (
+    project_checked_owner_marking_assembly_paths,
+    project_workspace_owner_marking_assembly_views,
 )

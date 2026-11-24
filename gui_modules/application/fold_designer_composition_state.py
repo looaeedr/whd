@@ -249,6 +249,8 @@ def final_scene_set_preview_enabled(self, enabled):
     app = self.app
     enabled = bool(enabled)
     app.preview_3d_enabled = enabled
+    from phase6_navigation_view_adapter import refresh_content_switch
+    refresh_content_switch(app)
     var = getattr(app, "preview_3d_var", None)
     if var is not None and bool(var.get()) != enabled:
         var.set(enabled)
@@ -719,6 +721,38 @@ def toggle_parameter_panel(self, namespace):
         == "assembly"
     )
     diagnostics = getattr(app, "assembly_diagnostics_frame", None)
+    window = getattr(app, "parameter_settings_window", None)
+    if window is not None and window.winfo_exists():
+        # Both views live under a single non-modal Toplevel. Never repack them
+        # above the 3D canvas; the lock flag remains the only state owner.
+        if unlocked and assembly_selected:
+            if center is not None and center.winfo_manager():
+                center.pack_forget()
+            if diagnostics is not None and not diagnostics.winfo_manager():
+                diagnostics.pack(fill=tk.X, padx=10, pady=(2, 8))
+            self.update_assembly_diagnostic_status(namespace)
+            window.title("3D 參數設定｜組合體診斷")
+        elif unlocked:
+            if diagnostics is not None and diagnostics.winfo_manager():
+                diagnostics.pack_forget()
+            self.invalidate_settings_page(active)
+            self.render_settings_context(namespace, active)
+            if center is not None and not center.winfo_manager():
+                center.pack(fill=tk.BOTH, expand=True, padx=10, pady=(2, 8))
+            window.title("3D 參數設定｜板件")
+        else:
+            if center is not None and center.winfo_manager():
+                center.pack_forget()
+            if diagnostics is not None and diagnostics.winfo_manager():
+                diagnostics.pack_forget()
+        if unlocked:
+            window.deiconify()
+            window.lift()
+            window.focus_set()
+        else:
+            window.withdraw()
+        return unlocked
+
     if unlocked:
         # The original lock toggle lives on the renderer canvas. Expanding
         # settings/assembly diagnostics can push that canvas below the visible
@@ -728,7 +762,6 @@ def toggle_parameter_panel(self, namespace):
         # Fake panels in the legacy bridge-only tests do not expose Tk
         # child APIs, so this is installed only on real widget trees.
         from tkinter import ttk
-        import tkinter as tk
 
         panel = diagnostics if assembly_selected else center
         if panel is not None and hasattr(panel, "winfo_children"):

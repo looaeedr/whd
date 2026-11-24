@@ -17,6 +17,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 import math
 
+from shapely.geometry import LineString, Point, Polygon
+from shapely.ops import unary_union
+
+from .v_miter_material_trial import _single_source_material
+from .v_miter_relief_trial import project_v_miter_relief_trial
 from .sheetmetal_drawing import DrawingScene, LinePrimitive
 from .sheetmetal_geometry_core import GeometryError, Vec2
 from .v_miter_corner_source import VMiterReliefMode
@@ -115,6 +120,240 @@ def diagnose_v_miter_bounded_bend_reach(
         needs_independent_material_extension_evidence=(
             first_outside > tolerance or second_outside > tolerance
         ),
+    )
+
+
+@dataclass(frozen=True)
+class VMiterOriginalStockCreaseExtensionWitness:
+    """Real CUTTING coverage of a MISSING BEND segment; CHECK evidence only.
+
+    A crease drawn past an existing BEND endpoint has no fold identity even
+    if the *uncut* sheet contains material underneath the hypothetical
+    extension. `stock_covers` proves only a necessary 2D fact, never that a
+    crease exists, that the flange retains enough material after V relief,
+    or that R/BA/T mating and machine parameters are safe.
+    """
+
+    bounded: VMiterBendReachWitness
+    first_missing_bend_extension: tuple[Vec2, Vec2] | None
+    second_missing_bend_extension: tuple[Vec2, Vec2] | None
+    first_original_stock_covers_extension: bool | None
+    second_original_stock_covers_extension: bool | None
+    manufacturing_status: str = "V_MITER_SOURCE_BEND_EXTENSION_UNCERTIFIED"
+
+
+def diagnose_v_miter_original_stock_crease_extension(
+    scene: DrawingScene,
+    v_edge_bend: LinePrimitive,
+    second_bend: LinePrimitive,
+    *,
+    thickness_mm: float,
+    first_flange_height_mm: float,
+    second_flange_height_mm: float,
+    second_fold_angle_deg: float,
+    relief_mode: VMiterReliefMode | str,
+    relief_t_factor: float | None = None,
+) -> VMiterOriginalStockCreaseExtensionWitness:
+    """Check exact missing finite BEND segments against ORIGINAL CUTTING.
+
+    This is a narrow independent stock-availability *necessary condition*
+    for an operator/source-model correction, not a method of authorizing
+    a virtual crease. A missing BEND stays missing even if its extension
+    lies inside the original sheet: true-T and R/BA solvers MUST still
+    fail closed until actual source BEND geometry is independently present.
+    Do not use an inferred/preview V CUTTING polygon as the source.
+    """
+    bounded = diagnose_v_miter_bounded_bend_reach(
+        scene, v_edge_bend, second_bend,
+        thickness_mm=thickness_mm,
+        first_flange_height_mm=first_flange_height_mm,
+        second_flange_height_mm=second_flange_height_mm,
+        second_fold_angle_deg=second_fold_angle_deg,
+        relief_mode=relief_mode,
+        relief_t_factor=relief_t_factor,
+    )
+    # This owner requires exactly one pre-existing, closed original stock
+    # CUTTING. A BEND-only candidate cannot furnish missing material proof.
+    material = _single_source_material(scene)
+    apex = bounded.ideal.source.bend_intersection
+
+    def missing_segment(bend, axial_reach, source_span, overrun):
+        if overrun <= 1e-7:
+            return None, None
+        axis, actual_span = _source_axis_span(bend, apex)
+        if not math.isclose(actual_span, source_span, abs_tol=1e-9):
+            raise GeometryError("V-miter original BEND span changed during source check")
+        # The closest real crease endpoint is either the common V corner
+        # or the far end of its finite, verified original source BEND.
+        nearest = max(0.0, min(axial_reach, source_span))
+        a = Vec2(apex.x + axis[0] * nearest, apex.y + axis[1] * nearest)
+        b = Vec2(apex.x + axis[0] * axial_reach, apex.y + axis[1] * axial_reach)
+        line = LineString(((a.x, a.y), (b.x, b.y)))
+        if not math.isfinite(line.length) or line.length <= 0:
+            raise GeometryError("V-miter source missing BEND extension is degenerate")
+        # An original CUTTING *boundary line* alone is not stock to fold:
+        # require the actual missing interval's midpoint to be in the
+        # positive-area interior, not just a coincident perimeter edge.
+        # This remains necessary, never sufficient: a line has no width.
+        covered = bool(
+            material.covers(line)
+            and material.contains(Point((a.x + b.x) * 0.5, (a.y + b.y) * 0.5))
+        )
+        return (a, b), covered
+
+    f_segment, f_stock = missing_segment(
+        v_edge_bend,
+        bounded.first_axial_seam_reach_mm,
+        bounded.first_bend_span_mm,
+        bounded.first_outside_bend_span_mm,
+    )
+    s_segment, s_stock = missing_segment(
+        second_bend,
+        bounded.second_axial_seam_reach_mm,
+        bounded.second_bend_span_mm,
+        bounded.second_outside_bend_span_mm,
+    )
+    if (f_segment is not None or s_segment is not None) != (
+        bounded.needs_independent_material_extension_evidence
+    ):
+        raise GeometryError("V-miter missing crease coverage disagrees with finite BEND reach")
+    return VMiterOriginalStockCreaseExtensionWitness(
+        bounded=bounded,
+        first_missing_bend_extension=f_segment,
+        second_missing_bend_extension=s_segment,
+        first_original_stock_covers_extension=f_stock,
+        second_original_stock_covers_extension=s_stock,
+    )
+
+
+
+@dataclass(frozen=True)
+class VMiterPhysicalCreaseAfterReliefWitness:
+    """Source BEND and post-V-cut material independently checked, NOT safe to bend.
+
+    All reported crease segments come from the actual source seam demand.
+    Even when an additional original BEND covers a missing segment and that
+    interval survives the trial R/hole cut, its full-width flange topology,
+    true-T/real-R/BA collision, tolerance and shop process remain unverified.
+    """
+
+    original_stock: VMiterOriginalStockCreaseExtensionWitness
+    first_original_bend_continuation_covers: bool | None
+    second_original_bend_continuation_covers: bool | None
+    first_remaining_material_interior_covers: bool | None
+    second_remaining_material_interior_covers: bool | None
+    first_remaining_interior_crease_length_mm: float | None
+    second_remaining_interior_crease_length_mm: float | None
+    manufacturing_status: str = "V_MITER_POST_RELIEF_CREASE_UNCERTIFIED"
+
+
+def diagnose_v_miter_physical_crease_after_relief(
+    scene: DrawingScene,
+    v_edge_bend: LinePrimitive,
+    second_bend: LinePrimitive,
+    *,
+    thickness_mm: float,
+    first_flange_height_mm: float,
+    second_flange_height_mm: float,
+    second_fold_angle_deg: float,
+    relief_mode: VMiterReliefMode | str,
+    relief_t_factor: float | None = None,
+) -> VMiterPhysicalCreaseAfterReliefWitness:
+    """Check real extra BEND ownership AND material after the actual R/hole V.
+
+    A 60-degree ideal seam may extend past a source BEND endpoint even when
+    its *original* CUTTING contains metal. Additional genuine, collinear BEND
+    primitives must cover that entire extension; more importantly, the same
+    physical interval must not be removed or turn into a boundary-only line
+    by the V relief itself. A material boundary is not a foldable interior.
+
+    The V subtraction comes only from the existing Engine trial source, not
+    a synthesized square or second relief formula. A positive result is
+    diagnostic, NEVER a certificate or a way to skip bounded true-T/R/BA.
+    """
+    arguments = dict(
+        thickness_mm=thickness_mm,
+        first_flange_height_mm=first_flange_height_mm,
+        second_flange_height_mm=second_flange_height_mm,
+        second_fold_angle_deg=second_fold_angle_deg,
+        relief_mode=relief_mode,
+        relief_t_factor=relief_t_factor,
+    )
+    stock = diagnose_v_miter_original_stock_crease_extension(
+        scene, v_edge_bend, second_bend, **arguments,
+    )
+    relief = project_v_miter_relief_trial(
+        scene, v_edge_bend, second_bend, **arguments,
+    )
+    remaining = Polygon((
+        (p.x, p.y) for p in relief.trial_remaining_outline
+    ))
+    if (remaining.is_empty or remaining.geom_type != "Polygon"
+            or not remaining.is_valid or remaining.interiors
+            or remaining.area <= 0):
+        raise GeometryError("V-miter post-relief crease has no valid single remaining sheet")
+
+    # Only pre-existing canonical BEND primitives can prove an extension.
+    # A CHECK, DATUM, MARKING or virtual seam ray never does. Reusing the
+    # selected first/second BEND would mask their *known* missing span.
+    extra_bends = tuple(
+        LineString(((item.p1.x, item.p1.y), (item.p2.x, item.p2.y)))
+        for item in scene.primitives
+        if isinstance(item, LinePrimitive) and item.layer == "BEND"
+        and item is not v_edge_bend and item is not second_bend
+    )
+
+    def examine(extension):
+        if extension is None:
+            return None, None, None
+        start, end = extension
+        missing = LineString(((start.x, start.y), (end.x, end.y)))
+        if not math.isfinite(missing.length) or missing.length <= 0:
+            raise GeometryError("V-miter post-relief missing crease is degenerate")
+        # A point crossing or a parallel-but-offset BEND provides zero
+        # coincident length and cannot contribute to crease ownership.
+        real_overlaps = tuple(
+            bend.intersection(missing) for bend in extra_bends
+            if bend.intersection(missing).length > 0
+        )
+        # No gap tolerated in the actual continuous source crease. Union
+        # of genuine segments allows a multi-segment, reversed-direction
+        # source, but an unbridged gap must never be inferred as a BEND.
+        source_covered = bool(
+            real_overlaps and missing.difference(unary_union(real_overlaps)).is_empty
+        )
+        # R-arc polygonalization can leave a theoretical straight tangent
+        # CUTTING edge ~1e-15mm off its exact BEND ordinate. GEOS then says
+        # two physically coincident lines have ZERO exact overlap and may
+        # falsely classify the whole crease as interior stock. Use only the
+        # existing 1e-7mm *numerical geometry* tolerance to FAIL CLOSED for
+        # any near-boundary interval; this is NOT a new shop gap allowance,
+        # bend width, kerf or permission to adjust a manufactured outline.
+        boundary_neighborhood = remaining.boundary.buffer(1e-7)
+        surviving = missing.intersection(remaining)
+        interior = float(surviving.difference(boundary_neighborhood).length)
+        near_cut_edge = float(missing.intersection(boundary_neighborhood).length)
+        if (not math.isfinite(interior) or interior < 0
+                or interior > missing.length + 1e-7
+                or not math.isfinite(near_cut_edge)):
+            raise GeometryError("V-miter post-relief crease interval length is invalid")
+        interior_full = bool(
+            remaining.covers(missing)
+            and remaining.contains(missing.interpolate(0.5, normalized=True))
+            and near_cut_edge == 0.0
+        )
+        return source_covered, interior_full, interior
+
+    first = examine(stock.first_missing_bend_extension)
+    second = examine(stock.second_missing_bend_extension)
+    return VMiterPhysicalCreaseAfterReliefWitness(
+        original_stock=stock,
+        first_original_bend_continuation_covers=first[0],
+        second_original_bend_continuation_covers=second[0],
+        first_remaining_material_interior_covers=first[1],
+        second_remaining_material_interior_covers=second[1],
+        first_remaining_interior_crease_length_mm=first[2],
+        second_remaining_interior_crease_length_mm=second[2],
     )
 
 

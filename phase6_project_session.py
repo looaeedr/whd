@@ -12,6 +12,7 @@ class ProjectSession:
 
     def __init__(self) -> None:
         self._project_path: str | None = None
+        self._load_epoch = 0
         self._loaded_baseline: dict | None = None
         self._committed: dict | None = None
         self._draft: dict | None = None
@@ -27,6 +28,10 @@ class ProjectSession:
         return self._project_path
 
     @property
+    def load_epoch(self) -> int:
+        return self._load_epoch
+
+    @property
     def has_draft(self) -> bool:
         return self._draft is not None
 
@@ -37,6 +42,7 @@ class ProjectSession:
     def load_project(self, path: str | Path, snapshot: Mapping[str, object]) -> dict:
         loaded = self._clone(snapshot)
         self._project_path = str(Path(path))
+        self._load_epoch += 1
         self._loaded_baseline = self._clone(loaded)
         self._committed = self._clone(loaded)
         self._draft = None

@@ -1148,43 +1148,49 @@ class Phase6RegistryDiagnosticsPanel:
             tk.StringVar(master=frame, value="3D驗證：等待計算"),
         )
 
+        controls = ttk.Frame(frame)
+        controls.pack(fill=tk.X, pady=(0, 4))
         ttk.Checkbutton(
-            frame,
+            controls,
             text="未知組合允許3D求截角",
             variable=self.assembly_ignore_fixed_corner_var,
             command=self._on_diagnostic_changed,
-        ).pack(side=tk.LEFT, padx=(0, 10))
-        ttk.Label(frame, text="淨空 A").pack(side=tk.LEFT, padx=(0, 4))
+        ).pack(side=tk.LEFT, padx=(0, 12))
+        ttk.Label(controls, text="淨空 A").pack(side=tk.LEFT, padx=(0, 4))
         entry = ttk.Entry(
-            frame,
+            controls,
             textvariable=self.assembly_relief_clearance_var,
             width=7,
         )
-        entry.pack(side=tk.LEFT, padx=(0, 10))
+        entry.pack(side=tk.LEFT)
         entry.bind("<Return>", lambda _event: self._on_diagnostic_changed())
         entry.bind("<FocusOut>", lambda _event: self._on_diagnostic_changed())
         self._publish("assembly_relief_clearance_entry", entry)
 
+        actions = ttk.Frame(frame)
+        actions.pack(fill=tk.X, pady=(0, 4))
         ttk.Checkbutton(
-            frame,
+            actions,
             text="顯示加工前截角交集（非成品碰撞）",
             variable=self.assembly_show_interference_var,
             command=self._on_diagnostic_changed,
-        ).pack(side=tk.LEFT, padx=(0, 10))
+        ).pack(side=tk.LEFT, padx=(0, 12))
         promotion = ttk.Button(
-            frame,
+            actions,
             text="建立認證候選",
             command=self._create_promotion_candidates,
         )
-        promotion.pack(side=tk.LEFT, padx=(0, 10))
+        promotion.pack(side=tk.LEFT)
         self._publish("assembly_relief_promotion_button", promotion)
 
         ttk.Label(
-            frame, textvariable=self.assembly_relief_size_var
-        ).pack(side=tk.LEFT, padx=(0, 10))
+            frame, textvariable=self.assembly_relief_size_var,
+            wraplength=650,
+        ).pack(anchor=tk.W, pady=(2, 0))
         ttk.Label(
-            frame, textvariable=self.assembly_collision_status_var
-        ).pack(side=tk.LEFT)
+            frame, textvariable=self.assembly_collision_status_var,
+            wraplength=650,
+        ).pack(anchor=tk.W)
         frame.pack_forget()
         return frame
 

@@ -334,6 +334,7 @@ from gui_modules.parts.panels.assembly_corner import (
     refresh_manual_corner_parameter_rows as _refresh_manual_corner_parameter_rows_impl,
     toggle_manual_corner_parameter_lock as _toggle_manual_corner_parameter_lock_impl,
     create_corner_type_panel as _create_corner_type_panel_impl,
+    v_miter_check_source_summary as _v_miter_check_source_summary_impl,
 )
 
 from gui_modules.parts.panels.common import (
@@ -490,8 +491,9 @@ _Phase6DerivedCacheOwner = _phase6_state_sync.Phase6DerivedCacheOwner
 
 
 
-def draw_hole_editor_hint(canvas, canvas_width, *, endcap=False):
-    return _draw_hole_editor_hint_impl(canvas, canvas_width, endcap=endcap)
+def draw_hole_editor_hint(canvas, canvas_width, *, endcap=False, owner_marking=False):
+    kwargs = {"owner_marking": True} if owner_marking else {}
+    return _draw_hole_editor_hint_impl(canvas, canvas_width, endcap=endcap, **kwargs)
 
 
 
@@ -1029,6 +1031,251 @@ class Phase6ApplicationHost:
     def _corner_parameter_summary(cls, selection):
         return _corner_parameter_summary_impl(cls, selection)
 
+    def show_v_miter_check_source(self):
+        """Show the saved Engine replay as read-only 2D + formed 3D CHECK."""
+        from tkinter import messagebox
+        from gui_modules.application.endcap_live_v_check_consumer import (
+            ATTR, replay_current, project_current_tail_pair_one_sheet_2d,
+            _TailBottomPairReplayEnvelope,
+        )
+        from gui_modules.application.endcap_live_v_check_view import (
+            close_saved_live_check_window, show_saved_endcap_live_check_window,
+            show_saved_endcap_live_bottom_pair_window,
+        )
+        # Invalidate first: even a stale replay or project change cannot
+        # leave yesterday's candidate displayed as the current saved source.
+        close_saved_live_check_window(self)
+        try:
+            snapshot = self._make_original_fold_designer_snapshot()
+            replayed = replay_current(
+                self, snapshot, frozen_pair_source=True,
+            )
+            if replayed is None:
+                detail = _v_miter_check_source_summary_impl(snapshot)
+                messagebox.showinfo("V 型斜接｜CHECK 試算來源", detail)
+                return detail
+            part = self._current_manual_corner_part_key()
+            corner = self.manual_active_corner_var.get()
+            if (corner == "bottom" and part == "tail"
+                    and isinstance(replayed, (dict, _TailBottomPairReplayEnvelope))):
+                # Replay and combine on the ONE exact Engine-owned RenderData,
+                # including when the genuine Factory cache is cold/disabled.
+                # Legacy dict inputs keep their old separate-view contract.
+                one_sheet = None
+                unavailable = None
+                try:
+                    one_sheet = project_current_tail_pair_one_sheet_2d(
+                        self, snapshot, replayed,
+                    )
+                except (TypeError, ValueError) as exc:
+                    unavailable = str(exc)
+                return show_saved_endcap_live_bottom_pair_window(
+                    self, replayed,
+                    one_sheet_check=one_sheet,
+                    one_sheet_unavailable=unavailable,
+                    **({} if isinstance(replayed, _TailBottomPairReplayEnvelope)
+                       else {"saved_records": getattr(self, ATTR)[part]}),
+                )
+            record = getattr(self, ATTR)[part][corner]
+            return show_saved_endcap_live_check_window(self, replayed, record)
+        except (TypeError, ValueError, KeyError) as exc:
+            messagebox.showerror(
+                "V 型斜接｜試算來源無效",
+                f"Engine 拒絕保存的未認證 V 型來源：{exc}",
+            )
+            return None
+
+    def capture_endcap_live_v_miter_check_source(self):
+        from gui_modules.application.endcap_live_v_check_consumer import capture_current
+        from gui_modules.application.endcap_live_v_check_view import close_saved_live_check_window
+        # An old popup may not survive an unsuccessful replacement capture.
+        close_saved_live_check_window(self)
+        try:
+            row = capture_current(self)
+        except (TypeError, ValueError) as exc:
+            messagebox.showerror("V 型斜接｜CHECK 來源未保存", str(exc))
+            return None
+        messagebox.showinfo(
+            "V 型斜接｜CHECK 來源",
+            ("同片封尾左右兩角各自通過驗證、已原子保存來源；"
+             "只有分開的 2D CHECK，未驗證雙角合成 3D，不可加工。")
+            if isinstance(row, dict) and set(row) == {"bottom_left", "bottom_right"}
+            else "目前角落的來源已核對，可用專案儲存保留；不可加工。",
+        )
+        return row
+
+    def set_v_miter_gui_check_choice(self):
+        """Select a fifth CHECK-only draft without changing the physical CornerType."""
+        part_key = self._current_manual_corner_part_key()
+        if not self._corner_part_type_editable(part_key):
+            return
+        target = self._normalize_manual_corner_target(part_key)
+        if part_key in {"head", "tail"} and target in {"top", "top_left", "top_right"}:
+            self.refresh_corner_type_panel()
+            return
+        updated = manufacturing_api.change_operator_v_miter_gui_choice(
+            getattr(self, "v_miter_gui_check_corners", {}),
+            part_key, target, self.manual_corner_pair_same[part_key], enabled=True,
+        )
+        self.v_miter_gui_check_corners = updated
+        self.v_miter_gui_first_bend_axes = (
+            manufacturing_api.project_operator_v_miter_gui_selected_first_bend_axes(
+                getattr(self, "v_miter_gui_first_bend_axes", {}), updated,
+            )
+        )
+        self.refresh_corner_type_panel()
+        # A CHECK draft is a saved choice, not a manufacturing geometry edit.
+        self._capture_phase6_committed_snapshot()
+
+    def set_v_miter_gui_relief_mode(self):
+        """Commit the current corner's R/hole CHECK choice as Engine state."""
+        part_key = self._current_manual_corner_part_key()
+        if not self._corner_part_type_editable(part_key):
+            return
+        target = self._normalize_manual_corner_target(part_key)
+        physical = manufacturing_api.project_operator_corner_selection_target(target)
+        selected = getattr(self, "v_miter_gui_check_corners", {})
+        if selected.get(part_key, {}).get(physical) != "V_MITER_CHECK":
+            self.refresh_corner_type_panel()
+            return
+        self.v_miter_gui_relief_modes = (
+            manufacturing_api.change_operator_v_miter_gui_relief_mode(
+                getattr(self, "v_miter_gui_relief_modes", {}),
+                selected, part_key, target,
+                self.manual_corner_pair_same[part_key],
+                relief_mode=self.v_miter_relief_mode_var.get(),
+            )
+        )
+        # The R/BA mesh is rebuilt on demand; switching modes must not
+        # reuse a previous geometry projection from a different source.
+        self._v_miter_radius_ba_trial_target = None
+        self.refresh_corner_type_panel()
+        self._capture_phase6_committed_snapshot()
+
+    def set_v_miter_gui_first_bend_axis(self):
+        """Save an operator-selected first physical V bend; never auto-pick X."""
+        part_key = self._current_manual_corner_part_key()
+        if not self._corner_part_type_editable(part_key):
+            return
+        target = self._normalize_manual_corner_target(part_key)
+        physical = manufacturing_api.project_operator_corner_selection_target(target)
+        selected = getattr(self, "v_miter_gui_check_corners", {})
+        if selected.get(part_key, {}).get(physical) != "V_MITER_CHECK":
+            self.refresh_corner_type_panel()
+            return
+        self.v_miter_gui_first_bend_axes = (
+            manufacturing_api.change_operator_v_miter_gui_first_bend_axis(
+                getattr(self, "v_miter_gui_first_bend_axes", {}),
+                selected, part_key, target,
+                self.manual_corner_pair_same[part_key],
+                first_bend_axis=self.v_miter_first_bend_axis_var.get(),
+            )
+        )
+        self._v_miter_radius_ba_trial_target = None
+        self.refresh_corner_type_panel()
+        self._capture_phase6_committed_snapshot()
+
+    def run_v_miter_default_radius_ba_check(self):
+        """Run source-verified curved R/BA/T CHECK, never manufacturing."""
+        part_key = self._current_manual_corner_part_key()
+        if not self._corner_part_type_editable(part_key):
+            return
+        target = self._normalize_manual_corner_target(part_key)
+        physical = manufacturing_api.project_operator_corner_selection_target(target)
+        chosen = getattr(self, "v_miter_gui_check_corners", {}).get(part_key, {})
+        if chosen.get(physical) != "V_MITER_CHECK":
+            return
+        # Ephemeral action only. The next projection rebuilds the actual
+        # current PartSpec and FinalScene before running the expensive solve.
+        self._v_miter_radius_ba_trial_target = (part_key, physical)
+        self.refresh_corner_type_panel()
+
+    def _project_v_miter_gui_check_for_corner(self, part_key, target, *,
+                                              run_radius_ba_trial=False):
+        """Consume actual selected PartSpec/FinalScene/Fold, never old trial values."""
+        physical = manufacturing_api.project_operator_corner_selection_target(target)
+        snapshot = self._make_original_fold_designer_snapshot()
+        spec, _context = self._fold_designer_part_spec_from_payload(part_key, snapshot)
+        render_data = self._query_fold_designer_render_data(part_key, snapshot)
+        selected_first = manufacturing_api.normalize_operator_v_miter_gui_first_bend_axes(
+            snapshot.get("v_miter_gui_first_bend_axes"),
+            snapshot.get("v_miter_gui_check_corners"),
+        )
+        first_axis = selected_first.get(part_key, {}).get(physical)
+        if first_axis is None:
+            raise ValueError(
+                "V_MITER_GUI_FIRST_BEND_REQUIRED: 請先指定此角第一折為 X 或 Y 折線"
+            )
+        return manufacturing_api.project_operator_v_miter_live_corner_check(
+            spec, render_data, physical,
+            relief_mode=(
+                self.v_miter_relief_mode_var.get()
+                if getattr(self, "v_miter_relief_mode_var", None) is not None
+                else "ROUND_R"
+            ),
+            run_radius_ba_trial=run_radius_ba_trial,
+            first_bend_axis=first_axis,
+        )
+
+    def export_v_miter_whole_sheet_check_dxf(self):
+        """Save only a fresh Engine CHECK/DATUM diagnostic, not a production DXF."""
+        part_key = self._current_manual_corner_part_key()
+        if not self._corner_part_type_editable(part_key):
+            messagebox.showerror("V 型斜接 CHECK", "目前板件不可進行 V 型試算。")
+            return None
+        target = self._normalize_manual_corner_target(part_key)
+        physical = manufacturing_api.project_operator_corner_selection_target(target)
+        selected = getattr(self, "v_miter_gui_check_corners", {}).get(part_key, {})
+        if selected.get(physical) != "V_MITER_CHECK":
+            messagebox.showerror("V 型斜接 CHECK", "必須先選取此角的 V 型斜接（試算）。")
+            return None
+        try:
+            live = self._project_v_miter_gui_check_for_corner(part_key, target)
+            if live.full_sheet_check_scene is None:
+                raise ValueError(
+                    f"真實板料來源不足：{live.material_check_failure}"
+                )
+        except (TypeError, ValueError) as exc:
+            messagebox.showerror(
+                "V 型斜接 CHECK", f"無法產生整片試算圖：{exc}",
+            )
+            return None
+        target_path = filedialog.asksaveasfilename(
+            title="另存 V 型試算 CHECK DXF（禁止加工）",
+            defaultextension=".dxf",
+            filetypes=[("DXF 圖檔", "*.dxf")],
+            initialfile=f"V_{part_key}_{physical}_CHECK_ONLY_UNCERTIFIED.dxf",
+        )
+        if not target_path:
+            return None
+        try:
+            # Refresh after the modal file picker. A stale pre-dialog
+            # PartSpec/FinalScene must never be written after live edits.
+            current = self._project_v_miter_gui_check_for_corner(part_key, target)
+            active = getattr(self, "v_miter_gui_check_corners", {}).get(part_key, {})
+            if active.get(physical) != "V_MITER_CHECK":
+                raise ValueError("V_MITER_CHECK_SELECTION_CHANGED_DURING_SAVE")
+            if current.full_sheet_check_scene is None:
+                raise ValueError(
+                    f"V_MITER_CHECK_SOURCE_CHANGED: {current.material_check_failure}"
+                )
+            if current.full_sheet_check_scene.primitives != live.full_sheet_check_scene.primitives:
+                raise ValueError("V_MITER_CHECK_SOURCE_CHANGED_DURING_SAVE")
+            result = manufacturing_api.save_v_miter_whole_sheet_check_dxf(
+                current.full_sheet_check_scene, target_path, overwrite=False,
+            )
+        except (TypeError, ValueError, OSError) as exc:
+            messagebox.showerror(
+                "V 型斜接 CHECK", f"試算 DXF 未儲存：{exc}",
+            )
+            return None
+        messagebox.showinfo(
+            "V 型斜接 CHECK",
+            f"已獨立重開核對圖元：{result}\\n"
+            "僅 CHECK/DATUM，沒有 CUTTING／BEND／MARKING；禁止當加工圖。",
+        )
+        return result
+
     def create_corner_type_panel(self, parent):
         return _create_corner_type_panel_impl(self, parent)
 
@@ -1096,6 +1343,23 @@ class Phase6ApplicationHost:
             self.manual_corner_state[part_key], self.manual_corner_pair_same[part_key],
             target_key, selection,
         )
+        self.v_miter_gui_check_corners = manufacturing_api.change_operator_v_miter_gui_choice(
+            getattr(self, "v_miter_gui_check_corners", {}),
+            part_key, target_key, self.manual_corner_pair_same[part_key], enabled=False,
+        )
+        self.v_miter_gui_relief_modes = (
+            manufacturing_api.project_operator_v_miter_gui_selected_relief_modes(
+                getattr(self, "v_miter_gui_relief_modes", {}),
+                self.v_miter_gui_check_corners,
+            )
+        )
+        self.v_miter_gui_first_bend_axes = (
+            manufacturing_api.project_operator_v_miter_gui_selected_first_bend_axes(
+                getattr(self, "v_miter_gui_first_bend_axes", {}),
+                self.v_miter_gui_check_corners,
+            )
+        )
+        self._v_miter_radius_ba_trial_target = None
         self.refresh_corner_type_panel()
         self._notify_fold_designer_corner_state()
         self._request_phase6_update("geometry")
@@ -1274,7 +1538,13 @@ class Phase6ApplicationHost:
         _draw_phase6_annotation_projection(
             canvas, render_data, transform, part_key=key
         )
-        draw_hole_editor_hint(canvas, cw, endcap=(key in {"head", "tail"}))
+        metadata = getattr(render_data, "metadata", None) or {}
+        # A healthy owner-mark view already records an admitted selected
+        # source. Do not resolve a PartSpec or check DXF just to draw a hint.
+        owner_marking = (metadata.get(manufacturing_api.OWNER_MARKING_VIEW_ONLY) is True
+                         and manufacturing_api.OWNER_MARKING_VIEW_DIAGNOSTIC not in metadata)
+        kwargs = {"owner_marking": True} if owner_marking else {}
+        draw_hole_editor_hint(canvas, cw, endcap=(key in {"head", "tail"}), **kwargs)
 
         warning_rows = tuple(
             str(v) for v in tuple(getattr(render_data, "warnings", ()) or ()) if str(v)
@@ -1498,17 +1768,12 @@ class Phase6ApplicationHost:
             if state["mode"] != "indicator_box":
                 return
             val = self.get_float_values()
-            groups = tuple(state["groups"][:state["layers"]])
-            # The canonical shared Indicator geometry is already consumed by
-            # Phase6's _indicator_component_editor_contexts. Never generate
-            # another manufacturing surface or finished-face guide in GUI.
+            # Use the same canonical source-to-component projection as Phase6.
+            # Group selection and Small Door manufacturing spec belong to Engine.
             door_features = self.door_layout_indicator_door_features.get(key, [])
-            door_spec = self._indicator_door_part_spec(
-                val, groups, features=door_features,
-            )
-            info = manufacturing_api.resolve_indicator_editor_components(
-                groups, thickness=val["t"], door_spec=door_spec,
-            )[component]
+            info = manufacturing_api.resolve_operator_indicator_editor_components(
+                raw, val, door_features=door_features,
+            ).components[component]
         except Exception as exc:
             messagebox.showerror("開孔失敗", str(exc))
             return

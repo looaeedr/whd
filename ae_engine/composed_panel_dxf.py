@@ -20,6 +20,7 @@ from shapely.affinity import translate as move_material
 from shapely.ops import unary_union
 
 from .contracts import ResolvedManufacturingGeometry
+from .dxf_acceptance import verify_reopened_marking
 from .dxf_serialization import save_scene_dxf
 from .manufacturing_export import (
     _atomic_commit_staged_dxfs, _reject_unapproved_nfb_pad_ear_manufacturing,
@@ -243,6 +244,13 @@ def _source_rows(panels, *, preserve_input_order=False, box_body_owner_by_panel=
                 raise ValueError("COMPOSED_DXF_BOX_BODY_TOPOLOGY_ID_MISMATCH")
             if not isinstance(render, PartRenderData) or render.scene is None:
                 raise ValueError("COMPOSED_DXF_PHYSICAL_FLAT_SCENE_REQUIRED")
+            # #3412: the composed DXF has independent per-piece/combined
+            # save_scene_dxf writers. They must not bypass the same original
+            # complete-stroke + source-cohort gate as ordinary PartRenderData
+            # exports. Check every selected canonical physical flat *before*
+            # staging or publishing; no-mark scenes remain unchanged.
+            from .operator_manual_marking import verify_manual_marking_output
+            verify_manual_marking_output(render)
         # The incoming flattened physical rows may be in arbitrary order.
         # When the canonical BoxBody owner supplies piece topology, it must
         # determine LEFT/BACK/RIGHT (or LEFT/MIDDLE/RIGHT) in the packer.
@@ -450,7 +458,19 @@ def save_composed_panel_dxf(
         box_body_owner_by_panel=box_body_owner_by_panel,
         _verified_nfb_pair_parts=_verified_nfb_pair_parts,
     )
+    # Witness exactly the chosen sheets before compact quantity grouping;
+    # unselected sheets elsewhere cannot poison this transaction.
+    from .operator_manual_marking_batch import witness_selected_manual_marking_rows
+    marking_witness = witness_selected_manual_marking_rows(
+        # Panel names are output labels, never proof of a Set/Bay owner.
+        # Use the canonical physical ID already independently checked by
+        # _source_rows(); a mere Bay-B:base_plate suffix is not authority.
+        (physical_id, render)
+        for _panel_name, pieces in rows
+        for physical_id, render, _assembly_y in pieces
+    )
     pre_commit_guard()
+    marking_witness.assert_current()
     if type(quantity_summary) is not bool:
         raise TypeError("COMPOSED_DXF_QUANTITY_SUMMARY_FLAG_MUST_BE_BOOL")
     if type(compact_quantity_total) is not bool:
@@ -490,6 +510,7 @@ def save_composed_panel_dxf(
             for physical_id, render, _assembly_y in pieces
         )
         for index, (_, physical_id, render) in enumerate(verification_sources):
+            marking_witness.assert_current()
             individual = stage / f"source-{index}.dxf"
             save_scene_dxf(individual, render.scene)
             receipt = verify_saved_part_render_data_dxf(render, individual)
@@ -503,8 +524,17 @@ def save_composed_panel_dxf(
         # Every original flat passed its own material/BEND/holes verification
         # above; now independently reopen the COMPOSED bytes and prove all of
         # each physical sheet's translated features appear exactly once.
+        reopened = ezdxf.readfile(staged)
+        if reopened.header.get("$INSUNITS", 0) != ezdxf.units.MM:
+            raise ValueError("COMPOSED_DXF_UNIT_MISMATCH")
+        # A per-source receipt does not prove the final translated ink.
+        # Reuse the same MARKING-only verifier, not single-blank material
+        # validation on a DXF containing several distinct physical sheets.
+        ink_issues = verify_reopened_marking(composite.scene, reopened, 1e-6)
+        if ink_issues:
+            raise ValueError("COMPOSED_DXF_MARKING_READBACK_MISMATCH:" + ink_issues[0].detail)
         actual = Counter(_actual_signature(entity)
-                         for entity in ezdxf.readfile(staged).modelspace())
+                         for entity in reopened.modelspace())
         remaining = actual.copy()
         for receipt, (_, physical_id, render) in zip(sheets, originals):
             dx, dy = receipt.offset
@@ -521,8 +551,21 @@ def save_composed_panel_dxf(
         expected = Counter(_source_signature(p) for p in composite.scene.primitives)
         if actual != expected:
             raise ValueError("COMPOSED_DXF_EXACT_PRIMITIVE_READBACK_MISMATCH")
-        pre_commit_guard()  # Source drift after staging must not replace output.
-        _atomic_commit_staged_dxfs({"composed": staged}, root, overwrite=overwrite)
+        marking_witness.assert_current()
+        pre_commit_guard()  # Original live-owner check before commit.
+        marking_witness.assert_current()
+
+        def assert_current_owner_and_marks():
+            # Both checks must run at the actual atomic write boundary.
+            # The original immutable snapshot may be unchanged while its
+            # live owner revision has moved to another Project/Bay.
+            pre_commit_guard()
+            marking_witness.assert_current()
+
+        _atomic_commit_staged_dxfs(
+            {"composed": staged}, root, overwrite=overwrite,
+            pre_commit_guard=assert_current_owner_and_marks,
+        )
         return ComposedPanelDxfResult(str(path), sheets)
     finally:
         shutil.rmtree(stage, ignore_errors=True)

@@ -177,6 +177,24 @@ def _polygonize_linework_with_tolerance(linework, tolerance: float):
     )
 
 
+def _first_nonplanar_cutting_entity(msp):
+    """Return the first supported CUTTING primitive outside the canonical XY frame."""
+    for entity in msp:
+        if str(entity.dxf.layer).upper() != "CUTTING":
+            continue
+        kind = entity.dxftype()
+        if kind == "LINE":
+            # DXF LINE stores endpoints directly in WCS, not OCS.
+            if entity.dxf.start.z != 0.0 or entity.dxf.end.z != 0.0:
+                return kind
+        elif kind in {"LWPOLYLINE", "CIRCLE"}:
+            z = (entity.dxf.elevation if kind == "LWPOLYLINE"
+                 else entity.dxf.center.z)
+            if z != 0.0 or tuple(entity.dxf.extrusion) != (0.0, 0.0, 1.0):
+                return kind
+    return None
+
+
 def _actual_material(msp, coordinate_tolerance: float):
     """Reconstruct saved CUTTING under the verifier's tolerance contract."""
     from .cutting_material import material_from_cutting_components
@@ -249,8 +267,14 @@ def _actual_bends(msp, tolerance: float):
     for entity in msp:
         if entity.dxftype() != "LINE" or str(entity.dxf.layer).upper() != "BEND":
             continue
-        x1, y1 = float(entity.dxf.start.x), float(entity.dxf.start.y)
-        x2, y2 = float(entity.dxf.end.x), float(entity.dxf.end.y)
+        start, end = entity.dxf.start, entity.dxf.end
+        # LINE endpoints are WCS coordinates, and the canonical blank BEND
+        # guide is planar. Matching the XY projection is not enough proof.
+        if start.z != 0.0 or end.z != 0.0:
+            rows.append(("off_xy_plane", float(start.z), float(end.z)))
+            continue
+        x1, y1 = float(start.x), float(start.y)
+        x2, y2 = float(end.x), float(end.y)
         if abs(x1 - x2) <= tolerance and abs(y1 - y2) > tolerance:
             rows.append(("x", (x1 + x2) / 2.0, min(y1, y2), max(y1, y2)))
         elif abs(y1 - y2) <= tolerance and abs(x1 - x2) > tolerance:
@@ -412,6 +436,167 @@ def _same_line_geometry(a, b, tolerance: float) -> bool:
     return direct or reverse
 
 
+def _expected_marking_polylines(scene):
+    """Canonical MARKING strokes, including every vertex and open/closed intent."""
+    rows = []
+    for primitive in getattr(scene, "primitives", ()):
+        if (not isinstance(primitive, PolylinePrimitive)
+                or str(primitive.layer).upper() != "MARKING"):
+            continue
+        vertices = []
+        for point in primitive.points:
+            raw = (point.x, point.y)
+            if any(isinstance(value, bool) for value in raw):
+                raise ValueError("canonical MARKING vertex must have real coordinates")
+            try:
+                x, y = (float(value) for value in raw)
+            except (TypeError, ValueError, OverflowError) as exc:
+                raise ValueError("canonical MARKING vertex must have real coordinates") from exc
+            if not all(isfinite(value) for value in (x, y)):
+                raise ValueError("canonical MARKING vertex must have finite coordinates")
+            vertices.append((x, y))
+        color = primitive.color if primitive.color is not None else 211
+        rows.append(("MARKING", bool(primitive.closed), color, tuple(vertices)))
+    return tuple(rows)
+
+
+def _actual_marking_polylines(msp):
+    """Read saved MARKING vertices AND machining attributes; no serializer callback."""
+    return tuple(
+        (
+            str(entity.dxf.layer).upper(),
+            bool(entity.closed),
+            entity.dxf.get("color", 256),
+            str(entity.dxf.get("linetype", "BYLAYER")).upper(),
+            float(entity.dxf.get("const_width", 0)),
+            float(entity.dxf.get("elevation", 0)),
+            float(entity.dxf.get("thickness", 0)),
+            tuple(map(float, entity.dxf.get("extrusion", (0, 0, 1)))),
+            tuple(tuple(map(float, point)) for point in entity.get_points("xyseb")),
+        )
+        for entity in msp
+        if entity.dxftype() == "LWPOLYLINE"
+        and str(entity.dxf.layer).upper() == "MARKING"
+    )
+
+
+def _marking_rows_close(expected, actual, tolerance: float) -> bool:
+    """One-to-one ink matching; never silently accept bulge or variable width."""
+    def same(source, saved):
+        layer, closed, color, points = source
+        (actual_layer, actual_closed, actual_color, linetype, width,
+         elevation, thickness, extrusion, vertices) = saved
+        if (layer != actual_layer or closed != actual_closed
+                or color != actual_color
+                or linetype not in {"BYLAYER", "CONTINUOUS"}
+                or width != 0.0 or elevation != 0.0 or thickness != 0.0
+                or extrusion != (0.0, 0.0, 1.0)
+                or len(points) != len(vertices)):
+            return False
+        return all(
+            len(v) == 5
+            and all(isfinite(n) for n in v)
+            and abs(x - v[0]) <= tolerance
+            and abs(y - v[1]) <= tolerance
+            and v[2] == 0.0 and v[3] == 0.0 and v[4] == 0.0
+            for (x, y), v in zip(points, vertices)
+        )
+
+    return _one_to_one_tolerance_match(expected, actual, same)
+
+
+def _expected_marking_circles(scene):
+    """Check circle ink only for the newly authorized manual-round source."""
+    from .operator_manual_marking import is_manual_round_mark
+
+    circles = tuple(
+        row for row in scene.primitives
+        if isinstance(row, CirclePrimitive) and str(row.layer).upper() == "MARKING"
+    )
+    if not any(is_manual_round_mark(row) for row in circles):
+        return ()
+    expected = tuple(
+        (float(row.center.x), float(row.center.y), float(row.radius),
+         row.color if row.color is not None else 211)
+        for row in circles
+    )
+    if any(not all(isfinite(v) for v in row[:3]) or row[2] <= 0 for row in expected):
+        raise ValueError("canonical MARKING circle must have finite centre and positive radius")
+    return expected
+
+
+def _actual_marking_circles(msp):
+    return tuple(
+        (tuple(map(float, row.dxf.center)), float(row.dxf.radius),
+         row.dxf.get("color", 256), str(row.dxf.get("linetype", "BYLAYER")).upper(),
+         float(row.dxf.get("thickness", 0)),
+         tuple(map(float, row.dxf.get("extrusion", (0, 0, 1)))))
+        for row in msp
+        if row.dxftype() == "CIRCLE" and str(row.dxf.layer).upper() == "MARKING"
+    )
+
+
+def _marking_circles_close(expected, actual, tolerance):
+    def same(source, saved):
+        x, y, radius, color = source
+        (u, v, z), r, ink_color, linetype, thickness, extrusion = saved
+        return (
+            all(isfinite(n) for n in (u, v, z, r)) and r > 0
+            and color == ink_color and linetype in {"BYLAYER", "CONTINUOUS"}
+            and z == 0 and thickness == 0 and extrusion == (0, 0, 1)
+            and abs(u-x) <= tolerance and abs(v-y) <= tolerance
+            and abs(r-radius) <= tolerance
+        )
+
+    return _one_to_one_tolerance_match(expected, actual, same)
+
+
+def verify_reopened_marking(scene, doc, coordinate_tolerance: float) -> tuple[DxfAcceptanceIssue, ...]:
+    """Compare only canonical MARKING against an already reopened DXF.
+
+    Shared by single-sheet and composed DXF validation. Neither material
+    boundaries nor BEND/CUTTING checks belong to this ink-only receipt.
+    """
+    issues: list[DxfAcceptanceIssue] = []
+    msp = doc.modelspace()
+    try:
+        expected_marks = _expected_marking_polylines(scene)
+        expected_rings = _expected_marking_circles(scene)
+        if expected_marks or expected_rings:
+            try:
+                marking_layer = doc.layers.get("MARKING")
+                layer_ok = (
+                    str(marking_layer.dxf.linetype).upper() == "CONTINUOUS"
+                    and marking_layer.dxf.color == 211
+                )
+            except Exception:
+                layer_ok = False
+        if expected_marks:
+            actual_marks = _actual_marking_polylines(msp)
+            if (not layer_ok or not _marking_rows_close(
+                    expected_marks, actual_marks, coordinate_tolerance)):
+                issues.append(DxfAcceptanceIssue(
+                    "MARKING_MISMATCH",
+                    "saved MARKING LWPOLYLINE differs from canonical points/style",
+                    expected_marks,
+                    actual_marks,
+                ))
+        if expected_rings:
+            actual_rings = _actual_marking_circles(msp)
+            if (not layer_ok or not _marking_circles_close(
+                    expected_rings, actual_rings, coordinate_tolerance)):
+                issues.append(DxfAcceptanceIssue(
+                    "MARKING_MISMATCH",
+                    "saved MARKING CIRCLE differs from canonical centre/radius/plane/style",
+                    expected_rings,
+                    actual_rings,
+                ))
+    except ValueError as exc:
+        issues.append(DxfAcceptanceIssue("INVALID_SOURCE", str(exc)))
+
+    return tuple(issues)
+
+
 def _find_layer_mismatches(scene, msp, tolerance: float):
     issues = []
     actual_lines = []
@@ -505,6 +690,16 @@ def verify_saved_part_render_data_dxf(
             False,
             (DxfAcceptanceIssue("SERIALIZATION_ERROR", f"DXF reopen failed: {exc}"),),
         )
+    # A geometrically identical sheet in meters is unsafe for millimeter CAM.
+    # Inspect the independently reopened bytes, never the serializer intent.
+    declared_units = doc.header.get("$INSUNITS", 0)
+    if declared_units != ezdxf.units.MM:
+        issues.append(DxfAcceptanceIssue(
+            "UNIT_MISMATCH",
+            "saved manufacturing DXF $INSUNITS must declare millimeters (4)",
+            ezdxf.units.MM,
+            declared_units,
+        ))
     msp = doc.modelspace()
 
     # Fail closed BEFORE layer matching float-coerces a malformed source hole.
@@ -528,6 +723,17 @@ def verify_saved_part_render_data_dxf(
             "saved DXF entity type/layer counts differ from canonical scene",
             dict(expected_counts),
             dict(actual_counts),
+        ))
+
+    # The raw XY material reconstruction below assumes canonical WCS XY.
+    # Do not pass matching object-space points as proof of flat world geometry.
+    nonplanar_cutting = _first_nonplanar_cutting_entity(msp)
+    if nonplanar_cutting is not None:
+        issues.append(DxfAcceptanceIssue(
+            "CUTTING_PLANE_MISMATCH",
+            "saved CUTTING geometry must use the canonical XY plane",
+            "Z=0; +Z normal for object-space geometry",
+            nonplanar_cutting,
         ))
 
     try:
@@ -565,5 +771,7 @@ def verify_saved_part_render_data_dxf(
             expected_circles,
             actual_circles,
         ))
+
+    issues.extend(verify_reopened_marking(render_data.scene, doc, float(coordinate_tolerance)))
 
     return DxfAcceptanceResult(ok=not issues, issues=tuple(issues))

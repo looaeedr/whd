@@ -180,6 +180,9 @@ class Phase6FinalSceneRenderHelpersMixin:
         paths = manufacturing_api.project_independent_scene_annotation_paths(
             scene, x_profile, y_profile, fold_guides,
         )
+        Phase6FinalSceneRenderHelpersMixin._paint_scene_marking_paths(self, paths)
+
+    def _paint_scene_marking_paths(self, paths):
         for layer, pts in paths:
             self.renderer.ax3d.plot(
                 [p[0] for p in pts], [p[1] for p in pts], [p[2] for p in pts],

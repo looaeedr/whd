@@ -13,6 +13,28 @@ from dataclasses import dataclass
 from .cabinet_types.policy import canonical_family_name
 
 
+def _require_committed_receiving_nfb_for_pad_export(snapshot):
+    if (not isinstance(snapshot, Mapping)
+            or canonical_family_name(snapshot) != "受電箱"
+            or snapshot.get("nfb_config_submitted") is not True):
+        raise ValueError("須在受電箱提交 NFB 後，才能輸出 PAD＋底板")
+
+
+def require_receiving_pad_base_export_preflight(snapshot) -> None:
+    """Reject ineligible PAD+Base CHECK/Q sources before any operator dialog.
+
+    Only preflight current intent; selected physical version, exact assembly
+    and source/DXF publication are still checked by their original owners.
+    """
+    from .operator_scoped_base_plate_marks import require_scoped_base_plate_export_held
+    from .receiving_nfb_pad_operator_parts import committed_nfb_pad_draft_parts
+
+    _require_committed_receiving_nfb_for_pad_export(snapshot)
+    require_scoped_base_plate_export_held(snapshot, {"base_plate": True})
+    if not committed_nfb_pad_draft_parts(snapshot):
+        raise ValueError("目前沒有已提交且具已確認孔位的 PAD 實體板件")
+
+
 @dataclass(frozen=True)
 class ReceivingPadBaseExportSource:
     snapshot: dict
@@ -27,10 +49,7 @@ def resolve_receiving_pad_base_export_source(snapshot) -> ReceivingPadBaseExport
     is valid only when its submitted NFB matches the selected root NFB exactly.
     The return contains a detached copy; it is not a manufacturing approval.
     """
-    if (not isinstance(snapshot, Mapping)
-            or canonical_family_name(snapshot) != "受電箱"
-            or snapshot.get("nfb_config_submitted") is not True):
-        raise ValueError("須在受電箱提交 NFB 後，才能輸出 PAD＋底板")
+    _require_committed_receiving_nfb_for_pad_export(snapshot)
     source = deepcopy(dict(snapshot))
     if source.get("active_mode") == "quantity":
         from .receiving_quantity_versions import QuantityModel

@@ -457,7 +457,12 @@ def corner_data_unfold_projection_for_key(
             return required("_phase6_box_body_piece_render_data")(
                 app, selected
             )
-        return required("_phase6_render_data_for_blank")(app, selected)
+        render = required("_phase6_render_data_for_blank")(app, selected)
+        from .physical_part_hole_editor import current_workspace_marking_source
+
+        return manufacturing_api.project_workspace_owner_marking_display(
+            current_workspace_marking_source(app), selected, render,
+        )
 
     return self.corner_data_view().unfold_projection(
         part_key,
@@ -503,6 +508,12 @@ def refresh_corner_data_unfold_view(self, namespace):
         return None
 
     info_text = payload["info_text"]
+    render = payload["projection"].render_data
+    diagnostic = (getattr(render, "metadata", None) or {}).get(
+        manufacturing_api.OWNER_MARKING_VIEW_DIAGNOSTIC,
+    )
+    if diagnostic:
+        info_text += "\n已存打標無法顯示：" + diagnostic
     info_var = getattr(app, "corner_data_info_var", None)
     if info_var is not None and hasattr(info_var, "set"):
         info_var.set(info_text)

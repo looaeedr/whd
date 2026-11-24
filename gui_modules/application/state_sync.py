@@ -247,6 +247,10 @@ def _init_base_results_and_corner_state(self, settings):
     self.manual_active_corner_var = tk.StringVar(value="top")
     self.manual_top_same_var = tk.BooleanVar(master=self.root, value=True)
     self.manual_bottom_same_var = tk.BooleanVar(master=self.root, value=True)
+    # CHECK-only fifth preview is a detached operator choice; it is not a
+    # manufacturing CornerType or permission to alter the canonical FinalScene.
+    self.v_miter_gui_check_corners = {}
+    self.v_miter_check_3d_preview_canvas = None
     self.manual_corner_type_var = tk.StringVar(value=CornerTypeId.CROSS.value)
     self.manual_corner_cross_mode_var = tk.StringVar(value="標準")
     self.manual_corner_direction_var = tk.StringVar(value="寬")

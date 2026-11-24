@@ -171,8 +171,10 @@ def test_indicator_component_editor_stages_until_sync(monkeypatch, component):
         baseline_status="source",
     )
     monkeypatch.setattr(
-        manufacturing_api, "resolve_indicator_editor_components",
-        lambda *args, **kwargs: {"indicator_box": geom, "indicator_door": geom},
+        manufacturing_api, "resolve_operator_indicator_editor_components",
+        lambda *args, **kwargs: SimpleNamespace(
+            groups=(2,), components={"indicator_box": geom, "indicator_door": geom},
+        ),
     )
     key = "0:0"
     box = {key: ["saved-box"]}
