@@ -13,8 +13,7 @@ from .manufacturing_render_data import (
 from .operator_manual_marking import (
     MANUAL_MARK_SOURCE, _build_manual_straight_feature, _validate_manual_strokes,
 )
-from .sheetmetal_drawing import LinePrimitive, resolved_features_to_primitives
-from .sheetmetal_feature_core import ResolvedProfile
+from .sheetmetal_drawing import LinePrimitive
 
 
 @dataclass(frozen=True)
@@ -64,22 +63,30 @@ def open_selected_physical_marking_preview(geometry, part_key):
     return SelectedMarkingPreviewSource(part_key, kind, guides, render, seal)
 
 
-def validate_selected_physical_marks(source, features):
-    """Validate a detached solid-only set against the exact selected stock."""
-    from .operator_manual_marking import _source_pattern
-    from .sheetmetal_feature_core import ProfileFeature
+def _validate_selected_marks(source, features, *, allow_shapes=False):
+    """Recheck selected stock before calling the one physical stroke validator."""
+    from .operator_manual_marking import _source_pattern, is_manual_mark
+    from .sheetmetal_feature_core import CircleFeature, ProfileFeature
     if not isinstance(source, SelectedMarkingPreviewSource):
         raise ValueError("MARKING_PREVIEW_RESOLVED_SOURCE_REQUIRED")
     render = source._render
     if _selected_geometry(render)[2] != source._seal:
         raise ValueError("MARKING_PREVIEW_SOURCE_STALE")
     rows = tuple(features)
-    if any(not isinstance(f, ProfileFeature) or f.source_type != MANUAL_MARK_SOURCE
-           or _source_pattern(f)[0] != "solid" for f in rows):
+    if allow_shapes:
+        if any(not isinstance(row, (CircleFeature, ProfileFeature))
+               or not is_manual_mark(row) for row in rows):
+            raise ValueError("ROOT_MARKING_STORE_MARKS_ONLY")
+    elif any(not isinstance(f, ProfileFeature) or f.source_type != MANUAL_MARK_SOURCE
+             or _source_pattern(f)[0] != "solid" for f in rows):
         raise ValueError("MARKING_PREVIEW_SOLID_STRAIGHT_ONLY")
     # The canonical render already contains actual CUTTING and BLIND_HOLE.
     return _validate_manual_strokes(render, rows, rows, part_key=source.selected_key,
                                     surface=None)
+
+
+def validate_selected_physical_marks(source, features):
+    return _validate_selected_marks(source, features)
 
 
 def create_selected_physical_mark(source, features, *, midpoint, length, angle_deg):
@@ -96,11 +103,10 @@ def project_selected_physical_marking_preview(source, *, midpoint, length, angle
     return project_selected_physical_marking_features(source, (mark,))
 
 
-def project_selected_physical_marking_features(source, features):
-    """Project verified authored intent to the same actual ink in every view."""
-    marks = validate_selected_physical_marks(source, features)
-    return resolved_features_to_primitives(
-        ResolvedProfile(mark.points, layer=mark.layer, source_type=mark.source_type,
-                        layered_profiles=mark.layered_profiles)
-        for mark in marks
-    )
+def project_selected_physical_marking_features(source, features, *, _allow_shapes=False):
+    """Project verified authored intent through the existing physical Feature path."""
+    from .physical_sheet_features import physical_sheet_feature_context, resolved_physical_feature_ink
+
+    marks = _validate_selected_marks(source, features, allow_shapes=_allow_shapes)
+    surface, width, height, _ = physical_sheet_feature_context(source.selected_key, source._render)
+    return resolved_physical_feature_ink(surface, width, height, marks)

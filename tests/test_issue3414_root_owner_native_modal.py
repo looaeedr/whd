@@ -244,8 +244,9 @@ def test_established_ordinary_left_cursor_first_confirm_and_replacement_isolated
         root.destroy()
 
 
-@pytest.mark.parametrize("key", ("head", "tail"))
-def test_same_existing_editor_and_export_ordinary_signed_endcap(tmp_path, monkeypatch, key):
+@pytest.mark.parametrize(("key", "full_tools"), (("head", False), ("tail", False),
+                                                   ("head", True), ("tail", True)))
+def test_same_existing_editor_and_export_ordinary_signed_endcap(tmp_path, monkeypatch, key, full_tools):
     import ezdxf
     from gui import Phase6PrimaryApplication
     from gui_modules.editors.hole_editor import messagebox
@@ -284,7 +285,7 @@ def test_same_existing_editor_and_export_ordinary_signed_endcap(tmp_path, monkey
         assert editor is not None and hasattr(editor, "_manual_marking_controls"), failures
         callback = editor._manual_marking_place
         state = dict(zip(callback.__code__.co_freevars, (c.cell_contents for c in callback.__closure__)))["s"]
-        assert state.manual_marking_draft.allowed_tools == ("line",)
+        assert set(state.manual_marking_draft.allowed_tools) == {"line", "circle", "cross", "l", "pair_l", "quad_l"}
         assert state.manual_marking_draft.output_capability == "verified_normal"
         original_bytes = unmarked.read_bytes()
         from ae_engine.sheetmetal_drawing import CirclePrimitive
@@ -312,6 +313,34 @@ def test_same_existing_editor_and_export_ordinary_signed_endcap(tmp_path, monkey
         host.last_hole_editor_canvas.event_generate("<Button-1>", x=round(x), y=round(y))
         root.update()
         mark, = tuple(f for f in state.live_context.feature_list if api.is_manual_mark(f))
+        authored = (mark,)
+        if full_tools:
+            def canvas_click(point):
+                cx, cy = state.canvas_view.transform.world_to_canvas(point)
+                host.last_hole_editor_canvas.event_generate("<Button-1>", x=round(cx), y=round(cy))
+                root.update()
+
+            button, diameter = editor._manual_round_marking_controls
+            diameter.set("8")
+            if hole is not None:
+                button.invoke()
+                canvas_click(Vec2(hole.center.x + 4, hole.center.y))
+                assert "打標位置不合法" in editor._manual_marking_controls[2].cget("text")
+                assert tuple(f for f in state.live_context.feature_list if api.is_manual_mark(f)) == authored
+                editor._manual_marking_controls[1].invoke()
+            button.invoke()
+            canvas_click(Vec2(p.x + 24, p.y))
+            radius_mark, = tuple(f for f in state.live_context.feature_list if is_manual_round_mark(f))
+            state.manual_mark_pattern.set("dashed")
+            state.manual_mark_length.set("28")
+            editor._manual_marking_controls[0].invoke()
+            canvas_click(Vec2(p.x - 34, p.y))
+            state.manual_group_arm_x.set("7")
+            state.manual_group_arm_y.set("8")
+            state.manual_group_tools["l"].invoke()
+            canvas_click(Vec2(p.x + 44, p.y + 15))
+            authored = tuple(f for f in state.live_context.feature_list if api.is_manual_mark(f))
+            assert len(authored) == 4 and api.is_manual_group(authored[-1])
         _actual_editor_confirm(editor)
         root.update()
         assert not editor.winfo_exists() and not failures, failures
@@ -321,7 +350,7 @@ def test_same_existing_editor_and_export_ordinary_signed_endcap(tmp_path, monkey
         root.update()
         saved = read_project(save)["snapshot"]
         owner = api.resolve_workspace_physical_root_owner(saved, key)
-        assert owner and api.read_workspace_marking_owner_record(saved, owner)["features"] == (mark,)
+        assert owner and api.read_workspace_marking_owner_record(saved, owner)["features"] == authored
 
         monkeypatch.setattr(filedialog, "askopenfilename", lambda **kw: str(save))
         menu.invoke(0)
@@ -337,8 +366,15 @@ def test_same_existing_editor_and_export_ordinary_signed_endcap(tmp_path, monkey
         assert not failures, failures
         target, = out.glob("*.dxf")
         doc = ezdxf.readfile(target)
-        ink, = doc.modelspace().query('LWPOLYLINE[layer=="MARKING"]')
-        assert tuple(map(tuple, ink.get_points("xy"))) == tuple((p.x, p.y) for p in mark.points)
+        inks = tuple(doc.modelspace().query('LWPOLYLINE[layer=="MARKING"]'))
+        assert tuple(map(tuple, inks[0].get_points("xy"))) == tuple((p.x, p.y) for p in mark.points)
+        if full_tools:
+            circle, = tuple(doc.modelspace().query('CIRCLE[layer=="MARKING"]'))
+            assert (circle.dxf.center.x, circle.dxf.center.y) == (radius_mark.offset.x, radius_mark.offset.y)
+            assert circle.dxf.radius * 2 == radius_mark.diameter
+            assert len(inks) > 3
+        else:
+            assert len(inks) == 1
         assert doc.header["$INSUNITS"] == 4
         assert doc.layers.get("MARKING").dxf.color == 211
 
@@ -402,7 +438,7 @@ def test_same_existing_editor_and_export_ordinary_signed_endcap(tmp_path, monkey
         replaced = read_project(replacement)["snapshot"]
         new_owner = api.resolve_workspace_physical_root_owner(replaced, key)
         assert new_owner and new_owner != owner
-        assert api.read_workspace_marking_owner_record(replaced, owner)["features"] == (mark,)
+        assert api.read_workspace_marking_owner_record(replaced, owner)["features"] == authored
         assert api.read_workspace_marking_owner_record(replaced, new_owner) is None
         monkeypatch.setattr(filedialog, "askopenfilename", lambda **kw: str(replacement))
         menu.invoke(0)

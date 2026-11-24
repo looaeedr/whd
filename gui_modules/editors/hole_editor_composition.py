@@ -1043,6 +1043,7 @@ def _install_manual_marking_actions(s):
         try:
             changed = api.edit_physical_manual_group(
                 old, part_key=s.part_key, context=s.manual_marking_draft.context,
+                marking_draft=s.manual_marking_draft,
                 existing_features=tuple(s.live_context.feature_list), **values,
             )
         except (ValueError, TypeError, RuntimeError) as exc:
@@ -1239,6 +1240,7 @@ def _install_manual_marking_actions(s):
                 moved = api.edit_physical_manual_group(
                     items[idx], center=center, part_key=s.part_key,
                     context=s.manual_marking_draft.context,
+                    marking_draft=s.manual_marking_draft,
                     existing_features=tuple(items),
                 )
             except (ValueError, TypeError, RuntimeError):

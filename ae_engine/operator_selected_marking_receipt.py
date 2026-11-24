@@ -18,6 +18,7 @@ from .operator_manual_marking import (
 )
 from .operator_manual_marking_batch import _has_saved_manual_intent
 from .operator_physical_sheet_marking_preview import (
+    _validate_selected_marks,
     create_selected_physical_mark,
     validate_selected_physical_marks,
     open_selected_physical_marking_preview,
@@ -40,6 +41,9 @@ class SelectedPhysicalMarkingReceipt:
 
     @property
     def allowed_tools(self):
+        if self.output_capability in {"existing_normal", "verified_normal"}:
+            from .operator_physical_sheet_marking import _ORDINARY_TOOLS
+            return _ORDINARY_TOOLS
         return ("line",)
 
     @property
@@ -61,6 +65,8 @@ class SelectedPhysicalMarkingReceipt:
             if not all(is_manual_mark(row) for row in result):
                 raise ValueError("ROOT_MARKING_STORE_MARKS_ONLY")
             return result
+        if self.output_capability == "verified_normal":
+            return _validate_selected_marks(self.source, features, allow_shapes=True)
         return validate_selected_physical_marks(self.source, features)
 
     def project(self, **stroke):
