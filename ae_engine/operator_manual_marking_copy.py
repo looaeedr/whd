@@ -11,6 +11,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import replace
 from hashlib import sha256
+import json
 from pathlib import Path
 from uuid import uuid4
 
@@ -23,10 +24,26 @@ def _file_identity(path, digest, role):
     target = Path(path).resolve(strict=True)
     if target.suffix.lower() != ".p6fold" or not target.is_file():
         raise ValueError("MANUAL_COPY_" + role + "_PROJECT_REQUIRED")
-    actual = sha256(target.read_bytes()).hexdigest()
-    if not isinstance(digest, str) or digest != actual:
+    raw = target.read_bytes()
+    if not isinstance(digest, str) or digest != sha256(raw).hexdigest():
         raise ValueError("MANUAL_COPY_" + role + "_SAVED_SOURCE_CHANGED")
-    return str(target), actual
+    return str(target), raw
+
+
+def _bound_project_snapshot(raw, claimed, role):
+    """Decode the same hash-verified bytes using the existing project API."""
+    from . import manufacturing_api as api
+
+    try:
+        decoded = api.decode_project_value(json.loads(raw.decode("utf-8")))
+        saved = api.project_operator_project_for_read(decoded)["snapshot"]
+    except (ValueError, TypeError, KeyError, OverflowError) as error:
+        raise ValueError("MANUAL_COPY_" + role + "_SAVED_PROJECT_INVALID") from error
+    # Mapping equality ignores serialization/key ordering, but not changed
+    # authored geometry, features, physical owners or runtime scope.
+    if saved != claimed:
+        raise ValueError("MANUAL_COPY_" + role + "_SAVED_SNAPSHOT_MISMATCH")
+    return saved
 
 
 def _unique_single_sheet(snapshot, role):
@@ -117,16 +134,21 @@ def copy_saved_manual_marking_group_to_selected_sheet(
     from .operator_manual_marking_groups import _rebuild
     from .operator_manual_marking import require_first_sheet_manual_marking_render
 
-    source_file, _source_digest = _file_identity(
+    source_file, source_bytes = _file_identity(
         source_project_path, source_project_sha256, "SOURCE",
     )
-    target_file, _target_digest = _file_identity(
+    target_file, target_bytes = _file_identity(
         target_project_path, target_project_sha256, "TARGET",
     )
     if source_file == target_file:
         raise ValueError("MANUAL_COPY_SAME_PHYSICAL_PROJECT")
-    source = _unique_single_sheet(source_snapshot, "SOURCE")
-    target = _unique_single_sheet(target_snapshot, "TARGET")
+    # Preserve the scoped error for existing callers supplying an invalid
+    # claim; no geometry is resolved from that claim before byte binding.
+    _unique_single_sheet(source_snapshot, "SOURCE")
+    _unique_single_sheet(target_snapshot, "TARGET")
+    _saved_source_features(source_snapshot)
+    source = _bound_project_snapshot(source_bytes, source_snapshot, "SOURCE")
+    target = _bound_project_snapshot(target_bytes, target_snapshot, "TARGET")
     original = _saved_source_features(source)
     if not isinstance(source_group_id, str) or not source_group_id:
         raise ValueError("MANUAL_COPY_EXPLICIT_GROUP_ID_REQUIRED")

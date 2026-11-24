@@ -125,3 +125,100 @@ def test_source_workspace_duplicate_conflict_and_missing_id_never_copy(actual_sh
               source_snapshot=original)
     with pytest.raises(ValueError, match="SOURCE_GROUP_AMBIGUOUS"):
         _copy(a, b, ctx, "unknown-group-id")
+
+
+def test_copy_rejects_stale_marked_snapshot_with_current_clean_source_digest(actual_sheet, tmp_path):
+    a, b, group, ctx = _persisted_pair(actual_sheet, tmp_path)
+    source_claim = read_project(a)["snapshot"]
+    clean_bytes = b.read_bytes()
+    a.write_bytes(clean_bytes)
+    assert read_project(a)["snapshot"]["part_features"]["base_plate"] == []
+    with pytest.raises(ValueError, match="MANUAL_COPY_SOURCE_SAVED_SNAPSHOT_MISMATCH"):
+        _copy(a, b, ctx, api.group_parameters(group)["group_id"], source_snapshot=source_claim)
+    assert a.read_bytes() == b.read_bytes() == clean_bytes
+
+
+def test_copy_rejects_stale_receiving_target_snapshot_with_current_other_family_digest(
+    actual_sheet, tmp_path,
+):
+    from tests.test_issue2517_baseplate_alias_snapshot_finalscene_dxf_parity import _configured
+    a, b, group, ctx = _persisted_pair(actual_sheet, tmp_path)
+    target_claim = read_project(b)["snapshot"]
+    write_project(b, {"schema": PROJECT_SCHEMA, "snapshot": _configured("金庫型")})
+    other_family = b.read_bytes()
+    assert read_project(b)["snapshot"]["model"] != target_claim["model"]
+    with pytest.raises(ValueError, match="MANUAL_COPY_TARGET_SAVED_SNAPSHOT_MISMATCH"):
+        _copy(a, b, ctx, api.group_parameters(group)["group_id"], target_snapshot=target_claim)
+    assert b.read_bytes() == other_family
+
+
+def test_copy_accepts_same_saved_normalized_snapshot_with_other_json_key_order(
+    actual_sheet, tmp_path,
+):
+    import json
+
+    a, b, group, ctx = _persisted_pair(actual_sheet, tmp_path)
+    original_source = read_project(a)["snapshot"]
+    original_target = read_project(b)["snapshot"]
+    for path in (a, b):
+        data = json.loads(path.read_text(encoding="utf-8"))
+        path.write_text(json.dumps(data, sort_keys=True, ensure_ascii=False), encoding="utf-8")
+    # The digest is current, while the original readback has the same physical
+    # content even though the JSON object key order changed on disk.
+    clone = _copy(a, b, ctx, api.group_parameters(group)["group_id"],
+                  source_snapshot=original_source, target_snapshot=original_target)
+    assert api.group_parameters(clone)["group_id"] != api.group_parameters(group)["group_id"]
+
+
+@pytest.mark.parametrize("role", ("SOURCE", "TARGET"))
+def test_matching_digest_cannot_make_invalid_project_bytes_authoritative(
+    role, actual_sheet, tmp_path,
+):
+    a, b, group, ctx = _persisted_pair(actual_sheet, tmp_path)
+    source_claim = read_project(a)["snapshot"]
+    target_claim = read_project(b)["snapshot"]
+    path = a if role == "SOURCE" else b
+    malformed = b'{"snapshot":'
+    path.write_bytes(malformed)
+    with pytest.raises(ValueError, match=f"MANUAL_COPY_{role}_SAVED_PROJECT_INVALID"):
+        _copy(a, b, ctx, api.group_parameters(group)["group_id"],
+              source_snapshot=source_claim, target_snapshot=target_claim)
+    assert path.read_bytes() == malformed
+
+
+def test_persisted_round_ink_coexists_without_becoming_a_group_copy(actual_sheet, tmp_path):
+    import ezdxf
+
+    a, b, group, ctx = _persisted_pair(actual_sheet, tmp_path)
+    point = ctx.render_data.material.representative_point()
+    ring = api.create_physical_manual_round_marking(
+        "base_plate", ctx, (group,), centre=Vec2(point.x, point.y), diameter=12,
+    )
+
+    def save_features(path, rows):
+        snapshot = read_project(path)["snapshot"]
+        snapshot["part_features"] = {"base_plate": rows}
+        snapshot["workspace"] = {"part_features": {"base_plate": rows}}
+        write_project(path, {"schema": PROJECT_SCHEMA, "snapshot": snapshot})
+        return read_project(path)["snapshot"]["part_features"]["base_plate"]
+
+    assert save_features(a, [group, ring]) == [group, ring]
+    target_rows = save_features(b, [ring])
+    assert target_rows == [ring]
+    a_before, b_before = a.read_bytes(), b.read_bytes()
+    clone = _copy(a, b, ctx, api.group_parameters(group)["group_id"], features=target_rows)
+    assert api.is_manual_group(clone)
+    assert api.group_parameters(clone)["group_id"] != api.group_parameters(group)["group_id"]
+    assert a.read_bytes() == a_before and b.read_bytes() == b_before
+
+    target_rows = save_features(b, [ring, clone])
+    render = api.with_physical_sheet_features("base_plate", ctx.render_data, target_rows)
+    out = tmp_path / "copied-group-with-existing-round-mark.dxf"
+    api.save_part_render_data_dxf(render, out, verify_reopen=True)
+    assert api.verify_saved_part_render_data_dxf(render, out).ok
+    doc = ezdxf.readfile(out)
+    circle, = doc.modelspace().query('CIRCLE[layer=="MARKING"]')
+    assert (circle.dxf.center.x, circle.dxf.center.y, circle.dxf.radius) == pytest.approx(
+        (point.x, point.y, 6),
+    )
+    assert doc.modelspace().query('LWPOLYLINE[layer=="MARKING"]')
