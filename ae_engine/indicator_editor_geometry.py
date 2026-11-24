@@ -17,6 +17,13 @@ from .sheetmetal_part_adapters import (
 
 
 @dataclass(frozen=True)
+class IndicatorOperatorEditorProjection:
+    """Headless physical editor source: resolved groups and canonical scenes."""
+    groups: tuple[int, ...]
+    components: dict[str, "IndicatorEditorComponentGeometry"]
+
+
+@dataclass(frozen=True)
 class IndicatorEditorComponentGeometry:
     surface: object
     width: float
@@ -123,3 +130,38 @@ def resolve_indicator_editor_components(
             groups, thickness=thickness, door_spec=door_spec,
         ),
     }
+
+
+def resolve_operator_indicator_editor_components(
+    raw_state, values, *, door_features=(),
+) -> IndicatorOperatorEditorProjection:
+    """Resolve saved Door-cell IndicatorBox editor inputs entirely in Engine.
+
+    Validate the original physical source before selecting its active groups.
+    Both GUI clients and headless clients use the existing Small Door factory
+    and canonical paired 2D scene resolver; no UI-specific fallback is allowed.
+    """
+    from .fold_designer_snapshot_dimensions import (
+        project_operator_door_cell_indicator_manufacturing_source,
+    )
+    from .manufacturing_door_indicator import indicator_small_door_operator_spec
+
+    state = project_operator_door_cell_indicator_manufacturing_source(raw_state)
+    if state["mode"] != "indicator_box":
+        raise ValueError("INDICATOR_COMPONENT_SOURCE_NOT_ACTIVE")
+    groups = tuple(state["groups"][:state["layers"]])
+    door_spec, _context = indicator_small_door_operator_spec(
+        groups,
+        thickness=values["t"],
+        frame_width=values["fw"],
+        door_gap_w=values["door_gap_w"],
+        door_gap_h=values["door_gap_h"],
+        indicator_door_fold=values.get("indicator_door_fold"),
+        features=door_features,
+    )
+    return IndicatorOperatorEditorProjection(
+        groups=groups,
+        components=resolve_indicator_editor_components(
+            groups, thickness=values["t"], door_spec=door_spec,
+        ),
+    )

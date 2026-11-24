@@ -324,14 +324,12 @@ def _indicator_component_editor_contexts(self, state, val, *, box_features, door
     """View-only adapter: ask the engine for physical surfaces and display them."""
     # The component geometry must use the same strict, unsanitized physical
     # source as Door manufacturing, not the GUI's display-repair function.
-    state = manufacturing_api.project_operator_door_cell_indicator_manufacturing_source(state)
-    groups = tuple(state["groups"][:state["layers"]])
-    door_spec = self._indicator_door_part_spec(val, groups, features=door_features)
-    geometry = manufacturing_api.resolve_indicator_editor_components(
-        groups, thickness=val["t"], door_spec=door_spec,
+    projected = manufacturing_api.resolve_operator_indicator_editor_components(
+        state, val, door_features=door_features,
     )
-    box = geometry["indicator_box"]
-    door = geometry["indicator_door"]
+    groups = projected.groups
+    box = projected.components["indicator_box"]
+    door = projected.components["indicator_door"]
     return {
         "indicator_box": {
             "part_key": "indicator_box", "title": "指示燈盒 — 盒體（基準檔＋指示燈）",

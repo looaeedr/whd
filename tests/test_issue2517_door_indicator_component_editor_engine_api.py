@@ -23,11 +23,14 @@ def test_door_indicator_editor_delegates_to_engine_and_retains_feature_store(mon
     door = SimpleNamespace(surface=door_surface, width=120.0, height=90.0,
                            reference_guide=door_guide, baseline_scene=door_scene,
                            baseline_status="小門來源")
-    spec = object()
-    monkeypatch.setattr(manufacturing_api, "resolve_indicator_editor_components",
-                        lambda groups, *, thickness, door_spec:
-                        seen.update({"groups": list(groups), "t": thickness, "spec": door_spec})
-                        or {"indicator_box": box, "indicator_door": door})
+    monkeypatch.setattr(
+        manufacturing_api, "resolve_operator_indicator_editor_components",
+        lambda raw, val, *, door_features:
+            seen.update({"raw": raw, "values": val, "spec_features": door_features})
+            or SimpleNamespace(groups=(2, 3), components={
+                "indicator_box": box, "indicator_door": door,
+            }),
+    )
     monkeypatch.setattr(gui.messagebox, "showerror", lambda *args:
                         pytest.fail("unexpected GUI error: " + str(args)))
     stored_box = ["box-feature"]
@@ -43,9 +46,7 @@ def test_door_indicator_editor_delegates_to_engine_and_retains_feature_store(mon
         _door_layout_indicator_state_for_key=lambda key:
             pytest.fail("display accessor cannot repair physical manufacturing source"),
         get_float_values=lambda: {"t": 2.0},
-        _indicator_door_part_spec=lambda vals, groups, *, features:
-            seen.update({"spec_features": features}) or spec,
-        door_layout_indicator_box_features={"0:0": stored_box},
+         door_layout_indicator_box_features={"0:0": stored_box},
         door_layout_indicator_door_features={"0:0": stored_door},
         _derived_cache_owner=Cache(),
         _request_phase6_update=lambda name: seen.update({"update": name}),
@@ -55,8 +56,9 @@ def test_door_indicator_editor_delegates_to_engine_and_retains_feature_store(mon
     )
     gui.Phase6ApplicationHost.open_door_indicator_component_editor(host, "0:0", component)
     part = {"indicator_box": box, "indicator_door": door}[component]
-    assert seen["groups"] == [2, 3] and seen["t"] == 2.0
-    assert seen["spec"] is spec and seen["spec_features"] is stored_door
+    assert seen["raw"] is host.door_layout_indicator_states["0:0"]
+    assert seen["values"] == {"t": 2.0}
+    assert seen["spec_features"] is stored_door
     assert seen["args"][:5] == (
         component,
         ("指示燈盒子" if component == "indicator_box" else "指示燈小門") + " [0:0]",
@@ -97,7 +99,7 @@ def test_global_indicator_box_model_name_is_not_an_additional_manufacturing_sele
 
 def test_gui_indicator_component_geometry_has_no_low_level_manufacturing_owner():
     source = inspect.getsource(gui.Phase6ApplicationHost.open_door_indicator_component_editor)
-    assert "manufacturing_api.resolve_indicator_editor_components(" in source
+    assert "manufacturing_api.resolve_operator_indicator_editor_components(" in source
     for token in (
         "ae.get_stretched_indicator_box_data(",
         "ae.get_stretched_door_data(",
@@ -181,3 +183,71 @@ def test_component_editor_source_has_no_gui_physical_group_cast():
     assert "_door_layout_indicator_state_for_key(key)" in source  # legacy only
     assert "max(1, min(6, int(" not in source
     assert "groups = [int(v)" not in source
+
+
+@pytest.mark.parametrize("family", ("金庫型", "受電箱"))
+def test_headless_operator_editor_uses_same_physical_groups_and_geometry(family):
+    source = {
+        "mode": "indicator_box", "layers": 2,
+        "groups": [3, 2, 999], "offset_x": 1.25, "offset_y": -2.5,
+        "is_box_dist": False,
+    }
+    values = {
+        "model": family, "t": 2.0, "fw": 25.0,
+        "door_gap_w": 3.5, "door_gap_h": 3.5,
+    }
+    before = deepcopy(source)
+    result = manufacturing_api.resolve_operator_indicator_editor_components(
+        source, values, door_features=(),
+    )
+    spec, _context = manufacturing_api.indicator_small_door_operator_spec(
+        (3, 2), thickness=2.0, frame_width=25.0,
+        door_gap_w=3.5, door_gap_h=3.5,
+    )
+    old = manufacturing_api.resolve_indicator_editor_components(
+        (3, 2), thickness=2.0, door_spec=spec,
+    )
+    assert result.groups == (3, 2)
+    for key in ("indicator_box", "indicator_door"):
+        assert result.components[key].width == pytest.approx(old[key].width)
+        assert result.components[key].height == pytest.approx(old[key].height)
+        assert result.components[key].baseline_status == old[key].baseline_status
+    assert source == before
+
+
+@pytest.mark.parametrize("invalid", (
+    {"layers": True}, {"layers": 7}, {"groups": [True, 2]},
+    {"groups": [0, 2]}, {"offset_x": float("inf")},
+    {"offset_y": "bad"}, {"is_box_dist": "bad"},
+))
+def test_headless_operator_editor_rejects_invalid_original_source_before_spec(invalid):
+    source = {
+        "mode": "indicator_box", "layers": 2,
+        "groups": [3, 2, 2, 2], "offset_x": 0.0,
+        "offset_y": 0.0, "is_box_dist": False,
+    }
+    source.update(invalid)
+    before = deepcopy(source)
+    with pytest.raises(ValueError):
+        manufacturing_api.resolve_operator_indicator_editor_components(source, {})
+    assert source == before
+
+
+def test_headless_operator_editor_disabled_source_cannot_invent_a_component():
+    with pytest.raises(ValueError, match="INDICATOR_COMPONENT_SOURCE_NOT_ACTIVE"):
+        manufacturing_api.resolve_operator_indicator_editor_components(
+            {"mode": "none", "layers": "broken", "groups": [True]},
+            {},
+        )
+
+
+def test_both_gui_editor_entrances_have_no_group_slicing_or_secondary_spec():
+    from gui_modules.application import manufacturing_adapter
+    source = inspect.getsource(
+        gui.Phase6ApplicationHost.open_door_indicator_component_editor
+    )
+    adapter = inspect.getsource(manufacturing_adapter._indicator_component_editor_contexts)
+    for text in (source, adapter):
+        assert "resolve_operator_indicator_editor_components(" in text
+        assert '["groups"][:' not in text
+        assert "_indicator_door_part_spec(" not in text
