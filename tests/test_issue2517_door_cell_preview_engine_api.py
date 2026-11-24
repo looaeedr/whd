@@ -191,7 +191,8 @@ def test_gui_cell_preview_delegates_all_three_decisions(monkeypatch):
     )
     host = SimpleNamespace(
         get_float_values=lambda: v,
-        _door_material_frame_width=lambda fw, t: 25.0,
+        _door_material_frame_width=lambda *args, **kwargs:
+            pytest.fail("GUI must not pre-resolve material FW for Door cell"),
         door_layout_features={},
         _door_layout_indicator_state_for_key=lambda key: {"mode": "indicator"},
         _baseline_source_model=lambda: "金庫型",
@@ -208,6 +209,11 @@ def test_gui_cell_preview_delegates_all_three_decisions(monkeypatch):
         host, cell, v,
     ) == (tokens[2], "source")
     assert [x[0] for x in seen] == ["result", "features", "baseline"]
+    assert seen[0][1][0] is v
+    assert seen[0][2] == {
+        "cell_width": cell.start_width, "cell_height": cell.start_height,
+        "frame_edges": cell.edges, "family_model": "金庫型",
+    }
     assert seen[1][1][1] == []
     # A preview is read-only; missing source rows must not become saved Features.
     assert host.door_layout_features == {}
@@ -313,3 +319,74 @@ def test_door_2d_preview_absent_cell_does_not_create_saved_state(monkeypatch):
     ) == []
     assert visited == [None]
     assert host.door_layout_indicator_states == {}
+
+
+@pytest.mark.parametrize("family", ("金庫型", "受電箱"))
+@pytest.mark.parametrize("edges", (
+    DoorFrameEdges(),
+    DoorFrameEdges(left=True, right=False, top=False, bottom=True),
+))
+def test_public_cell_preview_resolves_original_family_material_fw(family, edges):
+    original = {**values(), "fw": "29.5", "t": "2.125"}
+    before = dict(original)
+    fw = manufacturing_api.door_material_frame_width(
+        family, frame_width=original["fw"], thickness=original["t"],
+    )
+    direct = manufacturing_api.project_operator_door_cell_result(
+        original, cell_width=420.0, cell_height=600.0,
+        frame_edges=edges, family_model=family,
+    )
+    legacy_equivalent = manufacturing_api.project_operator_door_cell_result(
+        original, cell_width=420.0, cell_height=600.0,
+        frame_edges=edges, material_frame_width=fw,
+    )
+    assert direct.outline == legacy_equivalent.outline
+    assert direct.bends == legacy_equivalent.bends
+    assert (direct.width, direct.height) == pytest.approx(
+        (legacy_equivalent.width, legacy_equivalent.height),
+    )
+    assert original == before
+
+
+@pytest.mark.parametrize("source", (
+    {"fw": True}, {"fw": float("nan")}, {"fw": 0},
+    {"fw": "-1"}, {"t": False}, {"t": float("inf")}, {"t": "bad"},
+))
+@pytest.mark.parametrize("family", ("金庫型", "受電箱"))
+def test_public_cell_preview_rejects_invalid_original_physical_fw_t_before_geometry(
+    monkeypatch, family, source,
+):
+    original = {**values(), **source}
+    before = dict(original)
+    from ae_engine import operator_door_cell_projection as owner
+    monkeypatch.setattr(
+        owner, "build_door_result",
+        lambda *args, **kw: pytest.fail("invalid physical frame reached geometry"),
+    )
+    with pytest.raises(ValueError):
+        manufacturing_api.project_operator_door_cell_result(
+            original, cell_width=420.0, cell_height=600.0,
+            frame_edges=DoorFrameEdges(), family_model=family,
+        )
+    assert original == before
+
+
+def test_door_cell_preview_rejects_missing_or_competing_fw_owner():
+    request = values()
+    common = dict(cell_width=420.0, cell_height=600.0,
+                  frame_edges=DoorFrameEdges())
+    with pytest.raises(ValueError, match="DOOR_CELL_PREVIEW_FRAME_WIDTH_SOURCE_REQUIRED"):
+        manufacturing_api.project_operator_door_cell_result(request, **common)
+    with pytest.raises(ValueError, match="DOOR_CELL_PREVIEW_COMPETING_FRAME_WIDTH_SOURCES"):
+        manufacturing_api.project_operator_door_cell_result(
+            request, family_model="受電箱",
+            material_frame_width=29.0, **common,
+        )
+
+
+def test_gui_cell_preview_source_has_no_material_fw_manufacturing_derivation():
+    import inspect
+    text = inspect.getsource(gui_adapter._door_layout_cell_result)
+    assert "family_model=self._baseline_source_model()" in text
+    assert "material_frame_width=" not in text
+    assert "self._door_material_frame_width(" not in text
