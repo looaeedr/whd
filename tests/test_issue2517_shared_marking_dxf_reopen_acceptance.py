@@ -42,6 +42,10 @@ def _mutate(path, kind):
         entity.dxf.const_width = .7
     elif kind == "color":
         entity.dxf.color = 7
+    elif kind == "elevation":
+        entity.dxf.elevation = 6.0
+    elif kind == "reversed_normal":
+        entity.dxf.extrusion = (0.0, 0.0, -1.0)
     else:
         raise AssertionError(kind)
     if kind in {"first_x_plus_half", "last_y_plus_half", "start_width",
@@ -75,7 +79,7 @@ def test_reopened_actual_left_rejects_nine_same_entity_count_corruptions(
     assert "MARKING_MISMATCH" in {e.category for e in report.issues}, report.issues
 
 
-@pytest.mark.parametrize("kind", ("const_width", "color"))
+@pytest.mark.parametrize("kind", ("const_width", "color", "elevation", "reversed_normal"))
 def test_other_marking_style_attributes_also_fail(actual_sheet, tmp_path, kind):
     rendered = _marked(actual_sheet)
     path = tmp_path / "left.dxf"
@@ -129,6 +133,10 @@ def test_actual_left_public_normal_exports_are_reopened_and_unchanged(
     ("single_verified", "linetype"),
     ("resolved_single", "bulge"),
     ("final_scene_batch", "end_width"),
+    ("single_verified", "elevation"),
+    ("single_verified", "reversed_normal"),
+    ("final_scene_batch", "elevation"),
+    ("final_scene_batch", "reversed_normal"),
 ))
 def test_corrupted_stage_cannot_replace_preexisting_public_dxf(
     actual_sheet, tmp_path, monkeypatch, route, kind,
@@ -183,3 +191,13 @@ def test_unverified_namespace_cannot_claim_another_real_marking_owner(
             verify_reopen=False,
         )
     assert not destination.exists()
+
+
+
+def test_unmarked_expected_receipt_keeps_legacy_mismatch_for_extra_ink(actual_sheet, tmp_path):
+    _, unmarked, _, _, _ = actual_sheet
+    marked = _marked(actual_sheet)
+    path = api.save_part_render_data_dxf(marked, tmp_path / "marked.dxf")
+    receipt = api.verify_saved_part_render_data_dxf(unmarked, path)
+    assert not receipt.ok
+    assert {issue.category for issue in receipt.issues} == {"ENTITY_COUNT_MISMATCH"}

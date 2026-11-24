@@ -445,6 +445,8 @@ def _actual_marking_polylines(msp):
             entity.dxf.get("color", 256),
             str(entity.dxf.get("linetype", "BYLAYER")).upper(),
             float(entity.dxf.get("const_width", 0)),
+            float(entity.dxf.get("elevation", 0)),
+            tuple(map(float, entity.dxf.get("extrusion", (0, 0, 1)))),
             tuple(tuple(map(float, point)) for point in entity.get_points("xyseb")),
         )
         for entity in msp
@@ -457,11 +459,13 @@ def _marking_rows_close(expected, actual, tolerance: float) -> bool:
     """One-to-one ink matching; never silently accept bulge or variable width."""
     def same(source, saved):
         layer, closed, color, points = source
-        actual_layer, actual_closed, actual_color, linetype, width, vertices = saved
+        actual_layer, actual_closed, actual_color, linetype, width, elevation, extrusion, vertices = saved
         if (layer != actual_layer or closed != actual_closed
                 or color != actual_color
                 or linetype not in {"BYLAYER", "CONTINUOUS"}
-                or width != 0.0 or len(points) != len(vertices)):
+                or width != 0.0 or elevation != 0.0
+                or extrusion != (0.0, 0.0, 1.0)
+                or len(points) != len(vertices)):
             return False
         return all(
             len(v) == 5
@@ -644,8 +648,11 @@ def verify_saved_part_render_data_dxf(
     # Read back each physical LWPOLYLINE from the staged DXF independently.
     try:
         expected_marks = _expected_marking_polylines(render_data.scene)
-        actual_marks = _actual_marking_polylines(msp)
-        if expected_marks or actual_marks:
+        # Generic entity counts already reject unrequested ink. Preserve
+        # the established receipt for a scene with no canonical MARKING
+        # polylines; this extra check proves expected physical ink.
+        if expected_marks:
+            actual_marks = _actual_marking_polylines(msp)
             try:
                 marking_layer = doc.layers.get("MARKING")
                 layer_ok = (
