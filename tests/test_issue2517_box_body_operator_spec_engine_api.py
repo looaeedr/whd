@@ -171,3 +171,83 @@ def test_box_body_valid_numeric_text_and_signed_fold_sources_are_preserved(
     assert spec.width == 800.25
     assert (spec.zl1, spec.zr2, spec.z_comp) == (-15.5, 0.0, -2.5)
     assert data == before
+
+
+@pytest.mark.parametrize("model", ("金庫型", "受電箱"))
+def test_full_saved_endcap_profile_and_legacy_y_rows_are_same_engine_source(model):
+    data = values(model)
+    source = {
+        "head": {
+            "X": [{"phase6_key": "yl1", "len": 15}],
+            "Y": [{"phase6_key": "ybottom1", "len": 13, "ui_len_add": 2}],
+        },
+        "tail": {
+            "X": [{"phase6_key": "yr1", "len": 15}],
+            "Y": [{"phase6_key": "ybottom1", "len": 21, "ui_len_add": 2}],
+        },
+    }
+    before = deepcopy(source)
+    full = manufacturing_api.build_box_body_operator_part_spec(
+        data, model_name=model, endcap_y_profiles=source,
+    )
+    legacy = manufacturing_api.build_box_body_operator_part_spec(
+        data, model_name=model,
+        endcap_y_profiles={key: profile["Y"] for key, profile in source.items()},
+    )
+    assert full == legacy
+    assert (full.head_ybottom1, full.tail_ybottom1) == (15, 23)
+    assert source == before
+
+
+@pytest.mark.parametrize("bad", (True, "NaN", float("inf"), "not-a-number"))
+def test_gui_raw_endcap_fold_source_is_rejected_by_public_engine(bad):
+    data = values("受電箱")
+    raw = {"X": [{"phase6_key": "yl1", "len": 15}],
+           "Y": [{"phase6_key": "ybottom1", "len": bad}]}
+    controller = SimpleNamespace(
+        profile_for=lambda key: raw if key == "head" else {},
+        box_body_profile=lambda: (),
+        box_body_structure_state=lambda: {},
+        part_features_snapshot=lambda: {},
+    )
+    host = SimpleNamespace(workspace_controller=controller)
+    before = deepcopy(raw)
+    with pytest.raises(ValueError, match="ENDCAP_BOTTOM_FOLD_SOURCE_INVALID"):
+        gui._box_body_part_spec_from_values(
+            host, data, model_name="受電箱",
+            features=(), face_features={},
+        )
+    assert raw == before
+
+
+def test_gui_forwards_original_endcap_fold_source_to_engine(monkeypatch):
+    data = values("金庫型")
+    head = {"X": [{"phase6_key": "yl1", "len": 15}],
+            "Y": [{"phase6_key": "ybottom1", "len": 17}]}
+    tail = {"X": [{"phase6_key": "yr1", "len": 15}],
+            "Y": [{"phase6_key": "ybottom1", "len": 19}]}
+    profiles = {"head": head, "tail": tail}
+    controller = SimpleNamespace(
+        profile_for=lambda key: profiles[key],
+        box_body_profile=lambda: (),
+        box_body_structure_state=lambda: {},
+        part_features_snapshot=lambda: {},
+    )
+    host = SimpleNamespace(workspace_controller=controller)
+    observed = []
+    original = manufacturing_api.build_box_body_operator_part_spec
+
+    def spy(*args, **kwargs):
+        observed.append(kwargs["endcap_y_profiles"])
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(manufacturing_api, "build_box_body_operator_part_spec", spy)
+    spec = gui._box_body_part_spec_from_values(
+        host, data, model_name="金庫型", features=(), face_features={},
+    )
+    assert observed[0]["head"] is head
+    assert observed[0]["tail"] is tail
+    assert (spec.head_ybottom1, spec.tail_ybottom1) == (17, 19)
+    source = inspect.getsource(gui._box_body_part_spec_from_values)
+    assert 'dict(source).get("Y"' not in source
+    assert 'list(dict(source)' not in source
