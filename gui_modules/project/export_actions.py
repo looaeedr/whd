@@ -1112,13 +1112,7 @@ def export_receiving_pad_base_part_only_dxf(self):
         self._flush_phase6_authoritative_state()
         designer = getattr(self, "fold_designer_app", None)
         snapshot = getattr(designer, "_phase6_input_snapshot", None)
-        if (not isinstance(snapshot, Mapping)
-                or manufacturing_api.resolve_live_cabinet_family(snapshot) != "受電箱"
-                or snapshot.get("nfb_config_submitted") is not True):
-            raise ValueError("須在受電箱提交 NFB 後，才能輸出 PAD＋底板")
-        manufacturing_api.require_scoped_base_plate_export_held(snapshot, {"base_plate": True})
-        if not manufacturing_api.committed_nfb_pad_draft_parts(snapshot):
-            raise ValueError("目前沒有已提交且具已確認孔位的 PAD 實體板件")
+        manufacturing_api.require_receiving_pad_base_export_preflight(snapshot)
         # Modal dialogs can change the saved Bay, Hole Editor or active
         # workspace without affecting the already resolved 3D sheets.
         # Witness only authored source; Engine still owns manufacture.
