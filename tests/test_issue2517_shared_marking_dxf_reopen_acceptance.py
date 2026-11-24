@@ -44,6 +44,8 @@ def _mutate(path, kind):
         entity.dxf.color = 7
     elif kind == "elevation":
         entity.dxf.elevation = 6.0
+    elif kind == "thickness":
+        entity.dxf.thickness = 4
     elif kind == "reversed_normal":
         entity.dxf.extrusion = (0.0, 0.0, -1.0)
     else:
@@ -79,7 +81,7 @@ def test_reopened_actual_left_rejects_nine_same_entity_count_corruptions(
     assert "MARKING_MISMATCH" in {e.category for e in report.issues}, report.issues
 
 
-@pytest.mark.parametrize("kind", ("const_width", "color", "elevation", "reversed_normal"))
+@pytest.mark.parametrize("kind", ("const_width", "color", "elevation", "reversed_normal", "thickness"))
 def test_other_marking_style_attributes_also_fail(actual_sheet, tmp_path, kind):
     rendered = _marked(actual_sheet)
     path = tmp_path / "left.dxf"
@@ -133,6 +135,7 @@ def test_actual_left_public_normal_exports_are_reopened_and_unchanged(
     ("single_verified", "linetype"),
     ("resolved_single", "bulge"),
     ("final_scene_batch", "end_width"),
+    ("single_verified", "thickness"),
     ("single_verified", "elevation"),
     ("single_verified", "reversed_normal"),
     ("final_scene_batch", "elevation"),

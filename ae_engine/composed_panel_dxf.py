@@ -20,6 +20,7 @@ from shapely.affinity import translate as move_material
 from shapely.ops import unary_union
 
 from .contracts import ResolvedManufacturingGeometry
+from .dxf_acceptance import verify_reopened_marking
 from .dxf_serialization import save_scene_dxf
 from .manufacturing_export import (
     _atomic_commit_staged_dxfs, _reject_unapproved_nfb_pad_ear_manufacturing,
@@ -526,6 +527,12 @@ def save_composed_panel_dxf(
         reopened = ezdxf.readfile(staged)
         if reopened.header.get("$INSUNITS", 0) != ezdxf.units.MM:
             raise ValueError("COMPOSED_DXF_UNIT_MISMATCH")
+        # A per-source receipt does not prove the final translated ink.
+        # Reuse the same MARKING-only verifier, not single-blank material
+        # validation on a DXF containing several distinct physical sheets.
+        ink_issues = verify_reopened_marking(composite.scene, reopened, 1e-6)
+        if ink_issues:
+            raise ValueError("COMPOSED_DXF_MARKING_READBACK_MISMATCH:" + ink_issues[0].detail)
         actual = Counter(_actual_signature(entity)
                          for entity in reopened.modelspace())
         remaining = actual.copy()

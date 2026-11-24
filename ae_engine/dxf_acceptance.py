@@ -464,6 +464,7 @@ def _actual_marking_polylines(msp):
             str(entity.dxf.get("linetype", "BYLAYER")).upper(),
             float(entity.dxf.get("const_width", 0)),
             float(entity.dxf.get("elevation", 0)),
+            float(entity.dxf.get("thickness", 0)),
             tuple(map(float, entity.dxf.get("extrusion", (0, 0, 1)))),
             tuple(tuple(map(float, point)) for point in entity.get_points("xyseb")),
         )
@@ -477,11 +478,12 @@ def _marking_rows_close(expected, actual, tolerance: float) -> bool:
     """One-to-one ink matching; never silently accept bulge or variable width."""
     def same(source, saved):
         layer, closed, color, points = source
-        actual_layer, actual_closed, actual_color, linetype, width, elevation, extrusion, vertices = saved
+        (actual_layer, actual_closed, actual_color, linetype, width,
+         elevation, thickness, extrusion, vertices) = saved
         if (layer != actual_layer or closed != actual_closed
                 or color != actual_color
                 or linetype not in {"BYLAYER", "CONTINUOUS"}
-                or width != 0.0 or elevation != 0.0
+                or width != 0.0 or elevation != 0.0 or thickness != 0.0
                 or extrusion != (0.0, 0.0, 1.0)
                 or len(points) != len(vertices)):
             return False
@@ -541,6 +543,52 @@ def _marking_circles_close(expected, actual, tolerance):
         )
 
     return _one_to_one_tolerance_match(expected, actual, same)
+
+
+def verify_reopened_marking(scene, doc, coordinate_tolerance: float) -> tuple[DxfAcceptanceIssue, ...]:
+    """Compare only canonical MARKING against an already reopened DXF.
+
+    Shared by single-sheet and composed DXF validation. Neither material
+    boundaries nor BEND/CUTTING checks belong to this ink-only receipt.
+    """
+    issues: list[DxfAcceptanceIssue] = []
+    msp = doc.modelspace()
+    try:
+        expected_marks = _expected_marking_polylines(scene)
+        expected_rings = _expected_marking_circles(scene)
+        if expected_marks or expected_rings:
+            try:
+                marking_layer = doc.layers.get("MARKING")
+                layer_ok = (
+                    str(marking_layer.dxf.linetype).upper() == "CONTINUOUS"
+                    and marking_layer.dxf.color == 211
+                )
+            except Exception:
+                layer_ok = False
+        if expected_marks:
+            actual_marks = _actual_marking_polylines(msp)
+            if (not layer_ok or not _marking_rows_close(
+                    expected_marks, actual_marks, coordinate_tolerance)):
+                issues.append(DxfAcceptanceIssue(
+                    "MARKING_MISMATCH",
+                    "saved MARKING LWPOLYLINE differs from canonical points/style",
+                    expected_marks,
+                    actual_marks,
+                ))
+        if expected_rings:
+            actual_rings = _actual_marking_circles(msp)
+            if (not layer_ok or not _marking_circles_close(
+                    expected_rings, actual_rings, coordinate_tolerance)):
+                issues.append(DxfAcceptanceIssue(
+                    "MARKING_MISMATCH",
+                    "saved MARKING CIRCLE differs from canonical centre/radius/plane/style",
+                    expected_rings,
+                    actual_rings,
+                ))
+    except ValueError as exc:
+        issues.append(DxfAcceptanceIssue("INVALID_SOURCE", str(exc)))
+
+    return tuple(issues)
 
 
 def _find_layer_mismatches(scene, msp, tolerance: float):
@@ -718,42 +766,6 @@ def verify_saved_part_render_data_dxf(
             actual_circles,
         ))
 
-    # Neither entity counts nor CUTTING area detects an unchanged number
-    # of MARKING strokes whose positions, widths or curve bulges were altered.
-    # Read back each physical LWPOLYLINE from the staged DXF independently.
-    try:
-        expected_marks = _expected_marking_polylines(render_data.scene)
-        expected_rings = _expected_marking_circles(render_data.scene)
-        if expected_marks or expected_rings:
-            try:
-                marking_layer = doc.layers.get("MARKING")
-                layer_ok = (
-                    str(marking_layer.dxf.linetype).upper() == "CONTINUOUS"
-                    and marking_layer.dxf.color == 211
-                )
-            except Exception:
-                layer_ok = False
-        if expected_marks:
-            actual_marks = _actual_marking_polylines(msp)
-            if (not layer_ok or not _marking_rows_close(
-                    expected_marks, actual_marks, float(coordinate_tolerance))):
-                issues.append(DxfAcceptanceIssue(
-                    "MARKING_MISMATCH",
-                    "saved MARKING LWPOLYLINE differs from canonical points/style",
-                    expected_marks,
-                    actual_marks,
-                ))
-        if expected_rings:
-            actual_rings = _actual_marking_circles(msp)
-            if (not layer_ok or not _marking_circles_close(
-                    expected_rings, actual_rings, float(coordinate_tolerance))):
-                issues.append(DxfAcceptanceIssue(
-                    "MARKING_MISMATCH",
-                    "saved MARKING CIRCLE differs from canonical centre/radius/plane/style",
-                    expected_rings,
-                    actual_rings,
-                ))
-    except ValueError as exc:
-        issues.append(DxfAcceptanceIssue("INVALID_SOURCE", str(exc)))
+    issues.extend(verify_reopened_marking(render_data.scene, doc, float(coordinate_tolerance)))
 
     return DxfAcceptanceResult(ok=not issues, issues=tuple(issues))
