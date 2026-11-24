@@ -8,8 +8,39 @@ from __future__ import annotations
 
 import tkinter as tk
 from tkinter import ttk, messagebox
+from copy import deepcopy
 
 from ae_engine import manufacturing_api
+
+
+def _receiving_nfb_partial_modal_source_witness(
+    get_snapshot, get_switch, applied, *, set_index, bay_indices,
+):
+    """Guard original operator Set/Bay source across a nested Tk folder dialog.
+
+    No geometry, NFB source interpretation, or DXF manufacture belongs here.
+    Witness a detached copy of the nested Bay topology at the first click.
+    """
+    selection = tuple(bay_indices)
+    saved_snapshot = deepcopy(get_snapshot())
+    adapter = get_switch()
+    layout = getattr(adapter, "layout", None)
+    if layout is None:
+        raise ValueError("NFB 部分出圖缺少現行套連原始資料")
+    saved_layout = deepcopy(layout)
+
+    def require_unchanged():
+        if (applied["mode"] != "set_bay"
+                or applied["set_index"] != set_index
+                or tuple(applied["selected_bays"]) != selection):
+            raise ValueError("NFB 部分出圖套連選取已變更，請重新確認")
+        if get_snapshot() != saved_snapshot:
+            raise ValueError("NFB 部分出圖專案原始資料已變更，請重新確認")
+        current = get_switch()
+        if getattr(current, "layout", None) != saved_layout:
+            raise ValueError("NFB 部分出圖套連／孔位資料已變更，請重新確認")
+    require_unchanged()
+    return require_unchanged
 
 
 class _IdleCanvasRedraw:
@@ -1003,6 +1034,10 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                             require_highlighted_nfb_inner_doors(
                                 live_ports, set_index, current, allow_held=True,
                             )
+                            source_guard = _receiving_nfb_partial_modal_source_witness(
+                                get_snapshot, get_switch, applied,
+                                set_index=set_index, bay_indices=current,
+                            )
                             from tkinter import filedialog
                             folder = filedialog.askdirectory(
                                 title="選擇 NFB 已驗證內門部分 DXF 資料夾",
@@ -1010,6 +1045,11 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                             )
                             if not folder:
                                 return
+                            source_guard()
+                            live_ports = get_nfb_transaction_ports()
+                            require_highlighted_nfb_inner_doors(
+                                live_ports, set_index, current, allow_held=True,
+                            )
                             completed = export_highlighted_nfb_inner_doors(
                                 live_ports, set_index=set_index,
                                 bay_indices=current, output_directory=folder, allow_held=True,
@@ -1059,6 +1099,10 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                                 ).get("base_partial_ready")
                             ):
                                 raise ValueError("NFB 底板實體選型／提交驗證已失效")
+                            source_guard = _receiving_nfb_partial_modal_source_witness(
+                                get_snapshot, get_switch, applied,
+                                set_index=set_index, bay_indices=(chosen_bay,),
+                            )
                             from tkinter import filedialog
                             folder = filedialog.askdirectory(
                                 title="選擇 NFB 內門＋底板成對 DXF 資料夾",
@@ -1066,6 +1110,14 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                             )
                             if not folder:
                                 return
+                            source_guard()
+                            live_ports = get_nfb_transaction_ports()
+                            if not manufacturing_api.normalize_operator_settings_boolean(
+                                live_ports["state"](
+                                    set_index, chosen_bay,
+                                ).get("base_partial_ready")
+                            ):
+                                raise ValueError("NFB 底板實體來源已變更，禁止發布舊成對 DXF")
                             paired = live_ports["pair_partial_export"](
                                 set_index, chosen_bay, folder,
                             )
