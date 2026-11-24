@@ -177,6 +177,24 @@ def _polygonize_linework_with_tolerance(linework, tolerance: float):
     )
 
 
+def _first_nonplanar_cutting_entity(msp):
+    """Return the first supported CUTTING primitive outside the canonical XY frame."""
+    for entity in msp:
+        if str(entity.dxf.layer).upper() != "CUTTING":
+            continue
+        kind = entity.dxftype()
+        if kind == "LINE":
+            # DXF LINE stores endpoints directly in WCS, not OCS.
+            if entity.dxf.start.z != 0.0 or entity.dxf.end.z != 0.0:
+                return kind
+        elif kind in {"LWPOLYLINE", "CIRCLE"}:
+            z = (entity.dxf.elevation if kind == "LWPOLYLINE"
+                 else entity.dxf.center.z)
+            if z != 0.0 or tuple(entity.dxf.extrusion) != (0.0, 0.0, 1.0):
+                return kind
+    return None
+
+
 def _actual_material(msp, coordinate_tolerance: float):
     """Reconstruct saved CUTTING under the verifier's tolerance contract."""
     from .cutting_material import material_from_cutting_components
@@ -651,6 +669,17 @@ def verify_saved_part_render_data_dxf(
             "saved DXF entity type/layer counts differ from canonical scene",
             dict(expected_counts),
             dict(actual_counts),
+        ))
+
+    # The raw XY material reconstruction below assumes canonical WCS XY.
+    # Do not pass matching object-space points as proof of flat world geometry.
+    nonplanar_cutting = _first_nonplanar_cutting_entity(msp)
+    if nonplanar_cutting is not None:
+        issues.append(DxfAcceptanceIssue(
+            "CUTTING_PLANE_MISMATCH",
+            "saved CUTTING geometry must use the canonical XY plane",
+            "Z=0; +Z normal for object-space geometry",
+            nonplanar_cutting,
         ))
 
     try:
