@@ -464,6 +464,7 @@ def _actual_marking_polylines(msp):
             str(entity.dxf.get("linetype", "BYLAYER")).upper(),
             float(entity.dxf.get("const_width", 0)),
             float(entity.dxf.get("elevation", 0)),
+            float(entity.dxf.get("thickness", 0)),
             tuple(map(float, entity.dxf.get("extrusion", (0, 0, 1)))),
             tuple(tuple(map(float, point)) for point in entity.get_points("xyseb")),
         )
@@ -477,11 +478,12 @@ def _marking_rows_close(expected, actual, tolerance: float) -> bool:
     """One-to-one ink matching; never silently accept bulge or variable width."""
     def same(source, saved):
         layer, closed, color, points = source
-        actual_layer, actual_closed, actual_color, linetype, width, elevation, extrusion, vertices = saved
+        (actual_layer, actual_closed, actual_color, linetype, width,
+         elevation, thickness, extrusion, vertices) = saved
         if (layer != actual_layer or closed != actual_closed
                 or color != actual_color
                 or linetype not in {"BYLAYER", "CONTINUOUS"}
-                or width != 0.0 or elevation != 0.0
+                or width != 0.0 or elevation != 0.0 or thickness != 0.0
                 or extrusion != (0.0, 0.0, 1.0)
                 or len(points) != len(vertices)):
             return False

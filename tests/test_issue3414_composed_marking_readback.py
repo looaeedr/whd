@@ -34,6 +34,7 @@ def _actual_panels(actual_sheet):
 @pytest.mark.parametrize("drift", (
     "group_elevation", "circle_normal", "stroke_bulge", "stroke_width",
     "stroke_linetype", "circle_thickness", "marking_layer_linetype",
+    "stroke_thickness",
 ))
 def test_actual_composed_final_only_marking_drift_keeps_prior_file(
     actual_sheet, tmp_path, monkeypatch, drift,
@@ -85,6 +86,8 @@ def test_actual_composed_final_only_marking_drift_keeps_prior_file(
             rows[0].dxf.const_width = .25
         elif drift == "stroke_linetype":
             rows[0].dxf.linetype = "CENTER"
+        elif drift == "stroke_thickness":
+            rows[0].dxf.thickness = 4
         elif drift == "circle_thickness":
             circle.dxf.thickness = 2
         elif drift == "marking_layer_linetype":
