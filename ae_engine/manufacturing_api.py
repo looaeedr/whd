@@ -3425,3 +3425,8 @@ def save_confirmed_workspace_owner_marking_dxf(part_key, output_path, *, read_cu
 
 
 from .operator_persisted_marking_candidate import read_verified_owner_marking_candidate
+
+from .operator_owner_marking_view import (
+    OWNER_MARKING_VIEW_DIAGNOSTIC,
+    project_workspace_owner_marking_display,
+)

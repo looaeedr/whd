@@ -19,10 +19,14 @@ def _has_saved_manual_intent(render):
     manufacturing reject gate. A late manual-marking field or actual ink,
     including malformed stored content, is a source change, not a new gate.
     """
-    from .operator_manual_marking import MANUAL_MARK_SOURCE, MANUAL_ROUND_MARK_SOURCE
+    from .operator_manual_marking import (
+        MANUAL_MARK_SOURCE, MANUAL_ROUND_MARK_SOURCE, OWNER_MARKING_VIEW_ONLY,
+    )
     from .operator_manual_marking_groups import MANUAL_GROUP_SOURCE
 
     metadata = getattr(render, "metadata", None)
+    if isinstance(metadata, Mapping) and OWNER_MARKING_VIEW_ONLY in metadata:
+        return True
     if isinstance(metadata, Mapping) and "manual_marking_v1_features" in metadata:
         authored = metadata["manual_marking_v1_features"]
         # A malformed field (including a scalar/empty string) is still a
