@@ -19,6 +19,7 @@ from .sheetmetal_drawing import (
 )
 
 MANUAL_MARK_SOURCE = "WHD_MANUAL_MARKING_V1"
+OWNER_MARKING_VIEW_ONLY = "owner_marking_view_only"
 MANUAL_ROUND_MARK_SOURCE = "WHD_MANUAL_ROUND_MARKING_V1"
 _EPS = 1e-7
 
@@ -114,6 +115,8 @@ def verify_manual_marking_output(render):
     scene = getattr(render, "scene", None)
     marked = _manual_marking_scene_primitives(scene)
     metadata = dict(getattr(render, "metadata", None) or {})
+    if OWNER_MARKING_VIEW_ONLY in metadata:
+        raise ValueError("OWNER_MARKING_DISPLAY_ONLY_NOT_FOR_DXF")
     authored = tuple(metadata.get("manual_marking_v1_features") or ())
     if not marked and not authored:
         return

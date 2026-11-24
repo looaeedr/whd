@@ -392,6 +392,33 @@ def test_same_existing_editor_and_export_ordinary_signed_endcap(tmp_path, monkey
 
         assert physical_rows(doc) == physical_rows(ezdxf.readfile(unmarked))
 
+        if full_tools:
+            import fold_designer_bridge as bridge
+            current = current_workspace_marking_source(app)
+            original_geometry = app._phase6_resolve_manufacturing_geometry()
+            stock = original_geometry.part(key).render_data
+            ink = api.read_verified_owner_marking_candidate(current, original_geometry, key).ink
+            assert len(ink) == len(inks) + 1
+            exported_bytes = target.read_bytes()
+            bridge._phase6_show_corner_data(app)
+            bridge._phase6_select_corner_data_part(app, key)
+            root.update()
+            projected = bridge._phase6_corner_data_unfold_projection_for_key(app, key).render_data
+            assert tuple(projected.scene.primitives) == (*stock.scene.primitives, *ink)
+            assert projected.material is stock.material
+            assert projected.fold_guides == stock.fold_guides
+            failed_direct = tmp_path / "display-cannot-publish.dxf"
+            with pytest.raises(ValueError, match="OWNER_MARKING_DISPLAY_ONLY_NOT_FOR_DXF"):
+                api.save_part_render_data_dxf(projected, failed_direct, verify_reopen=True)
+            assert not failed_direct.exists()
+            assert len(app.corner_data_canvas.find_all()) > len(stock.scene.primitives)
+            assert any(app.corner_data_canvas.type(item) == "oval"
+                       and app.corner_data_canvas.itemcget(item, "outline") == "#8e8e93"
+                       for item in app.corner_data_canvas.find_all())
+            assert target.read_bytes() == exported_bytes
+            assert original_geometry.part(key).render_data is stock
+            assert not any(is_manual_round_mark(p) for p in stock.scene.primitives)
+
         if key == "head":
             import os
             # Same Project bytes and same physical owner, but a different
@@ -453,6 +480,10 @@ def test_same_existing_editor_and_export_ordinary_signed_endcap(tmp_path, monkey
         assert not any(api.is_manual_mark(f) for f in blank.live_context.feature_list)
         blank.cancel_all_btn.invoke()
         root.update()
+        if full_tools:
+            replacement_projection = bridge._phase6_corner_data_unfold_projection_for_key(app, key).render_data
+            assert not any(is_manual_round_mark(p) or getattr(p, "semantic_id", None) == "WHD_MANUAL_MARKING_V1"
+                           for p in replacement_projection.scene.primitives)
         plain = tmp_path / "replacement-normal-export"
         plain.mkdir()
         monkeypatch.setattr(filedialog, "askdirectory", lambda **kw: str(plain))
