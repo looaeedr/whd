@@ -970,8 +970,15 @@ def save_part_render_data_dxf(
         # geometry comparison -> atomic commit used by verified batch export.
         # Never verify after replacing a user's previously valid output.
         destination = Path(output_path)
+        # The chosen DXF filename is an output label, NOT the physical
+        # identity of a marked saved sheet. Keep its verified stable_id as
+        # the selected source key while retaining the operator filename.
+        selected_key = (
+            metadata["stable_id"] if metadata.get("manual_marking_v1_features")
+            else destination.name
+        )
         staged = _manufacturing_export._save_resolved_rows_atomic(
-            ((destination.name, destination.name, render_data),),
+            ((selected_key, destination.name, render_data),),
             destination.parent,
             save_part_render_data_dxf=lambda part, target, *, overwrite:
                 _manufacturing_export.save_part_render_data_dxf(
@@ -981,7 +988,7 @@ def save_part_render_data_dxf(
             overwrite=overwrite,
             verify_all_staged=True,
         )
-        return staged[destination.name]
+        return staged[selected_key]
     return _manufacturing_export.save_part_render_data_dxf(
         render_data.scene,
         output_path,
