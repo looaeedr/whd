@@ -65,24 +65,35 @@ def resolve_operator_committed_relief_cuts(
         saved["enabled"] if "enabled" in saved else False
     ):
         return ()
+    # A committed CUT may only be replayed against the exact physical
+    # operator source.  Coercing bool(True) to 1 mm or carrying NaN into the
+    # signature could make a stale saved polygon appear valid.  Qualify the
+    # complete active source before computing any formed-FW or Joint identity.
+    from .operator_settings_transactions import normalize_operator_source_dimension
+    from .door_operator_part_spec import _finite_operator_number
+
+    if not isinstance(values, Mapping):
+        raise ValueError("RELIEF_SCALAR_SOURCE_MAPPING_REQUIRED")
+    scalar = {
+        name: normalize_operator_source_dimension(values.get(name), field=name)
+        for name in ("w", "h", "d", "t", "fw")
+    }
+    scalar.update({
+        name: _finite_operator_number(values.get(name, default), name)
+        for name, default in (
+            ("zl1", ae.zl1_def), ("zr1", ae.zr1_def),
+            ("yl1", ae.yl1_def), ("yr1", ae.yr1_def),
+            ("ytop1", ae.ytop1_def), ("ybottom1", ae.ybottom1_def),
+        )
+    })
     profile = box_body_profile or ()
     formed_left, formed_right = formed_box_body_fw_widths(
-        profile, float(values.get("t", 0.0) or 0.0),
+        profile, scalar["t"],
     )
     try:
         graph_fingerprint = resolved_joint_graph_fingerprint(dict(joint_state or {}))
     except Exception:
         return ()
-    scalar = {
-        name: float(values.get(name, default))
-        for name, default in (
-            ("w", 0.0), ("h", 0.0), ("d", 0.0),
-            ("t", 0.0), ("fw", 0.0),
-            ("zl1", ae.zl1_def), ("zr1", ae.zr1_def),
-            ("yl1", ae.yl1_def), ("yr1", ae.yr1_def),
-            ("ytop1", ae.ytop1_def), ("ybottom1", ae.ybottom1_def),
-        )
-    }
     current = build_current_source_signature(
         scalar_source=scalar,
         joint_graph_fingerprint=graph_fingerprint,
