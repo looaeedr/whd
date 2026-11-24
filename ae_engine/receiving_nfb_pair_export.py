@@ -407,9 +407,11 @@ def export_current_csv_nfb_door_base_pair(
             if not receipt.ok:
                 raise ValueError("CSV_PAIR_SAVED_DXF_ROUNDTRIP_FAILED:" + identity)
             staged[identity] = path
-        _require_committed_csv_source_unchanged(holes, source_hashes)
         written = _atomic_commit_staged_dxfs(
             staged, root, overwrite=False,
+            pre_commit_guard=lambda: _require_committed_csv_source_unchanged(
+                holes, source_hashes,
+            ),
         )
     return NfbCsvPairedPartOnlyDxf(
         inner_door_path=written[door.part_id],
@@ -597,8 +599,12 @@ def _export_current_csv_nfb_two_tier_pair(
             if not receipt.ok:
                 raise ValueError("CSV_TWO_TIER_DXF_ROUNDTRIP_FAILED:" + key)
             staged[key] = candidate
-        _require_committed_csv_source_unchanged(holes, original_source_hashes)
-        saved = _atomic_commit_staged_dxfs(staged, root, overwrite=False)
+        saved = _atomic_commit_staged_dxfs(
+            staged, root, overwrite=False,
+            pre_commit_guard=lambda: _require_committed_csv_source_unchanged(
+                holes, original_source_hashes,
+            ),
+        )
     return NfbCsvTwoTierPartOnlyDxf(
         inner_door_path=saved[door.part_id],
         base_plate_paths=(saved[trials[0].part_id], saved[trials[1].part_id]),
