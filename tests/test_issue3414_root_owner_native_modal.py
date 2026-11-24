@@ -516,7 +516,7 @@ def test_same_existing_editor_and_export_ordinary_signed_endcap(tmp_path, monkey
             state.manual_mark_gap.set("17")
             editor._manual_marking_controls[0].invoke()
             canvas_click(Vec2(p.x - 34, p.y))
-            state.manual_group_arm_x.set("7")
+            state.manual_group_arm_x.set("28")
             state.manual_group_arm_y.set("8")
             state.manual_group_tools["l"].invoke()
             canvas_click(Vec2(p.x + 44, p.y + 15))
@@ -685,6 +685,64 @@ def test_same_existing_editor_and_export_ordinary_signed_endcap(tmp_path, monkey
                 place.__code__.co_freevars, (c.cell_contents for c in place.__closure__),
             ))["s"]
             assert tuple(f for f in reopened_drawing.live_context.feature_list if api.is_manual_mark(f)) == authored
+
+            def live_group():
+                return next(f for f in reopened_drawing.live_context.feature_list if api.is_manual_group(f))
+
+            group = live_group()
+            group_parameters = api.group_parameters(group)
+            group_canvas = host.last_hole_editor_canvas
+            transform = reopened_drawing.canvas_view.transform
+
+            def group_xy(point):
+                cx, cy = transform.world_to_canvas(point)
+                return {"x": round(cx), "y": round(cy)}
+
+            def group_drag(release, clock):
+                group_canvas.event_generate("<ButtonPress-1>", **group_xy(group.offset), time=clock)
+                root.update()
+                assert reopened_drawing.dragging[0]
+                preview = Vec2(group.offset.x + 10, group.offset.y + 15)
+                group_canvas.event_generate("<B1-Motion>", **group_xy(preview), time=clock + 30)
+                root.update()
+                assert live_group() != group
+                # There is no final Motion at the actual release point.
+                group_canvas.event_generate("<ButtonRelease-1>", **group_xy(release), time=clock + 80)
+                root.update()
+
+            group_depth = reopened_drawing.hole_session.snapshot().undo_depth
+            from shapely.geometry import LineString, Point
+            press = transform.canvas_to_world(**group_xy(group.offset))
+            corner, = (point for _, point in api.group_member_world_points(group))
+            drop = Vec2(press.x + hole.center.x - corner.x - 12.5,
+                        press.y + hole.center.y - corner.y)
+            real_drop = transform.canvas_to_world(**group_xy(drop))
+            dx, dy = real_drop.x-press.x, real_drop.y-press.y
+            hole_point = Point(hole.center.x, hole.center.y)
+            full_arm = LineString([(corner.x+dx, corner.y+dy),
+                                   (corner.x+dx+group_parameters["arm_x"], corner.y+dy)])
+            assert full_arm.distance(hole_point) < hole.radius
+            for _, points, _ in group.layered_profiles:
+                ink_segment = LineString([(p.x+group.offset.x+dx, p.y+group.offset.y+dy) for p in points])
+                assert ink_segment.distance(hole_point) > hole.radius
+            group_drag(drop, 12000)
+            assert live_group() == group, "INVALID_GROUP_RELEASE_MUST_RESTORE_PRESS_STATE"
+            assert reopened_drawing.hole_session.snapshot().undo_depth == group_depth
+            assert "群組打標移動被拒絕" in reopened_drawing.manual_mark_status.cget("text")
+            reopened_drawing.manual_mark_select_button.invoke()
+            valid_drop = Vec2(group.offset.x + 20, group.offset.y + 30)
+            group_drag(valid_drop, 13000)
+            moved_group = live_group()
+            actual_valid = transform.canvas_to_world(**group_xy(valid_drop))
+            assert (moved_group.offset.x - group.offset.x, moved_group.offset.y - group.offset.y) == pytest.approx(
+                (actual_valid.x-press.x, actual_valid.y-press.y)
+            )
+            assert api.group_parameters(moved_group) == group_parameters
+            assert reopened_drawing.hole_session.snapshot().undo_depth == group_depth + 1
+            reopened_drawing.undo_btn.invoke()
+            root.update()
+            assert live_group() == group
+            assert reopened_drawing.hole_session.snapshot().undo_depth == group_depth
 
             def live_straight(pattern):
                 return next(f for f in reopened_drawing.live_context.feature_list
