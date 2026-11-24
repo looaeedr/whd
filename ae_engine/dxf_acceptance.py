@@ -267,8 +267,14 @@ def _actual_bends(msp, tolerance: float):
     for entity in msp:
         if entity.dxftype() != "LINE" or str(entity.dxf.layer).upper() != "BEND":
             continue
-        x1, y1 = float(entity.dxf.start.x), float(entity.dxf.start.y)
-        x2, y2 = float(entity.dxf.end.x), float(entity.dxf.end.y)
+        start, end = entity.dxf.start, entity.dxf.end
+        # LINE endpoints are WCS coordinates, and the canonical blank BEND
+        # guide is planar. Matching the XY projection is not enough proof.
+        if start.z != 0.0 or end.z != 0.0:
+            rows.append(("off_xy_plane", float(start.z), float(end.z)))
+            continue
+        x1, y1 = float(start.x), float(start.y)
+        x2, y2 = float(end.x), float(end.y)
         if abs(x1 - x2) <= tolerance and abs(y1 - y2) > tolerance:
             rows.append(("x", (x1 + x2) / 2.0, min(y1, y2), max(y1, y2)))
         elif abs(y1 - y2) <= tolerance and abs(x1 - x2) > tolerance:
