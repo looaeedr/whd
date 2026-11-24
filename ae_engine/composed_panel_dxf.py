@@ -457,7 +457,16 @@ def save_composed_panel_dxf(
         box_body_owner_by_panel=box_body_owner_by_panel,
         _verified_nfb_pair_parts=_verified_nfb_pair_parts,
     )
+    # Witness exactly the chosen sheets before compact quantity grouping;
+    # unselected sheets elsewhere cannot poison this transaction.
+    from .operator_manual_marking_batch import witness_selected_manual_marking_rows
+    marking_witness = witness_selected_manual_marking_rows(
+        (f"{panel_name}:{physical_id}", render)
+        for panel_name, pieces in rows
+        for physical_id, render, _assembly_y in pieces
+    )
     pre_commit_guard()
+    marking_witness.assert_current()
     if type(quantity_summary) is not bool:
         raise TypeError("COMPOSED_DXF_QUANTITY_SUMMARY_FLAG_MUST_BE_BOOL")
     if type(compact_quantity_total) is not bool:
@@ -497,6 +506,7 @@ def save_composed_panel_dxf(
             for physical_id, render, _assembly_y in pieces
         )
         for index, (_, physical_id, render) in enumerate(verification_sources):
+            marking_witness.assert_current()
             individual = stage / f"source-{index}.dxf"
             save_scene_dxf(individual, render.scene)
             receipt = verify_saved_part_render_data_dxf(render, individual)
@@ -531,8 +541,15 @@ def save_composed_panel_dxf(
         expected = Counter(_source_signature(p) for p in composite.scene.primitives)
         if actual != expected:
             raise ValueError("COMPOSED_DXF_EXACT_PRIMITIVE_READBACK_MISMATCH")
+        marking_witness.assert_current()
         pre_commit_guard()  # Source drift after staging must not replace output.
-        _atomic_commit_staged_dxfs({"composed": staged}, root, overwrite=overwrite)
+        marking_witness.assert_current()
+        _atomic_commit_staged_dxfs(
+            {"composed": staged}, root, overwrite=overwrite,
+            pre_commit_guard=(
+                marking_witness.assert_current if marking_witness.selected else None
+            ),
+        )
         return ComposedPanelDxfResult(str(path), sheets)
     finally:
         shutil.rmtree(stage, ignore_errors=True)
