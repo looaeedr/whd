@@ -13,7 +13,7 @@ from phase6_corner_dimension_display import (
 )
 
 from copy import deepcopy
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from phase6_sync_envelope import (
     materialize_sync_value,
     plan_live_sync_envelope,
@@ -1880,7 +1880,16 @@ def _phase6_mesh_profiles_for_part(self, part_key, material):
 
 def _phase6_final_scene_view_request(self):
     """Compatibility delegate for final-scene request construction."""
-    return _phase6_final_scene_adapter(self).build_request()
+    request = _phase6_final_scene_adapter(self).build_request()
+    if request is None or request.part_key == "assembly":
+        return request
+    from gui_modules.application.physical_part_hole_editor import current_workspace_marking_source
+
+    render = manufacturing_api.project_workspace_owner_marking_display(
+        current_workspace_marking_source(self), request.part_key, request.render_data,
+        standalone_3d=True,
+    )
+    return request if render is request.render_data else replace(request, render_data=render)
 
 
 

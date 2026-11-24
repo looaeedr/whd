@@ -3426,7 +3426,13 @@ def save_confirmed_workspace_owner_marking_dxf(part_key, output_path, *, read_cu
 
 from .operator_persisted_marking_candidate import read_verified_owner_marking_candidate
 
+from .operator_manual_marking import OWNER_MARKING_VIEW_ONLY
 from .operator_owner_marking_view import (
     OWNER_MARKING_VIEW_DIAGNOSTIC,
     project_workspace_owner_marking_display,
+)
+
+from .operator_owner_marking_3d_view import (
+    OWNER_MARKING_3D_PREVIEW_BUDGET,
+    project_checked_owner_marking_standalone_paths,
 )

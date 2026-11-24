@@ -722,7 +722,21 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                 )
         else:
             self._draw_scene_bends(scene, request.x_profile, request.y_profile, fold_guides=fold_guides)
-        self._draw_scene_markings(scene, x_profile, y_profile, fold_guides=fold_guides)
+        metadata = getattr(render_data, "metadata", None) or {}
+        if metadata.get(manufacturing_api.OWNER_MARKING_VIEW_ONLY):
+            paths, warning = manufacturing_api.project_checked_owner_marking_standalone_paths(scene, mesh)
+            self._paint_scene_marking_paths(paths)
+            warning = metadata.get(manufacturing_api.OWNER_MARKING_VIEW_DIAGNOSTIC) or warning
+            if warning:
+                if warning == manufacturing_api.OWNER_MARKING_3D_PREVIEW_BUDGET:
+                    warning = "打標過密或過長，3D 暫不顯示；2D 與 DXF 不受影響"
+                self.renderer.ax3d.text2D(
+                    0.015, 0.91, "已存打標無法顯示：" + warning,
+                    transform=self.renderer.ax3d.transAxes, ha="left", va="top",
+                    color=WHD_SEMANTIC_COLORS["error"],
+                )
+        else:
+            self._draw_scene_markings(scene, x_profile, y_profile, fold_guides=fold_guides)
         self._draw_operator_dimensions(request, triangles)
         vertices = [point for tri in triangles for point in tri]
         xlim, ylim, zlim = _phase6_fitted_limits_from_vertices(vertices)
