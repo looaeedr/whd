@@ -118,6 +118,41 @@ def _saved_source_features(snapshot):
     return (*features, *saved.saved_marks)
 
 
+def list_saved_manual_marking_copy_groups(*, source_snapshot, source_project_path,
+                                          source_project_sha256):
+    """List IDs from the same byte-bound physical source that Copy will recheck."""
+    from .operator_manual_marking_groups import group_parameters, is_manual_group
+
+    _unique_single_sheet(source_snapshot, "SOURCE")
+    _file, raw = _file_identity(source_project_path, source_project_sha256, "SOURCE")
+    saved = _bound_project_snapshot(raw, source_snapshot, "SOURCE")
+    rows = _saved_source_features(saved)
+    return tuple(group_parameters(row)["group_id"] for row in rows if is_manual_group(row))
+
+
+def project_live_manual_marking_copy_target_state(snapshot, part_key, *, editor_features=None):
+    """Compare role holes and saved owner marks independently for the open target."""
+    from .operator_manual_marking import is_manual_mark
+    from .operator_root_marking_store import read_workspace_marking_owner_record
+    from .workspace_state import resolve_workspace_physical_root_owner
+
+    error = "MANUAL_COPY_TARGET_EDITOR_SESSION_STALE"
+    if not isinstance(snapshot, Mapping) or part_key != "base_plate":
+        raise ValueError(error)
+    role = snapshot.get("part_features") or {}
+    if not isinstance(role, Mapping):
+        raise ValueError(error)
+    role_features = tuple(role.get(part_key, ()))
+    owner = resolve_workspace_physical_root_owner(snapshot, part_key)
+    saved = read_workspace_marking_owner_record(snapshot, owner) if owner else None
+    if saved is not None and any(is_manual_mark(row) for row in role_features):
+        raise ValueError(error)
+    marks = () if saved is None else saved["features"]
+    if editor_features is not None and tuple(editor_features) != (*role_features, *marks):
+        raise ValueError(error)
+    return owner, role_features, saved
+
+
 def _base_part_spec(snapshot, features):
     from . import manufacturing_api as api
     values, policy = api.resolve_fold_designer_base_plate_source(
@@ -188,6 +223,15 @@ def verify_saved_manual_marking_copy_sources(
     ):
         raise ValueError("MANUAL_COPY_TARGET_LIVE_OWNER_CHANGED")
     original = _saved_source_features(source)
+    from .workspace_state import resolve_workspace_physical_root_owner
+    source_owner = resolve_workspace_physical_root_owner(source, "base_plate")
+    if source_owner is not None and (
+        source_owner == resolve_workspace_physical_root_owner(target, "base_plate")
+        or source_owner == resolve_workspace_physical_root_owner(target_live_snapshot, "base_plate")
+    ):
+        # Save As does not create a different physical occupant. Older
+        # ownerless files continue through their existing scoped witnesses.
+        raise ValueError("MANUAL_COPY_SAME_PHYSICAL_OWNER")
     if not isinstance(source_group_id, str) or not source_group_id:
         raise ValueError("MANUAL_COPY_EXPLICIT_GROUP_ID_REQUIRED")
     source_rows = [f for f in original if api.is_manual_group(f)

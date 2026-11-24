@@ -1442,7 +1442,14 @@ def _install_manual_marking_actions(s):
     copy_workspace = getattr(copy_app, "designer_workspace", None)
     copy_controller = getattr(copy_host, "project_controller", None)
     copy_epoch = getattr(copy_controller, "project_load_epoch", None)
-    copy_original_features = tuple(s.feature_list)
+    from gui_modules.application.physical_part_hole_editor import current_workspace_marking_source
+    try:
+        copy_target_state = api.project_live_manual_marking_copy_target_state(
+            current_workspace_marking_source(copy_app), s.part_key,
+            editor_features=tuple(s.feature_list),
+        )
+    except (ValueError, TypeError):
+        copy_target_state = None  # Independent/scoped editors do not gain Copy authority.
 
     def live_copy_target(path):
         from pathlib import Path
@@ -1457,7 +1464,10 @@ def _install_manual_marking_actions(s):
                 or not current_path or Path(current_path).resolve(strict=True) != path
                 or s.part_key != "base_plate"
                 or s.part_key not in copy_workspace.available_parts
-                or tuple(copy_workspace.features_for(s.part_key)) != copy_original_features):
+                or copy_target_state is None):
+            raise ValueError("MANUAL_COPY_TARGET_EDITOR_SESSION_STALE")
+        live = current_workspace_marking_source(copy_app)
+        if api.project_live_manual_marking_copy_target_state(live, s.part_key) != copy_target_state:
             raise ValueError("MANUAL_COPY_TARGET_EDITOR_SESSION_STALE")
         # Same original physical editor pipeline, including its ordinary
         # baseline hole handling. No second coordinate or material builder.
@@ -1465,7 +1475,7 @@ def _install_manual_marking_actions(s):
         payload["features"] = ()
         render = copy_host._query_fold_designer_render_data(s.part_key, payload)
         context = api.resolve_physical_sheet_editor_context(s.part_key, render)
-        return context, copy_app._phase6_input_snapshot
+        return context, live
 
     def verified_copy_args(receipt):
         context, live_snapshot = live_copy_target(receipt["target_project_path"])
@@ -1568,10 +1578,10 @@ def _install_manual_marking_actions(s):
             target_sha = sha256(target_path.read_bytes()).hexdigest()
             source_data = read_project(source_path)["snapshot"]
             target_data = read_project(target_path)["snapshot"]
-            source_rows = tuple((source_data.get("part_features") or {}).get("base_plate") or ())
-            candidates = tuple(
-                api.group_parameters(mark)["group_id"]
-                for mark in source_rows if api.is_manual_group(mark)
+            candidates = api.list_saved_manual_marking_copy_groups(
+                source_snapshot=source_data,
+                source_project_path=source_path,
+                source_project_sha256=source_sha,
             )
             if not candidates:
                 raise ValueError("MANUAL_COPY_SOURCE_GROUP_MISSING")
