@@ -12,9 +12,16 @@ from .panel_naming import normalize_panel_name, PANEL_NUMBER_RE
 from ae_engine.receiving_shared_settings import normalize_set_settings, setting_value
 from typing import Mapping
 import re
+from uuid import uuid4
 
 RECEIVING_LAYOUT_SCHEMA = "receiving-layout-v1"
 RECEIVING_RUNTIME_SELECTION_KEY = "_receiving_runtime_selection"
+_BASE_PLATE_OWNER = "base_plate_owner_id"
+_BASE_PLATE_OWNER_RE = re.compile(r"receiving:base_plate:[0-9a-f]{12}4[0-9a-f]{3}[89ab][0-9a-f]{15}")
+
+
+def _new_base_plate_owner():
+    return f"receiving:base_plate:{uuid4().hex}"
 _ALLOWED_BACK_PANEL_MODES = {"FULL", "HALF", "BACK_OPENING"}
 _DERIVED_LAYOUT_KEYS = {
     "left_locked",
@@ -69,8 +76,10 @@ def _back_panel_mode(value: object) -> str:
     return mode
 
 
-def new_receiving_layout(*, width: object, height: object, depth: object, back_panel_mode: object = "FULL") -> dict[str, object]:
-    """Return the deterministic fresh/migrated one-Set one-Bay layout."""
+def new_receiving_layout(*, width: object, height: object, depth: object,
+                         back_panel_mode: object = "FULL",
+                         new_physical_board: bool = False) -> dict[str, object]:
+    """Build a one-Bay layout; only explicit cabinet creation allocates an owner."""
     return {
         "schema": RECEIVING_LAYOUT_SCHEMA,
         "next_panel_number": 2,
@@ -80,6 +89,7 @@ def new_receiving_layout(*, width: object, height: object, depth: object, back_p
                 "bays": [
                     {
                         "stable_id": "receiving:set:1:bay:1",
+                        **({_BASE_PLATE_OWNER: _new_base_plate_owner()} if new_physical_board else {}),
                         "panel_name": "P1",
                         "width": _number(width, label="Receiving Bay width"),
                         "height": _number(height, label="Receiving Bay height"),
@@ -227,6 +237,7 @@ def normalize_receiving_layout(layout: Mapping[str, object] | None) -> dict[str,
     next_number = raw_next if has_counter else highest_p + 1
 
     seen_ids: set[str] = set()
+    seen_base_plate_owners: set[str] = set()
     sets: list[dict[str, object]] = []
     for set_index, raw_set in enumerate(raw_sets, start=1):
         if not isinstance(raw_set, Mapping):
@@ -265,6 +276,16 @@ def normalize_receiving_layout(layout: Mapping[str, object] | None) -> dict[str,
                 "depth": _number(raw_bay.get("depth"), label=f"Receiving Set{set_index} Bay{bay_index} depth"),
                 "back_panel_mode": _back_panel_mode(raw_bay.get("back_panel_mode")),
             }
+            # Legacy Bays may lack a physical owner. Reads/projections never
+            # create one, and no legacy role-level marking is adopted here.
+            if _BASE_PLATE_OWNER in raw_bay:
+                owner = raw_bay[_BASE_PLATE_OWNER]
+                if not isinstance(owner, str) or not _BASE_PLATE_OWNER_RE.fullmatch(owner):
+                    raise ValueError("RECEIVING_BASE_PLATE_OWNER_INVALID")
+                if owner in seen_base_plate_owners:
+                    raise ValueError("RECEIVING_BASE_PLATE_OWNER_DUPLICATE")
+                seen_base_plate_owners.add(owner)
+                bay[_BASE_PLATE_OWNER] = owner
             if "door_state" in raw_bay:
                 if not isinstance(raw_bay["door_state"], Mapping):
                     raise ValueError("每連門分割必須為物件")
@@ -1345,6 +1366,14 @@ def resize_receiving_operator_topology_with_removed_ids(
             raise ValueError("指定 Set 數量不得夾帶 Bay index")
         candidate = resize_receiving_sets(layout, set_count=set_count)
         removed = receiving_destructive_tail_ids(layout, set_count=set_count)
+    # Allocate only for newly staged real Bays, never for pure layout
+    # normalization, legacy migration, or Save of an untouched project.
+    before = normalize_receiving_layout(layout)
+    for index, new_set in enumerate(candidate["sets"]):
+        old_count = len(before["sets"][index]["bays"]) if index < len(before["sets"]) else 0
+        for new_bay in new_set["bays"][old_count:]:
+            new_bay[_BASE_PLATE_OWNER] = _new_base_plate_owner()
+    candidate = normalize_receiving_layout(candidate)
     before_ids = receiving_layout_stable_ids(layout)
     after_ids = set(receiving_layout_stable_ids(candidate))
     actual_removed = {sid for sid in before_ids if sid not in after_ids}
