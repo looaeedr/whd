@@ -170,8 +170,22 @@ def test_primary_designer_file_menu_opens_marked_a_then_unconfigured_b(
             diameter.set("9999")
             button.invoke()
             canvas.event_generate("<Button-1>", x=round(x), y=round(y))
+            assert "打標位置不合法" in editor._manual_marking_controls[2].cget("text")
+            assert str(state.confirm_all_btn.cget("state")) == "disabled"
+            # A legitimate Tk resize/redraw must not erase a rejected placement.
+            canvas.event_generate("<Configure>", width=canvas.winfo_width(), height=canvas.winfo_height())
             root.update()
             assert tuple(state.live_context.feature_list) == before
+            assert "打標位置不合法" in editor._manual_marking_controls[2].cget("text")
+            assert str(state.confirm_all_btn.cget("state")) == "disabled"
+            # Leaving the placement tool explicitly dismisses its warning.
+            editor._manual_marking_controls[1].invoke()
+            assert not editor._manual_marking_controls[2].cget("text")
+            assert str(state.confirm_all_btn.cget("state")) == "normal"
+            # A valid retry also clears a latched rejection, without
+            # changing the persisted intent or real reopened DXF checks.
+            button.invoke()
+            canvas.event_generate("<Button-1>", x=round(x), y=round(y))
             assert "打標位置不合法" in editor._manual_marking_controls[2].cget("text")
             diameter.set("24.5")
             button.invoke()
@@ -179,6 +193,9 @@ def test_primary_designer_file_menu_opens_marked_a_then_unconfigured_b(
             editor._manual_marking_controls[0].invoke()
         canvas.event_generate("<Button-1>", x=round(x), y=round(y))
         root.update()
+        if round_mark:
+            assert not editor._manual_marking_controls[2].cget("text")
+            assert str(state.confirm_all_btn.cget("state")) == "normal"
         assert len(tuple(
             feature for feature in state.live_context.feature_list
             if api.is_manual_mark(feature)

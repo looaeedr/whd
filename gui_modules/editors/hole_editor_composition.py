@@ -923,6 +923,9 @@ def _install_manual_marking_actions(s):
     d = s.d
     api = d.manufacturing_api
     real_redraw = s.redraw
+    # Rejected round placement never enters Features, so replaying the
+    # valid current draft on a passive redraw cannot dismiss its warning.
+    round_rejection = None
 
     def checked_redraw():
         try:
@@ -936,9 +939,20 @@ def _install_manual_marking_actions(s):
             )
             s.confirm_all_btn.configure(state=d.tk.DISABLED)
         else:
-            s.manual_mark_status.configure(text="", fg="#ff453a")
+            s.manual_mark_status.configure(text=round_rejection or "", fg="#ff453a")
             s.confirm_all_btn.configure(state=d.tk.NORMAL)
-        return real_redraw()
+        result = real_redraw()
+        if round_rejection:
+            # The canvas renderer updates generic confirmation controls.
+            # This rejected tool attempt still owns its own disabled state.
+            s.confirm_all_btn.configure(state=d.tk.DISABLED)
+        return result
+
+    def dismiss_round_rejection():
+        nonlocal round_rejection
+        if round_rejection is not None:
+            round_rejection = None
+            checked_redraw()
 
     s.redraw = checked_redraw
     s.indicator_redraw[0] = checked_redraw
@@ -969,6 +983,7 @@ def _install_manual_marking_actions(s):
             s.manual_round_button.configure(relief=d.tk.RAISED)
         for button in s.manual_group_tools.values():
             button.configure(relief=d.tk.RAISED)
+        dismiss_round_rejection()
 
     def draw_mode(kind="line"):
         if getattr(s, "manual_marking_straight_only", False) and kind != "line":
@@ -986,6 +1001,8 @@ def _install_manual_marking_actions(s):
             s.manual_round_button.configure(relief=d.tk.SUNKEN if kind == "circle" else d.tk.RAISED)
         for key, button in s.manual_group_tools.items():
             button.configure(relief=d.tk.SUNKEN if kind == key else d.tk.RAISED)
+        if kind != "circle":
+            dismiss_round_rejection()
 
     def selected_group():
         idx = s.hole_session.selected_index
@@ -1064,6 +1081,7 @@ def _install_manual_marking_actions(s):
             mirror_vertical=not api.group_parameters(group)["mirror_vertical"])
 
     def mark_down(event):
+        nonlocal round_rejection
         # Also clear when the legacy pointer handler leaves its old selection
         # active on empty canvas; a subsequent double must hit a real corner.
         clear_member_edit()
@@ -1137,11 +1155,13 @@ def _install_manual_marking_actions(s):
                     dash=s.manual_mark_dash.get(), gap=s.manual_mark_gap.get(),
                 )
         except (ValueError, TypeError, RuntimeError) as exc:
-            s.manual_mark_status.configure(
-                text="打標位置不合法：" + str(exc), fg="#ff453a",
-            )
+            warning = "打標位置不合法：" + str(exc)
+            if s.manual_group_tool[0] == "circle":
+                round_rejection = warning
+            s.manual_mark_status.configure(text=warning, fg="#ff453a")
             s.confirm_all_btn.configure(state=d.tk.DISABLED)
             return "break"
+        round_rejection = None
         s.hole_session.execute(HoleEditorAction.insert(mark))
         s.hole_session.execute(HoleEditorAction.commit_active())
         s.refresh_created()
