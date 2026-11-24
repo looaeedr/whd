@@ -461,8 +461,11 @@ def save_composed_panel_dxf(
     # unselected sheets elsewhere cannot poison this transaction.
     from .operator_manual_marking_batch import witness_selected_manual_marking_rows
     marking_witness = witness_selected_manual_marking_rows(
-        (f"{panel_name}:{physical_id}", render)
-        for panel_name, pieces in rows
+        # Panel names are output labels, never proof of a Set/Bay owner.
+        # Use the canonical physical ID already independently checked by
+        # _source_rows(); a mere Bay-B:base_plate suffix is not authority.
+        (physical_id, render)
+        for _panel_name, pieces in rows
         for physical_id, render, _assembly_y in pieces
     )
     pre_commit_guard()
@@ -542,13 +545,19 @@ def save_composed_panel_dxf(
         if actual != expected:
             raise ValueError("COMPOSED_DXF_EXACT_PRIMITIVE_READBACK_MISMATCH")
         marking_witness.assert_current()
-        pre_commit_guard()  # Source drift after staging must not replace output.
+        pre_commit_guard()  # Original live-owner check before commit.
         marking_witness.assert_current()
+
+        def assert_current_owner_and_marks():
+            # Both checks must run at the actual atomic write boundary.
+            # The original immutable snapshot may be unchanged while its
+            # live owner revision has moved to another Project/Bay.
+            pre_commit_guard()
+            marking_witness.assert_current()
+
         _atomic_commit_staged_dxfs(
             {"composed": staged}, root, overwrite=overwrite,
-            pre_commit_guard=(
-                marking_witness.assert_current if marking_witness.selected else None
-            ),
+            pre_commit_guard=assert_current_owner_and_marks,
         )
         return ComposedPanelDxfResult(str(path), sheets)
     finally:

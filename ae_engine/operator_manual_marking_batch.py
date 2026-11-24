@@ -12,28 +12,47 @@ from hashlib import sha256
 from collections.abc import Mapping
 
 
+def _has_saved_manual_intent(render):
+    """Pure *presence* check; no source/Family/manufacturing admission.
+
+    Even a selected unmarked NFB/PAD preview must first reach its original
+    manufacturing reject gate. A late manual-marking field or actual ink,
+    including malformed stored content, is a source change, not a new gate.
+    """
+    from .operator_manual_marking import MANUAL_MARK_SOURCE
+    from .operator_manual_marking_groups import MANUAL_GROUP_SOURCE
+
+    metadata = getattr(render, "metadata", None)
+    if isinstance(metadata, Mapping) and "manual_marking_v1_features" in metadata:
+        authored = metadata["manual_marking_v1_features"]
+        # A malformed field (including a scalar/empty string) is still a
+        # present source, never silently treated as an empty valid feature list.
+        if authored is not None and not (
+            isinstance(authored, (tuple, list)) and len(authored) == 0
+        ):
+            return True
+    scene = getattr(render, "scene", None)
+    return any(
+        getattr(row, "semantic_id", None) == MANUAL_MARK_SOURCE
+        or getattr(row, "source_type", None) in
+        (MANUAL_MARK_SOURCE, MANUAL_GROUP_SOURCE)
+        for row in tuple(getattr(scene, "primitives", ()) or ())
+    )
+
+
 def _marking_source_signature(render):
     from .operator_manual_marking import (
         MANUAL_MARK_SOURCE, is_manual_mark, verify_manual_marking_output,
     )
     from .operator_manual_marking_groups import MANUAL_GROUP_SOURCE
 
+    if not _has_saved_manual_intent(render):
+        return None
     scene = getattr(render, "scene", None)
     meta = getattr(render, "metadata", None) or {}
-    if not isinstance(meta, Mapping):
-        # Existing non-marked manufacturing preview errors remain owned by
-        # their original NFB/PAD/EAR gates, not by #3414.
-        return None
-    authored = meta.get("manual_marking_v1_features") or ()
-    owned = tuple(
-        row for row in getattr(scene, "primitives", ()) or ()
-        if getattr(row, "semantic_id", None) == MANUAL_MARK_SOURCE
-        or getattr(row, "source_type", None) in (MANUAL_MARK_SOURCE, MANUAL_GROUP_SOURCE)
-    )
-    if not authored and not owned:
-        return None
-    if scene is None:
+    if scene is None or not isinstance(meta, Mapping):
         raise ValueError("MANUAL_BATCH_SELECTED_RENDER_UNRESOLVED")
+    authored = meta.get("manual_marking_v1_features") or ()
 
     # Reuse the *whole original* source/CUTTING/hole and stored-ink gate.
     # No new GUI geometry, partial dash-only validation, or family bypass.
@@ -69,10 +88,19 @@ def _marking_source_signature(render):
 class SelectedManualMarkingWitness:
     """Verified physical owner + actual render object, never a name-only key."""
 
-    selected: tuple[tuple[str, object, str, str], ...]
+    selected: tuple[tuple[str, object, str | None, str | None], ...]
 
     def assert_current(self):
         for output_key, render, stable_id, digest in self.selected:
+            if stable_id is None:
+                # Snapshot the ABSENCE of saved manual ink too. Never run
+                # the full newly-invented marking admission gate on a
+                # previously unmarked sheet; detect only absent→present.
+                if _has_saved_manual_intent(render):
+                    raise ValueError(
+                        "MANUAL_BATCH_SELECTED_SOURCE_CHANGED:" + output_key
+                    )
+                continue
             current = _marking_source_signature(render)
             if current != (stable_id, digest):
                 raise ValueError(
@@ -81,24 +109,29 @@ class SelectedManualMarkingWitness:
 
 
 def witness_selected_manual_marking_rows(rows):
-    """Capture only selected, uniquely resolved real physical sheets.
+    """Witness *all* selected flats, including the absence of saved marks.
 
-    Rows: (physical output identity, PartRenderData). Namespace/Set/Bay may
-    prefix physical ID; bare matching role in another scope is not accepted.
+    Rows contain canonical physical part keys, NEVER a display-panel or
+    filename prefix. This function cannot infer Set/Bay/Version from a
+    string suffix. Caller must independently own any scoped identity.
+    Repeated physical roles in different composed panels are permitted;
+    panel labels alone supply no source identity evidence.
     """
     selected = []
-    seen = set()
     for key, render in tuple(rows):
+        # Important: no metadata/scene/Family validation here for unmarked
+        # rows. Original NFB/PAD/CUTTING/BEND manufacturing gates own them.
+        if not _has_saved_manual_intent(render):
+            selected.append((key, render, None, None))
+            continue
         proof = _marking_source_signature(render)
         if proof is None:
-            # Leave original unmarked inventory, previews and duplicate-
-            # filename errors to their established manufacturing owners.
-            continue
-        if not isinstance(key, str) or not key or key in seen:
-            raise ValueError("MANUAL_BATCH_SELECTED_PHYSICAL_ID_AMBIGUOUS")
-        seen.add(key)
+            raise ValueError("MANUAL_BATCH_SELECTED_RENDER_UNRESOLVED")
         stable, digest = proof
-        if key != stable and not key.endswith(":" + stable):
-            raise ValueError("MANUAL_BATCH_SELECTED_PHYSICAL_ID_MISMATCH:" + key)
+        # A namespace or display label ending in ':base_plate' does NOT
+        # prove the selected Set/Bay owner. Fail closed until actual scoped
+        # identity was resolved, rather than authorizing by suffix.
+        if not isinstance(key, str) or key != stable:
+            raise ValueError("MANUAL_BATCH_SELECTED_PHYSICAL_ID_MISMATCH:" + str(key))
         selected.append((key, render, stable, digest))
     return SelectedManualMarkingWitness(tuple(selected))

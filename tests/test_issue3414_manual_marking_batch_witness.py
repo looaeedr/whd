@@ -57,7 +57,9 @@ def test_selected_marking_mutated_during_composed_stage_keeps_prior_dxf(actual_s
     real = _marked(actual_sheet, pattern="dashed")
     unselected = _marked(actual_sheet, center=Vec2(135, 100))
     # Only Bay-A is selected. An unrelated different Bay is not validated.
-    witness = witness_selected_manual_marking_rows((("Bay-A:base_plate", real),))
+    # Only the resolved physical key is authoritative. "Bay-A" is a
+    # composed presentation label, not a verified Set/Bay source scope.
+    witness = witness_selected_manual_marking_rows((("base_plate", real),))
     witness.assert_current()
     unselected.metadata["manual_marking_v1_features"] = ("invalid_unselected",)
     witness.assert_current()
