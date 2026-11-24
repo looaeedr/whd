@@ -22,14 +22,18 @@ def with_physical_sheet_features(key, render, features):
     surface, width, height, _ = physical_sheet_feature_context(key, render)
     normalized = tuple(legacy_hole_to_feature(dict(f)) if isinstance(f, Mapping) else f
                        for f in features)
-    from .operator_manual_marking import is_manual_mark, validate_physical_manual_markings
+    from .operator_manual_marking import (is_manual_mark, is_manual_round_mark,
+        validate_physical_manual_markings, _round_mark_primitive)
     validate_physical_manual_markings(
         key, render, normalized, surface=surface, width=width, height=height,
     )
-    resolved = ae.resolve_surface_features(surface, normalized, width, height)
+    resolved = ae.resolve_surface_features(
+        surface, tuple(f for f in normalized if not is_manual_round_mark(f)), width, height,
+    )
     scene = DrawingScene()
     scene.extend(render.scene.primitives)
     scene.extend(resolved_features_to_primitives(resolved))
+    scene.extend(_round_mark_primitive(f) for f in normalized if is_manual_round_mark(f))
     marked = tuple(feature for feature in normalized if is_manual_mark(feature))
     material = material_polygon_from_final_scene(scene)
     if not marked:

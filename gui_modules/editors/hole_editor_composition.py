@@ -259,6 +259,19 @@ def _build_sidebar_workspace_state(s):
             mark_bar, text="選取", bg="#636366", fg="white",
         )
         s.manual_mark_select_button.pack(side=d.tk.LEFT, padx=2)
+        if not getattr(s, "manual_marking_straight_only", False):
+            s.manual_round_diameter = d.tk.StringVar(master=s.editor, value="")
+            d.tk.Label(mark_bar, text="直徑 mm", fg=host.COLOR_TEXT,
+                       bg=host.COLOR_PANEL).pack(side=d.tk.LEFT, padx=(6, 1))
+            d.tk.Entry(mark_bar, textvariable=s.manual_round_diameter,
+                       width=6).pack(side=d.tk.LEFT)
+            s.manual_round_button = d.tk.Button(
+                mark_bar, text="實線圓打標：選圓心", bg="#0a84ff", fg="white",
+            )
+            s.manual_round_button.pack(side=d.tk.LEFT, padx=3)
+            s.editor._manual_round_marking_controls = (
+                s.manual_round_button, s.manual_round_diameter,
+            )
         s.manual_mark_status = d.tk.Label(
             s.center, text="", fg="#ff453a", bg=host.COLOR_PANEL,
             anchor="w",
@@ -910,6 +923,9 @@ def _install_manual_marking_actions(s):
     d = s.d
     api = d.manufacturing_api
     real_redraw = s.redraw
+    # Rejected round placement never enters Features, so replaying the
+    # valid current draft on a passive redraw cannot dismiss its warning.
+    round_rejection = None
 
     def checked_redraw():
         try:
@@ -923,9 +939,20 @@ def _install_manual_marking_actions(s):
             )
             s.confirm_all_btn.configure(state=d.tk.DISABLED)
         else:
-            s.manual_mark_status.configure(text="", fg="#ff453a")
+            s.manual_mark_status.configure(text=round_rejection or "", fg="#ff453a")
             s.confirm_all_btn.configure(state=d.tk.NORMAL)
-        return real_redraw()
+        result = real_redraw()
+        if round_rejection:
+            # The canvas renderer updates generic confirmation controls.
+            # This rejected tool attempt still owns its own disabled state.
+            s.confirm_all_btn.configure(state=d.tk.DISABLED)
+        return result
+
+    def dismiss_round_rejection():
+        nonlocal round_rejection
+        if round_rejection is not None:
+            round_rejection = None
+            checked_redraw()
 
     s.redraw = checked_redraw
     s.indicator_redraw[0] = checked_redraw
@@ -952,8 +979,11 @@ def _install_manual_marking_actions(s):
         s.manual_group_tool[0] = "select"
         s.manual_mark_draw_button.configure(relief=d.tk.RAISED)
         s.manual_mark_select_button.configure(relief=d.tk.SUNKEN)
+        if hasattr(s, "manual_round_button"):
+            s.manual_round_button.configure(relief=d.tk.RAISED)
         for button in s.manual_group_tools.values():
             button.configure(relief=d.tk.RAISED)
+        dismiss_round_rejection()
 
     def draw_mode(kind="line"):
         if getattr(s, "manual_marking_straight_only", False) and kind != "line":
@@ -967,8 +997,12 @@ def _install_manual_marking_actions(s):
         s.manual_mark_draw_button.configure(
             relief=d.tk.SUNKEN if kind == "line" else d.tk.RAISED)
         s.manual_mark_select_button.configure(relief=d.tk.RAISED)
+        if hasattr(s, "manual_round_button"):
+            s.manual_round_button.configure(relief=d.tk.SUNKEN if kind == "circle" else d.tk.RAISED)
         for key, button in s.manual_group_tools.items():
             button.configure(relief=d.tk.SUNKEN if kind == key else d.tk.RAISED)
+        if kind != "circle":
+            dismiss_round_rejection()
 
     def selected_group():
         idx = s.hole_session.selected_index
@@ -1047,6 +1081,7 @@ def _install_manual_marking_actions(s):
             mirror_vertical=not api.group_parameters(group)["mirror_vertical"])
 
     def mark_down(event):
+        nonlocal round_rejection
         # Also clear when the legacy pointer handler leaves its old selection
         # active on empty canvas; a subsequent double must hit a real corner.
         clear_member_edit()
@@ -1088,7 +1123,13 @@ def _install_manual_marking_actions(s):
                     return "break"
             return original_down(event)
         try:
-            if s.manual_group_tool[0] == "line":
+            if s.manual_group_tool[0] == "circle":
+                mark = api.create_physical_manual_round_marking(
+                    s.part_key, s.manual_marking_context,
+                    tuple(s.live_context.feature_list),
+                    centre=point, diameter=s.manual_round_diameter.get(),
+                )
+            elif s.manual_group_tool[0] == "line":
                 mark = api.create_physical_manual_marking(
                     s.part_key, s.manual_marking_context,
                     tuple(s.live_context.feature_list),
@@ -1114,11 +1155,13 @@ def _install_manual_marking_actions(s):
                     dash=s.manual_mark_dash.get(), gap=s.manual_mark_gap.get(),
                 )
         except (ValueError, TypeError, RuntimeError) as exc:
-            s.manual_mark_status.configure(
-                text="打標位置不合法：" + str(exc), fg="#ff453a",
-            )
+            warning = "打標位置不合法：" + str(exc)
+            if s.manual_group_tool[0] == "circle":
+                round_rejection = warning
+            s.manual_mark_status.configure(text=warning, fg="#ff453a")
             s.confirm_all_btn.configure(state=d.tk.DISABLED)
             return "break"
+        round_rejection = None
         s.hole_session.execute(HoleEditorAction.insert(mark))
         s.hole_session.execute(HoleEditorAction.commit_active())
         s.refresh_created()
@@ -1348,6 +1391,8 @@ def _install_manual_marking_actions(s):
     s.rotate_selected = rotate_selected
     s.manual_mark_select_button.configure(command=select_mode)
     s.manual_mark_draw_button.configure(command=lambda: draw_mode("line"))
+    if hasattr(s, "manual_round_button"):
+        s.manual_round_button.configure(command=lambda: draw_mode("circle"))
     for kind, button in s.manual_group_tools.items():
         button.configure(command=lambda key=kind: draw_mode(key))
     s.manual_group_apply_offset.configure(command=edit_selected_member)
