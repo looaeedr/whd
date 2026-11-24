@@ -249,6 +249,7 @@ def _export_selected_resolved_parts(self, folder, flags):
     active_mode = normalize_quantity_snapshot(mode_source)["active_mode"]
     chosen = getattr(self, "receiving_dxf_group_mode_var", None)
     group_mode = chosen.get() if chosen is not None else None
+    manufacturing_api.plan_scoped_base_plate_normal_output(mode_source, flags, group_mode)
     source_guard = _current_authoritative_export_guard(designer, mode_source)
     if workspace is not None and active_mode == "quantity":
         from phase6_manufacturing_adapter import (
@@ -907,6 +908,18 @@ def export_selected_dxf(self):
         return
     designer = getattr(self, "fold_designer_app", None)
     source_snapshot = getattr(designer, "_phase6_input_snapshot", None)
+    scoped_mark_source = source_snapshot
+    if not isinstance(scoped_mark_source, Mapping):
+        reader = getattr(getattr(self, "project_controller", None), "committed_snapshot", None)
+        scoped_mark_source = reader() if callable(reader) else None
+    try:
+        group = getattr(self, "receiving_dxf_group_mode_var", None)
+        manufacturing_api.plan_scoped_base_plate_normal_output(
+            scoped_mark_source or {}, flags, group.get() if group is not None else None,
+        )
+    except ValueError as exc:
+        messagebox.showerror("底板無法輸出", str(exc))
+        return
     if isinstance(source_snapshot, Mapping):
         try:
             final_publish_guard = _current_authoritative_export_guard(
@@ -1053,6 +1066,7 @@ def export_receiving_pad_base_part_only_dxf(self):
                 or manufacturing_api.resolve_live_cabinet_family(snapshot) != "受電箱"
                 or snapshot.get("nfb_config_submitted") is not True):
             raise ValueError("須在受電箱提交 NFB 後，才能輸出 PAD＋底板")
+        manufacturing_api.require_scoped_base_plate_export_held(snapshot, {"base_plate": True})
         if not manufacturing_api.committed_nfb_pad_draft_parts(snapshot):
             raise ValueError("目前沒有已提交且具已確認孔位的 PAD 實體板件")
         # Modal dialogs can change the saved Bay, Hole Editor or active

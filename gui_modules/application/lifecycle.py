@@ -647,6 +647,8 @@ def _merge_live_receiving_candidate_libraries(self, snapshot):
          manufacturing_api.normalize_receiving_hole_candidates),
         ("receiving_inner_door_candidates",
          manufacturing_api.normalize_receiving_inner_door_candidates),
+        (manufacturing_api.SCOPED_BASE_PLATE_MARKS,
+         manufacturing_api.normalize_scoped_base_plate_mark_ledger),
     )
     if live is None:
         # Close publishes the current editor into ProjectController before the

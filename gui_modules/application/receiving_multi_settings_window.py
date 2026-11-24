@@ -241,6 +241,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                         set_single_size_quantity=None,
                         edit_single_holes=None,
                         edit_single_inner_door=None, edit_multi_inner_door=None,
+                        edit_scoped_base_plate=None, get_scoped_base_plate_mark_status=None,
                         on_close=None, on_brand_close=None,
                         dialog_kind="multi"):
     """Full-screen modal Receiving operator UI with no unsolicited widgets."""
@@ -463,6 +464,62 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
     setting_list.grid(row=0, column=0, sticky="nw", padx=(0, 12))
     settings_host = ttk.Frame(function_host)
     settings_host.grid(row=0, column=1, sticky="new")
+
+    scoped_mark_button = None
+    scoped_mark_status = None
+    if not single_mode and edit_scoped_base_plate is not None:
+        mark_controls = ttk.Frame(function_host)
+        mark_controls.grid(row=1, column=0, columnspan=2, sticky="w", pady=(4, 0))
+        scoped_mark_button = ttk.Button(
+            mark_controls, text="底板打標", state="disabled",
+            command=lambda: open_highlighted_base_plate_marks(),
+        )
+        scoped_mark_button.pack(side="left")
+        scoped_mark_status = ttk.Label(mark_controls)
+        scoped_mark_status.pack(side="left", padx=6)
+
+    def scoped_mark_target():
+        selected = tuple(applied["selected_bays"])
+        rows = size_cache["dimensions"]
+        if (applied["mode"] != "set_bay" or applied["set_index"] is None
+                or size_cache["set_index"] != applied["set_index"]
+                or len(selected) != 1 or selected[0] >= len(rows)):
+            return None
+        index = selected[0]
+        owner = rows[index].get("base_plate_owner_id")
+        return None if not owner else (applied["set_index"], index, owner)
+
+    def refresh_scoped_mark_status():
+        if scoped_mark_button is None:
+            return
+        target = scoped_mark_target()
+        scoped_mark_button.configure(state="normal" if target else "disabled")
+        text = "" if target else "請套用一套並只反白一連已識別的底板"
+        if get_scoped_base_plate_mark_status is not None:
+            try:
+                marks = get_scoped_base_plate_mark_status()
+            except (ValueError, TypeError) as exc:
+                scoped_mark_button.configure(state="disabled")
+                text = "已存打標無法讀取：" + str(exc)
+            else:
+                orphaned = sum(status == "orphaned" for status in marks.values())
+                if orphaned:
+                    text += ("｜" if text else "") + f"{orphaned} 片原底板已不存在，舊打標保留且無效"
+        scoped_mark_status.configure(text=text)
+
+    def open_highlighted_base_plate_marks():
+        target = scoped_mark_target()
+        if target is None:
+            return
+        def restore_modal():
+            if win.winfo_exists():
+                win.grab_set()
+                refresh_scoped_mark_status()
+        try:
+            edit_scoped_base_plate(*target, restore_modal)
+        except (ValueError, TypeError, IndexError, RuntimeError) as exc:
+            warn(exc)
+
 
     diagram_host = ttk.Frame(right_host, padding=8, relief="groove", borderwidth=1)
     diagram_host.grid(row=2, column=0, sticky="nsew", pady=(2, 0))
@@ -1403,6 +1460,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                 if layout is not None else ()
             )
             size_cache["set_index"] = applied["set_index"]
+        refresh_scoped_mark_status()
         paint_connected_bays(canvas, count, selected, marks, labels,
                              bay_dimensions=size_cache["dimensions"],
                              panel_names=tuple(
@@ -1677,6 +1735,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
                     show_setting_controls()
                     render()
                 refresh_rows()
+                refresh_scoped_mark_status()
                 if applied["set_index"] is not None:
                     refresh_dimension_rows()
             return result
@@ -1692,6 +1751,7 @@ def open_multi_settings(parent, *, get_snapshot, get_switch, switch_mode,
             if result:
                 topology_changed["value"] = True
                 refresh_rows()
+            refresh_scoped_mark_status()
             # Existing contract: +連/−連 changes canonical topology, but
             # the operator's sketch is projected only after 套用.
             return result

@@ -158,6 +158,12 @@ def _export_authoritative_part(self, spec, output_path, context=None):
         "v_miter_gui_check_corners": getattr(self, "v_miter_gui_check_corners", {}),
     })
     self._flush_phase6_authoritative_state()
+    designer = getattr(self, "fold_designer_app", None)
+    source = getattr(designer, "_phase6_input_snapshot", None)
+    if not isinstance(source, Mapping):
+        read_committed = getattr(getattr(self, "project_controller", None), "committed_snapshot", None)
+        source = read_committed() if callable(read_committed) else None
+    manufacturing_api.require_scoped_base_plate_spec_export_held(source, spec)
     owner = getattr(self, "workspace_controller", None)
     if owner is not None and owner.workspace_snapshot().get("receiving_quantity_box"):
         manufacturing_api.require_valid_operator_quantity_features(

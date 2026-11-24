@@ -1530,6 +1530,7 @@ def stage_quantity_operator_export(
     The caller owns operator consent and final publication. Unrelated files
     in an existing stage (such as a saved project) are left untouched.
     """
+    require_scoped_base_plate_export_held(operator_snapshot, flags)
     source = plan_quantity_export_source(operator_snapshot, workspace_snapshot)
     if not isinstance(request, ManufacturingResolveRequest):
         raise TypeError("QUANTITY_OPERATOR_EXPORT_REQUIRES_RESOLVE_REQUEST")
@@ -3343,4 +3344,11 @@ from .v_miter_endcap_live_snapshot import (
 from .v_miter_tail_pair_sheet_check import (
     VMiterTailPairOneSheet2DCheck,
     project_v_miter_custom_tail_bottom_pair_one_sheet_2d_check,
+)
+
+from .operator_scoped_base_plate_marks import (
+    SCOPED_BASE_PLATE_MARKS, normalize_scoped_base_plate_mark_ledger, open_scoped_base_plate_editor,
+    commit_scoped_base_plate_marks, scoped_base_plate_mark_status,
+    require_scoped_base_plate_export_held, require_scoped_base_plate_spec_export_held,
+    plan_scoped_base_plate_normal_output,
 )

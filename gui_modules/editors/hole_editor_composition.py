@@ -281,7 +281,8 @@ def _build_sidebar_workspace_state(s):
         s.manual_group_offset_y = d.tk.StringVar(master=s.editor, value="0")
         s.manual_group_tools = {}
         group_bar = d.tk.Frame(s.center, bg=host.COLOR_PANEL)
-        group_bar.pack(before=s.canvas, fill=d.tk.X, padx=4, pady=(0, 2))
+        if not getattr(s, "manual_marking_straight_only", False):
+            group_bar.pack(before=s.canvas, fill=d.tk.X, padx=4, pady=(0, 2))
         for kind, label in (
             ("cross", "十字：交點"), ("l", "L：轉角"),
             ("pair_l", "一對L：群組中心"), ("quad_l", "四角L：群組中心"),
@@ -300,7 +301,8 @@ def _build_sidebar_workspace_state(s):
                        fg=host.COLOR_TEXT).pack(side=d.tk.LEFT, padx=(5, 1))
             d.tk.Entry(group_bar, textvariable=var, width=5).pack(side=d.tk.LEFT)
         edit_bar = d.tk.Frame(s.center, bg=host.COLOR_PANEL)
-        edit_bar.pack(before=s.canvas, fill=d.tk.X, padx=4, pady=(0, 2))
+        if not getattr(s, "manual_marking_straight_only", False):
+            edit_bar.pack(before=s.canvas, fill=d.tk.X, padx=4, pady=(0, 2))
         d.tk.Label(edit_bar, text="雙擊角點選成員：", bg=host.COLOR_PANEL,
                    fg=host.COLOR_TEXT).pack(side=d.tk.LEFT)
         d.tk.Label(edit_bar, textvariable=s.manual_group_member,
@@ -954,6 +956,8 @@ def _install_manual_marking_actions(s):
             button.configure(relief=d.tk.RAISED)
 
     def draw_mode(kind="line"):
+        if getattr(s, "manual_marking_straight_only", False) and kind != "line":
+            return
         clear_member_edit()
         drag_origin[0] = None
         corner_arm[0] = None
@@ -1424,8 +1428,9 @@ def _install_manual_marking_actions(s):
         s.redraw()
         return True
 
-    s.manual_mark_copy_button.configure(command=copy_from_other_saved_project)
-    s.editor._manual_group_copy_from_saved = copy_from_other_saved_project
+    if not getattr(s, "manual_marking_straight_only", False):
+        s.manual_mark_copy_button.configure(command=copy_from_other_saved_project)
+        s.editor._manual_group_copy_from_saved = copy_from_other_saved_project
     select_mode()
     s.on_canvas_down = mark_down
     s.on_canvas_drag = safe_drag
@@ -1433,10 +1438,11 @@ def _install_manual_marking_actions(s):
     s.manual_mark_escape = mark_escape
     s.editor._manual_marking_place = mark_down
     s.editor._manual_marking_select = select_mode
-    s.editor._manual_group_double = mark_double
-    s.canvas.bind("<Double-Button-1>", mark_double)
-    s.canvas.bind("<Triple-Button-1>", mark_double)
-    s.canvas.bind("<Quadruple-Button-1>", mark_double)
+    if not getattr(s, "manual_marking_straight_only", False):
+        s.editor._manual_group_double = mark_double
+        s.canvas.bind("<Double-Button-1>", mark_double)
+        s.canvas.bind("<Triple-Button-1>", mark_double)
+        s.canvas.bind("<Quadruple-Button-1>", mark_double)
 
 def _bind_editor_events(s):
     # CADCraft is an opt-in external inspection only. Re-resolve the active
@@ -1786,7 +1792,8 @@ def open_unified_hole_editor(
     baseline_scene=None, baseline_status_text=None,
     indicator_component_context_provider=None, cabinet_reference_guide=None,
     local_reference_guide=None, manual_marking_context=None,
-    defer_workspace_sync=False, skip_cancel_sync=False, *, dependencies,
+    defer_workspace_sync=False, skip_cancel_sync=False,
+    manual_marking_straight_only=False, *, dependencies,
 ):
     s = SimpleNamespace(
         host=host, d=dependencies, part_key=part_key, title=title, surface=surface,
@@ -1804,6 +1811,7 @@ def open_unified_hole_editor(
         baseline_status_text=baseline_status_text,
         indicator_component_context_provider=indicator_component_context_provider,
         manual_marking_context=manual_marking_context,
+        manual_marking_straight_only=manual_marking_straight_only,
         defer_workspace_sync=defer_workspace_sync,
         skip_cancel_sync=skip_cancel_sync,
     )

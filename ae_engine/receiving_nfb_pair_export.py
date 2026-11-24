@@ -101,6 +101,8 @@ def export_verified_receiving_nfb_door_base_pair(
     Check/Q for the whole batch must be separately approved; do not infer it
     from the number of source circles.
     """
+    from .operator_scoped_base_plate_marks import require_scoped_base_plate_export_held
+    require_scoped_base_plate_export_held(current_snapshot, {"base_plate": True})
     composed, original_pair, panel, profile = prepare_verified_receiving_nfb_base_plate(
         bundle, layout=layout, current_snapshot=current_snapshot,
         base_spec=base_spec, index_path=index_path, profile_path=profile_path,
@@ -206,6 +208,8 @@ def export_current_csv_nfb_pair_from_request(
     if not isinstance(request, ManufacturingResolveRequest):
         raise TypeError("CSV_PAIR_MANUFACTURING_REQUEST_REQUIRED")
     snapshot = thaw_manufacturing_value(request.input_snapshot)
+    from .operator_scoped_base_plate_marks import require_scoped_base_plate_export_held
+    require_scoped_base_plate_export_held(snapshot, {"base_plate": True})
     if not isinstance(snapshot, dict) or canonical_family_name(snapshot) != "受電箱":
         raise ValueError("CSV_PAIR_RECEIVING_SOURCE_REQUIRED")
     # The regular resolver restores trusted Receiving typed selectors from
@@ -257,6 +261,8 @@ def export_current_csv_nfb_door_base_pair(
     Never use old DXF handles, manufacture a readiness boolean, or grant
     second-tier/full-cabinet/PAD/welded-EAR manufacturing.
     """
+    from .operator_scoped_base_plate_marks import require_scoped_base_plate_export_held
+    require_scoped_base_plate_export_held(snapshot, {"base_plate": True})
     from ae_engine.manufacturing_api import build_part_render_data
     from ae_engine.manufacturing_equivalence import ManufacturingParameters
     from ae_engine.manufacturing_export import (
