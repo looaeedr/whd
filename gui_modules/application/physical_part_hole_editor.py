@@ -35,10 +35,9 @@ def open_workspace_sheet_editor(host, key):
     )
     project_epoch = host.project_controller.project_load_epoch if opened is not None else None
 
-    def commit(pending=None):
+    def commit(pending):
         if key not in workspace.available_parts:
             raise ValueError(f'板件已不存在：{key}')
-        pending = features if pending is None else pending
         if opened is not None:
             _require_current_project(host, app, workspace, project_epoch)
             _, fresh_context = current_context()
@@ -69,10 +68,18 @@ def open_workspace_sheet_editor(host, key):
 def _present_physical_sheet_editor(
     host, key, title, context, features, draft, confirm, *, sync_callback=None, on_close=None,
 ):
+    editor_features = list(features)
+
+    def sync_editor_features(pending=None):
+        # The legacy no-argument callback reads the same detached list that
+        # the editor received, never the older committed workspace features.
+        return sync_callback(editor_features if pending is None else pending)
+
     return host._open_unified_hole_editor(
         key, title, context.feature_surface, context.width, context.height,
-        reference_guide=context.reference_guide, feature_list_override=list(features),
-        on_confirm_features=confirm, sync_callback=sync_callback, on_close=on_close,
+        reference_guide=context.reference_guide, feature_list_override=editor_features,
+        on_confirm_features=confirm, on_close=on_close,
+        sync_callback=sync_editor_features if sync_callback is not None else None,
         baseline_scene=context.render_data.scene, manual_marking_draft=draft,
         defer_workspace_sync=True, skip_cancel_sync=True,
     ) or getattr(host, "last_unified_hole_editor", None)
