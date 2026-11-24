@@ -80,18 +80,32 @@ def project_operator_door_cell_features(
     mode = state["mode"]
     if mode in {"indicator", "indicator_box"}:
         try:
-            t = float(thickness)
-            material_fw = cabinet_family_policy.door_material_frame_width(
-                family_model, frame_width=float(frame_width), thickness=t,
+            # Qualify each original physical source before any float coercion.
+            # Otherwise bool(True) becomes 1 mm and a preview can invent a
+            # plausible lamp/box CUTTING feature that PartSpec would reject.
+            from .operator_settings_transactions import (
+                normalize_operator_source_dimension,
             )
+            from .door_operator_part_spec import _finite_operator_number
+
+            w = normalize_operator_source_dimension(cell_width, field="w")
+            h = normalize_operator_source_dimension(cell_height, field="h")
+            t = normalize_operator_source_dimension(thickness, field="t")
+            material_fw = cabinet_family_policy.door_material_frame_width(
+                family_model, frame_width=frame_width, thickness=t,
+            )
+            resolved_gap_w = _finite_operator_number(gap_w, "door_gap_w")
+            resolved_gap_h = _finite_operator_number(gap_h, "door_gap_h")
+            resolved_fold_left = _finite_operator_number(fold_left, "door_fold_l")
+            resolved_fold_bottom = _finite_operator_number(fold_bottom, "door_fold_b")
             finished_w, finished_h = ae.calculate_door_finished_size(
-                cell_width, cell_height, material_fw,
-                gap_w, gap_h, t, frame_edges=frame_edges,
+                w, h, material_fw,
+                resolved_gap_w, resolved_gap_h, t, frame_edges=frame_edges,
             )
             context = DoorIndicatorContext(
                 finished_width=float(finished_w),
                 finished_height=float(finished_h),
-                left_fold=float(fold_left), bottom_fold=float(fold_bottom),
+                left_fold=resolved_fold_left, bottom_fold=resolved_fold_bottom,
             )
             groups = tuple(state["groups"][:state["layers"]])
             offset_x = state["offset_x"]
