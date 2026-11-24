@@ -364,6 +364,9 @@ from .operator_manual_marking_groups import (
     group_member_world_points, nearest_group_member,
     create_physical_manual_marking_group, edit_physical_manual_group,
 )
+from .operator_manual_marking_copy import (
+    copy_saved_manual_marking_group_to_selected_sheet,
+)
 from .indicator_editor_geometry import (
     resolve_indicator_editor_components,
     resolve_indicator_box_editor_geometry,
