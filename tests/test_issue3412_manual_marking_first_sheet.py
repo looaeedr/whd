@@ -235,6 +235,97 @@ def test_normal_baseplate_partspec_export_revalidates_full_stroke(actual_sheet, 
     assert target.exists()
 
 
+def _attach_native_marking_pointer_and_controls(state, context):
+    """Supply real Tk controls and the original pointer adapter to small tests."""
+    from types import SimpleNamespace
+    from gui_modules.editors.hole_editor import (
+        HoleEditorCanvasPointerActions, HoleEditorCreatedListActions,
+        HoleEditorSelectedFeatureActions,
+    )
+    from phase6_hole_editor_session import HoleEditorAction
+
+    tk = state.d.tk
+    state.dragging = [False]
+    state.insert_mode = [False]
+    state.insert_btn = tk.Button(state.editor, text="插入開孔")
+    state.delete_btn = tk.Button(state.editor, text="刪除")
+    state.undo_btn = tk.Button(state.editor, text="復原")
+    state.created_list = tk.Listbox(state.editor)
+    state.host = SimpleNamespace()
+    state.on_confirm_features = None  # This harness confirms through the real modal lifecycle.
+    state.feature_list = state.live_context.feature_list
+    state.set_insert_mode = lambda value: state.insert_mode.__setitem__(0, bool(value))
+    state.undo_last_action = lambda _event=None: state.hole_session.execute(HoleEditorAction.undo())
+    state.on_catalog_double_click = lambda _event, _source_list: None
+    if not hasattr(state, "canvas"):
+        state.canvas = tk.Canvas(state.editor)
+    if not hasattr(state.canvas_view, "hit_test"):
+        state.canvas_view.hit_test = lambda _x, _y: None
+    for key, value in {
+        "arm_x": "20", "arm_y": "20", "angle": "0",
+        "spacing_x": "", "spacing_y": "", "member": "",
+        "offset_x": "0", "offset_y": "0",
+    }.items():
+        setattr(state, "manual_group_" + key, tk.StringVar(master=state.editor, value=value))
+    state.manual_group_tool = ["select"]
+    state.manual_group_tools = {
+        kind: tk.Button(state.editor, text=kind)
+        for kind in state.manual_marking_draft.allowed_tools
+        if kind in ("cross", "l", "pair_l", "quad_l")
+    }
+    for name in ("manual_group_apply_offset", "manual_group_apply_size",
+                 "manual_group_rotate", "manual_group_mirror", "manual_mark_copy_button"):
+        setattr(state, name, tk.Button(state.editor, text=name))
+    state.manual_round_diameter = tk.StringVar(master=state.editor)
+    state.manual_round_button = tk.Button(state.editor, text="圓打標")
+    def context_provider():
+        return {
+            "surface": context.feature_surface, "width": context.width,
+            "height": context.height, "feature_list": state.live_context.feature_list,
+        }
+
+    def select_feature(index):
+        state.hole_session.execute(HoleEditorAction.select(index))
+
+    pointer = HoleEditorCanvasPointerActions(
+        hole_session=state.hole_session, canvas_view=state.canvas_view,
+        dragging=state.dragging, insert_mode=state.insert_mode,
+        context_provider=context_provider,
+        select_feature=select_feature, make_feature=lambda _point: None,
+        feature_is_within_surface=api.operator_hole_feature_is_within_surface,
+        move_feature_within_surface=api.operator_hole_move_feature_within_surface,
+        begin_edit=lambda *_args: None, refresh_reference_fields=lambda: None,
+        redraw=state.redraw, sync_all=state.sync_all,
+        warn_out_of_bounds=lambda: pytest.fail("unexpected native pointer rejection"),
+    )
+    created = HoleEditorCreatedListActions(
+        hole_session=state.hole_session, feature_list=state.feature_list,
+        created_list=state.created_list, select_feature=select_feature,
+        feature_with_process=api.operator_hole_feature_with_process,
+        refresh_created=state.refresh_created, refresh_reference_fields=lambda: None,
+        redraw=state.redraw, sync_all=state.sync_all,
+    )
+    selected = HoleEditorSelectedFeatureActions(
+        hole_session=state.hole_session, canvas_view=state.canvas_view,
+        context_provider=context_provider, select_feature=select_feature,
+        menu_factory=lambda: tk.Menu(state.editor, tearoff=0),
+        reference_anchor_labels={}, feature_reference_anchor=lambda feature: feature.anchor,
+        set_reference_anchor=lambda _anchor: None, var_rotation=tk.StringVar(master=state.editor),
+        rotate_feature=api.operator_hole_feature_with_rotation,
+        feature_is_within_surface=api.operator_hole_feature_is_within_surface,
+        warn_rotation_out_of_bounds=lambda: pytest.fail("unexpected rotation rejection"),
+        refresh_reference_fields=lambda: None, redraw=state.redraw, sync_all=state.sync_all,
+    )
+    state.on_created_select = created.on_created_select
+    state.toggle_created_process = created.toggle_created_process
+    state.delete_selected = created.delete_selected
+    state.on_canvas_right = selected.on_canvas_right
+    state.rotate_selected = selected.rotate_selected
+    state.on_canvas_down = pointer.on_canvas_down
+    state.on_canvas_drag = pointer.on_canvas_drag
+    state.on_canvas_up = pointer.on_canvas_up
+
+
 def test_real_tk_mark_button_middlepoint_red_warning_undo_and_escape(actual_sheet):
     """Actual Tk buttons and the original Hole Editor Session are exercised."""
     from types import SimpleNamespace
@@ -260,7 +351,7 @@ def test_real_tk_mark_button_middlepoint_red_warning_undo_and_escape(actual_shee
         warning = tk.Label(root, text="")
         session = Phase6HoleEditorSession("base_plate", actual_features)
         state = SimpleNamespace(
-            part_key="base_plate", editor=root, manual_marking_context=context,
+            part_key="base_plate", editor=root, manual_marking_draft=api.open_physical_sheet_marking("base_plate", context=context),
             live_context=SimpleNamespace(feature_list=actual_features),
             d=SimpleNamespace(tk=tk, manufacturing_api=api),
             manual_mark_mode=[False], manual_mark_length=mark_length,
@@ -270,7 +361,6 @@ def test_real_tk_mark_button_middlepoint_red_warning_undo_and_escape(actual_shee
             manual_mark_draw_button=draw_button,
             manual_mark_select_button=select_button,
             hole_session=session, indicator_redraw=[None],
-            on_canvas_down=lambda e: None, on_canvas_drag=lambda e: None,
             on_escape=lambda e: "ESCAPE_DEFAULT",
             canvas_view=SimpleNamespace(
                 canvas_to_world=lambda x, y: midpoint,
@@ -282,11 +372,15 @@ def test_real_tk_mark_button_middlepoint_red_warning_undo_and_escape(actual_shee
                 "base_plate", context, actual_features,
             ),
         )
+        _attach_native_marking_pointer_and_controls(state, context)
         _install_manual_marking_actions(state)
         assert select_button.cget("relief") == tk.SUNKEN
         draw_button.invoke()
         assert state.manual_mark_mode == [True]
-        state.on_canvas_down(SimpleNamespace(x=120, y=90))
+        event = SimpleNamespace(x=120, y=90)
+        state.on_canvas_down(event)
+        state.on_canvas_up(event)
+        assert not state.dragging[0]
         assert len(actual_features) == 1
         assert api.is_manual_mark(actual_features[0])
         assert state.manual_mark_mode == [True]  # repeat until Esc
@@ -499,7 +593,7 @@ def test_real_tk_sync_warns_when_existing_mark_conflicts_with_new_blank_hole(act
             original_calls.append(tuple(pending))
             raise ValueError("canonical physical publisher rejected candidate")
         state = SimpleNamespace(
-            part_key="base_plate", manual_marking_context=context,
+            part_key="base_plate", manual_marking_draft=api.open_physical_sheet_marking("base_plate", context=context),
             live_context=SimpleNamespace(feature_list=pending),
             d=SimpleNamespace(tk=tk, manufacturing_api=api),
             sync_all=failing_publisher,

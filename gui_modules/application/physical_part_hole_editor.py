@@ -10,26 +10,45 @@ def open_workspace_sheet_editor(host, key):
     workspace = app.designer_workspace
     if key not in workspace.available_parts:
         raise ValueError(f'板件已不存在：{key}')
-    piece = manufacturing_api.is_box_body_physical_piece_key(key)
-    payload = build_scene_payload_for_app(app, 'box_body' if piece else key)
-    features = workspace.features_for(key)
-    payload['features'] = ()  # baseline must not duplicate editable holes
-    if piece:
-        payload['physical_piece_features'] = {}
-    render = host._query_fold_designer_render_data('box_body' if piece else key, payload)
-    custom_spec = None
-    if manufacturing_api.is_custom_part(key):
-        custom_spec, _ = host._fold_designer_part_spec_from_payload(key, payload)
-    context = manufacturing_api.resolve_physical_sheet_editor_context(
-        key, render, custom_spec=custom_spec,
-    )
 
-    def commit(pending=None):
+    def current_context():
+        piece = manufacturing_api.is_box_body_physical_piece_key(key)
+        query_key = 'box_body' if piece else key
+        payload = build_scene_payload_for_app(app, query_key)
+        payload['features'] = ()  # baseline must not duplicate editable holes
+        if piece:
+            payload['physical_piece_features'] = {}
+        render = host._query_fold_designer_render_data(query_key, payload)
+        custom_spec = None
+        if manufacturing_api.is_custom_part(key):
+            custom_spec, _ = host._fold_designer_part_spec_from_payload(key, payload)
+        return payload, manufacturing_api.resolve_physical_sheet_editor_context(
+            key, render, custom_spec=custom_spec,
+        )
+
+    payload, context = current_context()
+    features = workspace.features_for(key)
+    opened = (
+        manufacturing_api.open_physical_sheet_marking(key, context=context, features=features)
+        if manufacturing_api.first_sheet_manual_marking_supported(key, context.render_data)
+        else None
+    )
+    project_epoch = host.project_controller.project_load_epoch if opened is not None else None
+
+    def commit(pending):
         if key not in workspace.available_parts:
             raise ValueError(f'板件已不存在：{key}')
-        accepted = manufacturing_api.propose_operator_physical_sheet_hole_features(
-            key, context, features if pending is None else pending,
-        )
+        if opened is not None:
+            _require_current_project(host, app, workspace, project_epoch)
+            _, fresh_context = current_context()
+            fresh = manufacturing_api.open_physical_sheet_marking(
+                key, context=fresh_context, features=workspace.features_for(key),
+            )
+            accepted = manufacturing_api.commit_physical_sheet_marking(fresh, opened, pending).features
+        else:
+            accepted = manufacturing_api.propose_operator_physical_sheet_hole_features(
+                key, context, pending,
+            )
         workspace.stash_features(key, accepted)
         if workspace.active_part == key:
             app._load_part_holes(key)
@@ -40,19 +59,36 @@ def open_workspace_sheet_editor(host, key):
     def validate_before_confirm(pending):
         commit(pending)
 
+    return _present_physical_sheet_editor(
+        host, key, operator_part_label(key, snapshot=payload), context, features,
+        opened, validate_before_confirm, sync_callback=commit,
+    )
+
+
+def _present_physical_sheet_editor(
+    host, key, title, context, features, draft, confirm, *, sync_callback=None, on_close=None,
+):
+    editor_features = list(features)
+
+    def sync_editor_features(pending=None):
+        # The legacy no-argument callback reads the same detached list that
+        # the editor received, never the older committed workspace features.
+        return sync_callback(editor_features if pending is None else pending)
+
     return host._open_unified_hole_editor(
-        key, operator_part_label(key, snapshot=payload),
-        context.feature_surface, context.width, context.height,
-        reference_guide=context.reference_guide, feature_list_override=features,
-        sync_callback=commit, on_confirm_features=validate_before_confirm,
-        baseline_scene=context.render_data.scene,
-        manual_marking_context=(
-            context if manufacturing_api.first_sheet_manual_marking_supported(
-                key, context.render_data,
-            ) else None
-        ),
+        key, title, context.feature_surface, context.width, context.height,
+        reference_guide=context.reference_guide, feature_list_override=editor_features,
+        on_confirm_features=confirm, on_close=on_close,
+        sync_callback=sync_editor_features if sync_callback is not None else None,
+        baseline_scene=context.render_data.scene, manual_marking_draft=draft,
         defer_workspace_sync=True, skip_cancel_sync=True,
-    ) or getattr(host, 'last_unified_hole_editor', None)
+    ) or getattr(host, "last_unified_hole_editor", None)
+
+
+def _require_current_project(host, app, workspace, project_epoch):
+    if (host.fold_designer_app is not app or app.designer_workspace is not workspace
+            or host.project_controller.project_load_epoch != project_epoch):
+        raise ValueError("PHYSICAL_MARK_PROJECT_SESSION_STALE")
 
 
 def open_scoped_receiving_base_plate_editor(
@@ -65,25 +101,25 @@ def open_scoped_receiving_base_plate_editor(
     workspace = app.designer_workspace
     project_epoch = host.project_controller.project_load_epoch
 
-    opened = api.open_scoped_base_plate_editor(
-        app._phase6_input_snapshot, set_index, bay_index, expected_owner=expected_owner,
-    )
+    def read_current(owner_witness):
+        snapshot = app._phase6_input_snapshot
+        draft = api.open_physical_sheet_marking(
+            "base_plate", snapshot=snapshot, selection=(set_index, bay_index),
+            expected_owner=owner_witness,
+        )
+        return snapshot, draft
+
+    _, opened = read_current(expected_owner)
     context = opened.context
 
     def confirm(pending):
-        if (host.fold_designer_app is not app or app.designer_workspace is not workspace
-                or host.project_controller.project_load_epoch != project_epoch):
-            raise ValueError("SCOPED_MARK_PROJECT_SESSION_STALE")
-        snapshot = app._phase6_input_snapshot
-        ledger = api.commit_scoped_base_plate_marks(snapshot, opened, pending)
-        snapshot[api.SCOPED_BASE_PLATE_MARKS] = ledger
+        _require_current_project(host, app, workspace, project_epoch)
+        snapshot, fresh = read_current(opened.owner_id)
+        result = api.commit_physical_sheet_marking(fresh, opened, pending)
+        snapshot[api.SCOPED_BASE_PLATE_MARKS] = result.scoped_store
         workspace.mark_dirty()
 
-    return host._open_unified_hole_editor(
-        "base_plate", f"底板打標 Set{set_index + 1}/Bay{bay_index + 1}",
-        context.feature_surface, context.width, context.height,
-        reference_guide=context.reference_guide, feature_list_override=list(opened.saved_marks),
-        on_confirm_features=confirm, on_close=on_close, baseline_scene=context.render_data.scene,
-        manual_marking_context=context, manual_marking_straight_only=True,
-        defer_workspace_sync=True, skip_cancel_sync=True,
-    ) or getattr(host, "last_unified_hole_editor", None)
+    return _present_physical_sheet_editor(
+        host, "base_plate", f"底板打標 Set{set_index + 1}/Bay{bay_index + 1}",
+        context, opened.saved_marks, opened, confirm, on_close=on_close,
+    )
