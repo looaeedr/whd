@@ -967,7 +967,9 @@ def save_part_render_data_dxf(
     _manufacturing_export.reject_unverified_receiving_nfb_tier_base(render_data)
     if type(verify_reopen) is not bool:
         raise TypeError("verify_reopen must be bool")
-    if verify_reopen:
+    from .operator_manual_marking_batch import _has_saved_manual_intent
+    operator_marked = _has_saved_manual_intent(render_data)
+    if verify_reopen or operator_marked:
         # The same Engine-owned stage -> real DXF reopen -> canonical
         # geometry comparison -> atomic commit used by verified batch export.
         # Never verify after replacing a user's previously valid output.
@@ -976,9 +978,10 @@ def save_part_render_data_dxf(
         # identity of a marked saved sheet. Keep its verified stable_id as
         # the selected source key while retaining the operator filename.
         selected_key = (
-            metadata["stable_id"] if metadata.get("manual_marking_v1_features")
-            else destination.name
+            metadata.get("stable_id") if operator_marked else destination.name
         )
+        if operator_marked and (not isinstance(selected_key, str) or not selected_key):
+            raise ValueError("MANUAL_BATCH_PHYSICAL_OWNER_MISSING")
         staged = _manufacturing_export._save_resolved_rows_atomic(
             ((selected_key, destination.name, render_data),),
             destination.parent,
