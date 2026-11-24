@@ -9,6 +9,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from ae_engine import receiving_nfb_pad_operator_parts as pad_source
 from ae_engine import manufacturing_api as api
 from ae_engine.manufacturing_equivalence import (
     ManufacturingParameters, manufacturing_equivalence_payload,
@@ -30,7 +31,7 @@ def _stub_live_pad_action(monkeypatch, selected_snapshot, tmp_path):
 
     calls = []
     monkeypatch.setattr(
-        api, "committed_nfb_pad_draft_parts",
+        pad_source, "committed_nfb_pad_draft_parts",
         lambda _: ("real-confirmed-pad",),
     )
     monkeypatch.setattr(

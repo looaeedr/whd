@@ -3101,6 +3101,7 @@ from .receiving_raw_source_cache import (
 # belongs to Engine. This does not authorize partial or whole-cabinet MFG.
 from .receiving_pad_base_export_selection import (
     ReceivingPadBaseExportSource, resolve_receiving_pad_base_export_source,
+    require_receiving_pad_base_export_preflight,
 )
 
 # #2517 Receiving selected physical Bay Head/Tail Hole Editor geometry API.
