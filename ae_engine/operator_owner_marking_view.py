@@ -2,24 +2,36 @@
 from dataclasses import replace
 
 from .operator_manual_marking import OWNER_MARKING_VIEW_ONLY
-from .operator_persisted_marking_candidate import _read_current
+from .operator_owner_marking_3d_view import (
+    OWNER_MARKING_3D_PREVIEW_BUDGET, within_standalone_marking_budget,
+)
+from .operator_persisted_marking_candidate import _read_current, require_ordinary_selected_marking_stock
 from .operator_root_marking_store import read_workspace_marking_owner_record
-from .operator_selected_marking_receipt import selected_normal_marking_inventory
+from .operator_selected_marking_receipt import open_selected_owner_receipt, selected_normal_marking_inventory
 from .sheetmetal_drawing import DrawingScene
 from .workspace_state import resolve_workspace_physical_root_owner
 
 OWNER_MARKING_VIEW_DIAGNOSTIC = "owner_marking_view_diagnostic"
 
 
-def project_workspace_owner_marking_display(snapshot, part_key, render):
+def project_workspace_owner_marking_display(snapshot, part_key, render, *, standalone_3d=False):
     """Return the view only; never alter stock, attach role features or authorize DXF."""
     if render is None:
         return None
     try:
         owner = resolve_workspace_physical_root_owner(snapshot, part_key)
-        if owner is None or read_workspace_marking_owner_record(snapshot, owner) is None:
+        record = None if owner is None else read_workspace_marking_owner_record(snapshot, owner)
+        if record is None:
             return render
         geometry = selected_normal_marking_inventory(part_key, render)
+        if standalone_3d and not within_standalone_marking_budget(record["features"], len(render.fold_guides)):
+            # Keep the original source mismatch priority; never paint unchecked
+            # data just because it is too large to replay interactively.
+            require_ordinary_selected_marking_stock(snapshot, geometry, part_key)
+            receipt = open_selected_owner_receipt(snapshot, geometry, part_key)
+            if receipt.source_sha256 != record["source_sha256"]:
+                raise ValueError("ROOT_MARKING_SOURCE_STALE")
+            raise ValueError(OWNER_MARKING_3D_PREVIEW_BUDGET)
         _receipt, _draft, evidence = _read_current(snapshot, geometry, part_key)
     except ValueError as exc:
         # Old/invalid ink must not be made to look like a legal current mark.

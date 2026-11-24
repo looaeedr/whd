@@ -400,6 +400,23 @@ def test_same_existing_editor_and_export_ordinary_signed_endcap(tmp_path, monkey
             ink = api.read_verified_owner_marking_candidate(current, original_geometry, key).ink
             assert len(ink) == len(inks) + 1
             exported_bytes = target.read_bytes()
+            assert app._phase6_3d_display_mode == "single"
+            request = bridge._phase6_final_scene_view_request(app)
+            assert tuple(request.render_data.scene.primitives) == (*stock.scene.primitives, *ink)
+            mesh = api.project_independent_part_view_mesh(
+                key, stock, x_profile=request.x_profile, y_profile=request.y_profile,
+                thickness=request.thickness,
+            )
+            assert tuple(app.final_scene_view.last_cutting_mesh) == tuple(mesh.triangles)
+            paths, warning = api.project_checked_owner_marking_standalone_paths(
+                request.render_data.scene, mesh,
+            )
+            assert not warning
+            visible_ink = tuple(line for line in app.renderer.ax3d.lines if line.get_color() == "#f59e0b")
+            expected_ink = tuple(vertices for layer, vertices in paths if layer == "MARKING")
+            assert len(visible_ink) == len(expected_ink)
+            for artist, points in zip(visible_ink, expected_ink):
+                assert tuple(zip(*artist.get_data_3d())) == points
             bridge._phase6_show_corner_data(app)
             bridge._phase6_select_corner_data_part(app, key)
             root.update()
