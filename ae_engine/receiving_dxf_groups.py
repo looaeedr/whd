@@ -234,5 +234,5 @@ def commit_verified_receiving_groups(
         staged[diagnostic] = stage / diagnostic
     pre_commit_guard()  # Same immutable current-source witness before publish.
     return _atomic_commit_staged_dxfs(
-        staged, Path(output_dir), overwrite=overwrite,
+        staged, Path(output_dir), overwrite=overwrite, pre_commit_guard=pre_commit_guard,
     )
