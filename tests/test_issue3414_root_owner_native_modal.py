@@ -511,6 +511,9 @@ def test_same_existing_editor_and_export_ordinary_signed_endcap(tmp_path, monkey
             radius_mark, = tuple(f for f in state.live_context.feature_list if is_manual_round_mark(f))
             state.manual_mark_pattern.set("dashed")
             state.manual_mark_length.set("28")
+            state.manual_mark_angle.set("0")
+            state.manual_mark_dash.set("4")
+            state.manual_mark_gap.set("17")
             editor._manual_marking_controls[0].invoke()
             canvas_click(Vec2(p.x - 34, p.y))
             state.manual_group_arm_x.set("7")
@@ -683,6 +686,84 @@ def test_same_existing_editor_and_export_ordinary_signed_endcap(tmp_path, monkey
             ))["s"]
             assert tuple(f for f in reopened_drawing.live_context.feature_list if api.is_manual_mark(f)) == authored
 
+            def live_straight(pattern):
+                return next(f for f in reopened_drawing.live_context.feature_list
+                            if (getattr(f, "source_type", None) == mark.source_type
+                                and dict(f.source_params)["pattern"] == pattern))
+
+            for seq, pattern in enumerate(("solid", "dashed")):
+                original_line = live_straight(pattern)
+                a, b = original_line.layered_profiles[0][1]
+                ink = Vec2((a.x+b.x)/2, (a.y+b.y)/2)
+                line_target = Vec2(ink.x + 20, ink.y + 27)
+                preview = Vec2(ink.x + 11, ink.y + 15)
+                edit_canvas = host.last_hole_editor_canvas
+
+                def xy(p):
+                    x, y = reopened_drawing.canvas_view.transform.world_to_canvas(p)
+                    return {"x": round(x), "y": round(y)}
+
+                idx = reopened_drawing.canvas_view.hit_test(**xy(ink))
+                assert idx is not None and reopened_drawing.live_context.feature_list[idx] is original_line
+                depth = reopened_drawing.hole_session.snapshot().undo_depth
+                time = 6000 + seq * 1000
+                def drag(release, clock):
+                    edit_canvas.event_generate("<ButtonPress-1>", **xy(ink), time=clock)
+                    root.update()
+                    assert reopened_drawing.hole_session.selected_index == idx and reopened_drawing.dragging[0]
+                    edit_canvas.event_generate("<B1-Motion>", **xy(preview), time=clock + 30)
+                    root.update()
+                    assert live_straight(pattern) != original_line, "PERSISTED_STRAIGHT_MARK_DRAG_DID_NOT_MOVE"
+                    # No final Motion: release geometry must be authoritative.
+                    edit_canvas.event_generate("<ButtonRelease-1>", **xy(release), time=clock + 80)
+                    root.update()
+
+                if pattern == "dashed":
+                    from shapely.geometry import LineString, Point
+
+                    a0, b0 = original_line.points
+                    tr = reopened_drawing.canvas_view.transform
+                    here = tr.canvas_to_world(**xy(ink))
+                    # Aim from the actual quantized press, not an ideal
+                    # sub-pixel location (relevant at small Windows DPI).
+                    crossing = Vec2(here.x + hole.center.x - a0.x - 12.5,
+                                    here.y + hole.center.y - a0.y)
+                    there = tr.canvas_to_world(**xy(crossing))
+                    dx, dy = there.x - here.x, there.y - here.y
+                    def shifted_segment(points):
+                        return LineString([(p.x + dx, p.y + dy) for p in points])
+                    hole_point = Point(hole.center.x, hole.center.y)
+                    assert shifted_segment((a0, b0)).distance(hole_point) < hole.radius
+                    assert all(shifted_segment(points).distance(hole_point) > hole.radius
+                               for _, points, _ in original_line.layered_profiles)
+                    drag(crossing, time)
+                    assert live_straight(pattern) == original_line
+                    assert reopened_drawing.hole_session.snapshot().undo_depth == depth
+                    assert "線打標移動被拒絕" in reopened_drawing.manual_mark_status.cget("text")
+                    assert "完整筆畫" in reopened_drawing.manual_mark_status.cget("text")
+                    reopened_drawing.manual_mark_select_button.invoke()
+                    time += 650
+
+                drag(line_target, time)
+                moved_line = live_straight(pattern)
+                assert moved_line.source_params == original_line.source_params
+                assert reopened_drawing.hole_session.snapshot().undo_depth == depth + 1
+                dx = moved_line.points[0].x - original_line.points[0].x
+                dy = moved_line.points[0].y - original_line.points[0].y
+                tr = reopened_drawing.canvas_view.transform
+                here, there = tr.canvas_to_world(**xy(ink)), tr.canvas_to_world(**xy(line_target))
+                assert (dx, dy) == pytest.approx((there.x - here.x, there.y - here.y))
+                for (layer, old, closed), (new_layer, new, new_closed) in zip(
+                    original_line.layered_profiles, moved_line.layered_profiles, strict=True,
+                ):
+                    assert (new_layer, new_closed) == (layer, closed)
+                    for pa, pb in zip(old, new, strict=True):
+                        assert (pb.x-pa.x, pb.y-pa.y) == pytest.approx((dx, dy))
+                reopened_drawing.undo_btn.invoke()
+                root.update()
+                assert live_straight(pattern) == original_line
+                assert reopened_drawing.hole_session.snapshot().undo_depth == depth
+
             def live_circle():
                 return next(f for f in reopened_drawing.live_context.feature_list if is_manual_round_mark(f))
 
@@ -738,6 +819,7 @@ def test_same_existing_editor_and_export_ordinary_signed_endcap(tmp_path, monkey
             assert api.read_workspace_marking_owner_record(
                 current_workspace_marking_source(app), owner,
             )["features"] == authored
+            canvas = app.corner_data_canvas
             held = "box_body:back"
             assert held in app.designer_workspace.available_parts
             bridge._phase6_select_corner_data_part(app, held)
@@ -748,6 +830,78 @@ def test_same_existing_editor_and_export_ordinary_signed_endcap(tmp_path, monkey
             assert original_geometry.part(key).render_data is initial_stock
             assert tuple(initial_stock.scene.primitives) == tuple(stock.scene.primitives)
             assert not any(is_manual_round_mark(p) for p in stock.scene.primitives)
+            if key == "head":
+                # Persist one valid whole-stroke move and compare genuine
+                # ordinary DXF readback before reopening the unchanged source.
+                app.activate_part(key)
+                root.update()
+                def reopen_editor():
+                    editor = host.open_part_hole_editor(key)
+                    root.update()
+                    place = editor._manual_marking_place
+                    state = dict(zip(
+                        place.__code__.co_freevars, (c.cell_contents for c in place.__closure__),
+                    ))["s"]
+                    return editor, state
+
+                for persist, clock in ((False, 8500), (True, 9500)):
+                    editor, reopened_drawing = reopen_editor()
+                    edit_canvas = host.last_hole_editor_canvas
+                    idx = reopened_drawing.canvas_view.hit_test(**xy(ink))
+                    assert idx is not None and reopened_drawing.live_context.feature_list[idx] == original_line
+                    drag(line_target, clock)
+                    assert live_straight("dashed") != original_line
+                    if not persist:
+                        reopened_drawing.cancel_all_btn.invoke()
+                        root.update()
+                        assert not editor.winfo_exists()
+                        assert api.read_workspace_marking_owner_record(
+                            current_workspace_marking_source(app), owner,
+                        )["features"] == authored
+                        assert target.read_bytes() == exported_bytes
+                translated = live_straight("dashed")
+                _actual_editor_confirm(editor)
+                root.update()
+                assert not editor.winfo_exists()
+                shifted_project = tmp_path / "same-owner-shifted-dash.p6fold"
+                monkeypatch.setattr(filedialog, "asksaveasfilename", lambda **kw: str(shifted_project))
+                menu.invoke(2)
+                root.update()
+                assert api.read_workspace_marking_owner_record(
+                    read_project(shifted_project)["snapshot"], owner,
+                )["features"] == (authored[0], authored[1], translated, authored[3])
+                monkeypatch.setattr(filedialog, "askopenfilename", lambda **kw: str(shifted_project))
+                menu.invoke(0)
+                root.update()
+                app.activate_part(key)
+                root.update()
+                directory = tmp_path / "shifted-dash-dxf"
+                directory.mkdir()
+                monkeypatch.setattr(filedialog, "askdirectory", lambda **kw: str(directory))
+                export_selected_dxf(host)
+                assert not failures, failures
+                shifted_target, = directory.glob("*.dxf")
+                shifted = ezdxf.readfile(shifted_target)
+                assert shifted.header["$INSUNITS"] == 4
+                assert physical_rows(shifted) == physical_rows(doc)
+                from collections import Counter
+                def counts(drawing):
+                    return Counter(tuple(map(tuple, e.get_points("xyseb")))
+                                   for e in drawing.modelspace().query('LWPOLYLINE[layer=="MARKING"]'))
+                def rows(stroke):
+                    return Counter(tuple((p.x, p.y, 0.0, 0.0, 0.0) for p in points)
+                                   for _, points, _ in stroke.layered_profiles)
+                assert counts(doc) - counts(shifted) == rows(authored[2])
+                assert counts(shifted) - counts(doc) == rows(translated)
+                old_circle, = doc.modelspace().query('CIRCLE[layer=="MARKING"]')
+                new_circle, = shifted.modelspace().query('CIRCLE[layer=="MARKING"]')
+                assert (new_circle.dxf.center, new_circle.dxf.radius) == (old_circle.dxf.center, old_circle.dxf.radius)
+                monkeypatch.setattr(filedialog, "askdirectory", lambda **kw: str(out))
+                monkeypatch.setattr(filedialog, "askopenfilename", lambda **kw: str(save))
+                menu.invoke(0)
+                root.update()
+                app.activate_part(key)
+                root.update()
 
         if key == "head":
             import os

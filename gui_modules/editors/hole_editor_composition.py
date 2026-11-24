@@ -926,9 +926,9 @@ def _install_manual_marking_actions(s):
     d = s.d
     api = d.manufacturing_api
     real_redraw = s.redraw
-    # Rejected round placement never enters Features, so replaying the
+    # Rejected marking placement never enters Features, so replaying the
     # valid current draft on a passive redraw cannot dismiss its warning.
-    round_rejection = None
+    marking_rejection = None
     # A source selection is not a Feature or an Undo record. The pending
     # receipt lives only in this editor until the operator clicks a target.
     pending_copy = None
@@ -947,7 +947,7 @@ def _install_manual_marking_actions(s):
             )
             s.confirm_all_btn.configure(state=d.tk.DISABLED)
         else:
-            s.manual_mark_status.configure(text=round_rejection or "", fg="#ff453a")
+            s.manual_mark_status.configure(text=marking_rejection or "", fg="#ff453a")
             s.confirm_all_btn.configure(state=d.tk.NORMAL)
         result = real_redraw()
         if copy_rejection is not None:
@@ -956,16 +956,16 @@ def _install_manual_marking_actions(s):
             s.manual_mark_status.configure(text=pending_copy["prompt"], fg="#007aff")
         if pending_copy is not None:
             s.confirm_all_btn.configure(state=d.tk.DISABLED)
-        if round_rejection:
+        if marking_rejection:
             # The canvas renderer updates generic confirmation controls.
             # This rejected tool attempt still owns its own disabled state.
             s.confirm_all_btn.configure(state=d.tk.DISABLED)
         return result
 
-    def dismiss_round_rejection():
-        nonlocal round_rejection
-        if round_rejection is not None:
-            round_rejection = None
+    def dismiss_marking_rejection():
+        nonlocal marking_rejection
+        if marking_rejection is not None:
+            marking_rejection = None
             checked_redraw()
 
     s.redraw = checked_redraw
@@ -1002,7 +1002,7 @@ def _install_manual_marking_actions(s):
             s.manual_round_button.configure(relief=d.tk.RAISED)
         for button in s.manual_group_tools.values():
             button.configure(relief=d.tk.RAISED)
-        dismiss_round_rejection()
+        dismiss_marking_rejection()
         if was_pending:
             checked_redraw()
 
@@ -1026,7 +1026,7 @@ def _install_manual_marking_actions(s):
         for key, button in s.manual_group_tools.items():
             button.configure(relief=d.tk.SUNKEN if kind == key else d.tk.RAISED)
         if kind != "circle":
-            dismiss_round_rejection()
+            dismiss_marking_rejection()
 
     def selected_group():
         idx = s.hole_session.selected_index
@@ -1106,7 +1106,7 @@ def _install_manual_marking_actions(s):
             mirror_vertical=not api.group_parameters(group)["mirror_vertical"])
 
     def mark_down(event):
-        nonlocal round_rejection
+        nonlocal marking_rejection
         # Also clear when the legacy pointer handler leaves its old selection
         # active on empty canvas; a subsequent double must hit a real corner.
         clear_member_edit()
@@ -1158,12 +1158,15 @@ def _install_manual_marking_actions(s):
             result = original_down(event)
             idx = s.hole_session.selected_index
             rows = s.live_context.feature_list
-            if (s.dragging[0] and hit == idx and 0 <= idx < len(rows)
-                    and api.is_manual_round_mark(rows[idx])):
-                drag_origin[0] = (
-                    id(rows), s.hole_session.active_context_key,
-                    ("round", idx), point, rows[idx].offset, rows[idx],
-                )
+            if s.dragging[0] and hit == idx and 0 <= idx < len(rows):
+                item = rows[idx]
+                kind = ("round" if api.is_manual_round_mark(item) else
+                        "straight" if api.is_manual_straight_mark(item) else None)
+                if kind is not None:
+                    drag_origin[0] = (
+                        id(rows), s.hole_session.active_context_key,
+                        (kind, idx, item), point, item.offset, item,
+                    )
             return result
         try:
             if s.manual_group_tool[0] == "circle":
@@ -1197,11 +1200,11 @@ def _install_manual_marking_actions(s):
         except (ValueError, TypeError, RuntimeError) as exc:
             warning = "打標位置不合法：" + str(exc)
             if s.manual_group_tool[0] == "circle":
-                round_rejection = warning
+                marking_rejection = warning
             s.manual_mark_status.configure(text=warning, fg="#ff453a")
             s.confirm_all_btn.configure(state=d.tk.DISABLED)
             return "break"
-        round_rejection = None
+        marking_rejection = None
         s.hole_session.execute(HoleEditorAction.insert(mark))
         s.hole_session.execute(HoleEditorAction.commit_active())
         s.refresh_created()
@@ -1226,9 +1229,9 @@ def _install_manual_marking_actions(s):
                 # The release position is authoritative even if Tk
                 # coalesces away a final motion event.
                 safe_drag(event)
-                # One round drag is one Undo transaction. Releasing over an
-                # invalid circumference restores the original round mark.
-                action = (HoleEditorAction.cancel_active() if round_rejection else
+                # One authored stroke drag is one Undo transaction. An
+                # invalid release restores the original exact stroke.
+                action = (HoleEditorAction.cancel_active() if marking_rejection else
                           HoleEditorAction.commit_active(keep_selected=True))
                 s.hole_session.execute(action)
                 s.refresh_created()
@@ -1237,7 +1240,7 @@ def _install_manual_marking_actions(s):
             drag_origin[0] = None
 
     def safe_drag(event):
-        nonlocal round_rejection
+        nonlocal marking_rejection
         idx = s.hole_session.selected_index
         items = s.live_context.feature_list
         if (0 <= idx < len(items)
@@ -1248,36 +1251,42 @@ def _install_manual_marking_actions(s):
             grab = drag_origin[0]
             if grab is None:
                 return "break"
-            if point is None:
-                if len(grab) == 6:
-                    round_rejection = "圓打標移動被拒絕：請在圖面內放置"
-                    s.redraw()
-                return "break"
             if len(grab) == 6:
-                list_id, context_key, selection, cursor_down, center_down, previous = grab
+                list_id, context_key, (kind, selection, source), cursor_down, center_down, previous = grab
                 if (id(items) != list_id or s.hole_session.active_context_key != context_key
-                        or selection != ("round", idx) or items[idx] is not previous):
+                        or selection != idx or items[idx] is not previous):
                     return "break"
-                # Tk forwards cursor intent; the Engine owns the exact circle
-                # circumference and checks every original physical cutout.
-                center = type(center_down)(
-                    center_down.x + (point.x - cursor_down.x),
-                    center_down.y + (point.y - cursor_down.y),
-                )
-                try:
-                    moved = api.move_physical_sheet_round_mark(
-                        s.manual_marking_draft, items, selected_index=idx, centre=center,
-                    )
-                except (ValueError, TypeError, RuntimeError) as exc:
-                    round_rejection = "圓打標移動被拒絕：" + str(exc)
+                label = "圓打標" if kind == "round" else "線打標"
+                if point is None:
+                    marking_rejection = label + "移動被拒絕：請在圖面內放置"
                     s.redraw()
                     return "break"
-                round_rejection = None
+                # Tk forwards only the actual cursor displacement.
+                dx, dy = point.x - cursor_down.x, point.y - cursor_down.y
+                try:
+                    if kind == "round":
+                        moved = api.move_physical_sheet_round_mark(
+                            s.manual_marking_draft, items, selected_index=idx,
+                            centre=type(center_down)(center_down.x + dx, center_down.y + dy),
+                        )
+                    else:
+                        # Every preview is relative to the press, not to the
+                        # last replaced row; release must not accumulate motion.
+                        original = (*items[:idx], source, *items[idx + 1:])
+                        moved = api.move_physical_sheet_straight_mark(
+                            s.manual_marking_draft, original, selected_index=idx,
+                            displacement=type(cursor_down)(dx, dy),
+                        )
+                except (ValueError, TypeError, RuntimeError) as exc:
+                    marking_rejection = label + "移動被拒絕：" + str(exc)
+                    s.redraw()
+                    return "break"
+                marking_rejection = None
                 s.hole_session.execute(HoleEditorAction.replace_selected(moved))
                 drag_origin[0] = (*grab[:-1], moved)
                 s.redraw()
                 return "break"
-            if not api.is_manual_group(items[idx]):
+            if point is None or not api.is_manual_group(items[idx]):
                 return "break"
             list_id, context_key, group_id, cursor_down, center_down = grab
             if (list_id != id(items)
