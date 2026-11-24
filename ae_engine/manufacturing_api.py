@@ -2510,6 +2510,12 @@ def build_receiving_factory_confirmed_parts(
     )
 
 
+from .receiving_factory_requests import (
+    ReceivingFactoryConfirmedDoorHandoff,
+    plan_receiving_factory_confirmed_door_handoff,
+)
+
+
 def build_receiving_factory_confirmed_inner_door_frames(
     source_dimensions, *, confirmation=None, confirmed_door_layout_columns=(),
 ):
