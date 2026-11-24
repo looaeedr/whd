@@ -18,7 +18,9 @@ from ae_engine.contracts import ManufacturingContext
 from ae_engine.sheetmetal_drawing import LinePrimitive
 from ae_engine.sheetmetal_feature_core import CircleFeature, FeatureAnchor, ProfileFeature
 from ae_engine.sheetmetal_geometry import Vec2
-from tests.test_issue3412_manual_marking_first_sheet import actual_sheet, _mark
+from tests.test_issue3412_manual_marking_first_sheet import (
+    actual_sheet, _attach_native_marking_pointer_and_controls, _mark,
+)
 from tests.test_issue2517_physical_sheet_hole_editor_context_api import _spec
 
 
@@ -302,17 +304,19 @@ def test_native_tk_canvas_place_confirm_save_new_instance_open_and_normal_dxf(
         manual_mark_status=warning, confirm_all_btn=confirm,
         manual_mark_draw_button=drawing, manual_mark_select_button=selection,
         hole_session=session, indicator_redraw=[None],
-        on_canvas_down=lambda _e: None, on_canvas_drag=lambda _e: None,
-        on_escape=lambda _e: "unhandled", canvas_view=view,
+        on_escape=lambda _e: "unhandled", canvas_view=view, canvas=canvas,
         set_insert_mode=lambda _value: None,
         redraw=redraw, refresh_created=lambda: None,
         sync_all=lambda: None,
     )
     try:
+        _attach_native_marking_pointer_and_controls(editor, context)
         _install_manual_marking_actions(editor)
         canvas.bind("<Button-1>", editor.on_canvas_down)
+        canvas.bind("<ButtonRelease-1>", editor.on_canvas_up)
         drawing.invoke()
         canvas.event_generate("<Button-1>", x=round(cx), y=round(cy))
+        canvas.event_generate("<ButtonRelease-1>", x=round(cx), y=round(cy))
         tk_root.update()
         assert len(live) == 1 and api.is_manual_mark(live[0])
         assert drawing.cget("relief") == tk.SUNKEN
@@ -371,8 +375,14 @@ def test_native_tk_canvas_place_confirm_save_new_instance_open_and_normal_dxf(
         designer_workspace=workspace, _load_part_holes=lambda _key: None,
         submit_update_intent=lambda *_a, **_kw: None,
     )
+    from phase6_project_controller import Phase6ProjectController
+    controller = Phase6ProjectController(
+        read_project=project.read_project, write_project=project.write_project,
+        schema=project.PROJECT_SCHEMA,
+    )
+    controller.load(saved_path)
     host = SimpleNamespace(
-        fold_designer_app=app,
+        fold_designer_app=app, project_controller=controller,
         _query_fold_designer_render_data=lambda *_a: clean,
         _open_unified_hole_editor=lambda *_a, **kw: captured.update(kw) or object(),
     )
@@ -385,8 +395,12 @@ def test_native_tk_canvas_place_confirm_save_new_instance_open_and_normal_dxf(
         lambda *_a, **_kw: "真受電箱底板",
     )
     open_workspace_sheet_editor(host, "base_plate")
-    assert captured["feature_list_override"] is reopened
-    assert captured["manual_marking_context"] is not None
+    assert captured["feature_list_override"] == reopened
+    assert captured["feature_list_override"] is not reopened  # Transient editor draft must not mutate saved Features.
+    draft = captured["manual_marking_draft"]
+    assert draft.features == tuple(reopened)
+    assert draft.context.part_key == "base_plate"
+    assert draft.context.render_data is clean
     assert captured["defer_workspace_sync"] is True
     assert captured["skip_cancel_sync"] is True
     assert writes == []
@@ -503,14 +517,29 @@ def test_composed_dxf_real_base_manual_mark_and_unmarked_custom_still_export(
                                  api.build_part_render_data(custom_spec)),
     ))
     dest = tmp_path / "valid-composed.dxf"
-    guard_calls = []
+    guard_observations = []
+
+    def guard():
+        guard_observations.append(dest.read_bytes() if dest.exists() else None)
+
     result = api.save_composed_panel_dxf(
         (("valid-manual-base", base), ("unmarked-custom", unmarked)),
-        dest, pre_commit_guard=lambda: guard_calls.append("ok"), overwrite=False,
+        dest, pre_commit_guard=guard, overwrite=False,
     )
     assert result.path == str(dest)
-    assert len(guard_calls) == 2
+    published = dest.read_bytes()
+    assert guard_observations[0] is None
+    assert guard_observations[-1] == published
+    assert all(observed is None or observed == published for observed in guard_observations)
     dxf = ezdxf.readfile(dest)
+    assert not dxf.audit().errors
+    expected_cutting = sum(
+        primitive.layer == "CUTTING"
+        for geom in (base, unmarked)
+        for part in geom.parts
+        for primitive in part.render_data.scene.primitives
+    )
+    assert sum(e.dxf.layer == "CUTTING" for e in dxf.modelspace()) == expected_cutting
     assert dxf.header["$INSUNITS"] == 4
     marked = [e for e in dxf.modelspace() if e.dxf.layer == "MARKING"]
     assert len(marked) == len(mark.layered_profiles)

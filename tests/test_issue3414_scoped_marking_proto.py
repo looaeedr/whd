@@ -47,7 +47,7 @@ def _state(editor):
 
 def _draw(editor, dx):
     state = _state(editor)
-    bend = next(p for p in state.manual_marking_context.render_data.scene.primitives
+    bend = next(p for p in state.manual_marking_draft.context.render_data.scene.primitives
                 if isinstance(p, LinePrimitive) and p.layer == "BEND")
     x = (bend.p1.x + bend.p2.x) / 2 + dx
     y = (bend.p1.y + bend.p2.y) / 2

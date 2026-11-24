@@ -94,21 +94,20 @@ def open_scoped_receiving_base_plate_editor(
     workspace = app.designer_workspace
     project_epoch = host.project_controller.project_load_epoch
 
-    def read_current():
+    def read_current(owner_witness):
         snapshot = app._phase6_input_snapshot
-        opened = api.open_physical_sheet_marking(
+        draft = api.open_physical_sheet_marking(
             "base_plate", snapshot=snapshot, selection=(set_index, bay_index),
+            expected_owner=owner_witness,
         )
-        if expected_owner is not None and opened.owner_id != expected_owner:
-            raise ValueError("SCOPED_MARK_EDITOR_OWNER_STALE")
-        return snapshot, opened
+        return snapshot, draft
 
-    _, opened = read_current()
+    _, opened = read_current(expected_owner)
     context = opened.context
 
     def confirm(pending):
         _require_current_project(host, app, workspace, project_epoch)
-        snapshot, fresh = read_current()
+        snapshot, fresh = read_current(opened.owner_id)
         result = api.commit_physical_sheet_marking(fresh, opened, pending)
         snapshot[api.SCOPED_BASE_PLATE_MARKS] = result.scoped_store
         workspace.mark_dirty()

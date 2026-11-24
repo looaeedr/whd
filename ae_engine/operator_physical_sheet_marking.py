@@ -56,20 +56,23 @@ def _source(context):
 
 
 def open_physical_sheet_marking(part_key, *, context=None, features=(),
-                                snapshot=None, selection=None):
-    """Bind one editable current sheet; no caller-supplied owner or release flag."""
+                                snapshot=None, selection=None, expected_owner=None):
+    """Bind current stock; a scoped owner witness only rejects a mismatch."""
     if selection is not None:
         if (part_key != "base_plate" or context is not None or features
                 or not isinstance(snapshot, dict)
                 or not isinstance(selection, (tuple, list)) or len(selection) != 2):
             raise ValueError("PHYSICAL_SHEET_MARKING_SELECTION_UNSUPPORTED")
         snapshot = deepcopy(snapshot)
-        scoped = open_scoped_base_plate_editor(snapshot, *selection)
+        scoped = open_scoped_base_plate_editor(
+            snapshot, *selection, expected_owner=expected_owner,
+        )
         return PhysicalSheetMarkingDraft(
             scoped.context, scoped.owner, ("line",), scoped.saved_marks,
             _source(scoped.context), scoped, snapshot,
         )
-    if snapshot is not None or not isinstance(context, PhysicalSheetEditorContext):
+    if (snapshot is not None or expected_owner is not None
+            or not isinstance(context, PhysicalSheetEditorContext)):
         raise ValueError("PHYSICAL_SHEET_MARKING_SOURCE_UNSUPPORTED")
     if context.part_key != part_key:
         raise ValueError("PHYSICAL_SHEET_MARKING_PART_MISMATCH")
