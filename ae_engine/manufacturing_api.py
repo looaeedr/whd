@@ -356,7 +356,7 @@ from .physical_sheet_editor_context import (
     propose_operator_physical_sheet_hole_features,
 )
 from .operator_manual_marking import (
-    MANUAL_MARK_SOURCE, is_manual_mark,
+    MANUAL_MARK_SOURCE, is_manual_mark, is_manual_round_mark,
     create_physical_manual_round_marking,
     create_physical_manual_marking, validate_physical_manual_markings,
     first_sheet_manual_marking_supported,
@@ -3387,6 +3387,7 @@ from .operator_scoped_base_plate_marks import (
 from .operator_physical_sheet_marking import (
     open_physical_sheet_marking,
     create_physical_sheet_mark,
+    move_physical_sheet_round_mark,
     validate_physical_sheet_marking_draft,
     commit_physical_sheet_marking,
     propose_legacy_root_occupancy_for_mark_confirm,

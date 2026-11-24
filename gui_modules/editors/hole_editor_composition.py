@@ -975,7 +975,8 @@ def _install_manual_marking_actions(s):
     # hit by the latest valid double-click, never to a reused member name.
     s.manual_group_edit_identity = [None]  # (stable group_id, member_id)
     s.manual_group_edit_context = [None]   # (Session context, list identity)
-    drag_origin = [None]  # (list, context, group_id, cursor_down, center_down)
+    # The grab is scoped to the exact editor context, feature list and source.
+    drag_origin = [None]
     corner_arm = [None]   # (group_id, member_id, Session context, list)
 
     def clear_member_edit():
@@ -1153,7 +1154,17 @@ def _install_manual_marking_actions(s):
                     s.refresh_created()
                     s.redraw()
                     return "break"
-            return original_down(event)
+            hit = s.canvas_view.hit_test(event.x, event.y)
+            result = original_down(event)
+            idx = s.hole_session.selected_index
+            rows = s.live_context.feature_list
+            if (s.dragging[0] and hit == idx and 0 <= idx < len(rows)
+                    and api.is_manual_round_mark(rows[idx])):
+                drag_origin[0] = (
+                    id(rows), s.hole_session.active_context_key,
+                    ("round", idx), point, rows[idx].offset, rows[idx],
+                )
+            return result
         try:
             if s.manual_group_tool[0] == "circle":
                 mark = api.create_physical_sheet_mark(
@@ -1209,21 +1220,64 @@ def _install_manual_marking_actions(s):
     original_up = s.on_canvas_up
 
     def safe_up(event):
+        grab = drag_origin[0]
         try:
+            if grab is not None and len(grab) == 6:
+                # The release position is authoritative even if Tk
+                # coalesces away a final motion event.
+                safe_drag(event)
+                # One round drag is one Undo transaction. Releasing over an
+                # invalid circumference restores the original round mark.
+                action = (HoleEditorAction.cancel_active() if round_rejection else
+                          HoleEditorAction.commit_active(keep_selected=True))
+                s.hole_session.execute(action)
+                s.refresh_created()
             return original_up(event)
         finally:
             drag_origin[0] = None
 
     def safe_drag(event):
+        nonlocal round_rejection
         idx = s.hole_session.selected_index
         items = s.live_context.feature_list
         if (0 <= idx < len(items)
                 and getattr(items[idx], "layer", None) == "MARKING"):
-            if not api.is_manual_group(items[idx]) or not s.dragging[0]:
+            if not s.dragging[0]:
                 return "break"
             point = s.canvas_view.canvas_to_world(event.x, event.y)
             grab = drag_origin[0]
-            if point is None or grab is None:
+            if grab is None:
+                return "break"
+            if point is None:
+                if len(grab) == 6:
+                    round_rejection = "圓打標移動被拒絕：請在圖面內放置"
+                    s.redraw()
+                return "break"
+            if len(grab) == 6:
+                list_id, context_key, selection, cursor_down, center_down, previous = grab
+                if (id(items) != list_id or s.hole_session.active_context_key != context_key
+                        or selection != ("round", idx) or items[idx] is not previous):
+                    return "break"
+                # Tk forwards cursor intent; the Engine owns the exact circle
+                # circumference and checks every original physical cutout.
+                center = type(center_down)(
+                    center_down.x + (point.x - cursor_down.x),
+                    center_down.y + (point.y - cursor_down.y),
+                )
+                try:
+                    moved = api.move_physical_sheet_round_mark(
+                        s.manual_marking_draft, items, selected_index=idx, centre=center,
+                    )
+                except (ValueError, TypeError, RuntimeError) as exc:
+                    round_rejection = "圓打標移動被拒絕：" + str(exc)
+                    s.redraw()
+                    return "break"
+                round_rejection = None
+                s.hole_session.execute(HoleEditorAction.replace_selected(moved))
+                drag_origin[0] = (*grab[:-1], moved)
+                s.redraw()
+                return "break"
+            if not api.is_manual_group(items[idx]):
                 return "break"
             list_id, context_key, group_id, cursor_down, center_down = grab
             if (list_id != id(items)

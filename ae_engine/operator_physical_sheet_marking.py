@@ -158,6 +158,27 @@ def create_physical_sheet_mark(draft, features, *, tool="line", **raw):
     return create_physical_manual_marking_group(ctx.part_key, ctx, rows, kind=tool, **raw)
 
 
+def move_physical_sheet_round_mark(draft, features, *, selected_index, centre):
+    """Move only the selected authored circle; revalidate the full physical draft."""
+    from .operator_manual_marking import (
+        _build_manual_round_feature, _round_mark_primitive, is_manual_round_mark,
+    )
+
+    rows = tuple(features)
+    if (type(selected_index) is not int or not 0 <= selected_index < len(rows)
+            or not is_manual_round_mark(rows[selected_index])):
+        raise ValueError("ROUND_MARKING_SELECTED_SOURCE_REQUIRED")
+    if "circle" not in getattr(draft, "allowed_tools", ()):
+        raise ValueError("PHYSICAL_SHEET_MARKING_TOOL_UNSUPPORTED")
+    original = rows[selected_index]
+    _round_mark_primitive(original)  # Reject corrupt persisted shape/source, not repair.
+    moved = _build_manual_round_feature(centre, original.diameter)
+    validate_physical_sheet_marking_draft(
+        draft, (*rows[:selected_index], moved, *rows[selected_index + 1:]),
+    )
+    return moved
+
+
 def commit_physical_sheet_marking(current, opened, features):
     """Compare freshly resolved receipt and return an existing transport update."""
     _require_draft(opened)
