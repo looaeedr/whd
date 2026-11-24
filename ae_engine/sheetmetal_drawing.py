@@ -221,9 +221,10 @@ class SceneData:
 
 
 
-def structural_result_to_primitives(result) -> tuple[DrawingPrimitive, ...]:
+def structural_result_to_primitives(result, *, outline_semantic_id=None) -> tuple[DrawingPrimitive, ...]:
     primitives: list[DrawingPrimitive] = [
-        PolylinePrimitive(points=tuple(result.outline), layer="CUTTING", closed=True)
+        PolylinePrimitive(points=tuple(result.outline), layer="CUTTING", closed=True,
+                          semantic_id=outline_semantic_id)
     ]
     primitives.extend(
         LinePrimitive(segment.p1, segment.p2, "BEND") for segment in result.bends

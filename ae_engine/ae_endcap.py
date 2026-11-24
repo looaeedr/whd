@@ -285,7 +285,8 @@ def _build_unknown_end_cap_scene(*, w, d, t, fw, yl1, yr1, ytop1, ybottom1,
                                   corner_policy, x_topology="folded", depth_comp_t=3.0,
                                   nominal_yl1=None, nominal_yr1=None,
                                   box_body_formed_fw_left=None, box_body_formed_fw_right=None,
-                                  draw_stock=False, is_tail=False, holes=None):
+                                  draw_stock=False, is_tail=False, holes=None,
+                                  outline_semantic_id=None):
     """Unknown/manual EndCap scene. Vault fixed holes/policies are intentionally excluded."""
     result = build_unknown_endcap_result(
         w=w, d=d, t=t, fw=fw, yl1=yl1, yr1=yr1,
@@ -299,7 +300,9 @@ def _build_unknown_end_cap_scene(*, w, d, t, fw, yl1, yr1, ytop1, ybottom1,
     scene = DrawingScene()
     if draw_stock:
         scene.add(build_stock_outline(result.width, result.height))
-    scene.extend(structural_result_to_primitives(result))
+    scene.extend(structural_result_to_primitives(
+        result, outline_semantic_id=outline_semantic_id,
+    ))
     if not is_tail:
         scene = mirror_drawing_scene_y(scene, result.height)
     scene.extend(resolved_features_to_primitives(
