@@ -40,7 +40,7 @@ def _persisted_pair(actual_sheet, tmp_path, *, pattern="solid"):
 
 
 def _copy(a, b, context, group_id, *, features=(), source_snapshot=None,
-          target_snapshot=None):
+          target_snapshot=None, target_position=Vec2(100, 100)):
     return api.copy_saved_manual_marking_group_to_selected_sheet(
         source_snapshot=(read_project(a)["snapshot"]
                          if source_snapshot is None else source_snapshot),
@@ -51,7 +51,7 @@ def _copy(a, b, context, group_id, *, features=(), source_snapshot=None,
         target_project_path=b,
         target_project_sha256=sha256(b.read_bytes()).hexdigest(),
         target_context=context, target_features=features,
-        source_group_id=group_id,
+        source_group_id=group_id, target_position=target_position,
     )
 
 
@@ -98,7 +98,7 @@ def test_copy_rejects_drifted_saved_source_and_hidden_dash_hole(actual_sheet, tm
             target_project_path=b,
             target_project_sha256=sha256(b.read_bytes()).hexdigest(),
             target_context=ctx, target_features=(),
-            source_group_id=source_id,
+            source_group_id=source_id, target_position=Vec2(100, 100),
         )
     from ae_engine.operator_manual_marking_groups import source_group
     full = source_group(group)[2][0]
@@ -222,3 +222,63 @@ def test_persisted_round_ink_coexists_without_becoming_a_group_copy(actual_sheet
         (point.x, point.y, 6),
     )
     assert doc.modelspace().query('LWPOLYLINE[layer=="MARKING"]')
+
+
+@pytest.mark.parametrize("kind", ("l", "cross", "pair_l", "quad_l"))
+def test_copy_places_on_operator_anchor_preserving_local_offsets(actual_sheet, tmp_path, kind):
+    a, b, _, ctx = _persisted_pair(actual_sheet, tmp_path)
+    source = read_project(a)["snapshot"]
+    original = _group(actual_sheet, kind=kind, pattern="dashed", dash=2, gap=5)
+    member = api.group_parameters(original)["members"][0][0]
+    original = api.edit_physical_manual_group(
+        original, member_id=member, offset_x=3, offset_y=-2,
+        angle=17, mirror_vertical=True,
+    )
+    source["part_features"] = {"base_plate": [original]}
+    source["workspace"] = {"part_features": {"base_plate": [original]}}
+    write_project(a, {"schema": PROJECT_SCHEMA, "snapshot": source})
+    before = (a.read_bytes(), b.read_bytes())
+    target = Vec2(150, 110)
+    clone = _copy(a, b, ctx, api.group_parameters(original)["group_id"],
+                  target_position=target)
+    src_params, dst_params = api.group_parameters(original), api.group_parameters(clone)
+    assert src_params.pop("group_id") != dst_params.pop("group_id")
+    assert src_params == dst_params
+    src_points = dict(api.group_member_world_points(original))
+    dst_points = dict(api.group_member_world_points(clone))
+    if kind in ("l", "cross"):
+        source_anchor, dest_anchor = src_points[member], dst_points[member]
+    else:
+        source_anchor, dest_anchor = original.offset, clone.offset
+    assert (dest_anchor.x, dest_anchor.y) == pytest.approx((target.x, target.y))
+    for name in src_points:
+        assert (dst_points[name].x - src_points[name].x,
+                dst_points[name].y - src_points[name].y) == pytest.approx(
+                    (target.x - source_anchor.x, target.y - source_anchor.y))
+    assert before == (a.read_bytes(), b.read_bytes())
+
+
+def test_copy_invalid_target_and_missing_position_never_insert(actual_sheet, tmp_path):
+    a, b, group, ctx = _persisted_pair(actual_sheet, tmp_path)
+    before = (a.read_bytes(), b.read_bytes())
+    gid = api.group_parameters(group)["group_id"]
+    with pytest.raises(ValueError, match="完整筆畫|無材料"):
+        _copy(a, b, ctx, gid, target_position=Vec2(-10, -10))
+    with pytest.raises(ValueError, match="TARGET_POSITION_REQUIRED"):
+        _copy(a, b, ctx, gid, target_position=None)
+    assert before == (a.read_bytes(), b.read_bytes())
+
+
+def test_relocated_copy_full_dash_blank_is_checked_at_new_anchor(actual_sheet, tmp_path):
+    from ae_engine.operator_manual_marking_groups import source_group
+    a, b, group, ctx = _persisted_pair(actual_sheet, tmp_path, pattern="dashed")
+    gid = api.group_parameters(group)["group_id"]
+    position = Vec2(150, 110)
+    clone = _copy(a, b, ctx, gid, target_position=position)
+    full = source_group(clone)[2][0]
+    p = full.interpolate(4)
+    hole = CircleFeature(diameter=.4, anchor=FeatureAnchor.ABSOLUTE_FINISHED_FACE,
+                         offset=Vec2(p.x, p.y), layer="CUTTING")
+    with pytest.raises(ValueError, match="完整筆畫|碰觸孔位"):
+        _copy(a, b, ctx, gid, target_position=position, features=(hole,))
+    assert read_project(b)["snapshot"]["part_features"]["base_plate"] == []

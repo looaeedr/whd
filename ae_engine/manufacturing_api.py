@@ -367,6 +367,7 @@ from .operator_manual_marking_groups import (
 )
 from .operator_manual_marking_copy import (
     copy_saved_manual_marking_group_to_selected_sheet,
+    verify_saved_manual_marking_copy_sources,
 )
 from .indicator_editor_geometry import (
     resolve_operator_indicator_editor_components,

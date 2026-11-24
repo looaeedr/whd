@@ -4,12 +4,13 @@ from __future__ import annotations
 from pathlib import Path
 from hashlib import sha256
 import tkinter as tk
-from tkinter import filedialog
+from tkinter import filedialog, messagebox
 
 import ezdxf
 import pytest
 
 from ae_engine import manufacturing_api as api
+from ae_engine.sheetmetal_geometry import Vec2
 from phase6_project_file import write_project, read_project, PROJECT_SCHEMA
 from tests.test_issue3412_manual_marking_first_sheet import actual_sheet
 from tests.test_issue3413_manual_group_engine import _group
@@ -79,8 +80,47 @@ def test_primary_true_canvas_target_selected_saved_group_copy_undo_reopen_normal
         monkeypatch.setattr(
             filedialog, "askopenfilename", lambda **kwargs: str(origin),
         )
-        state.manual_mark_copy_button.invoke()
+        def click_target(point):
+            px, py = state.canvas_view.transform.world_to_canvas(point)
+            world = state.canvas_view.canvas_to_world(round(px), round(py))
+            assert world is not None
+            state.canvas.event_generate("<ButtonPress-1>", x=round(px), y=round(py))
+            state.canvas.event_generate("<ButtonRelease-1>", x=round(px), y=round(py))
+            root.update()
+            return world
+
+        def choose():
+            state.manual_mark_copy_button.invoke()
+            root.update()
+            assert not any(api.is_manual_group(f) for f in state.live_context.feature_list)
+            assert "目標群組中心" in state.manual_mark_status.cget("text")
+
+        source_before, target_before = origin.read_bytes(), destination.read_bytes()
+        # Source selection alone never inserts a draft or Undo action.
+        depth = state.hole_session.snapshot().undo_depth
+        choose()
+        assert state.hole_session.snapshot().undo_depth == depth
+        state.manual_mark_escape()
         root.update()
+        assert state.hole_session.snapshot().undo_depth == depth
+        choose()
+        state.undo_btn.invoke()
+        root.update()
+        assert state.hole_session.snapshot().undo_depth == depth
+        # A valid source cannot authorize an invalid destination.
+        choose()
+        click_target(Vec2(2, 100))
+        assert not any(api.is_manual_group(f) for f in state.live_context.feature_list)
+        assert state.hole_session.snapshot().undo_depth == depth
+        # Saved source changed while waiting for the click.
+        choose()
+        origin.write_bytes(source_before + b"\n")
+        click_target(Vec2(150, 110))
+        assert not any(api.is_manual_group(f) for f in state.live_context.feature_list)
+        assert "SOURCE_SAVED_SOURCE_CHANGED" in state.manual_mark_status.cget("text")
+        origin.write_bytes(source_before)
+        choose()
+        placed_at = click_target(Vec2(150, 110))
         candidates = [
             f for f in state.live_context.feature_list if api.is_manual_group(f)
         ]
@@ -89,21 +129,40 @@ def test_primary_true_canvas_target_selected_saved_group_copy_undo_reopen_normal
         clone_id = api.group_parameters(clone)["group_id"]
         assert clone_id != old_id
         assert api.group_parameters(clone)["members"] == api.group_parameters(group)["members"]
-        assert dict(api.group_member_world_points(clone)) == dict(
-            api.group_member_world_points(group)
+        assert (clone.offset.x, clone.offset.y) == pytest.approx(
+            (placed_at.x, placed_at.y),
         )
+        assert clone.offset != group.offset
+        for member_id, point in api.group_member_world_points(clone):
+            old = dict(api.group_member_world_points(group))[member_id]
+            assert (point.x-old.x, point.y-old.y) == pytest.approx(
+                (placed_at.x-group.offset.x, placed_at.y-group.offset.y),
+            )
 
         state.undo_btn.invoke()
         root.update()
         assert not any(api.is_manual_group(f)
                        for f in state.live_context.feature_list)
-        state.manual_mark_copy_button.invoke()
-        root.update()
+        choose()
+        placed_at = click_target(Vec2(160, 110))
         assert len([f for f in state.live_context.feature_list
                     if api.is_manual_group(f)]) == 1
+        # The source and target files are checked again at final Confirm,
+        # not merely when the source dialog was first closed.
+        errors = []
+        monkeypatch.setattr(messagebox, "showerror", lambda title, message, **kw: errors.append(message))
+        destination.write_bytes(target_before + b"\n")
         _actual_editor_confirm(editor)
         root.update()
-        assert not editor.winfo_exists()
+        assert editor.winfo_exists(), errors
+        assert errors and "TARGET_SAVED_SOURCE_CHANGED" in errors[-1]
+        assert not designer.designer_workspace.features_for("base_plate")
+        destination.write_bytes(target_before)
+        _actual_editor_confirm(editor)
+        root.update()
+        assert not editor.winfo_exists(), errors
+        assert origin.read_bytes() == source_before
+        assert destination.read_bytes() == target_before
         live = designer.designer_workspace.features_for("base_plate")
         final_mark = next(f for f in live if api.is_manual_group(f))
         assert api.group_parameters(final_mark)["group_id"] != old_id
@@ -119,6 +178,9 @@ def test_primary_true_canvas_target_selected_saved_group_copy_undo_reopen_normal
         stored = read_project(final_target)["snapshot"]["part_features"]["base_plate"]
         assert len([f for f in stored if api.is_manual_group(f)]) == 1
         assert api.group_parameters(stored[0])["group_id"] == api.group_parameters(final_mark)["group_id"]
+        assert (stored[0].offset.x, stored[0].offset.y) == pytest.approx(
+            (placed_at.x, placed_at.y),
+        )
 
         monkeypatch.setattr(
             filedialog, "askopenfilename", lambda **kwargs: str(final_target),
@@ -137,6 +199,8 @@ def test_primary_true_canvas_target_selected_saved_group_copy_undo_reopen_normal
         assert {"CUTTING", "BEND", "MARKING"} <= {
             row.dxf.layer for row in data.modelspace()
         }
+        render = api.build_part_render_data(spec, ctx)
+        assert api.verify_saved_part_render_data_dxf(render, dxf).ok
     finally:
         if root.winfo_exists():
             root.destroy()

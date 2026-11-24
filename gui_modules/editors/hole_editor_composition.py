@@ -926,6 +926,10 @@ def _install_manual_marking_actions(s):
     # Rejected round placement never enters Features, so replaying the
     # valid current draft on a passive redraw cannot dismiss its warning.
     round_rejection = None
+    # A source selection is not a Feature or an Undo record. The pending
+    # receipt lives only in this editor until the operator clicks a target.
+    pending_copy = None
+    placed_copy_receipts = {}
 
     def checked_redraw():
         try:
@@ -942,6 +946,9 @@ def _install_manual_marking_actions(s):
             s.manual_mark_status.configure(text=round_rejection or "", fg="#ff453a")
             s.confirm_all_btn.configure(state=d.tk.NORMAL)
         result = real_redraw()
+        if pending_copy is not None:
+            s.manual_mark_status.configure(text=pending_copy["prompt"], fg="#007aff")
+            s.confirm_all_btn.configure(state=d.tk.DISABLED)
         if round_rejection:
             # The canvas renderer updates generic confirmation controls.
             # This rejected tool attempt still owns its own disabled state.
@@ -972,6 +979,9 @@ def _install_manual_marking_actions(s):
         s.manual_group_offset_y.set("")
 
     def select_mode():
+        nonlocal pending_copy
+        was_pending = pending_copy is not None
+        pending_copy = None
         clear_member_edit()
         drag_origin[0] = None
         corner_arm[0] = None
@@ -984,10 +994,15 @@ def _install_manual_marking_actions(s):
         for button in s.manual_group_tools.values():
             button.configure(relief=d.tk.RAISED)
         dismiss_round_rejection()
+        if was_pending:
+            checked_redraw()
 
     def draw_mode(kind="line"):
+        nonlocal pending_copy
         if getattr(s, "manual_marking_straight_only", False) and kind != "line":
             return
+        if pending_copy is not None:
+            select_mode()
         clear_member_edit()
         drag_origin[0] = None
         corner_arm[0] = None
@@ -1090,6 +1105,8 @@ def _install_manual_marking_actions(s):
         point = s.canvas_view.canvas_to_world(event.x, event.y)
         if point is None:
             return
+        if pending_copy is not None:
+            return place_pending_copy(point)
         if not s.manual_mark_mode[0]:
             # Whole group selection also works at its nominal center or a
             # member corner, not only on an ink stroke. No single L identity.
@@ -1286,7 +1303,7 @@ def _install_manual_marking_actions(s):
         return "break"
 
     def mark_escape(event=None):
-        if s.manual_mark_mode[0]:
+        if pending_copy is not None or s.manual_mark_mode[0]:
             select_mode()
             return "break"
         if original_escape is not None:
@@ -1369,12 +1386,17 @@ def _install_manual_marking_actions(s):
         return original_created_select(event)
 
     def safe_undo(event=None):
+        if pending_copy is not None:
+            select_mode()
+            return "break"
         clear_member_edit()
         drag_origin[0] = None
         corner_arm[0] = None
         return original_undo(event)
 
     def safe_activate_context(*args, **kwargs):
+        if pending_copy is not None:
+            select_mode()
         clear_member_edit()
         drag_origin[0] = None
         corner_arm[0] = None
@@ -1400,8 +1422,112 @@ def _install_manual_marking_actions(s):
     s.manual_group_rotate.configure(command=rotate_group)
     s.manual_group_mirror.configure(command=mirror_group)
 
+    # Capture the actual target session at editor creation, not after a
+    # file selector returns (which may run another Tk event loop).
+    copy_host = s.host
+    copy_app = getattr(copy_host, "fold_designer_app", None)
+    copy_workspace = getattr(copy_app, "designer_workspace", None)
+    copy_controller = getattr(copy_host, "project_controller", None)
+    copy_epoch = getattr(copy_controller, "project_load_epoch", None)
+    copy_original_features = tuple(s.feature_list)
+
+    def live_copy_target(path):
+        from pathlib import Path
+        from phase6_manufacturing_adapter import build_scene_payload_for_app
+
+        current_path = getattr(copy_controller, "project_path", None)
+        if (copy_app is None or copy_workspace is None or copy_epoch is None
+                or getattr(copy_host, "fold_designer_app", None) is not copy_app
+                or copy_app.designer_workspace is not copy_workspace
+                or getattr(copy_host, "project_controller", None) is not copy_controller
+                or copy_controller.project_load_epoch != copy_epoch
+                or not current_path or Path(current_path).resolve(strict=True) != path
+                or s.part_key != "base_plate"
+                or s.part_key not in copy_workspace.available_parts
+                or tuple(copy_workspace.features_for(s.part_key)) != copy_original_features):
+            raise ValueError("MANUAL_COPY_TARGET_EDITOR_SESSION_STALE")
+        # Same original physical editor pipeline, including its ordinary
+        # baseline hole handling. No second coordinate or material builder.
+        payload = build_scene_payload_for_app(copy_app, s.part_key)
+        payload["features"] = ()
+        render = copy_host._query_fold_designer_render_data(s.part_key, payload)
+        context = api.resolve_physical_sheet_editor_context(s.part_key, render)
+        return context, copy_app._phase6_input_snapshot
+
+    def verified_copy_args(receipt):
+        context, live_snapshot = live_copy_target(receipt["target_project_path"])
+        return {**receipt, "target_context": context, "target_live_snapshot": live_snapshot}
+
+    def place_pending_copy(point):
+        nonlocal pending_copy
+        if pending_copy is None:
+            return "break"
+        pending = pending_copy
+        try:
+            if (pending["context"] != s.hole_session.active_context_key
+                    or pending["list_id"] != id(s.live_context.feature_list)
+                    or pending["features"] != tuple(s.live_context.feature_list)
+                    or s.insert_mode[0]):
+                raise ValueError("MANUAL_COPY_TARGET_EDITOR_SESSION_STALE")
+            args = verified_copy_args(pending["receipt"])
+            clone = api.copy_saved_manual_marking_group_to_selected_sheet(
+                **args, target_features=tuple(s.live_context.feature_list),
+                target_position=point,
+            )
+            # Also check the actual editor coordinate guide. The Engine
+            # compares both current and opened geometry to the saved target.
+            api.verify_saved_manual_marking_copy_sources(
+                **{**args, "target_context": s.manual_marking_context},
+            )
+            # No candidate enters the Session on any invalid point/source.
+        except (ValueError, TypeError, KeyError, OSError, RuntimeError) as exc:
+            select_mode()
+            s.manual_mark_status.configure(
+                text="跨板定位被拒絕：" + str(exc), fg="#ff453a",
+            )
+            return "break"
+        select_mode()
+        s.hole_session.execute(HoleEditorAction.commit_active())
+        s.hole_session.execute(HoleEditorAction.insert(clone))
+        s.hole_session.execute(HoleEditorAction.commit_active())
+        try:
+            s.refresh_created()
+            s.sync_all()
+            s.redraw()
+        except (ValueError, TypeError, KeyError, OSError, RuntimeError) as exc:
+            s.hole_session.execute(HoleEditorAction.undo())
+            s.refresh_created()
+            s.redraw()
+            s.manual_mark_status.configure(
+                text="跨板定位被拒絕：" + str(exc), fg="#ff453a",
+            )
+            return "break"
+        placed_copy_receipts[api.group_parameters(clone)["group_id"]] = pending["receipt"]
+        return "break"
+
+    original_confirm_features = s.on_confirm_features
+
+    def confirm_with_copy_sources(features):
+        if pending_copy is not None:
+            raise ValueError("MANUAL_COPY_TARGET_POSITION_REQUIRED")
+        for feature in features:
+            if not api.is_manual_group(feature):
+                continue
+            receipt = placed_copy_receipts.get(api.group_parameters(feature)["group_id"])
+            if receipt is not None:
+                args = verified_copy_args(receipt)
+                api.verify_saved_manual_marking_copy_sources(**args)
+                api.propose_operator_physical_sheet_hole_features(
+                    s.part_key, args["target_context"], tuple(features),
+                )
+        return original_confirm_features(features)
+
+    if original_confirm_features is not None:
+        s.on_confirm_features = confirm_with_copy_sources
+
     def copy_from_other_saved_project():
-        """Operator selected current physical target + explicitly chosen file."""
+        """Select one saved group; wait for the operator's target anchor."""
+        nonlocal pending_copy
         from hashlib import sha256
         from pathlib import Path
         from tkinter import filedialog, simpledialog
@@ -1445,31 +1571,35 @@ def _install_manual_marking_actions(s):
                 )
                 if selected_id is None:
                     return False
-            clone = api.copy_saved_manual_marking_group_to_selected_sheet(
+            if original_confirm_features is None:
+                raise ValueError("MANUAL_COPY_TARGET_EDITOR_CONFIRM_REQUIRED")
+            receipt = dict(
                 source_snapshot=source_data, source_project_path=source_path,
                 source_project_sha256=source_sha,
                 target_snapshot=target_data, target_project_path=target_path,
-                target_project_sha256=target_sha,
-                target_context=s.manual_marking_context,
-                target_features=tuple(s.live_context.feature_list),
-                source_group_id=selected_id,
+                target_project_sha256=target_sha, source_group_id=selected_id,
             )
-            # File dialogs and other callbacks must not change either saved
-            # physical source between Engine validation and Session insert.
-            if (sha256(source_path.read_bytes()).hexdigest() != source_sha
-                    or sha256(target_path.read_bytes()).hexdigest() != target_sha
-                    or getattr(s.host.project_controller, "project_path", None)
-                    != str(target_project)):
-                raise ValueError("MANUAL_COPY_SAVED_SOURCE_CHANGED")
+            args = verified_copy_args(receipt)
+            group = api.verify_saved_manual_marking_copy_sources(**args)
+            api.verify_saved_manual_marking_copy_sources(
+                **{**args, "target_context": s.manual_marking_context},
+            )
+            kind = api.group_parameters(group)["kind"]
+            prompt = ("跨板複製：點選目標轉角" if kind == "l" else
+                      "跨板複製：點選目標交點" if kind == "cross" else
+                      "跨板複製：點選目標群組中心") + "（Esc 取消）"
         except (ValueError, TypeError, KeyError, OSError, RuntimeError) as exc:
             s.manual_mark_status.configure(
                 text="跨板複製被拒絕：" + str(exc), fg="#ff453a",
             )
             return False
-        s.hole_session.execute(HoleEditorAction.insert(clone))
-        s.hole_session.execute(HoleEditorAction.commit_active())
-        s.refresh_created()
-        s.sync_all()
+        draw_mode("copy")
+        pending_copy = {
+            "receipt": receipt, "prompt": prompt,
+            "context": s.hole_session.active_context_key,
+            "list_id": id(s.live_context.feature_list),
+            "features": tuple(s.live_context.feature_list),
+        }
         s.redraw()
         return True
 
