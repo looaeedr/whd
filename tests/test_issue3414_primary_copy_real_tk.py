@@ -71,7 +71,25 @@ def test_primary_true_canvas_target_selected_saved_group_copy_undo_reopen_normal
         menu.invoke(plate_rows[0])
         root.update()
         assert "base_plate" in designer.designer_workspace.available_parts
-        open_workspace_sheet_editor(host, "base_plate")
+        # The checkout intentionally need not contain the operator's private
+        # hole catalogs. Supply one genuine OpenHole CSV through the existing
+        # resource-root dependency, not a replacement loader or fake row.
+        from ae_engine import ae_endcap
+        fixture_root = tmp_path / "catalog-resource"
+        catalog_dir = fixture_root / "基準檔" / "開孔"
+        catalog_dir.mkdir(parents=True)
+        (catalog_dir / "開孔.csv").write_text(
+            "器具開孔名稱,加工孔徑尺寸,\nQA圓孔6,6,\n", encoding="utf-8-sig",
+        )
+        original_resource_path = ae_endcap.get_resource_path
+        with monkeypatch.context() as resource_patch:
+            resource_patch.setattr(
+                ae_endcap, "get_resource_path",
+                lambda relative: str(fixture_root / relative)
+                if relative == "基準檔" else original_resource_path(relative),
+            )
+            assert Path(api.operator_hole_catalog_root_path()) == catalog_dir
+            open_workspace_sheet_editor(host, "base_plate")
         editor = host.last_unified_hole_editor
         root.update()
         assert editor.winfo_exists() == 1
@@ -81,7 +99,7 @@ def test_primary_true_canvas_target_selected_saved_group_copy_undo_reopen_normal
             editor._manual_marking_place.__code__.co_freevars,
             (cell.cell_contents for cell in editor._manual_marking_place.__closure__),
         ))["s"]
-        # Only the file selector is replaced, not the native Tk controls.
+        # The native Tk controls and real catalog loader are unchanged.
         monkeypatch.setattr(
             filedialog, "askopenfilename", lambda **kwargs: str(origin),
         )
@@ -144,10 +162,15 @@ def test_primary_true_canvas_target_selected_saved_group_copy_undo_reopen_normal
             else:
                 # A real small round catalog opening, not a custom shortcut.
                 rows = state.catalog_list.get(0, "end")
-                index = next(i for i, label in enumerate(rows)
-                             if label in state.catalog_by_label
-                             and state.catalog_by_label[label].shape == "circle"
-                             and 0 < float(state.catalog_by_label[label].diameter) <= 25)
+                matches = [i for i, label in enumerate(rows)
+                           if label in state.catalog_by_label
+                           and state.catalog_by_label[label].name == "QA圓孔6"]
+                assert len(matches) == 1, "real CSV fixture must populate the Tk catalog"
+                index, = matches
+                definition = state.catalog_by_label[rows[index]]
+                assert (definition.shape, definition.process, definition.diameter) == (
+                    "circle", "CUTTING", 6.0,
+                )
                 state.catalog_list.see(index)
                 root.update()
                 x, y, w, h = state.catalog_list.bbox(index)
@@ -163,6 +186,11 @@ def test_primary_true_canvas_target_selected_saved_group_copy_undo_reopen_normal
             assert len(state.live_context.feature_list) == 2
             assert not any(api.is_manual_group(f) for f in state.live_context.feature_list)
             assert state.live_context.feature_list[-1].layer in ("CUTTING", "BLIND_HOLE")
+            if route == "catalog":
+                inserted = state.live_context.feature_list[-1]
+                assert (inserted.source_type, inserted.layer, inserted.diameter) == (
+                    "QA圓孔6", "CUTTING", 6.0,
+                )
             state.undo_btn.invoke()
             root.update()
             assert tuple(state.live_context.feature_list) == (existing_hole,)
