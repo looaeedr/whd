@@ -491,8 +491,9 @@ _Phase6DerivedCacheOwner = _phase6_state_sync.Phase6DerivedCacheOwner
 
 
 
-def draw_hole_editor_hint(canvas, canvas_width, *, endcap=False):
-    return _draw_hole_editor_hint_impl(canvas, canvas_width, endcap=endcap)
+def draw_hole_editor_hint(canvas, canvas_width, *, endcap=False, owner_marking=False):
+    kwargs = {"owner_marking": True} if owner_marking else {}
+    return _draw_hole_editor_hint_impl(canvas, canvas_width, endcap=endcap, **kwargs)
 
 
 
@@ -1537,7 +1538,13 @@ class Phase6ApplicationHost:
         _draw_phase6_annotation_projection(
             canvas, render_data, transform, part_key=key
         )
-        draw_hole_editor_hint(canvas, cw, endcap=(key in {"head", "tail"}))
+        metadata = getattr(render_data, "metadata", None) or {}
+        # A healthy owner-mark view already records an admitted selected
+        # source. Do not resolve a PartSpec or check DXF just to draw a hint.
+        owner_marking = (metadata.get(manufacturing_api.OWNER_MARKING_VIEW_ONLY) is True
+                         and manufacturing_api.OWNER_MARKING_VIEW_DIAGNOSTIC not in metadata)
+        kwargs = {"owner_marking": True} if owner_marking else {}
+        draw_hole_editor_hint(canvas, cw, endcap=(key in {"head", "tail"}), **kwargs)
 
         warning_rows = tuple(
             str(v) for v in tuple(getattr(render_data, "warnings", ()) or ()) if str(v)

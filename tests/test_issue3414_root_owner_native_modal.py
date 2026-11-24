@@ -664,6 +664,30 @@ def test_same_existing_editor_and_export_ordinary_signed_endcap(tmp_path, monkey
             assert any(app.corner_data_canvas.type(item) == "oval"
                        and app.corner_data_canvas.itemcget(item, "outline") == "#8e8e93"
                        for item in app.corner_data_canvas.find_all())
+            canvas = app.corner_data_canvas
+            hint, = canvas.find_withtag("phase6_hole_hint")
+            assert canvas.itemcget(hint, "text") == "雙擊：開孔／手動打標"
+            for event_time in (2750, 2800):
+                canvas.event_generate("<ButtonPress-1>", x=80, y=100, time=event_time)
+                canvas.event_generate("<ButtonRelease-1>", x=80, y=100, time=event_time)
+            root.update()
+            from_drawing = host.last_unified_hole_editor
+            assert from_drawing.winfo_exists()
+            assert from_drawing._manual_marking_controls[0].cget("text") == "打標：中點放置"
+            assert from_drawing._manual_round_marking_controls[0].cget("text") == "實線圓打標：選圓心"
+            place = from_drawing._manual_marking_place
+            reopened_drawing = dict(zip(
+                place.__code__.co_freevars, (c.cell_contents for c in place.__closure__),
+            ))["s"]
+            assert tuple(f for f in reopened_drawing.live_context.feature_list if api.is_manual_mark(f)) == authored
+            reopened_drawing.cancel_all_btn.invoke()
+            root.update()
+            held = "box_body:back"
+            assert held in app.designer_workspace.available_parts
+            bridge._phase6_select_corner_data_part(app, held)
+            root.update()
+            only_holes, = canvas.find_withtag("phase6_hole_hint")
+            assert canvas.itemcget(only_holes, "text") == "雙擊：開孔"
             assert target.read_bytes() == exported_bytes
             assert original_geometry.part(key).render_data is initial_stock
             assert tuple(initial_stock.scene.primitives) == tuple(stock.scene.primitives)
