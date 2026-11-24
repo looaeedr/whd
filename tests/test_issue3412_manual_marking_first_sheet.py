@@ -260,7 +260,7 @@ def test_real_tk_mark_button_middlepoint_red_warning_undo_and_escape(actual_shee
         warning = tk.Label(root, text="")
         session = Phase6HoleEditorSession("base_plate", actual_features)
         state = SimpleNamespace(
-            part_key="base_plate", editor=root, manual_marking_context=context,
+            part_key="base_plate", editor=root, manual_marking_draft=api.open_physical_sheet_marking("base_plate", context=context),
             live_context=SimpleNamespace(feature_list=actual_features),
             d=SimpleNamespace(tk=tk, manufacturing_api=api),
             manual_mark_mode=[False], manual_mark_length=mark_length,
@@ -499,7 +499,7 @@ def test_real_tk_sync_warns_when_existing_mark_conflicts_with_new_blank_hole(act
             original_calls.append(tuple(pending))
             raise ValueError("canonical physical publisher rejected candidate")
         state = SimpleNamespace(
-            part_key="base_plate", manual_marking_context=context,
+            part_key="base_plate", manual_marking_draft=api.open_physical_sheet_marking("base_plate", context=context),
             live_context=SimpleNamespace(feature_list=pending),
             d=SimpleNamespace(tk=tk, manufacturing_api=api),
             sync_all=failing_publisher,

@@ -290,7 +290,7 @@ def test_native_tk_canvas_place_confirm_save_new_instance_open_and_normal_dxf(
     warning = tk.Label(tk_root, text="")
     staged = []
     editor = SimpleNamespace(
-        part_key="base_plate", editor=tk_root, manual_marking_context=context,
+        part_key="base_plate", editor=tk_root, manual_marking_draft=api.open_physical_sheet_marking("base_plate", context=context),
         live_context=SimpleNamespace(feature_list=live),
         d=SimpleNamespace(tk=tk, manufacturing_api=api),
         manual_mark_mode=[False],
