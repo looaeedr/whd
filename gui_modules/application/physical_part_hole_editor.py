@@ -205,7 +205,7 @@ def _open_owner_bound_workspace_marking_editor(host, key, *, editing_context, ro
                     app._load_part_holes(key)
                 app.submit_update_intent("geometry", commit=True)
             app._phase6_publish_live_state(force=True)
-            if getattr(app, "_phase6_3d_display_mode", None) in {"corner_data", "single"}:
+            if getattr(app, "_phase6_3d_display_mode", None) in {"corner_data", "single", "assembly"}:
                 # Presentation errors cannot turn a successful committed edit
                 # into a failed Confirm. Read current view after the modal exits.
                 def refresh_visible_part():
@@ -214,7 +214,7 @@ def _open_owner_bound_workspace_marking_editor(host, key, *, editing_context, ro
                         refresh = getattr(app, "_phase6_refresh_corner_data_unfold_view", None)
                         if callable(refresh):
                             refresh()
-                    elif mode == "single":
+                    elif mode in {"single", "assembly"}:
                         app.submit_update_intent("display", commit=True)
 
                 app.root.after_idle(refresh_visible_part)

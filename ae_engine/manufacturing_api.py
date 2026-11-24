@@ -3436,3 +3436,8 @@ from .operator_owner_marking_3d_view import (
     OWNER_MARKING_3D_PREVIEW_BUDGET,
     project_checked_owner_marking_standalone_paths,
 )
+
+from .operator_owner_marking_assembly_view import (
+    project_checked_owner_marking_assembly_paths,
+    project_workspace_owner_marking_assembly_views,
+)

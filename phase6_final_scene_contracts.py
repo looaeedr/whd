@@ -54,6 +54,8 @@ class AssemblySceneRenderData:
     formed_nfb_pad_skins: tuple[object, ...] = ()
     # Append-only: keep the old positional DTO field order intact.
     show_fixing_plate_mesh: bool = True  # 3D-only visibility, not MARKING/MFG
+    owner_marking_views: tuple[tuple[str, object], ...] = ()
+
 
 
 @dataclass(frozen=True)

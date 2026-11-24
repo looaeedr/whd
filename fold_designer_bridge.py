@@ -1881,12 +1881,21 @@ def _phase6_mesh_profiles_for_part(self, part_key, material):
 def _phase6_final_scene_view_request(self):
     """Compatibility delegate for final-scene request construction."""
     request = _phase6_final_scene_adapter(self).build_request()
-    if request is None or request.part_key == "assembly":
-        return request
+    if request is None:
+        return None
     from gui_modules.application.physical_part_hole_editor import current_workspace_marking_source
 
+    snapshot = current_workspace_marking_source(self)
+    if request.part_key == "assembly":
+        assembly = request.render_data
+        views = manufacturing_api.project_workspace_owner_marking_assembly_views(
+            snapshot, assembly.assembly_parts, assembly.visible_part_keys,
+        )
+        if views:
+            return replace(request, render_data=replace(assembly, owner_marking_views=views))
+        return request
     render = manufacturing_api.project_workspace_owner_marking_display(
-        current_workspace_marking_source(self), request.part_key, request.render_data,
+        snapshot, request.part_key, request.render_data,
         standalone_3d=True,
     )
     return request if render is request.render_data else replace(request, render_data=render)
