@@ -167,6 +167,8 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
             materials = []
             box_body_piece_dimension_lines = []
             physical_dimension_lines = []
+            owner_views = dict(getattr(render_data, "owner_marking_views", ()) or ())
+            owner_warnings = []
             box_body_world = None
             box_body_collision_mesh = None
             interference_targets = []
@@ -404,6 +406,13 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                     offset,
                     joint_marking_signatures=self._joint_marking_flat_signatures(part_data),
                 )
+                if part_key in owner_views:
+                    paths, warning = manufacturing_api.project_checked_owner_marking_assembly_paths(
+                        part, owner_views[part_key], local, placed, request.finished_dimensions,
+                    )
+                    self._paint_scene_marking_paths(paths)
+                    if warning:
+                        owner_warnings.append(f"{part_key} 已存打標無法顯示：{warning}")
                 face, edge = self._COLORS.get(str(part.part_key), ("#64748b", "#334155"))
                 opacity = float(request.alpha_bend)
                 # Outer Door is intentionally readable even when the shared
@@ -573,7 +582,7 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                 ax.set_box_aspect(spans)
             if request.finished_dimensions and callable(getattr(ax, "text2D", None)):
                 text = " × ".join(self._number_text(v) for v in request.finished_dimensions)
-                warnings = tuple(getattr(render_data, "warnings", ()) or ())
+                warnings = tuple(getattr(render_data, "warnings", ()) or ()) + tuple(owner_warnings)
                 warning_text = "\n警告：" + "；".join(str(getattr(w, "message", w)) for w in warnings) if warnings else ""
                 diagnostic = self.last_interference_diagnostic
                 collision_text = ""

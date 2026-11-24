@@ -188,6 +188,52 @@ def test_established_ordinary_left_cursor_first_confirm_and_replacement_isolated
         _, copy_snapshot = save_path("owned-saved-group")
         from ae_engine.operator_manual_marking_copy import _saved_source_features
         assert _saved_source_features(copy_snapshot) == grouped
+
+        import fold_designer_bridge as bridge
+        import phase6_final_scene_renderer as drawing
+        from dataclasses import replace
+        original_mesh_collection = drawing.gridless_mesh_collection
+        installed = {}
+
+        def track_installed(triangles, *args, **kwargs):
+            artist = original_mesh_collection(triangles, *args, **kwargs)
+            installed[id(artist)] = tuple(triangles)
+            return artist
+
+        def amber():
+            return tuple(tuple(zip(*line.get_data_3d())) for line in app.renderer.ax3d.lines
+                         if line.get_color() == "#f59e0b")
+
+        monkeypatch.setattr(drawing, "gridless_mesh_collection", track_installed)
+        bridge._phase6_show_assembly(app)
+        root.update()
+        request = bridge._phase6_final_scene_view_request(app)
+        view, = dict(request.render_data.owner_marking_views).values()
+        part = next(p for p in request.render_data.assembly_parts if p.part_key == key)
+        assert part.offset == (0.0, 0.0, -165.5)
+        assert view.material is part.render_data.material
+        drawn, = (installed[id(artist)] for artist, part_key in app.final_scene_view._hole_pick_artists
+                  if part_key == key)
+        local = drawing._phase6_folded_mesh_from_polygon(
+            part.render_data.material, part.x_profile, part.y_profile,
+            fold_guides=part.render_data.fold_guides,
+        )
+        projected, warning = api.project_checked_owner_marking_assembly_paths(
+            part, view, local, drawn, request.finished_dimensions,
+        )
+        assert warning is None and len(projected) == 4
+        first, second, third = drawn[0]
+        drift = ((first[0]+0.01, first[1], first[2]), second, third)
+        assert api.project_checked_owner_marking_assembly_paths(
+            part, view, local, (drift, *drawn[1:]), request.finished_dimensions,
+        ) == ((), "OWNER_MARKING_ASSEMBLY_SURFACE_UNPROVED")
+        assert any(len(path) == 65 and path[0] == path[-1] for _, path in projected)
+        shown = amber()
+        installed_mesh = tuple(app.final_scene_view.last_cutting_mesh)
+        app.final_scene_view.render(replace(request, render_data=replace(request.render_data, owner_marking_views=())))
+        assert tuple(app.final_scene_view.last_cutting_mesh) == installed_mesh
+        assert shown == amber() + tuple(path for _, path in projected)
+        assert marked_dxf.read_bytes() == previous_bytes
         editor, state = edit()
         state.selected_catalog_text.set("＋ 自訂圓孔")
         state.var_d.set("6")
@@ -239,6 +285,10 @@ def test_established_ordinary_left_cursor_first_confirm_and_replacement_isolated
         assert marked_dxf.read_bytes() == previous_bytes
         state.cancel_all_btn.invoke()
         root.update()
+        bridge._phase6_show_assembly(app)
+        root.update()
+        assert not bridge._phase6_final_scene_view_request(app).render_data.owner_marking_views
+        assert not amber()
 
     finally:
         root.destroy()
@@ -417,6 +467,26 @@ def test_same_existing_editor_and_export_ordinary_signed_endcap(tmp_path, monkey
             assert len(visible_ink) == len(expected_ink)
             for artist, points in zip(visible_ink, expected_ink):
                 assert tuple(zip(*artist.get_data_3d())) == points
+            from dataclasses import replace
+            bridge._phase6_show_assembly(app)
+            root.update()
+            assembly = bridge._phase6_final_scene_view_request(app)
+            assert assembly.part_key == "assembly"
+            assert key in dict(assembly.render_data.owner_marking_views)
+            assert any("OWNER_MARKING_ASSEMBLY_SURFACE_UNPROVED" in row.get_text()
+                       for row in app.renderer.ax3d.texts)
+            amber = lambda: tuple(tuple(zip(*line.get_data_3d())) for line in app.renderer.ax3d.lines
+                                  if line.get_color() == "#f59e0b")
+            held_paths = amber()
+            held_triangles = tuple(app.final_scene_view.last_cutting_mesh)
+            app.final_scene_view.render(replace(
+                assembly, render_data=replace(assembly.render_data, owner_marking_views=()),
+            ))
+            assert amber() == held_paths
+            assert tuple(app.final_scene_view.last_cutting_mesh) == held_triangles
+            assert target.read_bytes() == exported_bytes
+            app.activate_part(key)
+            root.update()
             bridge._phase6_show_corner_data(app)
             bridge._phase6_select_corner_data_part(app, key)
             root.update()
