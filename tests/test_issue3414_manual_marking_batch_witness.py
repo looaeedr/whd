@@ -110,3 +110,108 @@ def test_unselected_other_bay_with_invalid_marking_does_not_block_selected(actua
     )
     assert destination.exists()
     assert ezdxf.readfile(destination).header["$INSUNITS"] == 4
+
+
+@pytest.mark.parametrize("late_mark", ("malformed", "valid"))
+def test_real_left_initially_unmarked_selected_late_mark_intent_cannot_replace_dxf(
+    actual_sheet, tmp_path, late_mark,
+):
+    """Dot: the selected sheet was unmarked at selection/staging time.
+
+    Its own live saved MARKING appears only in the second original owner
+    guard. Even an invalid persisted value must not replace the old file.
+    Unselected parts play no part in this transaction.
+    """
+    _source, initially_plain, _context, _point, _angle = actual_sheet
+    assert not initially_plain.metadata.get("manual_marking_v1_features")
+    assert not any(p.semantic_id == api.MANUAL_MARK_SOURCE
+                   for p in initially_plain.scene.primitives
+                   if hasattr(p, "semantic_id"))
+    made = _marked(actual_sheet, pattern="dashed")
+    target = tmp_path / f"old-{late_mark}.dxf"
+    sentinel = b"WHD-ORIGINAL-CUTTING-MUST-SURVIVE"
+    target.write_bytes(sentinel)
+    owner_guard_calls = []
+
+    def saved_live_owner_guard():
+        owner_guard_calls.append("checked")
+        if len(owner_guard_calls) == 2:
+            if late_mark == "malformed":
+                initially_plain.metadata["manual_marking_v1_features"] = (
+                    "invalid-stored-manual-group",
+                )
+            else:
+                initially_plain.metadata["manual_marking_v1_features"] = (
+                    made.metadata["manual_marking_v1_features"]
+                )
+                # Material and BEND did not change. Only actual MARKING
+                # intent/ink appeared after all original flat readbacks.
+                initially_plain.scene.extend(
+                    p for p in made.scene.primitives if p.layer == "MARKING"
+                )
+
+    with pytest.raises(ValueError, match="MANUAL_BATCH_SELECTED_SOURCE_CHANGED"):
+        api.save_composed_panel_dxf(
+            (("P1", _one(initially_plain)),), target,
+            overwrite=True, pre_commit_guard=saved_live_owner_guard,
+        )
+    assert len(owner_guard_calls) >= 2
+    assert target.read_bytes() == sentinel
+    assert not tuple(tmp_path.glob(".whd-composed-stage-*"))
+
+
+def test_real_left_owner_project_revision_changes_during_atomic_move_rolls_back(
+    actual_sheet, tmp_path, monkeypatch,
+):
+    """Dot: pinned render remains equal while live Project owner changes.
+
+    The real owner guard, not the render witness, must run inside the atomic
+    helper. Change its revision at the exact stage→destination os.replace
+    boundary; the post-move guard must restore the old DXF.
+    """
+    from ae_engine import composed_panel_dxf
+
+    real = _marked(actual_sheet, pattern="dashed")
+    target = tmp_path / "old-live-project.dxf"
+    sentinel = b"WHD-ORIGINAL-VALID-DXF-SENTINEL"
+    target.write_bytes(sentinel)
+    owner = {"revision": "A"}
+    calls = []
+    original_replace = composed_panel_dxf.os.replace
+    changed_at_move = []
+
+    def source_owner_guard():
+        calls.append(owner["revision"])
+        if owner["revision"] != "A":
+            raise ValueError("LIVE_OWNER_PROJECT_REV_CHANGED")
+
+    def change_live_owner_immediately_before_stage_move(src, dst):
+        if (Path(src).parent.name.startswith(".whd-composed-stage-")
+                and Path(dst) == target):
+            owner["revision"] = "B"
+            changed_at_move.append(True)
+        return original_replace(src, dst)
+
+    monkeypatch.setattr(
+        composed_panel_dxf.os, "replace",
+        change_live_owner_immediately_before_stage_move,
+    )
+    with pytest.raises(ValueError, match="LIVE_OWNER_PROJECT_REV_CHANGED"):
+        api.save_composed_panel_dxf(
+            (("P1", _one(real)),), target,
+            overwrite=True, pre_commit_guard=source_owner_guard,
+        )
+    assert changed_at_move == [True]
+    assert calls[:2] == ["A", "A"]
+    assert calls[-1] == "B"
+    assert target.read_bytes() == sentinel
+    assert not tuple(tmp_path.glob(".whd-composed-stage-*"))
+
+
+def test_panel_label_suffix_does_not_certify_marked_bay_owner(actual_sheet):
+    """An output label 'Bay-B:base_plate' cannot prove actual Bay B scope."""
+    real = _marked(actual_sheet)
+    with pytest.raises(ValueError, match="MANUAL_BATCH_SELECTED_PHYSICAL_ID_MISMATCH"):
+        witness_selected_manual_marking_rows(
+            (("Bay-B:base_plate", real),),
+        )
