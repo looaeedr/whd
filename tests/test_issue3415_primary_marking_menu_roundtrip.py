@@ -74,8 +74,9 @@ def _dxf_entities(path):
 
 
 
+@pytest.mark.parametrize("round_mark", [False, True])
 def test_primary_designer_file_menu_opens_marked_a_then_unconfigured_b(
-    tmp_path, monkeypatch,
+    tmp_path, monkeypatch, round_mark,
 ):
     """PyInstaller's real Primary root: File > Open must not destroy Tk.
 
@@ -162,7 +163,20 @@ def test_primary_designer_file_menu_opens_marked_a_then_unconfigured_b(
         x, y = state.canvas_view.transform.world_to_canvas(
             Vec2(state.live_context.width / 2, state.live_context.height / 2)
         )
-        editor._manual_marking_controls[0].invoke()
+        if round_mark:
+            button, diameter = editor._manual_round_marking_controls
+            assert "實線圓打標" in button.cget("text")
+            before = tuple(state.live_context.feature_list)
+            diameter.set("9999")
+            button.invoke()
+            canvas.event_generate("<Button-1>", x=round(x), y=round(y))
+            root.update()
+            assert tuple(state.live_context.feature_list) == before
+            assert "打標位置不合法" in editor._manual_marking_controls[2].cget("text")
+            diameter.set("24.5")
+            button.invoke()
+        else:
+            editor._manual_marking_controls[0].invoke()
         canvas.event_generate("<Button-1>", x=round(x), y=round(y))
         root.update()
         assert len(tuple(
@@ -213,6 +227,25 @@ def test_primary_designer_file_menu_opens_marked_a_then_unconfigured_b(
         assert dxf_path.is_file()
         _dxf_entities(dxf_path)  # INSUNITS mm + CUTTING/BEND/MARKING
         document = ezdxf.readfile(dxf_path)
+        if round_mark:
+            control_path = tmp_path / "same-stock-unmarked.dxf"
+            from dataclasses import replace
+            host._export_authoritative_part(
+                replace(spec, features=tuple(f for f in spec.features if not api.is_manual_mark(f))),
+                control_path, ctx,
+            )
+            def source_entities(doc):
+                return tuple(
+                    (entity.dxftype(), {
+                        k: v for k, v in entity.dxfattribs().items() if k not in ("handle", "owner")
+                    }, tuple(entity.get_points("xyb")) if entity.dxftype() == "LWPOLYLINE" else ())
+                    for entity in doc.modelspace() if entity.dxf.layer in {"CUTTING", "BEND"}
+                )
+            assert source_entities(document) == source_entities(ezdxf.readfile(control_path))
+            circle, = [e for e in document.modelspace() if e.dxf.layer == "MARKING"]
+            assert circle.dxftype() == "CIRCLE"
+            assert tuple(circle.dxf.center) == (marks[0].offset.x, marks[0].offset.y, 0)
+            assert circle.dxf.radius == 12.25
         ink = [
             e for e in document.modelspace()
             if e.dxf.layer == "MARKING"

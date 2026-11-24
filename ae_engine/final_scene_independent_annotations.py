@@ -54,13 +54,37 @@ def _manual_ink_fold_fractions(start, end, fold_guides):
     return tuple(fractions)
 
 
+def _round_ink_display_angles(primitive, fold_guides):
+    """Include exact finite BEND crossings in a display-only circle path."""
+    x, y, r = primitive.center.x, primitive.center.y, primitive.radius
+    angles = [2.0 * math.pi * i / 64.0 for i in range(65)]
+    for guide in fold_guides:
+        axis = guide.axis
+        if axis not in {"x", "y"}:
+            continue
+        is_x = axis == "x"
+        coord = (guide.position - (x if is_x else y)) / r
+        if not -1.0 <= coord <= 1.0:
+            continue
+        angle = math.acos(coord) if is_x else math.asin(coord)
+        for theta in (angle, -angle if is_x else math.pi - angle):
+            cross = y + r * math.sin(theta) if is_x else x + r * math.cos(theta)
+            if guide.span_start - 1e-8 <= cross <= guide.span_end + 1e-8:
+                angles.append(theta % (2.0 * math.pi))
+    unique = []
+    for theta in sorted(angles):
+        if not unique or theta - unique[-1] > 1e-12:
+            unique.append(theta)
+    return tuple(unique)
+
+
 def project_independent_scene_annotation_paths(
     scene, x_profile, y_profile, fold_guides=(),
 ):
     """Yield immutable (MARKING|BLIND_HOLE, points) from real DrawingScene only.
 
-    The original 64-segment circle and closed-polyline behavior are retained
-    exactly. Only display paths are returned, never new physical CUTTING.
+    Other circles retain their original 64-segment display. Manual marking
+    circles add real fold crossings. Display only, never physical CUTTING.
     """
     primitives = tuple(
         (str(getattr(row, "layer", "") or "").upper(), row)
@@ -77,13 +101,17 @@ def project_independent_scene_annotation_paths(
     paths = []
     for layer, primitive in eligible:
         if isinstance(primitive, CirclePrimitive):
+            from .operator_manual_marking import is_manual_round_mark
+            angles = (_round_ink_display_angles(primitive, fold_guides)
+                      if is_manual_round_mark(primitive)
+                      else tuple(2.0 * math.pi * i / 64.0 for i in range(65)))
             pts = tuple(
                 _map_point_xy(
-                    float(primitive.center.x) + float(primitive.radius) * math.cos(2.0 * math.pi * i / 64.0),
-                    float(primitive.center.y) + float(primitive.radius) * math.sin(2.0 * math.pi * i / 64.0),
+                    float(primitive.center.x) + float(primitive.radius) * math.cos(theta),
+                    float(primitive.center.y) + float(primitive.radius) * math.sin(theta),
                     map_x, map_y,
                 )
-                for i in range(65)
+                for theta in angles
             )
         elif isinstance(primitive, LinePrimitive):
             pts = (

@@ -259,6 +259,19 @@ def _build_sidebar_workspace_state(s):
             mark_bar, text="選取", bg="#636366", fg="white",
         )
         s.manual_mark_select_button.pack(side=d.tk.LEFT, padx=2)
+        if not getattr(s, "manual_marking_straight_only", False):
+            s.manual_round_diameter = d.tk.StringVar(master=s.editor, value="")
+            d.tk.Label(mark_bar, text="直徑 mm", fg=host.COLOR_TEXT,
+                       bg=host.COLOR_PANEL).pack(side=d.tk.LEFT, padx=(6, 1))
+            d.tk.Entry(mark_bar, textvariable=s.manual_round_diameter,
+                       width=6).pack(side=d.tk.LEFT)
+            s.manual_round_button = d.tk.Button(
+                mark_bar, text="實線圓打標：選圓心", bg="#0a84ff", fg="white",
+            )
+            s.manual_round_button.pack(side=d.tk.LEFT, padx=3)
+            s.editor._manual_round_marking_controls = (
+                s.manual_round_button, s.manual_round_diameter,
+            )
         s.manual_mark_status = d.tk.Label(
             s.center, text="", fg="#ff453a", bg=host.COLOR_PANEL,
             anchor="w",
@@ -952,6 +965,8 @@ def _install_manual_marking_actions(s):
         s.manual_group_tool[0] = "select"
         s.manual_mark_draw_button.configure(relief=d.tk.RAISED)
         s.manual_mark_select_button.configure(relief=d.tk.SUNKEN)
+        if hasattr(s, "manual_round_button"):
+            s.manual_round_button.configure(relief=d.tk.RAISED)
         for button in s.manual_group_tools.values():
             button.configure(relief=d.tk.RAISED)
 
@@ -967,6 +982,8 @@ def _install_manual_marking_actions(s):
         s.manual_mark_draw_button.configure(
             relief=d.tk.SUNKEN if kind == "line" else d.tk.RAISED)
         s.manual_mark_select_button.configure(relief=d.tk.RAISED)
+        if hasattr(s, "manual_round_button"):
+            s.manual_round_button.configure(relief=d.tk.SUNKEN if kind == "circle" else d.tk.RAISED)
         for key, button in s.manual_group_tools.items():
             button.configure(relief=d.tk.SUNKEN if kind == key else d.tk.RAISED)
 
@@ -1088,7 +1105,13 @@ def _install_manual_marking_actions(s):
                     return "break"
             return original_down(event)
         try:
-            if s.manual_group_tool[0] == "line":
+            if s.manual_group_tool[0] == "circle":
+                mark = api.create_physical_manual_round_marking(
+                    s.part_key, s.manual_marking_context,
+                    tuple(s.live_context.feature_list),
+                    centre=point, diameter=s.manual_round_diameter.get(),
+                )
+            elif s.manual_group_tool[0] == "line":
                 mark = api.create_physical_manual_marking(
                     s.part_key, s.manual_marking_context,
                     tuple(s.live_context.feature_list),
@@ -1348,6 +1371,8 @@ def _install_manual_marking_actions(s):
     s.rotate_selected = rotate_selected
     s.manual_mark_select_button.configure(command=select_mode)
     s.manual_mark_draw_button.configure(command=lambda: draw_mode("line"))
+    if hasattr(s, "manual_round_button"):
+        s.manual_round_button.configure(command=lambda: draw_mode("circle"))
     for kind, button in s.manual_group_tools.items():
         button.configure(command=lambda key=kind: draw_mode(key))
     s.manual_group_apply_offset.configure(command=edit_selected_member)
