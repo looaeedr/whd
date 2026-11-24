@@ -53,3 +53,37 @@ def open_workspace_sheet_editor(host, key):
         ),
         defer_workspace_sync=True, skip_cancel_sync=True,
     ) or getattr(host, 'last_unified_hole_editor', None)
+
+
+def open_scoped_receiving_base_plate_editor(
+    host, set_index, bay_index, *, expected_owner=None, on_close=None,
+):
+    """Explicit scoped port; never falls back to the workspace's role-only board."""
+    from ae_engine import manufacturing_api as api
+
+    app = host.fold_designer_app
+    workspace = app.designer_workspace
+    project_epoch = host.project_controller.project_load_epoch
+
+    opened = api.open_scoped_base_plate_editor(
+        app._phase6_input_snapshot, set_index, bay_index, expected_owner=expected_owner,
+    )
+    context = opened.context
+
+    def confirm(pending):
+        if (host.fold_designer_app is not app or app.designer_workspace is not workspace
+                or host.project_controller.project_load_epoch != project_epoch):
+            raise ValueError("SCOPED_MARK_PROJECT_SESSION_STALE")
+        snapshot = app._phase6_input_snapshot
+        ledger = api.commit_scoped_base_plate_marks(snapshot, opened, pending)
+        snapshot[api.SCOPED_BASE_PLATE_MARKS] = ledger
+        workspace.mark_dirty()
+
+    return host._open_unified_hole_editor(
+        "base_plate", f"底板打標 Set{set_index + 1}/Bay{bay_index + 1}",
+        context.feature_surface, context.width, context.height,
+        reference_guide=context.reference_guide, feature_list_override=list(opened.saved_marks),
+        on_confirm_features=confirm, on_close=on_close, baseline_scene=context.render_data.scene,
+        manual_marking_context=context, manual_marking_straight_only=True,
+        defer_workspace_sync=True, skip_cancel_sync=True,
+    ) or getattr(host, "last_unified_hole_editor", None)

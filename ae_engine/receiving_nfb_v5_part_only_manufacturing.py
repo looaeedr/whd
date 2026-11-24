@@ -172,6 +172,8 @@ def export_verified_csv_v5_single_base_part_only(
     MARKING, PAD, second tier, full-set or batch release. The original generic
     V5 trial manufacturing guards are deliberately unchanged.
     """
+    from .operator_scoped_base_plate_marks import require_scoped_base_plate_export_held
+    require_scoped_base_plate_export_held(snapshot, {"base_plate": True})
     holes, set_id, bay_id = _current_single_tier_csv_holes(
         snapshot, inner_door_id,
     )

@@ -158,6 +158,11 @@ class ReceivingModeSession:
             # Project-global deletion has an authoritative meaning too.
             # An inactive mode buffer must not resurrect removed versions.
             candidate.pop("receiving_inner_door_candidates", None)
+        from .operator_scoped_base_plate_marks import SCOPED_BASE_PLATE_MARKS, normalize_scoped_base_plate_marks
+        if SCOPED_BASE_PLATE_MARKS in current:
+            candidate[SCOPED_BASE_PLATE_MARKS] = normalize_scoped_base_plate_marks(current)
+        else:
+            candidate.pop(SCOPED_BASE_PLATE_MARKS, None)
         self._buffers[self._mode] = current
         self._active = candidate
         self._mode = target

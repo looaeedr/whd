@@ -47,6 +47,8 @@ def plan_selected_resolved_export_route(
     if not isinstance(snapshot, Mapping) or not isinstance(flags, Mapping):
         raise TypeError("SELECTED_EXPORT_ROUTE_SNAPSHOT_REQUIRED")
     flags = normalize_operator_selected_export_flags(flags)
+    from .operator_scoped_base_plate_marks import require_scoped_base_plate_export_held
+    require_scoped_base_plate_export_held(snapshot, flags)
     guard_flags = tuple((str(key), bool(value)) for key, value in flags.items())
     if canonical_family_name(snapshot) == "金庫型" and group_mode is not None:
         return SelectedResolvedExportRoute(True, guard_flags)

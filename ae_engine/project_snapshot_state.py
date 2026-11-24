@@ -247,6 +247,9 @@ def normalize_project_snapshot_authority(snapshot):
         if result.get(TAIL_LOWER_V_SNAPSHOT_KEY)!="v90":
             raise ValueError("V_MITER_FIRST_BEND_REQUIRES_SAVED_V_CHOICE")
         project_operator_tail_lower_v_first_bend_status(result)
+    from .operator_scoped_base_plate_marks import SCOPED_BASE_PLATE_MARKS, normalize_scoped_base_plate_marks
+    if SCOPED_BASE_PLATE_MARKS in result:
+        result[SCOPED_BASE_PLATE_MARKS] = normalize_scoped_base_plate_marks(result)
     result = normalize_authoritative_door_state(result)
     if is_receiving_snapshot(result):
         from ae_engine.receiving_layout import RECEIVING_DOOR_STATE_KEYS

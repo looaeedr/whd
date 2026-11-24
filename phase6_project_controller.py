@@ -39,6 +39,10 @@ class Phase6ProjectController:
         return datetime.now(TAIPEI_TZ).isoformat(timespec="seconds")
 
     @property
+    def project_load_epoch(self) -> int:
+        return self._session.load_epoch
+
+    @property
     def project_path(self) -> str | None:
         return self._session.project_path
 
