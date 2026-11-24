@@ -10,10 +10,20 @@ from tests.test_issue1502_current_csv_multi_bay_once import _multi
 
 
 OWNER = "base_plate_owner_id"
+NAMESPACE = "base_plate_owner_namespace"
+NEXT = "next_base_plate_owner_generation"
 
 
 def _bay(source, si=0, bi=0):
     return source["receiving_layout"]["sets"][si]["bays"][bi]
+
+
+def _fresh():
+    source = _multi()
+    source["receiving_layout"] = api.operator_new_receiving_layout(
+        width=800, height=1600, depth=350, new_physical_board=True,
+    )
+    return source
 
 
 def _resize(source, **kwargs):
@@ -36,13 +46,12 @@ def _roundtrip(tmp_path, name, source):
 
 @pytest.mark.parametrize("kind", ["Bay", "Set"])
 def test_actual_codec_recycled_topology_does_not_reuse_board(tmp_path, kind):
-    old = _roundtrip(tmp_path, "legacy", _multi())
-    assert OWNER not in _bay(old)
+    old = _roundtrip(tmp_path, "fresh", _fresh())
+    original_owner = _bay(old)[OWNER]
     if kind == "Bay":
         remove = {"set_index": 0, "bay_count": 1}
         add = {"set_index": 0, "bay_count": 2}
         slot = (0, 1)
-        old = _resize(old, **remove)
     else:
         remove = {"set_count": 1}
         add = {"set_count": 2}
@@ -68,14 +77,13 @@ def test_actual_codec_recycled_topology_does_not_reuse_board(tmp_path, kind):
         created_bay[k] for k in ("width", "height", "depth")
     ]
     assert actual[OWNER] != owner
-    assert OWNER not in _bay(recreated)
+    assert _bay(recreated)[OWNER] == original_owner
+    assert deleted["receiving_layout"][NEXT] == created["receiving_layout"][NEXT]
+    assert recreated["receiving_layout"][NEXT] > deleted["receiving_layout"][NEXT]
 
 
 def test_explicit_fresh_board_and_append_allocate_different_ids_and_validate(tmp_path):
-    source = _multi()
-    source["receiving_layout"] = api.operator_new_receiving_layout(
-        width=800, height=1600, depth=350, new_physical_board=True,
-    )
+    source = _fresh()
     owner = _bay(source)[OWNER]
     duplicate = _roundtrip(tmp_path, "explicit-grow", _resize(source, set_index=0, bay_count=2))
     assert _bay(duplicate)[OWNER] == owner
@@ -83,6 +91,9 @@ def test_explicit_fresh_board_and_append_allocate_different_ids_and_validate(tmp
     assert "part_features" not in _bay(duplicate, 0, 1)
     _bay(duplicate, 0, 1)[OWNER] = owner
     with pytest.raises(ValueError, match="RECEIVING_BASE_PLATE_OWNER_DUPLICATE"):
+        normalize_receiving_layout(duplicate["receiving_layout"])
+    _bay(duplicate, 0, 1)[OWNER] = _bay(_fresh())[OWNER]  # a foreign lineage
+    with pytest.raises(ValueError, match="RECEIVING_BASE_PLATE_OWNER_INVALID"):
         normalize_receiving_layout(duplicate["receiving_layout"])
     _bay(duplicate, 0, 1)[OWNER] = "receiving:set:1:bay:2"
     with pytest.raises(ValueError, match="RECEIVING_BASE_PLATE_OWNER_INVALID"):
@@ -95,7 +106,7 @@ def test_primary_original_menu_saves_and_reopens_new_owner(tmp_path, monkeypatch
     from tkinter import filedialog
     import gui
 
-    source = _resize(_resize(_multi(), set_index=0, bay_count=1), set_index=0, bay_count=2)
+    source = _resize(_fresh(), set_index=0, bay_count=2)
     owner = _bay(source, 0, 1)[OWNER]
     initial = _write(tmp_path / "initial.p6fold", source)
     saved = tmp_path / "primary.p6fold"
@@ -135,3 +146,34 @@ def test_fresh_set_bay_mode_and_committed_family_plan_allocate_owners(tmp_path):
     family = _call("受電箱", "金庫型", _snapshot()).input_snapshot
     family_owner = _bay(_roundtrip(tmp_path, "family-transition", family))[OWNER]
     assert family_owner != owner
+
+
+def test_legacy_resize_stays_unowned_and_unprovisioned_after_save(tmp_path):
+    legacy = _roundtrip(tmp_path, "legacy", _multi())
+    expanded = _roundtrip(tmp_path, "legacy-grow", _resize(legacy, set_count=2))
+    assert NAMESPACE not in expanded["receiving_layout"]
+    assert NEXT not in expanded["receiving_layout"]
+    assert all(OWNER not in bay for row in expanded["receiving_layout"]["sets"]
+               for bay in row["bays"])
+
+
+def test_provisioned_preview_calls_equal_absolute_resize_and_reject_bad_counter():
+    source = _fresh()["receiving_layout"]
+    before = deepcopy(source)
+    expected, removed = api.resize_receiving_operator_topology_with_removed_ids(
+        source, set_index=0, bay_count=2,
+    )
+    actual, delta_removed, changed = api.resize_receiving_operator_connections_by_delta_with_removed_ids(
+        source, set_index=0, delta=1,
+    )
+    assert changed and actual == expected and delta_removed == removed == ()
+    expected, removed = api.resize_receiving_operator_topology_with_removed_ids(source, set_count=2)
+    actual, delta_removed, changed = api.adjust_receiving_operator_set_count_with_removed_ids(source, delta=1)
+    assert changed and actual == expected and delta_removed == removed == ()
+    assert source == before
+    assert actual["sets"][0] == source["sets"][0]
+    for bad in (True, -1, 2, "3"):
+        corrupt = deepcopy(actual)
+        corrupt[NEXT] = bad
+        with pytest.raises(ValueError, match="RECEIVING_BASE_PLATE_OWNER_GENERATION_INVALID"):
+            normalize_receiving_layout(corrupt)
