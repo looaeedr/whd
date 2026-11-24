@@ -16,6 +16,8 @@ from .door_layout_numeric_transitions import (
 )
 
 from .manufacturing_api import (
+    ReceivingFactoryConfirmedDoorHandoff,
+    plan_receiving_factory_confirmed_door_handoff,
     commit_operator_endcap_fw_profile_save,
     operator_hole_rotation_from_control,
     operator_hole_feature_with_rotation,
@@ -431,6 +433,8 @@ from . import ae, manufacturing_api
 from .derived_part_projection import _freeze, _thaw, _unique_keys
 
 __all__ = [
+    "ReceivingFactoryConfirmedDoorHandoff",
+    "plan_receiving_factory_confirmed_door_handoff",
     "commit_operator_endcap_fw_profile_save",
     "operator_hole_rotation_from_control",
     "operator_hole_feature_with_rotation",
