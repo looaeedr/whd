@@ -1,7 +1,7 @@
 """Read-only display from existing owner-locked canonical marking intent."""
 from dataclasses import replace
 
-from .operator_manual_marking import OWNER_MARKING_VIEW_ONLY
+from .operator_manual_marking import OWNER_MARKING_VIEW_ONLY, _manual_marking_scene_primitives
 from .operator_owner_marking_3d_view import (
     OWNER_MARKING_3D_PREVIEW_BUDGET, within_standalone_marking_budget,
 )
@@ -46,3 +46,11 @@ def project_workspace_owner_marking_display(snapshot, part_key, render, *, stand
         render, scene=DrawingScene([*render.scene.primitives, *evidence.ink]),
         metadata={**render.metadata, OWNER_MARKING_VIEW_ONLY: True},
     )
+
+
+def project_scene_without_operator_marking(scene):
+    """Remove only registered authored ink for display. Do not transform stock."""
+    manual_ids = {id(row) for row in _manual_marking_scene_primitives(scene)}
+    if not manual_ids:
+        return scene
+    return DrawingScene([row for row in scene.primitives if id(row) not in manual_ids])

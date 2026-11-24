@@ -230,6 +230,18 @@ def test_established_ordinary_left_cursor_first_confirm_and_replacement_isolated
         assert any(len(path) == 65 and path[0] == path[-1] for _, path in projected)
         shown = amber()
         installed_mesh = tuple(app.final_scene_view.last_cutting_mesh)
+        view_control = app.show_operator_marking_3d_check
+        assert view_control.winfo_manager() == "grid"
+        assert app.show_operator_marking_3d_var.get() is True
+        view_control.invoke()
+        root.update()
+        assert app.show_operator_marking_3d_var.get() is False
+        assert not bridge._phase6_final_scene_view_request(app).show_operator_marking
+        assert amber() == shown[:-len(projected)]
+        assert tuple(app.final_scene_view.last_cutting_mesh) == installed_mesh
+        view_control.invoke()
+        root.update()
+        assert amber() == shown
         app.final_scene_view.render(replace(request, render_data=replace(request.render_data, owner_marking_views=())))
         assert tuple(app.final_scene_view.last_cutting_mesh) == installed_mesh
         assert shown == amber() + tuple(path for _, path in projected)
@@ -447,6 +459,7 @@ def test_same_existing_editor_and_export_ordinary_signed_endcap(tmp_path, monkey
             current = current_workspace_marking_source(app)
             original_geometry = app._phase6_resolve_manufacturing_geometry()
             stock = original_geometry.part(key).render_data
+            initial_stock = stock
             ink = api.read_verified_owner_marking_candidate(current, original_geometry, key).ink
             assert len(ink) == len(inks) + 1
             exported_bytes = target.read_bytes()
@@ -467,6 +480,41 @@ def test_same_existing_editor_and_export_ordinary_signed_endcap(tmp_path, monkey
             assert len(visible_ink) == len(expected_ink)
             for artist, points in zip(visible_ink, expected_ink):
                 assert tuple(zip(*artist.get_data_3d())) == points
+            view_control = app.show_operator_marking_3d_check
+            assert view_control.winfo_manager() == "grid"
+            assert app.show_operator_marking_3d_var.get()
+            project_bytes = save.read_bytes()
+            view_control.invoke()
+            root.update()
+            hidden = bridge._phase6_final_scene_view_request(app)
+            assert not hidden.show_operator_marking
+            assert hidden.render_data is stock
+            hidden_auto = tuple(line for line in app.renderer.ax3d.lines if line.get_color() == "#f59e0b")
+            assert tuple(tuple(zip(*line.get_data_3d())) for line in hidden_auto) == expected_ink[:-len(ink)]
+            assert tuple(app.final_scene_view.last_cutting_mesh) == tuple(mesh.triangles)
+            bridge._phase6_show_corner_data(app)
+            bridge._phase6_select_corner_data_part(app, key)
+            root.update()
+            assert not view_control.winfo_manager()
+            assert tuple(bridge._phase6_corner_data_unfold_projection_for_key(
+                app, key,
+            ).render_data.scene.primitives) == (*stock.scene.primitives, *ink)
+            assert target.read_bytes() == exported_bytes and save.read_bytes() == project_bytes
+            menu.invoke(0)  # existing filedialog lambda points to exact same file
+            root.update()
+            app.activate_part(key)
+            root.update()
+            reopened_stock = app._phase6_resolve_manufacturing_geometry().part(key).render_data
+            assert reopened_stock.material.wkb == stock.material.wkb
+            assert tuple(reopened_stock.scene.primitives) == tuple(stock.scene.primitives)
+            stock = reopened_stock
+            assert view_control.winfo_manager() == "grid"
+            assert not app.show_operator_marking_3d_var.get()
+            view_control.invoke()
+            root.update()
+            assert app.show_operator_marking_3d_var.get()
+            assert tuple(tuple(zip(*line.get_data_3d())) for line in app.renderer.ax3d.lines
+                         if line.get_color() == "#f59e0b") == expected_ink
             from dataclasses import replace
             bridge._phase6_show_assembly(app)
             root.update()
@@ -503,7 +551,8 @@ def test_same_existing_editor_and_export_ordinary_signed_endcap(tmp_path, monkey
                        and app.corner_data_canvas.itemcget(item, "outline") == "#8e8e93"
                        for item in app.corner_data_canvas.find_all())
             assert target.read_bytes() == exported_bytes
-            assert original_geometry.part(key).render_data is stock
+            assert original_geometry.part(key).render_data is initial_stock
+            assert tuple(initial_stock.scene.primitives) == tuple(stock.scene.primitives)
             assert not any(is_manual_round_mark(p) for p in stock.scene.primitives)
 
         if key == "head":

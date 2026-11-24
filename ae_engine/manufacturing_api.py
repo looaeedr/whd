@@ -3429,6 +3429,7 @@ from .operator_persisted_marking_candidate import read_verified_owner_marking_ca
 from .operator_manual_marking import OWNER_MARKING_VIEW_ONLY
 from .operator_owner_marking_view import (
     OWNER_MARKING_VIEW_DIAGNOSTIC,
+    project_scene_without_operator_marking,
     project_workspace_owner_marking_display,
 )
 

@@ -1883,6 +1883,9 @@ def _phase6_final_scene_view_request(self):
     request = _phase6_final_scene_adapter(self).build_request()
     if request is None:
         return None
+    visibility = getattr(self, "show_operator_marking_3d_var", None)
+    if visibility is not None and not visibility.get():
+        return replace(request, show_operator_marking=False)
     from gui_modules.application.physical_part_hole_editor import current_workspace_marking_source
 
     snapshot = current_workspace_marking_source(self)
