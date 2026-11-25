@@ -268,3 +268,113 @@ def test_existing_editor_copies_saved_head_group_into_distinct_tail(tmp_path, mo
         assert head_saved.read_bytes() == original_bytes
     finally:
         root.destroy()
+
+
+@pytest.mark.parametrize("donor,target,label", [
+    ("door", "base_plate", "\u9580\u677f"),
+    ("base_plate", "door", "\u5e95\u677f"),
+])
+def test_existing_vault_editor_copies_saved_mark_between_door_and_base(tmp_path, monkeypatch, donor, target, label):
+    from tests.test_issue2517_direct_door_partspec_original_source_engine_gate import _row
+    from phase6_manufacturing_adapter import build_scene_payload_for_app
+
+    source = _row()
+    source["multi_door_enabled"] = False
+    source["existing_parts"] = ["box_body", "door", "base_plate"]
+    initial = _raw_write(tmp_path / "vault.p6fold", source)
+    saved = tmp_path / "saved.p6fold"
+    copied = tmp_path / "copied.p6fold"
+    root = tk.Tk()
+    root.geometry("1400x900+0+0")
+    try:
+        host = Phase6PrimaryApplication(root)
+        app = host.fold_designer_app
+        menu = app.project_file_menu
+        failures = []
+        monkeypatch.setattr(messagebox, "showerror", lambda title, text, **_: failures.append((title, text)))
+        monkeypatch.setattr(messagebox, "showinfo", lambda *args, **kwargs: None)
+
+        def open_saved(path):
+            monkeypatch.setattr(filedialog, "askopenfilename", lambda **kw: str(path))
+            menu.invoke(0)
+            root.update()
+
+        def editor(key):
+            app.activate_part(key)
+            root.update()
+            modal = host.open_part_hole_editor(key)
+            root.update()
+            callback = modal._manual_marking_place
+            state = dict(zip(callback.__code__.co_freevars, (c.cell_contents for c in callback.__closure__)))["s"]
+            return modal, state
+
+        def click(state, offset):
+            point = state.manual_marking_draft.context.render_data.material.representative_point()
+            x, y = state.canvas_view.transform.world_to_canvas(Vec2(point.x + offset, point.y))
+            host.last_hole_editor_canvas.event_generate("<Button-1>", x=round(x), y=round(y))
+            root.update()
+
+        def confirm(modal):
+            _actual_editor_confirm(modal)
+            root.update()
+            assert not modal.winfo_exists() and not failures, failures
+
+        open_saved(initial)
+        for part, length in ((donor, "12"), (target, "6")):
+            modal, state = editor(part)
+            state.manual_mark_length.set(length)
+            modal._manual_marking_controls[0].invoke()
+            click(state, 0)
+            confirm(modal)
+        monkeypatch.setattr(filedialog, "asksaveasfilename", lambda **kw: str(saved))
+        menu.invoke(2)
+        root.update()
+        snapshot = read_project(saved)["snapshot"]
+        old = {}
+        for key in (donor, target):
+            live = current_workspace_marking_source(app)
+            geometry = api.selected_normal_marking_inventory(
+                key, host._query_fold_designer_render_data(key, build_scene_payload_for_app(app, key)),
+            )
+            receipt = api.open_selected_ordinary_marking_modal_source(live, geometry, key)
+            replay = api.open_selected_ordinary_marking_modal_source(
+                snapshot, api.resolve_saved_ordinary_copy_geometry(snapshot, key), key,
+            )
+            assert replay.source_sha256 == receipt.source_sha256, key
+            old[key] = api.read_workspace_marking_owner_record(snapshot, receipt.owner_id)["features"]
+        modal, state = editor(target)
+        monkeypatch.setattr(filedialog, "askopenfilename", lambda **kw: str(saved))
+        monkeypatch.setattr(simpledialog, "askstring", lambda *args, **kwargs: label)
+        state.manual_mark_copy_button.invoke()
+        root.update()
+        click(state, 35)
+        marks = tuple(f for f in state.live_context.feature_list if api.is_manual_mark(f))
+        assert len(marks) == 2 and marks[0] == old[target][0], state.manual_mark_status.cget("text")
+        copied_mark = marks[1]
+        assert copied_mark != old[donor][0]
+        confirm(modal)
+        monkeypatch.setattr(filedialog, "asksaveasfilename", lambda **kw: str(copied))
+        menu.invoke(2)
+        root.update()
+        open_saved(copied)
+        final = read_project(copied)["snapshot"]
+        for key in (donor, target):
+            owner = api.resolve_workspace_physical_root_owner(final, key)
+            wanted = old[key] if key == donor else (*old[key], copied_mark)
+            assert api.read_workspace_marking_owner_record(final, owner)["features"] == wanted
+            for role in ("z", "head", "tail", "door", "base_plate", "ib", "ib_door"):
+                getattr(host, f"export_{role}_var").set(role == key)
+            out = tmp_path / f"verified-{key}"
+            out.mkdir()
+            monkeypatch.setattr(filedialog, "askdirectory", lambda **kw: str(out))
+            export_selected_dxf(host)
+            assert not failures, failures
+            file, = out.glob("*.dxf")
+            drawing = ezdxf.readfile(file)
+            assert drawing.header["$INSUNITS"] == 4 and not drawing.audit().errors
+            ink = drawing.modelspace().query('LWPOLYLINE[layer=="MARKING"]')
+            assert {tuple(map(tuple, row.get_points("xy"))) for row in ink} == {
+                tuple((point.x, point.y) for point in feature.points) for feature in wanted
+            }
+    finally:
+        root.destroy()

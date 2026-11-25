@@ -3452,7 +3452,9 @@ from .operator_owner_marking_assembly_view import (
 )
 
 
-from .operator_saved_endcap_copy_inputs import resolve_saved_endcap_copy_geometry
+from .operator_saved_endcap_copy_inputs import (
+    resolve_saved_endcap_copy_geometry, resolve_saved_ordinary_copy_geometry, supports_saved_ordinary_copy_part,
+)
 from .operator_manual_marking_copy import (
     list_saved_endcap_marking_copy_groups, list_saved_endcap_marking_copy_candidates,
     verify_saved_endcap_marking_copy,

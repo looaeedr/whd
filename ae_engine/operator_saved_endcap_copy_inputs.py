@@ -138,3 +138,77 @@ def resolve_saved_endcap_copy_geometry(snapshot, part_key):
     spec = _build_saved_endcap_copy_part_spec(snapshot, part_key)
     render = api.build_operator_part_render_data(spec, ManufacturingContext(draw_stock=False))
     return api.selected_normal_marking_inventory(part_key, render)
+
+
+def supports_saved_ordinary_copy_part(snapshot, part_key):
+    """Only the existing ordinary exact-source routes admit explicit copying."""
+    from .cabinet_types.policy import canonical_family_name
+    return part_key in {"head", "tail"} or (
+        isinstance(snapshot, Mapping) and part_key in {"door", "base_plate"}
+        and canonical_family_name(snapshot) == "\u91d1\u5eab\u578b"
+    )
+
+def resolve_saved_ordinary_copy_geometry(snapshot, part_key):
+    """Replay one explicit saved ordinary sheet using the canonical PartSpec APIs."""
+    from . import manufacturing_api as api
+    from .cabinet_types.policy import canonical_family_name
+    from .contracts import ManufacturingContext
+
+    if part_key in {"head", "tail"}:
+        return resolve_saved_endcap_copy_geometry(snapshot, part_key)
+    if not isinstance(snapshot, Mapping) or part_key not in {"door", "base_plate"}:
+        raise ValueError("MANUAL_COPY_EXPLICIT_ORDINARY_SOURCE_REQUIRED")
+    if canonical_family_name(snapshot) != "\u91d1\u5eab\u578b":
+        raise ValueError("MANUAL_COPY_ORDINARY_VAULT_SOURCE_REQUIRED")
+    workspace = snapshot.get("workspace", {})
+    if not isinstance(workspace, Mapping):
+        raise ValueError("MANUAL_COPY_SAVED_WORKSPACE_INVALID")
+
+    def authored(field, default=None, *, child=None):
+        vals = [doc[field] for doc in (snapshot, workspace) if field in doc]
+        if child is not None:
+            if any(not isinstance(row, Mapping) for row in vals):
+                raise ValueError(f"MANUAL_COPY_SAVED_{field.upper()}_INVALID")
+            vals = [tuple(row[child]) for row in vals if child in row]
+        if len(vals) == 2 and vals[0] != vals[1]:
+            raise ValueError(f"MANUAL_COPY_SAVED_{field.upper()}_CONFLICT")
+        return vals[0] if vals else default
+
+    existing = authored("existing_parts", ())
+    if not isinstance(existing, (tuple, list)) or existing.count(part_key) != 1:
+        raise ValueError("MANUAL_COPY_SAVED_PHYSICAL_PART_NOT_PRESENT")
+    values = deepcopy(dict(snapshot))
+    values.update(api.project_manufacturing_scene_settings_overlay(snapshot, snapshot.get("settings", {})))
+    values["box_body_structure"] = authored("box_body_structure")
+    values["features"] = authored("part_features", (), child=part_key)
+    if any(api.is_manual_mark(f) for f in values["features"]):
+        raise ValueError("PHYSICAL_MARKING_LEGACY_ROLE_MARKS_UNBOUND")
+    data, key, w, h, _d, t, fw, model, unknown, corners, features, _, door_cell, base_cell = (
+        api.resolve_fold_designer_payload_topology(part_key, values)
+    )
+    if door_cell is not None or base_cell is not None or unknown:
+        raise ValueError("MANUAL_COPY_ORDINARY_VAULT_SOURCE_REQUIRED")
+    policy = api.resolve_operator_fold_designer_payload_corner_policy(
+        corners, key, fw, unknown=unknown, family_source=data, thickness=t,
+        structure_state=values["box_body_structure"],
+    )
+    if key == "door":
+        numerical = api.resolve_fold_designer_legacy_numeric_settings(data, part_name=key)
+        spec = api.build_door_operator_part_spec(
+            {"w": w, "h": h, "t": t, "fw": fw, **numerical},
+            model_name=model, features=features, corner_policy=policy,
+            fold_designer_indicator_source=data,
+            nameplate_center_datum_top=data.get("door_nameplate_center_datum_top"),
+        )
+    else:
+        source, policy = api.resolve_fold_designer_base_plate_source(
+            key, data, width=w, height=h, thickness=t, frame_width=fw,
+            model_name=model, corner_policy=policy,
+        )
+        spec = api.build_base_plate_operator_part_spec(
+            source, features=features, corner_policy=policy,
+            box_body_structure_state=values["box_body_structure"],
+            box_body_fold_profile=authored("box_body_profile", ()),
+        )
+    render = api.build_operator_part_render_data(spec, ManufacturingContext(draw_stock=False))
+    return api.selected_normal_marking_inventory(key, render)
