@@ -35,6 +35,7 @@ def test_strict_schema_and_scoped_read_through_without_migration():
 def test_native_same_store_two_boards_replay_edit_replace_and_legacy_clear(tmp_path, monkeypatch):
     import tkinter as tk
     from tkinter import filedialog, messagebox
+    import fold_designer_bridge as bridge
     from gui import Phase6PrimaryApplication
     from gui_modules.project.export_actions import export_selected_dxf
     import ezdxf
@@ -221,6 +222,23 @@ def test_native_same_store_two_boards_replay_edit_replace_and_legacy_clear(tmp_p
         assert not api.open_workspace_owner_marking_draft(live(), read_receipt("head")).saved_marks
         assert api.open_workspace_owner_marking_draft(live(), read_receipt("tail")).saved_marks == (marks["tail"],)
 
+        notice = "有 1 筆舊板件的打標因找不到原板件而未套用。"
+        assert api.project_operator_detached_root_marking_count(live()) == 1
+        for key in ("head", "tail"):
+            bridge._phase6_show_corner_data(app)
+            assert bridge._phase6_select_corner_data_part(app, key) == key
+            root.update()
+            assert app.corner_data_info_label.winfo_manager()
+            assert str(app.corner_data_info_label.cget("textvariable")) == str(app.corner_data_info_var)
+            assert notice in app.corner_data_info_var.get()
+            assert "已存打標無法顯示" not in app.corner_data_info_var.get()
+        assert not errors, errors
+        exported_replacement = tmp_path / "replaced-with-notice"
+        export_both(exported_replacement)
+        assert not errors, errors
+        checked_ink(exported_replacement / "head.dxf", None)
+        checked_ink(exported_replacement / "tail.dxf", marks["tail"])
+
         # A real flat canonical physical row has no ordinary persisted owner;
         # neither this store nor the CHECK result invents one for that piece.
         geometry = app._phase6_resolve_manufacturing_geometry()
@@ -241,6 +259,10 @@ def test_native_same_store_two_boards_replay_edit_replace_and_legacy_clear(tmp_p
 
         open_path(FIXTURE)
         assert not live().get(KEY)
+        assert api.project_operator_detached_root_marking_count(live()) == 0
+        bridge._phase6_show_corner_data(app)
+        root.update()
+        assert notice not in app.corner_data_info_var.get()
         _, separate = save_as("independent-legacy")
         assert KEY not in separate
     finally:

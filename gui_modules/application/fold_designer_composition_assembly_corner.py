@@ -502,9 +502,26 @@ def refresh_corner_data_unfold_view(self, namespace):
             namespace, part_key, render_data
         ),
     )
+    from .physical_part_hole_editor import current_workspace_marking_source
+
+    detached_notice = ""
+    try:
+        detached = manufacturing_api.project_operator_detached_root_marking_count(
+            current_workspace_marking_source(app),
+        )
+    except ValueError:
+        # This optional project notice must not suppress the normal sheet view.
+        detached = 0
+    if detached:
+        detached_notice = f"有 {detached} 筆舊板件的打標因找不到原板件而未套用。"
+
+    info_var = getattr(app, "corner_data_info_var", None)
     if payload is None:
         if canvas is not None and hasattr(canvas, "delete"):
             canvas.delete("all")
+        if info_var is not None and hasattr(info_var, "set"):
+            info_var.set(detached_notice)
+        app.corner_data_info_text = detached_notice
         return None
 
     info_text = payload["info_text"]
@@ -514,7 +531,8 @@ def refresh_corner_data_unfold_view(self, namespace):
     )
     if diagnostic:
         info_text += "\n已存打標無法顯示：" + diagnostic
-    info_var = getattr(app, "corner_data_info_var", None)
+    if detached_notice:
+        info_text += ("\n" if info_text else "") + detached_notice
     if info_var is not None and hasattr(info_var, "set"):
         info_var.set(info_text)
     app.corner_data_info_text = info_text
