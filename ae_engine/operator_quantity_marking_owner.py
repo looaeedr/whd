@@ -206,3 +206,22 @@ def quantity_marking_can_offer_legacy_transfer(snapshot, part_key):
         return False
     return (QuantityModel.from_payload(snapshot["quantity"]).version_count > 1
             and source.root_owner_id in _root_store(snapshot)["records"])
+
+
+def validate_unmarked_quantity_sheet_hole_edit(snapshot, geometry, opened, editing_context, holes):
+    """Preserve the old hole-only flow when no active version of the sheet has ink."""
+    from . import manufacturing_api as api
+    from .operator_manual_marking import is_manual_mark
+    from .operator_root_marking_store import _root_store
+    current = open_quantity_physical_marking(snapshot, geometry, opened.owner.physical_id)
+    if (current.owner != opened.owner or current.saved_record != opened.saved_record
+            or current.stock.source_sha256 != opened.stock.source_sha256):
+        raise ValueError("ROOT_MARKING_DRAFT_STALE")
+    key = current.owner.physical_id
+    if (_root_store(snapshot)["records"].get(current.owner.root_owner_id) is not None
+            or _selected_version_root_records(snapshot, (key,))):
+        raise ValueError("OWNER_MARKING_QUANTITY_HOLE_EDIT_REQUIRES_MARK_REVALIDATION")
+    accepted = tuple(api.propose_operator_physical_sheet_hole_features(key, editing_context, holes))
+    if any(is_manual_mark(row) for row in accepted):
+        raise ValueError("ROOT_MARKING_STORE_MARKS_ONLY")
+    return accepted

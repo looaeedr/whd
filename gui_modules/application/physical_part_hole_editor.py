@@ -298,9 +298,16 @@ def _open_version_bound_workspace_marking_editor(host, key, editing_context, rol
     def confirm(pending):
         state, live_geometry = read_current()
         holes = tuple(feature for feature in pending if not api.is_manual_mark(feature))
-        if holes != role_features:
-            raise ValueError("OWNER_MARKING_QUANTITY_EDIT_HOLES_SEPARATELY")
         pending_marks = tuple(feature for feature in pending if api.is_manual_mark(feature))
+        if holes != role_features:
+            if pending_marks:
+                raise ValueError("OWNER_MARKING_QUANTITY_EDIT_HOLES_SEPARATELY")
+            accepted = api.validate_unmarked_quantity_sheet_hole_edit(state, live_geometry, opened, editing_context, holes)
+            workspace.stash_features(key, accepted)
+            if workspace.active_part == key:
+                app._load_part_holes(key)
+            app.submit_update_intent("geometry", commit=True)
+            return
         if workspace.commit_quantity_owner_marking(
             state, opened, pending_marks, version_id=opened.owner.version_id, geometry=live_geometry,
         ):

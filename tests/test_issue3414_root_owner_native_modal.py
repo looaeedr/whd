@@ -493,6 +493,21 @@ def test_same_existing_editor_and_export_ordinary_signed_endcap(tmp_path, monkey
             root.update()
             assert not untouched.winfo_exists() and not failures, failures
             assert api.resolve_workspace_physical_root_owner(current_workspace_marking_source(app), key) is None
+            from ae_engine.sheetmetal_feature_core import CircleFeature, FeatureAnchor
+            hole_editor = host.open_part_hole_editor(key)
+            root.update()
+            hole_cb = hole_editor._manual_marking_place
+            hole_state = dict(zip(hole_cb.__code__.co_freevars,
+                                  (c.cell_contents for c in hole_cb.__closure__)))["s"]
+            point = hole_state.manual_marking_draft.context.render_data.material.representative_point()
+            added_hole = CircleFeature(diameter=6, anchor=FeatureAnchor.ABSOLUTE_FINISHED_FACE,
+                                 offset=Vec2(point.x + 50, point.y))
+            hole_state.live_context.feature_list.append(added_hole)
+            _actual_editor_confirm(hole_editor)
+            root.update()
+            assert not hole_editor.winfo_exists() and not failures, failures
+            assert added_hole in app.designer_workspace.features_for(key)
+            assert api.resolve_workspace_physical_root_owner(current_workspace_marking_source(app), key) is None
         editor = host.open_part_hole_editor(key)
         root.update()
         assert editor is not None and hasattr(editor, "_manual_marking_controls"), failures
@@ -582,7 +597,31 @@ def test_same_existing_editor_and_export_ordinary_signed_endcap(tmp_path, monkey
                 q, = (e.plain_text() for e in data.modelspace().query('MTEXT[layer=="CHECK"]')
                       if e.plain_text().startswith("Q"))
                 lines[q] = tuple(data.modelspace().query('LWPOLYLINE[layer=="MARKING"]'))
+                assert any(e.dxf.radius == pytest.approx(3) for e in data.modelspace().query('CIRCLE[layer=="CUTTING"]'))
             assert set(lines) == {"Q2", "Q3"} and not lines["Q2"] and len(lines["Q3"]) == 1
+            model.select(first_version)
+            root.update()
+            guarded_editor = host.open_part_hole_editor(key)
+            root.update()
+            assert guarded_editor is not None and not failures, failures
+            guarded_cb = guarded_editor._manual_marking_place
+            guarded = dict(zip(guarded_cb.__code__.co_freevars,
+                                (c.cell_contents for c in guarded_cb.__closure__)))["s"]
+            other = CircleFeature(diameter=7, anchor=FeatureAnchor.ABSOLUTE_FINISHED_FACE,
+                                  offset=Vec2(point.x + 65, point.y + 20))
+            guarded.live_context.feature_list.append(other)
+            _actual_editor_confirm(guarded_editor)
+            root.update()
+            assert guarded_editor.winfo_exists() and added_hole in app.designer_workspace.features_for(key)
+            assert other not in app.designer_workspace.features_for(key)
+            assert failures and "OWNER_MARKING_QUANTITY_HOLE_EDIT_REQUIRES_MARK_REVALIDATION" in failures[-1][1]
+            failures.clear()
+            assert api.read_quantity_physical_marking(current_workspace_marking_source(app), key,
+                                                       version_id=second_version)["features"] == authored
+            guarded_editor.destroy()
+            root.update()
+            model.select(second_version)
+            root.update()
             controls = app.receiving_mode_controls.quantity_editor
             assert controls.ports["delete"](True)
             root.update()
