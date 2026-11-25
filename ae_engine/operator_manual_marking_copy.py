@@ -503,14 +503,41 @@ def copy_saved_manual_marking_group_to_selected_sheet(
     return clone
 
 
-def list_saved_endcap_marking_copy_groups(source):
-    """List explicit group IDs for the selected saved physical EndCap."""
-
+def list_saved_endcap_marking_copy_candidates(source):
+    """Project readable geometry from the same sealed saved marks as their copy keys."""
+    from math import hypot
+    from .operator_manual_marking import is_manual_round_mark
+    from .operator_manual_marking_groups import group_member_world_points, group_parameters, is_manual_group
+    from .operator_physical_sheet_marking import is_manual_straight_mark
     _, _, marks = _open_ordinary_saved_copy_source(**source)
-    keys = tuple(key for mark in marks if (key := _ordinary_saved_copy_key(mark)) is not None)
+    candidates = []
+    for mark in marks:
+        key = _ordinary_saved_copy_key(mark)
+        if key is None:
+            continue
+        if is_manual_straight_mark(mark):
+            a, b = mark.points
+            x, y = (a.x + b.x) / 2, (a.y + b.y) / 2
+            kind, size = "line", hypot(b.x - a.x, b.y - a.y)
+        elif is_manual_round_mark(mark):
+            x, y = mark.offset.x, mark.offset.y
+            kind, size = "circle", mark.diameter
+        elif is_manual_group(mark):
+            kind = group_parameters(mark)["kind"]
+            point = group_member_world_points(mark)[0][1] if kind in ("l", "cross") else mark.offset
+            x, y, size = point.x, point.y, None
+        else:
+            raise ValueError("MANUAL_COPY_SOURCE_GROUP_AMBIGUOUS")
+        candidates.append((key, kind, x, y, size))
+    keys = tuple(row[0] for row in candidates)
     if not keys or len(keys) != len(set(keys)):
         raise ValueError("MANUAL_COPY_SOURCE_GROUP_AMBIGUOUS")
-    return keys
+    return tuple(candidates)
+
+
+def list_saved_endcap_marking_copy_groups(source):
+    """Compatibility projection of selection keys, not operator-facing text."""
+    return tuple(row[0] for row in list_saved_endcap_marking_copy_candidates(source))
 
 
 def verify_saved_endcap_marking_copy(*, source_group_id, source, target):

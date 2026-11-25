@@ -20,9 +20,13 @@ from tests.test_issue3414_scoped_marking_proto import _raw_write, _real_source, 
     pytest.param(False, "group", id="other-project"),
     pytest.param(True, "group", id="same-project"),
     pytest.param(False, "line", id="standalone-line"),
+    pytest.param(False, "line_choice", id="two-source-lines"),
     pytest.param(True, "circle", id="standalone-circle"),
 ])
 def test_existing_editor_copies_saved_head_group_into_distinct_tail(tmp_path, monkeypatch, same_project, shape):
+    multiple = shape == "line_choice"
+    if multiple:
+        shape = "line"
     def initial(key):
         snapshot = _resize(_real_source(), 1)
         snapshot["existing_parts"] = ["box_body", "base_plate", "head", "tail"] if same_project else ["box_body", "base_plate", key]
@@ -122,7 +126,13 @@ def test_existing_editor_copies_saved_head_group_into_distinct_tail(tmp_path, mo
         else:
             state.manual_group_tools["l"].invoke()
         click(state, Vec2(p.x + 44, p.y + 15))
-        source_group, = [f for f in state.live_context.feature_list if predicate(f)]
+        if multiple:
+            state.manual_mark_length.set("12")
+            editor._manual_marking_controls[0].invoke()
+            click(state, Vec2(p.x - 34, p.y + 15))
+            not_chosen, source_group = [f for f in state.live_context.feature_list if predicate(f)]
+        else:
+            source_group, = [f for f in state.live_context.feature_list if predicate(f)]
         finish(editor)
         head = save_project(head_saved)
         source_owner = api.resolve_workspace_physical_root_owner(head, "head")
@@ -191,6 +201,21 @@ def test_existing_editor_copies_saved_head_group_into_distinct_tail(tmp_path, mo
         monkeypatch.setattr(filedialog, "askopenfilename", lambda **_: str(tail_saved if same_project else head_saved))
         # Source role selected explicitly even when only one physical sheet is marked.
         monkeypatch.setattr(simpledialog, "askstring", lambda *args, **kwargs: "封頭")
+        if multiple:
+            shown = []
+            def cancel_picker(title, body, **kwargs):
+                assert kwargs["minvalue"] == 1 and kwargs["maxvalue"] == 2
+                shown.append(body)
+                return None
+            with monkeypatch.context() as cancelled:
+                cancelled.setattr(simpledialog, "askinteger", cancel_picker)
+                state.manual_mark_copy_button.invoke()
+                root.update()
+            assert len(shown) == 1
+            assert "28.00 mm" in shown[0] and "12.00 mm" in shown[0]
+            assert shown[0].count("X=") == 2 and "line:" not in shown[0]
+            assert tuple(f for f in state.live_context.feature_list if api.is_manual_mark(f)) == original_marks
+            monkeypatch.setattr(simpledialog, "askinteger", lambda *args, **kwargs: 2)
         state.manual_mark_copy_button.invoke()
         root.update()
         status = state.manual_mark_status.cget("text")
@@ -208,6 +233,13 @@ def test_existing_editor_copies_saved_head_group_into_distinct_tail(tmp_path, mo
         elif shape == "line":
             assert copied.source_params == source_group.source_params
             assert len(copied.layered_profiles) == len(source_group.layered_profiles)
+            if multiple:
+                from math import hypot
+                def length(mark):
+                    a, b = mark.points
+                    return hypot(b.x-a.x, b.y-a.y)
+                assert length(copied) == pytest.approx(length(source_group))
+                assert length(copied) != pytest.approx(length(not_chosen))
         else:
             assert copied.diameter == source_group.diameter
         finish(editor)
@@ -224,6 +256,15 @@ def test_existing_editor_copies_saved_head_group_into_distinct_tail(tmp_path, mo
             assert api.read_workspace_marking_owner_record(final, source_owner)["features"] == (source_group,)
         stock, ink = stock_and_ink("tail", "copied-dxf")
         assert stock == original_stock and len(ink) > len(original_ink)
+        if multiple:
+            from math import hypot
+            emitted = [row for row in ink if row not in original_ink]
+            assert all(kind == "LWPOLYLINE" for kind, _ in emitted)
+            total = sum(hypot(b[0]-a[0], b[1]-a[1]) for _, row in emitted
+                        for a, b in zip(row["xyseb"], row["xyseb"][1:]))
+            expected_length = sum(hypot(b.x-a.x, b.y-a.y) for _, points, _ in copied.layered_profiles
+                                  for a, b in zip(points, points[1:]))
+            assert total == pytest.approx(expected_length)
         assert head_saved.read_bytes() == original_bytes
     finally:
         root.destroy()
