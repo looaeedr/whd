@@ -61,8 +61,28 @@ def _build_saved_endcap_copy_part_spec(snapshot, part_key):
     body = selected["box_body_profile"]
     folds = selected["fold_profiles"]
     vals = dict(raw)
+    from .cabinet_types.policy import canonical_family_name
+    if canonical_family_name(raw) == "受電箱":
+        from .receiving_layout import project_primary_bay_legacy_aliases
+        # The committed Bay owns W/H/D; saved Fold cache rows can still
+        # describe previous dimensions until the ordinary Open rebuild.
+        primary = project_primary_bay_legacy_aliases(raw)
+        settings = api.project_manufacturing_scene_settings_overlay(primary, raw.get("settings", {}))
+        dimensions = api.normalize_operator_live_box_dimensions(primary)
+        vals = api.project_operator_linked_endcap_source_snapshot(primary, settings, dimensions)
+        corner_state, _ = api.propose_operator_saved_manual_corner_snapshot(
+            api.operator_new_manual_corner_state(("head", "tail", "door")),
+            api.operator_new_manual_corner_pair_same_state(("head", "tail", "door")),
+            raw.get("corner_state"), raw.get("corner_pair_same"),
+            baseline_model=vals["model"], cabinet_family="受電箱",
+        )
+        # Keep certified restored Corner source and canonical linked Fold
+        # projection together, exactly as the existing Open route does.
+        vals["corner_state"] = corner_state
+        body = api.merge_box_body_fold_profile(body, vals)
+        folds = api.build_linked_endcap_xy_fold_profiles(vals, body)[part_key]
     for name in ("w", "h", "d", "t", "fw"):
-        vals[name] = api.normalize_operator_source_dimension(raw[name], field=name)
+        vals[name] = api.normalize_operator_source_dimension(vals[name], field=name)
     # Save materializes the project's effective settings and box controls at root.
     # Fold readback is authoritative for the selected part dimensions and folds.
     vals.update(api.resolve_endcap_xy_outside_dimensions(folds, vals))
@@ -88,7 +108,7 @@ def _build_saved_endcap_copy_part_spec(snapshot, part_key):
     topology = api.resolve_fold_designer_payload_topology(part_key, vals)
     model, unknown = topology[7:9]
     policy = api.resolve_operator_fold_designer_payload_corner_policy(
-        raw.get("corner_state", {}), part_key, vals["fw"],
+        vals.get("corner_state", {}), part_key, vals["fw"],
         unknown=unknown, family_source=vals, thickness=vals["t"],
         structure_state=structure,
     )
