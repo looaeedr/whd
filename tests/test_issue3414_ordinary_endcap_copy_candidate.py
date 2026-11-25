@@ -16,8 +16,13 @@ from tests.test_issue3415_primary_marking_menu_roundtrip import _actual_editor_c
 from tests.test_issue3414_scoped_marking_proto import _raw_write, _real_source, _resize
 
 
-@pytest.mark.parametrize("same_project", [False, True], ids=["other-project", "same-project"])
-def test_existing_editor_copies_saved_head_group_into_distinct_tail(tmp_path, monkeypatch, same_project):
+@pytest.mark.parametrize(("same_project", "shape"), [
+    pytest.param(False, "group", id="other-project"),
+    pytest.param(True, "group", id="same-project"),
+    pytest.param(False, "line", id="standalone-line"),
+    pytest.param(True, "circle", id="standalone-circle"),
+])
+def test_existing_editor_copies_saved_head_group_into_distinct_tail(tmp_path, monkeypatch, same_project, shape):
     def initial(key):
         snapshot = _resize(_real_source(), 1)
         snapshot["existing_parts"] = ["box_body", "base_plate", "head", "tail"] if same_project else ["box_body", "base_plate", key]
@@ -105,9 +110,19 @@ def test_existing_editor_copies_saved_head_group_into_distinct_tail(tmp_path, mo
         state.manual_mark_gap.set("17")
         state.manual_group_arm_x.set("28")
         state.manual_group_arm_y.set("8")
-        state.manual_group_tools["l"].invoke()
+        predicate = {"group": api.is_manual_group, "line": api.is_manual_straight_mark,
+                     "circle": api.is_manual_round_mark}[shape]
+        if shape == "line":
+            state.manual_mark_length.set("28")
+            editor._manual_marking_controls[0].invoke()
+        elif shape == "circle":
+            button, diameter = editor._manual_round_marking_controls
+            diameter.set("8")
+            button.invoke()
+        else:
+            state.manual_group_tools["l"].invoke()
         click(state, Vec2(p.x + 44, p.y + 15))
-        source_group, = [f for f in state.live_context.feature_list if api.is_manual_group(f)]
+        source_group, = [f for f in state.live_context.feature_list if predicate(f)]
         finish(editor)
         head = save_project(head_saved)
         source_owner = api.resolve_workspace_physical_root_owner(head, "head")
@@ -168,6 +183,7 @@ def test_existing_editor_copies_saved_head_group_into_distinct_tail(tmp_path, mo
         tail = save_project(tail_saved)
         target_owner = api.resolve_workspace_physical_root_owner(tail, "tail")
         assert target_owner and target_owner != source_owner
+        original_marks = api.read_workspace_marking_owner_record(tail, target_owner)["features"]
         original_stock, original_ink = stock_and_ink("tail", "original-dxf")
 
         editor, state = open_editor("tail")
@@ -178,20 +194,29 @@ def test_existing_editor_copies_saved_head_group_into_distinct_tail(tmp_path, mo
         state.manual_mark_copy_button.invoke()
         root.update()
         status = state.manual_mark_status.cget("text")
-        assert "點選目標轉角" in status, status
+        assert ("點選目標轉角" if shape == "group" else "點選目標中點" if shape == "line" else "點選目標圓心") in status, status
         click(state, Vec2(p.x + 44, p.y + 15))
-        copies = [f for f in state.live_context.feature_list if api.is_manual_group(f)]
+        copies = [f for f in state.live_context.feature_list if predicate(f) and f not in original_marks]
         assert len(copies) == 1, state.manual_mark_status.cget("text")
         copied, = copies
-        before = api.group_parameters(source_group)
-        after = api.group_parameters(copied)
-        assert before["group_id"] != after["group_id"]
-        assert before["kind"] == after["kind"] == "l"
+        assert copied is not source_group
+        if shape == "group":
+            before = api.group_parameters(source_group)
+            after = api.group_parameters(copied)
+            assert before["group_id"] != after["group_id"]
+            assert before["kind"] == after["kind"] == "l"
+        elif shape == "line":
+            assert copied.source_params == source_group.source_params
+            assert len(copied.layered_profiles) == len(source_group.layered_profiles)
+        else:
+            assert copied.diameter == source_group.diameter
         finish(editor)
         live = current_workspace_marking_source(app)
         assert api.resolve_workspace_physical_root_owner(live, "tail") == target_owner
         expected = api.read_workspace_marking_owner_record(live, target_owner)["features"]
-        assert copied in expected and source_group not in expected
+        assert copied in expected
+        if shape == "group":
+            assert source_group not in expected
         final = save_project(tail_final)
         open_project(tail_final)
         assert api.read_workspace_marking_owner_record(final, target_owner)["features"] == expected
