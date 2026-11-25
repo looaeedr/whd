@@ -133,10 +133,14 @@ def test_existing_editor_copies_saved_head_group_into_distinct_tail(tmp_path, mo
         monkeypatch.setattr(filedialog, "askopenfilename", lambda **_: str(head_saved))
         # Source role selected explicitly even when only one physical sheet is marked.
         monkeypatch.setattr(simpledialog, "askstring", lambda *args, **kwargs: "封頭")
-        editor._manual_group_controls[-1].invoke()
+        state.manual_mark_copy_button.invoke()
         root.update()
+        status = state.manual_mark_status.cget("text")
+        assert "點選目標轉角" in status, status
         click(state, Vec2(p.x + 44, p.y + 15))
-        copied, = [f for f in state.live_context.feature_list if api.is_manual_group(f)]
+        copies = [f for f in state.live_context.feature_list if api.is_manual_group(f)]
+        assert len(copies) == 1, state.manual_mark_status.cget("text")
+        copied, = copies
         before = api.group_parameters(source_group)
         after = api.group_parameters(copied)
         assert before["group_id"] != after["group_id"]
