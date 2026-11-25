@@ -1500,6 +1500,11 @@ def _install_manual_marking_actions(s):
     except (ValueError, TypeError):
         copy_target_state = None  # Independent/scoped editors do not gain Copy authority.
 
+    ordinary_endcap_copy = (
+        s.part_key in {"head", "tail"}
+        and getattr(s.manual_marking_draft, "output_capability", None) == "verified_normal"
+    )
+
     def live_copy_target(path):
         from pathlib import Path
         from phase6_manufacturing_adapter import build_scene_payload_for_app
@@ -1511,11 +1516,21 @@ def _install_manual_marking_actions(s):
                 or getattr(copy_host, "project_controller", None) is not copy_controller
                 or copy_controller.project_load_epoch != copy_epoch
                 or not current_path or Path(current_path).resolve(strict=True) != path
-                or s.part_key != "base_plate"
+                or (not ordinary_endcap_copy and s.part_key != "base_plate")
                 or s.part_key not in copy_workspace.available_parts
-                or copy_target_state is None):
+                or (not ordinary_endcap_copy and copy_target_state is None)):
             raise ValueError("MANUAL_COPY_TARGET_EDITOR_SESSION_STALE")
         live = current_workspace_marking_source(copy_app)
+        if ordinary_endcap_copy:
+            payload = build_scene_payload_for_app(copy_app, s.part_key)
+            render = copy_host._query_fold_designer_render_data(s.part_key, payload)
+            geometry = api.selected_normal_marking_inventory(s.part_key, render)
+            current = api.open_selected_ordinary_marking_modal_source(live, geometry, s.part_key)
+            opened = s.manual_marking_draft
+            if (current.owner_id is None or current.owner_id != opened.owner_id
+                    or current.source_sha256 != opened.source_sha256):
+                raise ValueError("MANUAL_COPY_TARGET_EDITOR_SESSION_STALE")
+            return geometry, live
         if api.project_live_manual_marking_copy_target_state(live, s.part_key) != copy_target_state:
             raise ValueError("MANUAL_COPY_TARGET_EDITOR_SESSION_STALE")
         # Same original physical editor pipeline, including its ordinary
@@ -1527,6 +1542,10 @@ def _install_manual_marking_actions(s):
         return context, live
 
     def verified_copy_args(receipt):
+        if ordinary_endcap_copy:
+            geometry, live = live_copy_target(receipt["target"]["target_project_path"])
+            return {**receipt, "target": {**receipt["target"], "target_live_snapshot": live,
+                                          "target_live_geometry": geometry}}
         context, live_snapshot = live_copy_target(receipt["target_project_path"])
         return {**receipt, "target_context": context, "target_live_snapshot": live_snapshot}
 
@@ -1544,13 +1563,18 @@ def _install_manual_marking_actions(s):
             args = verified_copy_args(pending["receipt"])
             # Recheck both the opened and current physical target before
             # any retryable placement error can retain the source receipt.
-            api.verify_saved_manual_marking_copy_sources(
-                **{**args, "target_context": s.manual_marking_draft.context},
-            )
-            clone = api.copy_saved_manual_marking_group_to_selected_sheet(
-                **args, target_features=tuple(s.live_context.feature_list),
-                target_position=point,
-            )
+            if ordinary_endcap_copy:
+                clone = api.place_saved_endcap_marking_copy(
+                    **args, target_features=tuple(s.live_context.feature_list), target_position=point,
+                )
+            else:
+                api.verify_saved_manual_marking_copy_sources(
+                    **{**args, "target_context": s.manual_marking_draft.context},
+                )
+                clone = api.copy_saved_manual_marking_group_to_selected_sheet(
+                    **args, target_features=tuple(s.live_context.feature_list),
+                    target_position=point,
+                )
         except api.ManualCopyPlacementRejected as exc:
             copy_rejection = "跨板定位被拒絕：" + str(exc) + "；請重新選點（Esc 取消）"
             s.redraw()
@@ -1589,10 +1613,14 @@ def _install_manual_marking_actions(s):
             receipt = placed_copy_receipts.get(api.group_parameters(feature)["group_id"])
             if receipt is not None:
                 args = verified_copy_args(receipt)
-                api.verify_saved_manual_marking_copy_sources(**args)
-                api.propose_operator_physical_sheet_hole_features(
-                    s.part_key, args["target_context"], tuple(features),
-                )
+                if ordinary_endcap_copy:
+                    _, verified = api.verify_saved_endcap_marking_copy(**args)
+                    api.validate_physical_sheet_marking_draft(verified, tuple(features))
+                else:
+                    api.verify_saved_manual_marking_copy_sources(**args)
+                    api.propose_operator_physical_sheet_hole_features(
+                        s.part_key, args["target_context"], tuple(features),
+                    )
         return original_confirm_features(features)
 
     if original_confirm_features is not None:
@@ -1627,11 +1655,27 @@ def _install_manual_marking_actions(s):
             target_sha = sha256(target_path.read_bytes()).hexdigest()
             source_data = read_project(source_path)["snapshot"]
             target_data = read_project(target_path)["snapshot"]
-            candidates = api.list_saved_manual_marking_copy_groups(
-                source_snapshot=source_data,
-                source_project_path=source_path,
-                source_project_sha256=source_sha,
-            )
+            if ordinary_endcap_copy:
+                source_label = simpledialog.askstring(
+                    "選擇來源板件", "輸入封頭或封尾：", parent=s.editor,
+                )
+                if source_label is None:
+                    return False
+                source_role = {"封頭": "head", "封尾": "tail"}.get(source_label.strip())
+                if source_role is None:
+                    raise ValueError("MANUAL_COPY_EXPLICIT_ORDINARY_SOURCE_REQUIRED")
+                source = dict(
+                    source_snapshot=source_data, source_project_path=source_path,
+                    source_project_sha256=source_sha, source_part_key=source_role,
+                    resolve_saved_geometry=api.resolve_saved_endcap_copy_geometry,
+                )
+                candidates = api.list_saved_endcap_marking_copy_groups(source)
+            else:
+                candidates = api.list_saved_manual_marking_copy_groups(
+                    source_snapshot=source_data,
+                    source_project_path=source_path,
+                    source_project_sha256=source_sha,
+                )
             if not candidates:
                 raise ValueError("MANUAL_COPY_SOURCE_GROUP_MISSING")
             if len(candidates) == 1:
@@ -1645,17 +1689,25 @@ def _install_manual_marking_actions(s):
                     return False
             if original_confirm_features is None:
                 raise ValueError("MANUAL_COPY_TARGET_EDITOR_CONFIRM_REQUIRED")
-            receipt = dict(
-                source_snapshot=source_data, source_project_path=source_path,
-                source_project_sha256=source_sha,
-                target_snapshot=target_data, target_project_path=target_path,
-                target_project_sha256=target_sha, source_group_id=selected_id,
-            )
-            args = verified_copy_args(receipt)
-            group = api.verify_saved_manual_marking_copy_sources(**args)
-            api.verify_saved_manual_marking_copy_sources(
-                **{**args, "target_context": s.manual_marking_draft.context},
-            )
+            if ordinary_endcap_copy:
+                receipt = dict(source=source, source_group_id=selected_id, target=dict(
+                    target_snapshot=target_data, target_project_path=target_path,
+                    target_project_sha256=target_sha, target_part_key=s.part_key,
+                    resolve_saved_geometry=api.resolve_saved_endcap_copy_geometry,
+                ))
+                group, _ = api.verify_saved_endcap_marking_copy(**verified_copy_args(receipt))
+            else:
+                receipt = dict(
+                    source_snapshot=source_data, source_project_path=source_path,
+                    source_project_sha256=source_sha,
+                    target_snapshot=target_data, target_project_path=target_path,
+                    target_project_sha256=target_sha, source_group_id=selected_id,
+                )
+                args = verified_copy_args(receipt)
+                group = api.verify_saved_manual_marking_copy_sources(**args)
+                api.verify_saved_manual_marking_copy_sources(
+                    **{**args, "target_context": s.manual_marking_draft.context},
+                )
             kind = api.group_parameters(group)["kind"]
             prompt = ("跨板複製：點選目標轉角" if kind == "l" else
                       "跨板複製：點選目標交點" if kind == "cross" else

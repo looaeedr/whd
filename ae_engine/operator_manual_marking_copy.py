@@ -46,6 +46,49 @@ def _bound_project_snapshot(raw, claimed, role):
     return saved
 
 
+def _resolve_bound_saved_marking_geometry(saved, key, resolve_saved_geometry):
+    """Ask the trusted adapter only after the same bytes have been decoded.
+
+    A saved FinalScene is not a project authority. This private port takes
+    actual decoded project inputs and an explicit part; the GUI must not
+    implement this port by substituting its current live target or cached DXF.
+    """
+    from copy import deepcopy
+
+    if not callable(resolve_saved_geometry):
+        raise TypeError("MANUAL_COPY_CANONICAL_SAVED_RENDER_REQUIRED")
+    return resolve_saved_geometry(deepcopy(saved), key)
+
+
+def _open_ordinary_saved_copy_source(
+    *, source_snapshot, source_project_path, source_project_sha256,
+    source_part_key, resolve_saved_geometry,
+):
+    """Read one explicitly selected ordinary sheet, bound to saved bytes and ink.
+
+    Geometry must come from the existing canonical selected-part resolver.
+    Its source seal then has to equal the persisted physical owner's mark
+    record. This helper grants no publication or placement capability.
+    """
+    from .operator_root_marking_store import open_workspace_owner_marking_draft
+    from .operator_selected_marking_receipt import open_selected_ordinary_marking_modal_source
+
+    if source_part_key not in ("head", "tail"):
+        raise ValueError("MANUAL_COPY_EXPLICIT_ORDINARY_SOURCE_REQUIRED")
+    path, raw = _file_identity(source_project_path, source_project_sha256, "SOURCE")
+    saved = _bound_project_snapshot(raw, source_snapshot, "SOURCE")
+    source_geometry = _resolve_bound_saved_marking_geometry(
+        saved, source_part_key, resolve_saved_geometry,
+    )
+    receipt = open_selected_ordinary_marking_modal_source(saved, source_geometry, source_part_key)
+    if receipt.output_capability != "verified_normal" or receipt.owner_id is None:
+        raise ValueError("MANUAL_COPY_SOURCE_PHYSICAL_OWNER_UNRESOLVED")
+    draft = open_workspace_owner_marking_draft(saved, receipt)
+    if not draft.saved_marks:
+        raise ValueError("MANUAL_COPY_SOURCE_GROUP_MISSING")
+    return path, receipt, draft.saved_marks
+
+
 def _unique_single_sheet(snapshot, role):
     if not isinstance(snapshot, Mapping):
         raise ValueError("MANUAL_COPY_" + role + "_SNAPSHOT_REQUIRED")
@@ -284,25 +327,12 @@ class ManualCopyPlacementRejected(ValueError):
     """
 
 
-def copy_saved_manual_marking_group_to_selected_sheet(
-    *, source_snapshot, source_project_path, source_project_sha256,
-    target_snapshot, target_project_path, target_project_sha256,
-    target_context, target_features, source_group_id, target_position,
-    target_live_snapshot=None,
-):
-    """Place a new independent group at the operator's destination anchor."""
+def _clone_copy_group(group, source_group_id, target_position):
     from . import manufacturing_api as api
     from .operator_manual_marking_groups import _rebuild
     from .sheetmetal_geometry import Vec2
 
-    group = verify_saved_manual_marking_copy_sources(
-        source_snapshot=source_snapshot, source_project_path=source_project_path,
-        source_project_sha256=source_project_sha256, target_snapshot=target_snapshot,
-        target_project_path=target_project_path, target_project_sha256=target_project_sha256,
-        target_context=target_context, source_group_id=source_group_id,
-        target_live_snapshot=target_live_snapshot,
-    )
-    if not isinstance(target_position, Vec2) or target_features is None:
+    if not isinstance(target_position, Vec2):
         raise ValueError("MANUAL_COPY_TARGET_POSITION_REQUIRED")
     params = dict(api.group_parameters(group))
     # Single L uses its real turn point, cross its real intersection.
@@ -318,6 +348,101 @@ def copy_saved_manual_marking_group_to_selected_sheet(
     if (api.group_parameters(clone)["group_id"] == source_group_id
             or clone is group or not isinstance(clone, ProfileFeature)):
         raise ValueError("MANUAL_COPY_NEW_GROUP_ID_REQUIRED")
+    return clone
+
+
+def _open_ordinary_saved_copy_target(
+    *, target_snapshot, target_project_path, target_project_sha256,
+    target_part_key, resolve_saved_geometry, target_live_snapshot, target_live_geometry,
+):
+    """Match an explicitly selected live ordinary sheet to its saved stock."""
+    from .operator_root_marking_store import open_workspace_owner_marking_draft
+    from .operator_selected_marking_receipt import open_selected_ordinary_marking_modal_source
+
+    if target_part_key not in ("head", "tail"):
+        raise ValueError("MANUAL_COPY_EXPLICIT_ORDINARY_TARGET_REQUIRED")
+    path, raw = _file_identity(target_project_path, target_project_sha256, "TARGET")
+    saved = _bound_project_snapshot(raw, target_snapshot, "TARGET")
+    target_saved_geometry = _resolve_bound_saved_marking_geometry(
+        saved, target_part_key, resolve_saved_geometry,
+    )
+    saved_receipt = open_selected_ordinary_marking_modal_source(
+        saved, target_saved_geometry, target_part_key,
+    )
+    live_receipt = open_selected_ordinary_marking_modal_source(
+        target_live_snapshot, target_live_geometry, target_part_key,
+    )
+    if (live_receipt.output_capability != "verified_normal"
+            or saved_receipt.output_capability != "verified_normal"
+            or saved_receipt.owner_id is None
+            or saved_receipt.owner_id != live_receipt.owner_id):
+        raise ValueError("MANUAL_COPY_TARGET_LIVE_OWNER_CHANGED")
+    if saved_receipt.source_sha256 != live_receipt.source_sha256:
+        raise ValueError("MANUAL_COPY_TARGET_SAVED_PHYSICAL_SOURCE_CHANGED")
+    saved_draft = open_workspace_owner_marking_draft(saved, saved_receipt)
+    live_draft = open_workspace_owner_marking_draft(target_live_snapshot, live_receipt)
+    if saved_draft.saved_marks != live_draft.saved_marks:
+        raise ValueError("MANUAL_COPY_TARGET_EDITOR_SESSION_STALE")
+    return path, live_receipt
+
+
+def _verify_ordinary_saved_copy_sources(*, source_group_id, source, target):
+    from .operator_manual_marking_groups import group_parameters, is_manual_group
+
+    source_file, source_receipt, source_marks = _open_ordinary_saved_copy_source(**source)
+    target_file, target_receipt = _open_ordinary_saved_copy_target(**target)
+    if source_file == target_file:
+        raise ValueError("MANUAL_COPY_SAME_PHYSICAL_PROJECT")
+    if source_receipt.owner_id == target_receipt.owner_id:
+        raise ValueError("MANUAL_COPY_SAME_PHYSICAL_OWNER")
+    if not isinstance(source_group_id, str) or not source_group_id:
+        raise ValueError("MANUAL_COPY_EXPLICIT_GROUP_ID_REQUIRED")
+    matches = [mark for mark in source_marks if is_manual_group(mark)
+               and group_parameters(mark)["group_id"] == source_group_id]
+    if len(matches) != 1:
+        raise ValueError("MANUAL_COPY_SOURCE_GROUP_AMBIGUOUS")
+    return matches[0], target_receipt
+
+
+def _copy_ordinary_saved_group(
+    *, source_group_id, source, target, target_features, target_position,
+):
+    """Place with the ordinary editor's full-stroke and material validation."""
+    from .operator_physical_sheet_marking import validate_physical_sheet_marking_draft
+
+    group, receipt = _verify_ordinary_saved_copy_sources(
+        source_group_id=source_group_id, source=source, target=target,
+    )
+    if target_features is None:
+        raise ValueError("MANUAL_COPY_TARGET_POSITION_REQUIRED")
+    existing = tuple(target_features)
+    validate_physical_sheet_marking_draft(receipt, existing)
+    clone = _clone_copy_group(group, source_group_id, target_position)
+    try:
+        validate_physical_sheet_marking_draft(receipt, (*existing, clone))
+    except ValueError as exc:
+        raise ManualCopyPlacementRejected(str(exc)) from exc
+    return clone
+
+
+def copy_saved_manual_marking_group_to_selected_sheet(
+    *, source_snapshot, source_project_path, source_project_sha256,
+    target_snapshot, target_project_path, target_project_sha256,
+    target_context, target_features, source_group_id, target_position,
+    target_live_snapshot=None,
+):
+    """Place a new independent group at the operator's destination anchor."""
+    from . import manufacturing_api as api
+    group = verify_saved_manual_marking_copy_sources(
+        source_snapshot=source_snapshot, source_project_path=source_project_path,
+        source_project_sha256=source_project_sha256, target_snapshot=target_snapshot,
+        target_project_path=target_project_path, target_project_sha256=target_project_sha256,
+        target_context=target_context, source_group_id=source_group_id,
+        target_live_snapshot=target_live_snapshot,
+    )
+    clone = _clone_copy_group(group, source_group_id, target_position)
+    if target_features is None:
+        raise ValueError("MANUAL_COPY_TARGET_POSITION_REQUIRED")
     # Validate the unmodified draft first: a bad existing source is not
     # something the operator can repair by clicking another copy position.
     existing = tuple(target_features)
@@ -333,3 +458,25 @@ def copy_saved_manual_marking_group_to_selected_sheet(
     except ValueError as exc:
         raise ManualCopyPlacementRejected(str(exc)) from exc
     return clone
+
+
+def list_saved_endcap_marking_copy_groups(source):
+    """List explicit group IDs for the selected saved physical EndCap."""
+    from .operator_manual_marking_groups import group_parameters, is_manual_group
+
+    _, _, marks = _open_ordinary_saved_copy_source(**source)
+    keys = tuple(group_parameters(row)["group_id"] for row in marks if is_manual_group(row))
+    if not keys or len(keys) != len(set(keys)):
+        raise ValueError("MANUAL_COPY_SOURCE_GROUP_AMBIGUOUS")
+    return keys
+
+
+def verify_saved_endcap_marking_copy(*, source_group_id, source, target):
+    """Recheck the read-only source and current destination; no writes here."""
+    return _verify_ordinary_saved_copy_sources(source_group_id=source_group_id, source=source, target=target)
+
+
+def place_saved_endcap_marking_copy(*, source_group_id, source, target, target_features, target_position):
+    """Create a vetted group; the normal editor remains the transaction owner."""
+    return _copy_ordinary_saved_group(source_group_id=source_group_id, source=source, target=target,
+                                     target_features=target_features, target_position=target_position)
