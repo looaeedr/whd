@@ -60,9 +60,51 @@ def _resolve_bound_saved_marking_geometry(saved, key, resolve_saved_geometry):
     return resolve_saved_geometry(deepcopy(saved), key)
 
 
+def list_ordinary_marking_copy_versions(snapshot, part_key):
+    """Return the existing project version choices; never guess a donor."""
+    from .operator_quantity_marking_owner import uses_quantity_physical_marking_editor
+    from .receiving_quantity_versions import QuantityModel
+
+    if part_key not in {"door", "base_plate"} or not uses_quantity_physical_marking_editor(snapshot, part_key):
+        return ()
+    model = QuantityModel.from_payload(snapshot["quantity"])
+    return tuple((row["version_id"], row["piece_count"])
+                 for row in model.snapshot()["versions"])
+
+
+def _read_ordinary_copy_owner(snapshot, geometry, key, version_id, *, require_selected=False):
+    from .operator_quantity_marking_owner import open_quantity_physical_marking
+    from .operator_root_marking_store import open_workspace_owner_marking_draft
+    from .operator_selected_marking_receipt import open_selected_ordinary_marking_modal_source
+    from .receiving_quantity_versions import QuantityModel
+
+    versions = list_ordinary_marking_copy_versions(snapshot, key)
+    if versions:
+        if version_id not in {identity for identity, _ in versions}:
+            raise ValueError("MANUAL_COPY_EXPLICIT_QUANTITY_VERSION_REQUIRED")
+        model = QuantityModel.from_payload(snapshot["quantity"])
+        if require_selected and model.selected_version_id != version_id:
+            raise ValueError("MANUAL_COPY_TARGET_EDITOR_SESSION_STALE")
+        model.select(version_id)
+        scoped = {**snapshot, "quantity": model.snapshot()}
+        opening = open_quantity_physical_marking(scoped, geometry, key)
+        marks = () if opening.saved_record is None else opening.saved_record["features"]
+        receipt = opening.stock
+    else:
+        if version_id is not None:
+            raise ValueError("MANUAL_COPY_QUANTITY_VERSION_UNAVAILABLE")
+        receipt = open_selected_ordinary_marking_modal_source(snapshot, geometry, key)
+        if receipt.output_capability != "verified_normal" or receipt.owner_id is None:
+            raise ValueError("MANUAL_COPY_PHYSICAL_OWNER_UNRESOLVED")
+        marks = open_workspace_owner_marking_draft(snapshot, receipt).saved_marks
+    if receipt.output_capability != "verified_normal" or receipt.owner_id is None:
+        raise ValueError("MANUAL_COPY_PHYSICAL_OWNER_UNRESOLVED")
+    return receipt, tuple(marks)
+
+
 def _open_ordinary_saved_copy_source(
     *, source_snapshot, source_project_path, source_project_sha256,
-    source_part_key, resolve_saved_geometry,
+    source_part_key, resolve_saved_geometry, source_version_id=None,
 ):
     """Read one explicitly selected ordinary sheet, bound to saved bytes and ink.
 
@@ -70,9 +112,6 @@ def _open_ordinary_saved_copy_source(
     Its source seal then has to equal the persisted physical owner's mark
     record. This helper grants no publication or placement capability.
     """
-    from .operator_root_marking_store import open_workspace_owner_marking_draft
-    from .operator_selected_marking_receipt import open_selected_ordinary_marking_modal_source
-
     if source_part_key not in ("head", "tail", "door", "base_plate"):
         raise ValueError("MANUAL_COPY_EXPLICIT_ORDINARY_SOURCE_REQUIRED")
     path, raw = _file_identity(source_project_path, source_project_sha256, "SOURCE")
@@ -80,13 +119,10 @@ def _open_ordinary_saved_copy_source(
     source_geometry = _resolve_bound_saved_marking_geometry(
         saved, source_part_key, resolve_saved_geometry,
     )
-    receipt = open_selected_ordinary_marking_modal_source(saved, source_geometry, source_part_key)
-    if receipt.output_capability != "verified_normal" or receipt.owner_id is None:
-        raise ValueError("MANUAL_COPY_SOURCE_PHYSICAL_OWNER_UNRESOLVED")
-    draft = open_workspace_owner_marking_draft(saved, receipt)
-    if not draft.saved_marks:
+    receipt, marks = _read_ordinary_copy_owner(saved, source_geometry, source_part_key, source_version_id)
+    if not marks:
         raise ValueError("MANUAL_COPY_SOURCE_GROUP_MISSING")
-    return path, receipt, draft.saved_marks
+    return path, receipt, marks
 
 
 def _unique_single_sheet(snapshot, role):
@@ -354,11 +390,9 @@ def _clone_copy_group(group, source_group_id, target_position):
 def _open_ordinary_saved_copy_target(
     *, target_snapshot, target_project_path, target_project_sha256,
     target_part_key, resolve_saved_geometry, target_live_snapshot, target_live_geometry,
+    target_version_id=None,
 ):
     """Match an explicitly selected live ordinary sheet to its saved stock."""
-    from .operator_root_marking_store import open_workspace_owner_marking_draft
-    from .operator_selected_marking_receipt import open_selected_ordinary_marking_modal_source
-
     if target_part_key not in ("head", "tail", "door", "base_plate"):
         raise ValueError("MANUAL_COPY_EXPLICIT_ORDINARY_TARGET_REQUIRED")
     path, raw = _file_identity(target_project_path, target_project_sha256, "TARGET")
@@ -366,22 +400,17 @@ def _open_ordinary_saved_copy_target(
     target_saved_geometry = _resolve_bound_saved_marking_geometry(
         saved, target_part_key, resolve_saved_geometry,
     )
-    saved_receipt = open_selected_ordinary_marking_modal_source(
-        saved, target_saved_geometry, target_part_key,
+    saved_receipt, saved_marks = _read_ordinary_copy_owner(
+        saved, target_saved_geometry, target_part_key, target_version_id,
     )
-    live_receipt = open_selected_ordinary_marking_modal_source(
-        target_live_snapshot, target_live_geometry, target_part_key,
+    live_receipt, live_marks = _read_ordinary_copy_owner(
+        target_live_snapshot, target_live_geometry, target_part_key, target_version_id, require_selected=True,
     )
-    if (live_receipt.output_capability != "verified_normal"
-            or saved_receipt.output_capability != "verified_normal"
-            or saved_receipt.owner_id is None
-            or saved_receipt.owner_id != live_receipt.owner_id):
+    if saved_receipt.owner_id != live_receipt.owner_id:
         raise ValueError("MANUAL_COPY_TARGET_LIVE_OWNER_CHANGED")
     if saved_receipt.source_sha256 != live_receipt.source_sha256:
         raise ValueError("MANUAL_COPY_TARGET_SAVED_PHYSICAL_SOURCE_CHANGED")
-    saved_draft = open_workspace_owner_marking_draft(saved, saved_receipt)
-    live_draft = open_workspace_owner_marking_draft(target_live_snapshot, live_receipt)
-    if saved_draft.saved_marks != live_draft.saved_marks:
+    if saved_marks != live_marks:
         raise ValueError("MANUAL_COPY_TARGET_EDITOR_SESSION_STALE")
     return path, live_receipt
 
@@ -409,17 +438,16 @@ def _verify_ordinary_saved_copy_sources(*, source_group_id, source, target):
         # to one saved revision and independently recheck the live donor.
         if source["source_project_sha256"] != target["target_project_sha256"]:
             raise ValueError("MANUAL_COPY_SAME_PROJECT_REVISION_CHANGED")
-        from .operator_root_marking_store import open_workspace_owner_marking_draft
-        from .operator_selected_marking_receipt import open_selected_ordinary_marking_modal_source
         live = target["target_live_snapshot"]
         key = source["source_part_key"]
         geometry = _resolve_bound_saved_marking_geometry(live, key, source["resolve_saved_geometry"])
-        current = open_selected_ordinary_marking_modal_source(live, geometry, key)
-        if (current.output_capability != "verified_normal"
-                or current.owner_id != source_receipt.owner_id
+        current, current_marks = _read_ordinary_copy_owner(
+            live, geometry, key, source.get("source_version_id"),
+        )
+        if (current.owner_id != source_receipt.owner_id
                 or current.source_sha256 != source_receipt.source_sha256):
             raise ValueError("MANUAL_COPY_LIVE_DONOR_SOURCE_CHANGED")
-        if open_workspace_owner_marking_draft(live, current).saved_marks != source_marks:
+        if current_marks != source_marks:
             raise ValueError("MANUAL_COPY_LIVE_DONOR_MARKS_CHANGED")
     if not isinstance(source_group_id, str) or not source_group_id:
         raise ValueError("MANUAL_COPY_EXPLICIT_GROUP_ID_REQUIRED")
