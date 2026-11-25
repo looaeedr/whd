@@ -579,3 +579,112 @@ def place_saved_endcap_marking_copy(*, source_group_id, source, target, target_f
     """Create a vetted group; the normal editor remains the transaction owner."""
     return _copy_ordinary_saved_group(source_group_id=source_group_id, source=source, target=target,
                                      target_features=target_features, target_position=target_position)
+
+
+def supports_scoped_marking_copy(draft):
+    """Only eligible Receiving LEFT drafts expose the same-project picker."""
+    from .operator_physical_sheet_marking import PhysicalSheetMarkingDraft
+
+    return isinstance(draft, PhysicalSheetMarkingDraft) and draft._selection is not None
+
+
+def _open_scoped_copy_owner(snapshot, owner_id):
+    """Resolve current durable owner, not an address remembered by a picker."""
+    from .operator_physical_sheet_marking import open_physical_sheet_marking
+    from .operator_scoped_base_plate_marks import _current_owners, _physical_seal
+
+    matches = [location for location, owner in _current_owners(snapshot).items()
+               if owner_id and owner == owner_id]
+    if len(matches) != 1:
+        raise ValueError("SCOPED_COPY_OWNER_STALE")
+    draft = open_physical_sheet_marking(
+        "base_plate", snapshot=snapshot, selection=matches[0], expected_owner=owner_id,
+    )
+    seal = _physical_seal(owner_id, draft.context.render_data, snapshot["t"])
+    if draft.saved_marks and draft._selection.saved_seal != seal:
+        raise ValueError("SCOPED_COPY_SAVED_SOURCE_CHANGED")
+    return draft, seal
+
+
+def _read_scoped_copy_file(project_path, project_sha256, saved_snapshot):
+    _, raw = _file_identity(project_path, project_sha256, "SOURCE")
+    return _bound_project_snapshot(raw, saved_snapshot, "SOURCE")
+
+
+def list_saved_scoped_marking_copy_candidates(*, project_path, project_sha256,
+                                              saved_snapshot, target_owner_id):
+    """Return readable literal strokes, each bound to an explicit physical Bay."""
+    from math import hypot
+    from .operator_scoped_base_plate_marks import _current_owners, normalize_scoped_base_plate_marks
+
+    saved = _read_scoped_copy_file(project_path, project_sha256, saved_snapshot)
+    _open_scoped_copy_owner(saved, target_owner_id)
+    ledger = normalize_scoped_base_plate_marks(saved)
+    owners = _current_owners(saved)
+    rows = []
+    for (si, bi), owner in owners.items():
+        if owner is None or owner == target_owner_id or owner not in ledger:
+            continue
+        source, _ = _open_scoped_copy_owner(saved, owner)
+        for mark in source.saved_marks:
+            a, b = mark.points
+            rows.append((owner, si, bi, _ordinary_saved_copy_key(mark),
+                         (a.x + b.x) / 2, (a.y + b.y) / 2, hypot(b.x - a.x, b.y - a.y)))
+    if len({(row[0], row[3]) for row in rows}) != len(rows):
+        raise ValueError("MANUAL_COPY_SOURCE_GROUP_AMBIGUOUS")
+    return tuple(rows)
+
+
+def verify_saved_scoped_marking_copy(*, project_path, project_sha256, saved_snapshot,
+                                     live_snapshot, source_owner_id, source_group_id, opened_target):
+    """Recheck both stocks and ledgers and the actual target modal, with no writes."""
+    from .operator_physical_sheet_marking import PhysicalSheetMarkingDraft
+
+    if (not isinstance(opened_target, PhysicalSheetMarkingDraft)
+            or opened_target._selection is None):
+        raise ValueError("SCOPED_COPY_TARGET_EDITOR_REQUIRED")
+    target_owner = opened_target.owner_id
+    if source_owner_id == target_owner:
+        raise ValueError("MANUAL_COPY_SAME_PHYSICAL_OWNER")
+    saved = _read_scoped_copy_file(project_path, project_sha256, saved_snapshot)
+    stock = {}
+    for owner in (source_owner_id, target_owner):
+        original, original_seal = _open_scoped_copy_owner(saved, owner)
+        current, current_seal = _open_scoped_copy_owner(live_snapshot, owner)
+        if original_seal != current_seal or original.saved_marks != current.saved_marks:
+            raise ValueError("SCOPED_COPY_LIVE_SOURCE_CHANGED")
+        stock[owner] = current
+    current = stock[target_owner]
+    if (opened_target._selection.location != current._selection.location
+            or opened_target._source != current._source
+            or opened_target.saved_marks != current.saved_marks
+            or opened_target._selection.saved_seal != current._selection.saved_seal):
+        raise ValueError("MANUAL_COPY_TARGET_EDITOR_SESSION_STALE")
+    matches = [row for row in stock[source_owner_id].saved_marks
+               if source_group_id and _ordinary_saved_copy_key(row) == source_group_id]
+    if len(matches) != 1:
+        raise ValueError("MANUAL_COPY_SOURCE_GROUP_AMBIGUOUS")
+    return matches[0], current
+
+
+def place_saved_scoped_marking_copy(*, target_features, target_position, **ports):
+    """Stage one literal stroke via the same placement validator as other copies."""
+    from .operator_physical_sheet_marking import (
+        move_physical_sheet_straight_mark, validate_physical_sheet_marking_draft,
+    )
+    from .sheetmetal_geometry import Vec2
+
+    mark, target = verify_saved_scoped_marking_copy(**ports)
+    if not isinstance(target_position, Vec2):
+        raise ValueError("MANUAL_COPY_TARGET_POSITION_REQUIRED")
+    existing = tuple(target_features)
+    a, b = mark.points
+    try:
+        validate_physical_sheet_marking_draft(target, existing)
+        return move_physical_sheet_straight_mark(
+            target, (*existing, mark), selected_index=len(existing),
+            displacement=Vec2(target_position.x - (a.x + b.x) / 2,
+                              target_position.y - (a.y + b.y) / 2),
+        )
+    except ValueError as error:
+        raise ManualCopyPlacementRejected(str(error)) from error

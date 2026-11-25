@@ -342,13 +342,17 @@ def _build_sidebar_workspace_state(s):
         )
         s.manual_group_mirror.pack(side=d.tk.LEFT, padx=2)
         s.manual_mark_copy_button = d.tk.Button(
-            edit_bar, text="從另存專案複製群組", bg="#3a3a44", fg="white",
+            mark_bar if d.manufacturing_api.supports_scoped_marking_copy(s.manual_marking_draft) else edit_bar,
+            text=("從本專案其他連複製打標"
+                  if d.manufacturing_api.supports_scoped_marking_copy(s.manual_marking_draft)
+                  else "從另存專案複製群組"), bg="#3a3a44", fg="white",
         )
         s.manual_mark_copy_button.pack(side=d.tk.LEFT, padx=3)
         s.editor._manual_group_controls = (
             *s.manual_group_tools.values(), s.manual_group_apply_offset,
             s.manual_group_apply_size, s.manual_group_rotate,
-            s.manual_group_mirror, s.manual_mark_copy_button,
+            s.manual_group_mirror,
+            *((s.manual_mark_copy_button,) if _has_group_mark_tools(s) else ()),
         )
     s.dragging = [False]
     s.editor_closed = [False]
@@ -1500,6 +1504,7 @@ def _install_manual_marking_actions(s):
     except (ValueError, TypeError):
         copy_target_state = None  # Independent/scoped editors do not gain Copy authority.
 
+    scoped_copy = api.supports_scoped_marking_copy(s.manual_marking_draft)
     copy_opening_snapshot = current_workspace_marking_source(copy_app)
     copy_versions = api.list_ordinary_marking_copy_versions(copy_opening_snapshot, s.part_key)
     copy_version = (api.project_operator_quantity_version_controls(copy_opening_snapshot["quantity"])["selected_version_id"]
@@ -1522,8 +1527,10 @@ def _install_manual_marking_actions(s):
                 or not current_path or Path(current_path).resolve(strict=True) != path
                 or (not ordinary_endcap_copy and s.part_key != "base_plate")
                 or s.part_key not in copy_workspace.available_parts
-                or (not ordinary_endcap_copy and copy_target_state is None)):
+                or (not ordinary_endcap_copy and not scoped_copy and copy_target_state is None)):
             raise ValueError("MANUAL_COPY_TARGET_EDITOR_SESSION_STALE")
+        if scoped_copy:
+            return None, copy_app._phase6_input_snapshot
         live = current_workspace_marking_source(copy_app)
         if ordinary_endcap_copy:
             payload = build_scene_payload_for_app(copy_app, s.part_key)
@@ -1552,6 +1559,9 @@ def _install_manual_marking_actions(s):
         return context, live
 
     def verified_copy_args(receipt):
+        if scoped_copy:
+            _, live = live_copy_target(receipt["project_path"])
+            return {**receipt, "live_snapshot": live, "opened_target": s.manual_marking_draft}
         if ordinary_endcap_copy:
             geometry, live = live_copy_target(receipt["target"]["target_project_path"])
             return {**receipt, "target": {**receipt["target"], "target_live_snapshot": live,
@@ -1573,7 +1583,11 @@ def _install_manual_marking_actions(s):
             args = verified_copy_args(pending["receipt"])
             # Recheck both the opened and current physical target before
             # any retryable placement error can retain the source receipt.
-            if ordinary_endcap_copy:
+            if scoped_copy:
+                clone = api.place_saved_scoped_marking_copy(
+                    **args, target_features=tuple(s.live_context.feature_list), target_position=point,
+                )
+            elif ordinary_endcap_copy:
                 clone = api.place_saved_endcap_marking_copy(
                     **args, target_features=tuple(s.live_context.feature_list), target_position=point,
                 )
@@ -1624,7 +1638,8 @@ def _install_manual_marking_actions(s):
         if pending_copy is not None:
             raise ValueError("MANUAL_COPY_TARGET_POSITION_REQUIRED")
         for receipt in plain_copy_receipts:
-            _, verified = api.verify_saved_endcap_marking_copy(**verified_copy_args(receipt))
+            verify = api.verify_saved_scoped_marking_copy if scoped_copy else api.verify_saved_endcap_marking_copy
+            _, verified = verify(**verified_copy_args(receipt))
             api.validate_physical_sheet_marking_draft(verified, tuple(features))
         for feature in features:
             if not api.is_manual_group(feature):
@@ -1645,6 +1660,29 @@ def _install_manual_marking_actions(s):
     if original_confirm_features is not None:
         s.on_confirm_features = confirm_with_copy_sources
 
+    def pick_scoped_source(target_project, sha256, Path, simpledialog, read_project):
+        if original_confirm_features is None:
+            raise ValueError("MANUAL_COPY_TARGET_EDITOR_CONFIRM_REQUIRED")
+        path = Path(target_project).resolve(strict=True)
+        binding = dict(project_path=path, project_sha256=sha256(path.read_bytes()).hexdigest(),
+                       saved_snapshot=read_project(path)["snapshot"])
+        options = api.list_saved_scoped_marking_copy_candidates(
+            **binding, target_owner_id=s.manual_marking_draft.owner_id,
+        )
+        if not options:
+            raise ValueError("MANUAL_COPY_SOURCE_GROUP_MISSING")
+        labels = [f"{i}. 第{si + 1}套／第{bi + 1}連：直線 {length:.2f} mm，X={x:.2f}, Y={y:.2f}"
+                  for i, (_, si, bi, _, x, y, length) in enumerate(options, 1)]
+        picked = simpledialog.askinteger(
+            "選擇來源連與打標", "\n".join(labels), minvalue=1, maxvalue=len(options), parent=s.editor,
+        )
+        if picked is None:
+            return None
+        owner, _, _, group_id, *_ = options[picked - 1]
+        receipt = dict(**binding, source_owner_id=owner, source_group_id=group_id)
+        api.verify_saved_scoped_marking_copy(**verified_copy_args(receipt))
+        return receipt, "跨板複製：點選目標中點（Esc 取消）"
+
     def copy_from_other_saved_project():
         """Select one saved group; wait for the operator's target anchor."""
         nonlocal pending_copy, copy_rejection
@@ -1662,6 +1700,11 @@ def _install_manual_marking_actions(s):
             checked_redraw()
             return False
         try:
+            if scoped_copy:
+                picked = pick_scoped_source(target_project, sha256, Path, simpledialog, read_project)
+                if picked is None:
+                    return False
+                return stage_copy(*picked)
             source_project = filedialog.askopenfilename(
                 parent=s.editor, title="選擇有手動打標的來源專案 .p6fold",
                 filetypes=(("WHD 專案", "*.p6fold"),),
@@ -1769,6 +1812,10 @@ def _install_manual_marking_actions(s):
             copy_rejection = "跨板複製被拒絕：" + str(exc)
             checked_redraw()
             return False
+        return stage_copy(receipt, prompt)
+
+    def stage_copy(receipt, prompt):
+        nonlocal pending_copy
         draw_mode("copy")
         pending_copy = {
             "receipt": receipt, "prompt": prompt,
@@ -1798,8 +1845,9 @@ def _install_manual_marking_actions(s):
     s.insert_btn.configure(command=hole_insert_mode)
     s.on_catalog_double_click = hole_catalog_double
 
-    if _has_group_mark_tools(s):
+    if _has_group_mark_tools(s) or scoped_copy:
         s.manual_mark_copy_button.configure(command=copy_from_other_saved_project)
+    if _has_group_mark_tools(s):
         s.editor._manual_group_copy_from_saved = copy_from_other_saved_project
     select_mode()
     s.on_canvas_down = mark_down
