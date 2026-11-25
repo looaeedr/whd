@@ -1095,3 +1095,136 @@ def test_same_existing_editor_and_export_ordinary_signed_endcap(tmp_path, monkey
         assert not ezdxf.readfile(plain_dxf).modelspace().query('LWPOLYLINE[layer=="MARKING"]')
     finally:
         root.destroy()
+
+
+def test_vault_two_saved_physical_owners_export_distinct_ink(tmp_path, monkeypatch):
+    import ezdxf
+    from tkinter import messagebox
+    from gui import Phase6PrimaryApplication
+    from gui_modules.project.export_actions import export_selected_dxf
+    from tests.test_issue2517_direct_door_partspec_original_source_engine_gate import _row
+    from tests.test_issue3414_scoped_marking_proto import _raw_write
+
+    source = _row()
+    source.update(zl1=15.0, zl2=20.0, zr1=15.0, zr2=20.0, z_comp=-10.0)
+    source["multi_door_enabled"] = False
+    source["existing_parts"] = ["box_body", "head", "door"]
+    original = _raw_write(tmp_path / "original.p6fold", source)
+    root = tk.Tk()
+    root.geometry("1400x900+0+0")
+    try:
+        host = Phase6PrimaryApplication(root)
+        app = host.fold_designer_app
+        failures = []
+        monkeypatch.setattr(messagebox, "showerror", lambda title, text, **kw: failures.append((title, text)))
+        monkeypatch.setattr(messagebox, "showinfo", lambda *args, **kw: None)
+        monkeypatch.setattr(filedialog, "askopenfilename", lambda **kw: str(original))
+        app.project_file_menu.invoke(0)
+        root.update()
+        def physical(drawing):
+            result = []
+            for ent in drawing.modelspace():
+                if ent.dxf.layer not in {"CUTTING", "BEND"}:
+                    continue
+                values = {k: v for k, v in ent.dxfattribs().items() if k not in {"owner", "handle"}}
+                points = tuple(map(tuple, ent.get_points("xyseb"))) if ent.dxftype() == "LWPOLYLINE" else ()
+                result.append((ent.dxftype(), values, points))
+            return result
+
+        flags = ("z", "head", "tail", "door", "base_plate", "ib", "ib_door")
+        fingerprints = {}
+        for target in ("door", "head"):
+            for key in flags:
+                getattr(host, f"export_{key}_var").set(key == target)
+            baseline = tmp_path / f"baseline-{target}"
+            baseline.mkdir()
+            monkeypatch.setattr(filedialog, "askdirectory", lambda **kw: str(baseline))
+            export_selected_dxf(host)
+            assert not failures, failures
+            file, = baseline.glob("*.dxf")
+            fingerprints[target] = physical(ezdxf.readfile(file))
+        assert fingerprints["door"] != fingerprints["head"]
+
+        authored = {}
+        for key, angle in (("door", "37"), ("head", "82")):
+            app.activate_part(key)
+            root.update()
+            editor = host.open_part_hole_editor(key)
+            root.update()
+            assert editor is not None and hasattr(editor, "_manual_marking_controls"), failures
+            callback = editor._manual_marking_place
+            state = dict(zip(callback.__code__.co_freevars, (c.cell_contents for c in callback.__closure__)))["s"]
+            assert state.manual_marking_draft.output_capability == "verified_normal"
+            point = state.manual_marking_draft.context.render_data.material.representative_point()
+            x, y = state.canvas_view.transform.world_to_canvas(Vec2(point.x, point.y))
+            state.manual_mark_length.set("8")
+            state.manual_mark_angle.set(angle)
+            editor._manual_marking_controls[0].invoke()
+            host.last_hole_editor_canvas.event_generate("<Button-1>", x=round(x), y=round(y))
+            root.update()
+            mark, = tuple(f for f in state.live_context.feature_list if api.is_manual_mark(f))
+            _actual_editor_confirm(editor)
+            root.update()
+            assert not editor.winfo_exists() and not failures, failures
+            authored[key] = mark
+        saved = tmp_path / "two-owners.p6fold"
+        monkeypatch.setattr(filedialog, "asksaveasfilename", lambda **kw: str(saved))
+        app.project_file_menu.invoke(2)
+        root.update()
+        snapshot = read_project(saved)["snapshot"]
+        owners = {key: api.resolve_workspace_physical_root_owner(snapshot, key) for key in authored}
+        assert None not in owners.values() and len(set(owners.values())) == 2
+        for key, owner in owners.items():
+            assert api.read_workspace_marking_owner_record(snapshot, owner)["features"] == (authored[key],)
+
+        monkeypatch.setattr(filedialog, "askopenfilename", lambda **kw: str(saved))
+        app.project_file_menu.invoke(0)
+        root.update()
+        for key in ("z", "head", "tail", "door", "base_plate", "ib", "ib_door"):
+            getattr(host, f"export_{key}_var").set(key in authored)
+        out = tmp_path / "two-output"
+        out.mkdir()
+        monkeypatch.setattr(filedialog, "askdirectory", lambda **kw: str(out))
+        export_selected_dxf(host)
+        assert not failures, failures
+        delivered = {}
+        for path in out.glob("*.dxf"):
+            dxf = ezdxf.readfile(path)
+            assert dxf.header["$INSUNITS"] == 4
+            ink, = dxf.modelspace().query('LWPOLYLINE[layer=="MARKING"]')
+            physical_key, = (key for key, evidence in fingerprints.items() if evidence == physical(dxf))
+            assert physical_key not in delivered
+            delivered[physical_key] = tuple(map(tuple, ink.get_points("xy")))
+        expected = {key: tuple((p.x, p.y) for p in mark.points) for key, mark in authored.items()}
+        assert delivered == expected
+
+        from gui_modules.application import physical_part_hole_editor as sheet_editor
+        original_reader = sheet_editor.current_workspace_marking_source
+        original_stage = api.stage_quantity_operator_export
+        prior_files = {p.name: p.read_bytes() for p in out.glob("*.dxf")}
+        armed = False
+
+        def remove_head_record(model):
+            current = original_reader(model)
+            if armed:
+                store = current[api.ROOT_MARKING_STORE_KEY]
+                current = {**current, api.ROOT_MARKING_STORE_KEY: {
+                    **store, "records": {owner: row for owner, row in store["records"].items()
+                                         if owner != owners["head"]},
+                }}
+            return current
+
+        def stage_then_change(*args, **kwargs):
+            nonlocal armed
+            result = original_stage(*args, **kwargs)
+            armed = True
+            return result
+
+        monkeypatch.setattr(sheet_editor, "current_workspace_marking_source", remove_head_record)
+        monkeypatch.setattr(api, "stage_quantity_operator_export", stage_then_change)
+        monkeypatch.setattr(messagebox, "askyesno", lambda *args, **kwargs: True)
+        export_selected_dxf(host)
+        assert armed and any("OWNER_MARKING_PERSISTED_RECORD_REQUIRED" in text for _, text in failures)
+        assert {p.name: p.read_bytes() for p in out.glob("*.dxf")} == prior_files
+    finally:
+        root.destroy()
