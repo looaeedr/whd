@@ -421,7 +421,7 @@ def test_established_ordinary_left_cursor_first_confirm_and_replacement_isolated
 
 
 @pytest.mark.parametrize(("key", "full_tools"), (("head", False), ("tail", False),
-                                                   ("head", True), ("tail", True)))
+                                                   ("head", True), ("tail", True), ("vault-door", False)))
 def test_same_existing_editor_and_export_ordinary_signed_endcap(tmp_path, monkeypatch, key, full_tools):
     import ezdxf
     from gui import Phase6PrimaryApplication
@@ -430,7 +430,13 @@ def test_same_existing_editor_and_export_ordinary_signed_endcap(tmp_path, monkey
     from gui_modules.application.physical_part_hole_editor import current_workspace_marking_source
     from tests.test_issue3414_scoped_marking_proto import _real_source, _resize, _raw_write
 
-    source = _resize(_real_source(), 1)
+    if key == "vault-door":
+        from tests.test_issue2517_direct_door_partspec_original_source_engine_gate import _row
+        key = "door"
+        source = _row()
+        source["multi_door_enabled"] = False
+    else:
+        source = _resize(_real_source(), 1)
     source["existing_parts"] = ["box_body", "base_plate", key]
     original = _raw_write(tmp_path / f"genuine-{key}.p6fold", source)
     root = tk.Tk()
@@ -469,7 +475,7 @@ def test_same_existing_editor_and_export_ordinary_signed_endcap(tmp_path, monkey
                      if isinstance(row, CirclePrimitive) and row.layer == "CUTTING"), None)
         if key == "head":
             assert hole is not None
-        if hole is not None:
+        if hole is not None and key != "door":
             hx, hy = state.canvas_view.transform.world_to_canvas(hole.center)
             state.manual_mark_length.set("2")
             editor._manual_marking_controls[0].invoke()
@@ -572,6 +578,38 @@ def test_same_existing_editor_and_export_ordinary_signed_endcap(tmp_path, monkey
             return rows
 
         assert physical_rows(doc) == physical_rows(ezdxf.readfile(unmarked))
+
+        if key == "door":
+            from gui_modules.application import physical_part_hole_editor as sheet_editor
+            original_reader = sheet_editor.current_workspace_marking_source
+            original_stage = api.stage_quantity_operator_export
+            prior_bytes = target.read_bytes()
+            armed = False
+
+            def current_source(model):
+                snapshot = original_reader(model)
+                if armed:
+                    snapshot = dict(snapshot)
+                    store = snapshot[api.ROOT_MARKING_STORE_KEY]
+                    snapshot[api.ROOT_MARKING_STORE_KEY] = {**store, "records": {}}
+                return snapshot
+
+            def stage_then_change(*args, **kwargs):
+                nonlocal armed
+                staged = original_stage(*args, **kwargs)
+                armed = True
+                return staged
+
+            monkeypatch.setattr(sheet_editor, "current_workspace_marking_source", current_source)
+            monkeypatch.setattr(api, "stage_quantity_operator_export", stage_then_change)
+            monkeypatch.setattr(messagebox, "askyesno", lambda *args, **kwargs: True)
+            export_selected_dxf(host)
+            assert armed and failures
+            assert any("OWNER_MARKING_PERSISTED_RECORD_REQUIRED" in text for _, text in failures), failures
+            assert list(out.glob("*.dxf")) == [target]
+            assert target.read_bytes() == prior_bytes
+            armed = False
+            failures.clear()
 
         if full_tools:
             import fold_designer_bridge as bridge

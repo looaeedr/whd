@@ -866,6 +866,16 @@ def open_part_hole_editor(host, part_key):
         return None
     # Do not mutate active physical part until Engine has accepted its identity.
     host.workspace_controller.set_active_part(route.part_key)
+    if route.kind == "simple_part" and route.part_key == "door" and app is not None:
+        from gui_modules.application.physical_part_hole_editor import open_workspace_sheet_editor
+        if route.part_key in app.designer_workspace.available_parts:
+            try:
+                approved = open_workspace_sheet_editor(host, route.part_key, verified_only=True)
+            except ValueError as exc:
+                messagebox.showerror("開孔失敗", str(exc))
+                return None
+            if approved is not None:
+                return approved
     if route.kind == "endcap":
         if app is not None:
             from gui_modules.application.physical_part_hole_editor import open_workspace_sheet_editor
