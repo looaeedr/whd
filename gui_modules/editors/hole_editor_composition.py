@@ -1678,7 +1678,8 @@ def _install_manual_marking_actions(s):
                     source_project_sha256=source_sha, source_part_key=source_role,
                     resolve_saved_geometry=api.resolve_saved_endcap_copy_geometry,
                 )
-                candidates = api.list_saved_endcap_marking_copy_groups(source)
+                options = api.list_saved_endcap_marking_copy_candidates(source)
+                candidates = tuple(row[0] for row in options)
             else:
                 candidates = api.list_saved_manual_marking_copy_groups(
                     source_snapshot=source_data,
@@ -1689,6 +1690,21 @@ def _install_manual_marking_actions(s):
                 raise ValueError("MANUAL_COPY_SOURCE_GROUP_MISSING")
             if len(candidates) == 1:
                 selected_id = candidates[0]
+            elif ordinary_endcap_copy:
+                labels = {"line": "直線", "circle": "圓", "l": "L",
+                          "cross": "十字", "pair_l": "雙 L", "quad_l": "四角 L"}
+                lines = []
+                for number, (_, kind, x, y, size) in enumerate(options, 1):
+                    detail = f" / {size:.2f} mm" if size is not None else ""
+                    lines.append(f"{number}. {labels.get(kind, kind)}  X={x:.2f}, Y={y:.2f} mm{detail}")
+                choice = simpledialog.askinteger(
+                    "選擇要複製的打標",
+                    "輸入打標編號，位置以來源板展開座標為準：\n"
+                    + "\n".join(lines), minvalue=1, maxvalue=len(options), parent=s.editor,
+                )
+                if choice is None:
+                    return False
+                selected_id = candidates[choice - 1]
             else:
                 selected_id = simpledialog.askstring(
                     "選擇打標群組", "來源有多個群組，請輸入要複製的群組 ID：\n"
