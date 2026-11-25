@@ -49,6 +49,10 @@ def open_workspace_sheet_editor(host, key, *, verified_only=False):
     project_epoch = host.project_controller.project_load_epoch if opened is not None else None
 
     if snapshot and (opened is not None or verified_only) and not legacy_marks:
+        if claim and manufacturing_api.quantity_marking_can_offer_legacy_transfer(snapshot, key):
+            if not _offer_legacy_quantity_marking_transfer(host, key):
+                return None
+            snapshot = current_workspace_marking_source(app)
         if manufacturing_api.uses_quantity_physical_marking_editor(snapshot, key):
             return _open_version_bound_workspace_marking_editor(host, key, context, features)
         try:
@@ -234,6 +238,39 @@ def _open_owner_bound_workspace_marking_editor(host, key, *, editing_context, ro
         (*role_features, *saved_marks), modal, confirm,
         solid_marking_only=("circle" not in modal.allowed_tools),
     )
+
+
+def _offer_legacy_quantity_marking_transfer(host, key):
+    from tkinter import messagebox
+    from ae_engine import manufacturing_api as api
+    from phase6_manufacturing_adapter import build_scene_payload_for_app
+
+    app = host.fold_designer_app
+    workspace = app.designer_workspace
+    epoch = host.project_controller.project_load_epoch
+
+    def read():
+        _require_current_project(host, app, workspace, epoch)
+        payload = build_scene_payload_for_app(app, key)
+        render = host._query_fold_designer_render_data(key, payload)
+        return current_workspace_marking_source(app), api.selected_normal_marking_inventory(key, render)
+
+    snapshot, geometry = read()
+    opened = api.open_unassigned_quantity_marking_transfer(snapshot, geometry, key)
+    if opened is None:
+        return False
+    target = opened[0].owner.version_id
+    # Ask before moving the saved record; opening the editor alone is not consent.
+    if not messagebox.askyesno(
+        "舊打標版本歸屬",
+        f"這塊板的舊打標未指定版本。只移到目前選取的版本 {target}？",
+        parent=app.root,
+    ):
+        return False
+    snapshot, geometry = read()
+    workspace.commit_transferred_quantity_marking(snapshot, geometry, key, opened, version_id=target)
+    app._phase6_publish_live_state(force=True)
+    return True
 
 
 def _open_version_bound_workspace_marking_editor(host, key, editing_context, role_features):

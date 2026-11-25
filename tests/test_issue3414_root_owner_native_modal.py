@@ -844,6 +844,50 @@ def test_same_existing_editor_and_export_ordinary_signed_endcap(tmp_path, monkey
             export_selected_dxf(host)
             assert failures and "OWNER_MARKING_QUANTITY_ORDINARY_SCOPE_REQUIRED" in failures[-1][1], failures
             assert {path.name: path.read_bytes() for path in out.glob("*.dxf")} == old
+            failures.clear()
+            before_transfer = current_workspace_marking_source(app)[api.ROOT_MARKING_STORE_KEY]
+            offered = []
+            def cancel_transfer(title, body, **kwargs):
+                offered.append(body)
+                return False
+            with monkeypatch.context() as transfer_ui:
+                transfer_ui.setattr(messagebox, "askyesno", cancel_transfer)
+                host.open_part_hole_editor(key)
+                root.update()
+            assert offered and second_owner.version_id in offered[0]
+            assert current_workspace_marking_source(app)[api.ROOT_MARKING_STORE_KEY] == before_transfer
+            def change_version_in_dialog(title, body, **kwargs):
+                app.designer_workspace.quantity_model.select(first_version)
+                return True
+            with monkeypatch.context() as transfer_ui:
+                transfer_ui.setattr(messagebox, "askyesno", change_version_in_dialog)
+                assert host.open_part_hole_editor(key) is None
+                root.update()
+            assert failures and "ROOT_MARKING_DRAFT_STALE" in failures[-1][1], failures
+            assert current_workspace_marking_source(app)[api.ROOT_MARKING_STORE_KEY] == before_transfer
+            failures.clear()
+            app.designer_workspace.quantity_model.select(second_owner.version_id)
+            root.update()
+            transfer_editor = host.open_part_hole_editor(key)
+            root.update()
+            assert transfer_editor is not None and not failures, failures
+            _actual_editor_confirm(transfer_editor)
+            root.update()
+            transferred = current_workspace_marking_source(app)
+            assert api.read_workspace_marking_owner_record(transferred, first_owner.root_owner_id) is None
+            assert api.read_quantity_physical_marking(transferred, key)["features"] == authored
+            assert api.read_quantity_physical_marking(transferred, key, version_id=first_version) is None
+            transfer_out = tmp_path / "transferred-output"
+            transfer_out.mkdir()
+            monkeypatch.setattr(filedialog, "askdirectory", lambda **kw: str(transfer_out))
+            export_selected_dxf(host)
+            assert not failures, failures
+            stamped = []
+            for path in transfer_out.glob("*.dxf"):
+                drawing = ezdxf.readfile(path)
+                if drawing.modelspace().query('LWPOLYLINE[layer=="MARKING"]'):
+                    stamped.extend(e.plain_text() for e in drawing.modelspace().query('MTEXT[layer=="CHECK"]'))
+            assert [q for q in stamped if q.startswith("Q")] == ["Q3"]
             return
 
         if key in {"door", "base_plate"}:

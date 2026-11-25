@@ -3461,5 +3461,6 @@ from .operator_manual_marking_copy import (
 from .operator_quantity_marking_owner import (
     open_quantity_physical_marking, read_quantity_physical_marking, resolve_quantity_physical_marking_owner,
     with_confirmed_quantity_physical_marking, workspace_contains_quantity_physical_markings,
-    uses_quantity_physical_marking_editor,
+    uses_quantity_physical_marking_editor, open_unassigned_quantity_marking_transfer,
+    quantity_marking_can_offer_legacy_transfer,
 )

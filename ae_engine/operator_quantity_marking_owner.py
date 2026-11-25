@@ -161,3 +161,48 @@ def uses_quantity_physical_marking_editor(snapshot, part_key):
         k.endswith(":" + owner.root_owner_id) for k in _root_store(snapshot)["records"]
         if k.startswith("quantity-owner:")
     ))
+
+
+def open_unassigned_quantity_marking_transfer(snapshot, geometry, part_key):
+    """Offer a move only on an exact live physical source, never autoassign it."""
+    from .operator_root_marking_store import _root_store
+    source = _resolve_quantity_source(snapshot, part_key)
+    if QuantityModel.from_payload(snapshot["quantity"]).version_count < 2:
+        return None
+    if _root_store(snapshot)["records"].get(source.root_owner_id) is None:
+        return None
+    receipt = open_quantity_physical_marking(snapshot, geometry, part_key)
+    legacy = _root_store(snapshot)["records"][source.root_owner_id]
+    if receipt.saved_record is not None:
+        raise ValueError("OWNER_MARKING_QUANTITY_TARGET_ALREADY_MARKED")
+    if legacy["source_sha256"] != receipt.stock.source_sha256:
+        raise ValueError("ROOT_MARKING_SOURCE_STALE")
+    receipt.stock.validate(legacy["features"])
+    return receipt, legacy
+
+
+def with_transferred_quantity_marking(snapshot, geometry, part_key, opened, *, version_id):
+    """Move the unchanged legacy ink atomically to the explicitly confirmed version."""
+    from .operator_root_marking_store import _root_store, normalize_workspace_root_marking_store
+    fresh = open_unassigned_quantity_marking_transfer(snapshot, geometry, part_key)
+    if fresh is None or opened is None:
+        raise ValueError("OWNER_MARKING_QUANTITY_LEGACY_OWNER_UNBOUND")
+    receipt, legacy = fresh
+    before, old_record = opened
+    if (receipt.owner != before.owner or receipt.owner.version_id != version_id
+            or legacy != old_record or receipt.stock.source_sha256 != before.stock.source_sha256):
+        raise ValueError("ROOT_MARKING_DRAFT_STALE")
+    ledger = _root_store(snapshot)
+    ledger["records"][_record_key(receipt.owner)] = ledger["records"].pop(receipt.owner.root_owner_id)
+    ledger["schema_version"] = 2
+    return normalize_workspace_root_marking_store(ledger)
+
+
+def quantity_marking_can_offer_legacy_transfer(snapshot, part_key):
+    from .operator_root_marking_store import _root_store
+    try:
+        source = resolve_quantity_physical_marking_owner(snapshot, part_key)
+    except ValueError:
+        return False
+    return (QuantityModel.from_payload(snapshot["quantity"]).version_count > 1
+            and source.root_owner_id in _root_store(snapshot)["records"])
