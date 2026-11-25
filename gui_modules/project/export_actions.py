@@ -242,7 +242,19 @@ def _export_selected_resolved_parts(self, folder, flags, *, owner_guard_sink=Non
         from gui_modules.application.physical_part_hole_editor import current_workspace_marking_source
         marking_source = current_workspace_marking_source(designer) or mode_source
     if workspace is not None and active_mode == "quantity":
-        manufacturing_api.require_existing_normal_owner_marking_route(marking_source, flags, ordinary=False)
+        owner_keys = manufacturing_api.require_existing_normal_owner_marking_route(
+            marking_source, flags, ordinary=True,
+        )
+
+        def read_current_quantity_owner():
+            if owner_session_guard is not None:
+                owner_session_guard()
+            source_guard()
+            geometry = resolver()
+            source_guard()
+            if owner_session_guard is not None:
+                owner_session_guard()
+            return current_workspace_marking_source(designer), geometry
         from phase6_manufacturing_adapter import (
             build_manufacturing_request, build_scene_payload_for_app,
             operator_finished_dimensions_for_app,
@@ -258,6 +270,8 @@ def _export_selected_resolved_parts(self, folder, flags, *, owner_guard_sink=Non
         # Engine owns the live source decision, physical output and receipt.
         staged = manufacturing_api.stage_quantity_operator_export(
             request, workspace_snapshot, flags, folder, operator_snapshot=mode_source,
+            **({"owner_snapshot": marking_source, "read_current_owner": read_current_quantity_owner,
+                "owner_guard_sink": owner_guard_sink} if owner_keys else {}),
         )
         report = staged.partial_report
         self._phase6_nfb_partial_export_report = report

@@ -1544,6 +1544,7 @@ from .receiving_nfb_quantity_partial import (
 
 def stage_quantity_operator_export(
     request, workspace_snapshot, flags, staging_directory, *, operator_snapshot,
+    owner_snapshot=None, read_current_owner=None, owner_guard_sink=None,
 ):
     """Resolve and stage Quantity DXFs from a single, current workspace.
 
@@ -1578,6 +1579,16 @@ def stage_quantity_operator_export(
     )
 
     def write_stage(target):
+        if owner_snapshot is not None:
+            from .operator_persisted_marking_candidate import _stage_vault_singleton_quantity_owner
+            from .operator_root_marking_store import selected_workspace_owner_marking_keys
+            if (source.use_current_csv_export
+                    or selected_workspace_owner_marking_keys(owner_snapshot, flags) != ("door",)):
+                raise ValueError("OWNER_MARKING_QUANTITY_SINGLE_DOOR_REQUIRED")
+            return _stage_vault_singleton_quantity_owner(
+                batch, workspace_snapshot, flags, target,
+                owner_snapshot, read_current_owner, owner_guard_sink,
+            )
         if source.use_current_csv_export:
             outputs = export_current_csv_quantity_manufacturing(
                 batch, target, flags=flags, overwrite=False,

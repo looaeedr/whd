@@ -233,3 +233,80 @@ def _prepare_selected_ordinary_marking_batch(expected_snapshot, resolved, flags,
     witness = _SelectedOwnerMarkingBatchWitness(rows, owner_results, legacy, flags, read_current)
     witness.assert_current()
     return rows, witness
+
+
+class _VaultSingletonQuantityOwnerWitness(_SelectedOwnerMarkingBatchWitness):
+    """Preserve the checked door and exact Quantity annotation in one stage."""
+    def __init__(self, source_witness, group, annotated):
+        self._source = source_witness
+        self._proof = source_witness.owner_row("door")
+        self._key = group.key
+        self._render = annotated
+        self._signature = _selected_render_signature(annotated)
+        self.selected = source_witness.selected
+
+    def assert_render(self, render):
+        if render is not self._render or _selected_render_signature(render) != self._signature:
+            raise ValueError("OWNER_MARKING_QUANTITY_FLAT_CHANGED")
+        self._proof.assert_render(self._proof.render)
+
+    def assert_verified_rows(self, rows):
+        if len(rows) != 1 or rows[0][0] != self._key:
+            raise ValueError("OWNER_MARKING_QUANTITY_SINGLE_DOOR_REQUIRED")
+        self.assert_render(rows[0][2])
+
+    def assert_current(self):
+        self._source.assert_current()
+        self.assert_render(self._render)
+
+
+def _stage_vault_singleton_quantity_owner(
+    batch, workspace, flags, directory, snapshot, read_current, sink,
+):
+    """Authorize only one Vault door from the sole selected Quantity version."""
+    from . import manufacturing_api as api
+    from .cabinet_types.policy import canonical_family_name
+    from .drawing_annotation_layout import annotate_quantity_render_data
+    from .dxf_serialization import verify_quantity_check_dxf
+    from .manufacturing_export import _save_resolved_rows_atomic, save_part_render_data_dxf
+    from .quantity_manufacturing_groups import quantity_manufacturing_groups
+    from .receiving_nfb_quantity_partial import (
+        QuantityOperatorStagedExport, plan_quantity_operator_export_selection,
+    )
+
+    if (canonical_family_name(snapshot) != "金庫型"
+            or len(batch.requests) != 1 or not callable(read_current) or not callable(sink)):
+        raise ValueError("OWNER_MARKING_QUANTITY_SINGLE_DOOR_REQUIRED")
+    selection = plan_quantity_operator_export_selection(batch, workspace, flags)
+    rows = tuple(selection.selected_demands)
+    if (selection.partial_selection is not None or len(rows) != 1
+            or rows[0].physical_id != "door" or rows[0].source_part_id != "door"
+            or rows[0].version_id != batch.requests[0][0] or rows[0].quantity != 1):
+        raise ValueError("OWNER_MARKING_QUANTITY_SINGLE_DOOR_REQUIRED")
+    _, geometry = read_current()
+    source_rows, witness = _prepare_selected_ordinary_marking_batch(
+        snapshot, geometry, flags, ("door",), read_current,
+    )
+    if (len(source_rows) != 1 or _selected_render_signature(rows[0].render_data)
+            != _selected_render_signature(source_rows[0][1])):
+        raise ValueError("OWNER_MARKING_QUANTITY_FLAT_SOURCE_MISMATCH")
+    proof = witness.owner_row("door")
+    group, = quantity_manufacturing_groups(batch, demands=(replace(rows[0], render_data=proof.render),))
+    annotated = annotate_quantity_render_data(group.render_data, group.quantity)
+    quantity_witness = _VaultSingletonQuantityOwnerWitness(witness, group, annotated)
+    seals = []
+
+    def serialize(render, output, *, overwrite):
+        api._require_single_part_dxf_source(render, selected_owner_witness=quantity_witness)
+        saved = save_part_render_data_dxf(render.scene, output, serializer=api.save_scene_dxf,
+                                          overwrite=overwrite)
+        verify_quantity_check_dxf(render.scene, saved)
+        return saved
+
+    outputs = _save_resolved_rows_atomic(
+        ((group.key, group.filename, annotated),), directory,
+        save_part_render_data_dxf=serialize, overwrite=False, verify_all_staged=True,
+        _selected_owner_witness=quantity_witness, _verified_byte_seals_sink=seals.extend,
+    )
+    sink(quantity_witness.assert_current, tuple(seals))
+    return QuantityOperatorStagedExport(tuple(Path(p).name for p in outputs.values()))
