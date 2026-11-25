@@ -976,9 +976,13 @@ def export_selected_dxf(self):
     owner_session_guard = None
     if designer is not None and getattr(designer, "designer_workspace", None) is not None:
         from gui_modules.application.physical_part_hole_editor import current_workspace_marking_source
-        marking_source = current_workspace_marking_source(designer)
-        if manufacturing_api.require_existing_normal_owner_marking_route(marking_source, flags, ordinary=True):
-            owner_session_guard = final_publish_guard
+        try:
+            marking_source = current_workspace_marking_source(designer)
+            if manufacturing_api.require_existing_normal_owner_marking_route(marking_source, flags, ordinary=True):
+                owner_session_guard = final_publish_guard
+        except ValueError as exc:
+            messagebox.showerror("DXF", str(exc))
+            return
 
     def remember_owner_transport(guard, verified_bytes):
         owner_transport.append((guard, verified_bytes))

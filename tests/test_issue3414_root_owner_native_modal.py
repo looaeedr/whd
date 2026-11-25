@@ -625,6 +625,171 @@ def test_same_existing_editor_and_export_ordinary_signed_endcap(tmp_path, monkey
             assert read_project(save)["snapshot"] == saved
             failures.clear()
 
+        if quantity != 1:
+            controls = app.receiving_mode_controls.quantity_editor
+            model = app.designer_workspace.quantity_model
+            receipt = api.open_quantity_physical_marking(
+                saved, app._phase6_resolve_manufacturing_geometry(), key,
+            )
+            first_version = model.selected_version_id
+            old = {path.name: path.read_bytes() for path in out.glob("*.dxf")}
+            controls.ports["add"]()
+            root.update()
+            assert model.version_count == 2 and model.selected_version_id != first_version
+            controls.count_var.set("3")
+            controls.commit_count()
+            root.update()
+            assert all(not row["head_features"] and not row["tail_features"]
+                       for row in model.snapshot()["versions"])
+            monkeypatch.setattr(messagebox, "askyesno", lambda *args, **kwargs: True)
+            export_selected_dxf(host)
+            assert failures and "OWNER_MARKING_QUANTITY_ORDINARY_SCOPE_REQUIRED" in failures[-1][1], failures
+            assert {path.name: path.read_bytes() for path in out.glob("*.dxf")} == old
+
+            multi_save = tmp_path / "two-versions.p6fold"
+            monkeypatch.setattr(filedialog, "asksaveasfilename", lambda **kw: str(multi_save))
+            menu.invoke(2)
+            root.update()
+            multi_snapshot = read_project(multi_save)["snapshot"]
+            assert len(multi_snapshot["quantity"]["versions"]) == 2
+            first_owner = api.resolve_quantity_physical_marking_owner(multi_snapshot, key, version_id=first_version)
+            second_owner = api.resolve_quantity_physical_marking_owner(multi_snapshot, key)
+            assert first_owner.physical_id == second_owner.physical_id == "door"
+            assert first_owner.root_owner_id == second_owner.root_owner_id
+            assert first_owner != second_owner
+            from phase6_project_file import write_project
+            assert api.read_quantity_physical_marking(multi_snapshot, key, version_id=first_version) is None
+            assert api.read_quantity_physical_marking(multi_snapshot, key) is None
+            geometry = app._phase6_resolve_manufacturing_geometry()
+            with pytest.raises(ValueError, match="ROOT_MARKING_OWNER_STALE"):
+                api.with_confirmed_quantity_physical_marking(
+                    multi_snapshot, receipt, authored, version_id=second_owner.version_id, geometry=geometry,
+                )
+            current_receipt = api.open_quantity_physical_marking(
+                multi_snapshot, app._phase6_resolve_manufacturing_geometry(), key,
+            )
+            bound = api.with_confirmed_quantity_physical_marking(
+                multi_snapshot, current_receipt, authored, version_id=second_owner.version_id, geometry=geometry,
+            )
+            with pytest.raises(ValueError, match="ROOT_MARKING_DRAFT_STALE"):
+                api.with_confirmed_quantity_physical_marking(
+                    {**multi_snapshot, api.ROOT_MARKING_STORE_KEY: bound}, current_receipt, (),
+                    version_id=second_owner.version_id, geometry=geometry,
+                )
+            version_path = tmp_path / "two-versions-explicit-mark.p6fold"
+            explicit_only = {**bound, "records": {k: v for k, v in bound["records"].items()
+                                                  if k.startswith("quantity-owner:")}}
+            write_project(version_path, {**read_project(multi_save), "snapshot": {
+                **multi_snapshot, api.ROOT_MARKING_STORE_KEY: explicit_only,
+            }})
+            reloaded = read_project(version_path)["snapshot"]
+            assert api.read_quantity_physical_marking(reloaded, key)["features"] == authored
+            assert api.read_quantity_physical_marking(reloaded, key, version_id=first_version) is None
+            assert api.read_workspace_marking_owner_record(reloaded, first_owner.root_owner_id) is None
+            assert api.require_existing_normal_owner_marking_route(reloaded, {key: True}, ordinary=True) == (key,)
+            assert not api.require_existing_normal_owner_marking_route(reloaded, {"base_plate": True}, ordinary=True)
+            failures.clear()
+            monkeypatch.setattr(filedialog, "askopenfilename", lambda **kw: str(version_path))
+            menu.invoke(0)
+            root.update()
+            app.activate_part(key)
+            root.update()
+            for k in ("z", "head", "tail", "door", "base_plate", "ib", "ib_door"):
+                getattr(host, f"export_{k}_var").set(k in {"door", "base_plate"})
+            live_scoped = current_workspace_marking_source(app)
+            assert str(host.project_controller.project_path) == str(version_path), failures
+            assert live_scoped[api.ROOT_MARKING_STORE_KEY] == explicit_only
+            assert api.resolve_quantity_physical_marking_owner(live_scoped, key) == second_owner
+            assert api.read_quantity_physical_marking(live_scoped, key)["features"] == authored
+            version_editor = host.open_part_hole_editor(key)
+            root.update()
+            assert version_editor is not None and hasattr(version_editor, "_manual_marking_controls"), failures
+            version_cb = version_editor._manual_marking_place
+            version_state = dict(zip(version_cb.__code__.co_freevars,
+                                     (c.cell_contents for c in version_cb.__closure__)))["s"]
+            version_state.manual_mark_length.set("9")
+            version_state.manual_mark_angle.set("0")
+            version_editor._manual_marking_controls[0].invoke()
+            xx, yy = version_state.canvas_view.transform.world_to_canvas(Vec2(p.x + 40, p.y))
+            host.last_hole_editor_canvas.event_generate("<Button-1>", x=round(xx), y=round(yy))
+            scoped_ink = tuple(f for f in version_state.live_context.feature_list if api.is_manual_mark(f))
+            assert len(scoped_ink) == 2
+            _actual_editor_confirm(version_editor)
+            root.update()
+            assert not version_editor.winfo_exists() and not failures, failures
+            after = current_workspace_marking_source(app)
+            assert api.read_quantity_physical_marking(after, key)["features"] == scoped_ink
+            assert api.read_quantity_physical_marking(after, key, version_id=first_version) is None
+            edition_path = tmp_path / "two-versions-gui-edit.p6fold"
+            monkeypatch.setattr(filedialog, "asksaveasfilename", lambda **kw: str(edition_path))
+            menu.invoke(2)
+            root.update()
+            assert api.read_quantity_physical_marking(read_project(edition_path)["snapshot"], key)["features"] == scoped_ink
+            version_out = tmp_path / "version-output"
+            version_out.mkdir()
+            monkeypatch.setattr(filedialog, "askdirectory", lambda **kw: str(version_out))
+            export_selected_dxf(host)
+            assert not failures, failures
+            actual = {}
+            for path in version_out.glob("*.dxf"):
+                dxf = ezdxf.readfile(path)
+                q, = (e.plain_text() for e in dxf.modelspace().query('MTEXT[layer=="CHECK"]')
+                      if e.plain_text().startswith("Q"))
+                actual[q] = dxf
+            assert set(actual) == {"Q2", "Q3", "Q5"}
+            assert not actual["Q2"].modelspace().query('LWPOLYLINE[layer=="MARKING"]')
+            def factory_ink(drawing):
+                return tuple((tuple(e.dxf.center), e.dxf.radius, e.dxf.color)
+                             for e in drawing.modelspace().query('CIRCLE[layer=="MARKING"]'))
+            assert factory_ink(actual["Q2"]) == factory_ink(actual["Q3"]) == factory_ink(ezdxf.readfile(unmarked))
+            assert factory_ink(actual["Q2"])
+            assert not actual["Q5"].modelspace().query('*[layer=="MARKING"]')
+            lines = actual["Q3"].modelspace().query('LWPOLYLINE[layer=="MARKING"]')
+            assert {tuple(map(tuple, line.get_points("xy"))) for line in lines} == {
+                tuple((p.x, p.y) for p in feature.points) for feature in scoped_ink
+            }
+            assert physical_rows(actual["Q2"]) == physical_rows(actual["Q3"]) == physical_rows(doc)
+            assert physical_rows(actual["Q5"]) == physical_rows(actual_base)
+            assert all(dxf.header["$INSUNITS"] == 4 for dxf in actual.values())
+
+            before_drift = {p.name: p.read_bytes() for p in version_out.glob("*.dxf")}
+            stage = api.stage_quantity_operator_export
+            drift = []
+            def stage_then_change_version(*args, **kwargs):
+                result = stage(*args, **kwargs)
+                live_model = app.designer_workspace.quantity_model
+                live_model.select(first_version)
+                drift.append(live_model.selected_version_id)
+                return result
+            with monkeypatch.context() as drift_patch:
+                drift_patch.setattr(api, "stage_quantity_operator_export", stage_then_change_version)
+                export_selected_dxf(host)
+            assert drift == [first_version]
+            assert failures
+            assert {p.name: p.read_bytes() for p in version_out.glob("*.dxf")} == before_drift
+            failures.clear()
+            monkeypatch.setattr(filedialog, "askdirectory", lambda **kw: str(out))
+
+            with pytest.raises(ValueError, match="OWNER_MARKING_QUANTITY_VERSION_SOURCE_MISMATCH"):
+                api.resolve_quantity_physical_marking_owner(multi_snapshot, key, version_id="quantity-v999")
+            with pytest.raises(ValueError, match="ROOT_MARKING_OWNER_STALE"):
+                api.resolve_quantity_physical_marking_owner(multi_snapshot, "ib_door")
+
+            multi_owner = api.resolve_workspace_physical_root_owner(multi_snapshot, key)
+            assert api.read_workspace_marking_owner_record(multi_snapshot, multi_owner)["features"] == authored
+            failures.clear()
+            monkeypatch.setattr(filedialog, "askopenfilename", lambda **kw: str(multi_save))
+            menu.invoke(0)
+            root.update()
+            app.activate_part(key)
+            root.update()
+            for k in ("z", "head", "tail", "door", "base_plate", "ib", "ib_door"):
+                getattr(host, f"export_{k}_var").set(k in {"door", "base_plate"})
+            export_selected_dxf(host)
+            assert failures and "OWNER_MARKING_QUANTITY_ORDINARY_SCOPE_REQUIRED" in failures[-1][1], failures
+            assert {path.name: path.read_bytes() for path in out.glob("*.dxf")} == old
+            return
+
         if key in {"door", "base_plate"}:
             from gui_modules.application import physical_part_hole_editor as sheet_editor
             original_reader = sheet_editor.current_workspace_marking_source

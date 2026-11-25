@@ -9,18 +9,21 @@ from .workspace_state import resolve_workspace_physical_root_owner
 
 ROOT_MARKING_STORE_KEY = "physical_root_manual_markings"
 _SCHEMA = 1
+_QUANTITY_SCHEMA = 2
+_QUANTITY_OWNER_PATTERN = r"quantity-owner:quantity-v[1-9][0-9]*:root-owner:[a-f0-9]{32}"
 
 
 def normalize_workspace_root_marking_store(raw):
     if raw is None:
         return {"schema_version": _SCHEMA, "records": {}}
     if (not isinstance(raw, Mapping) or set(raw) != {"schema_version", "records"}
-            or type(raw["schema_version"]) is not int or raw["schema_version"] != _SCHEMA
+            or type(raw["schema_version"]) is not int or raw["schema_version"] not in {_SCHEMA, _QUANTITY_SCHEMA}
             or not isinstance(raw["records"], Mapping)):
         raise ValueError("ROOT_MARKING_STORE_SCHEMA_INVALID")
     records = {}
     for owner, record in raw["records"].items():
-        if (not isinstance(owner, str) or not fullmatch(r"root-owner:[a-f0-9]{32}", owner)
+        if (not isinstance(owner, str) or not (fullmatch(r"root-owner:[a-f0-9]{32}", owner)
+                    or (raw["schema_version"] == _QUANTITY_SCHEMA and fullmatch(_QUANTITY_OWNER_PATTERN, owner)))
                 or not isinstance(record, Mapping) or set(record) != {"source_sha256", "features"}):
             raise ValueError("ROOT_MARKING_STORE_RECORD_INVALID")
         seal, features = record["source_sha256"], record["features"]
@@ -29,7 +32,11 @@ def normalize_workspace_root_marking_store(raw):
                 or not all(is_manual_mark(row) and not isinstance(row, Mapping) for row in features)):
             raise ValueError("ROOT_MARKING_STORE_RECORD_INVALID")
         records[owner] = {"source_sha256": seal, "features": deepcopy(tuple(features))}
-    return {"schema_version": _SCHEMA, "records": records}
+    if raw["schema_version"] == _QUANTITY_SCHEMA and not any(
+        fullmatch(_QUANTITY_OWNER_PATTERN, owner) for owner in records
+    ):
+        raise ValueError("ROOT_MARKING_STORE_SCHEMA_INVALID")
+    return {"schema_version": raw["schema_version"], "records": records}
 
 
 def _root_store(snapshot):
@@ -228,11 +235,19 @@ def selected_workspace_owner_marking_keys(snapshot, flags):
     if not store:
         return ()
     flags = normalize_operator_selected_export_flags(flags)
+    # Version-bound ink is handled only by the canonical quantity stage.
+    # Other output routes must not silently emit the same stock unmarked.
+    scoped_roots = {owner.split(":", 2)[2] for owner in store if owner.startswith("quantity-owner:")}
     nested = snapshot.get("workspace")
     nested = nested if isinstance(nested, Mapping) else {}
     parts = snapshot.get("existing_parts", nested.get("existing_parts", ()))
+    if snapshot.get("active_mode") != "quantity" and any(
+            receiving_export_part_selected(key, flags)
+            and resolve_workspace_physical_root_owner(snapshot, key) in scoped_roots for key in (parts or ())):
+        raise ValueError("OWNER_MARKING_QUANTITY_VERSION_EXPORT_REQUIRES_QUANTITY_MODE")
     return tuple(key for key in (parts or ()) if receiving_export_part_selected(key, flags)
-                 and resolve_workspace_physical_root_owner(snapshot, key) in store)
+                 and (resolve_workspace_physical_root_owner(snapshot, key) in store
+                      or resolve_workspace_physical_root_owner(snapshot, key) in scoped_roots))
 
 
 def require_existing_normal_owner_marking_route(snapshot, flags, *, ordinary):

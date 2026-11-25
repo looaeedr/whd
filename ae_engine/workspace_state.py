@@ -389,6 +389,18 @@ class SharedWorkspaceState:
         self._root_marking_store = accepted
         return changed
 
+    def commit_quantity_owner_marking(self, snapshot, receipt, marks, *, version_id, geometry):
+        from .operator_quantity_marking_owner import with_confirmed_quantity_physical_marking
+        from .operator_root_marking_store import _root_store
+        if _root_store(snapshot) != self._root_marking_store:
+            raise ValueError("ROOT_MARKING_WORKSPACE_STALE")
+        accepted = with_confirmed_quantity_physical_marking(
+            {**snapshot, **self.snapshot()}, receipt, marks, version_id=version_id, geometry=geometry,
+        )
+        changed = accepted != self._root_marking_store
+        self._root_marking_store = accepted
+        return changed
+
     def snapshot(self) -> dict:
         result = {
             "existing_parts": list(self._existing_parts),
