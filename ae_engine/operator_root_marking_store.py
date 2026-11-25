@@ -40,6 +40,18 @@ def _root_store(snapshot):
     )
 
 
+def project_operator_detached_root_marking_count(snapshot):
+    """Count saved marks' former owners, not guessed part names or ink."""
+    records = _root_store(snapshot)["records"]
+    if not records:
+        return 0
+    nested = snapshot.get("workspace")
+    nested = nested if isinstance(nested, Mapping) else {}
+    present = snapshot.get("existing_parts", nested.get("existing_parts", ())) or ()
+    bound = {resolve_workspace_physical_root_owner(snapshot, key) for key in present}
+    return len(records.keys() - bound)
+
+
 def read_workspace_marking_owner_record(snapshot, owner_id):
     """Read prior records without reattaching legacy role features or migrating scoped marks."""
     if isinstance(owner_id, str) and owner_id.startswith("root-owner:"):

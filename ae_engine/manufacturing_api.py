@@ -3397,6 +3397,7 @@ from .operator_physical_sheet_marking import (
 
 from .operator_root_marking_store import (
     ROOT_MARKING_STORE_KEY, normalize_workspace_root_marking_store,
+    project_operator_detached_root_marking_count,
     read_workspace_marking_owner_record, open_workspace_owner_marking_draft,
     require_existing_normal_owner_marking_route,
     prepare_workspace_owner_marking_commit, prepare_workspace_initial_owner_marking_commit,
