@@ -200,11 +200,11 @@ class _SelectedOwnerMarkingBatchWitness:
             if witness is not None:
                 witness.assert_render(render)
 
-    def assert_current(self):
+    def assert_current(self, current_source=None):
         from .manufacturing_export import resolved_physical_render_parts
         from .manufacturing_export_selection import select_resolved_export_geometry
         from .operator_root_marking_store import selected_workspace_owner_marking_keys
-        source = self._read()
+        source = self._read() if current_source is None else current_source
         snapshot, geometry = source
         # Owner mismatch retains priority over physical signature drift.
         for witness in self._owners.values():
@@ -254,8 +254,10 @@ def _prepare_selected_ordinary_marking_batch(expected_snapshot, resolved, flags,
 class _VaultQuantityOwnerWitness(_SelectedOwnerMarkingBatchWitness):
     """Bind every grouped flat, including unmarked companions, to the live batch."""
 
-    def __init__(self, source_witness, rows, marked):
+    def __init__(self, source_witness, rows, marked, read_current, version_scope):
         self._source = source_witness
+        self._read = read_current
+        self._version_scope = version_scope
         self._rows = tuple((key, filename, render, _selected_render_signature(render))
                            for key, filename, render in rows)
         self._by_render = {id(row[2]): row[3] for row in self._rows}
@@ -277,7 +279,12 @@ class _VaultQuantityOwnerWitness(_SelectedOwnerMarkingBatchWitness):
             self.assert_render(render)
 
     def assert_current(self):
-        self._source.assert_current()
+        current = self._read()
+        if self._version_scope is not None and (
+                current[0].get("active_mode") != "quantity"
+                or _vault_single_quantity(current[0]) != self._version_scope):
+            raise ValueError("OWNER_MARKING_QUANTITY_VERSION_SOURCE_MISMATCH")
+        self._source.assert_current(current)
         for _, _, render, _ in self._rows:
             self.assert_render(render)
 
@@ -300,8 +307,8 @@ def _stage_vault_quantity_owner(
             or len(batch.requests) != 1 or not callable(read_current) or not callable(sink)):
         raise ValueError("OWNER_MARKING_QUANTITY_ORDINARY_SCOPE_REQUIRED")
     version_id, version_count, _request = batch.requests[0]
-    if snapshot.get("active_mode") == "quantity" and _vault_single_quantity(snapshot) != (
-            version_id, version_count):
+    version_scope = _vault_single_quantity(snapshot) if snapshot.get("active_mode") == "quantity" else None
+    if version_scope is not None and version_scope != (version_id, version_count):
         raise ValueError("OWNER_MARKING_QUANTITY_VERSION_SOURCE_MISMATCH")
     selection = plan_quantity_operator_export_selection(batch, workspace, flags)
     rows = tuple(selection.selected_demands)
@@ -347,7 +354,9 @@ def _stage_vault_quantity_owner(
         staged_rows.append((group.key, group.filename, annotated))
     if set(marked) != set(proofs):
         raise ValueError("OWNER_MARKING_QUANTITY_INVENTORY_CHANGED")
-    quantity_witness = _VaultQuantityOwnerWitness(witness, staged_rows, marked.values())
+    quantity_witness = _VaultQuantityOwnerWitness(
+        witness, staged_rows, marked.values(), read_current, version_scope,
+    )
     seals = []
 
     def serialize(render, output, *, overwrite):

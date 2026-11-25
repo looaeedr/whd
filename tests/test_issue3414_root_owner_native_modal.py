@@ -631,13 +631,20 @@ def test_same_existing_editor_and_export_ordinary_signed_endcap(tmp_path, monkey
             original_stage = api.stage_quantity_operator_export
             prior_bytes = {name: p.read_bytes() for name, p in delivered.items()}
             armed = False
+            count_changed = False
 
             def current_source(model):
                 snapshot = original_reader(model)
                 if armed:
                     snapshot = dict(snapshot)
-                    store = snapshot[api.ROOT_MARKING_STORE_KEY]
-                    snapshot[api.ROOT_MARKING_STORE_KEY] = {**store, "records": {}}
+                    if count_changed:
+                        from copy import deepcopy
+                        qty = deepcopy(snapshot["quantity"])
+                        qty["versions"][0]["piece_count"] = 3
+                        snapshot["quantity"] = qty
+                    else:
+                        store = snapshot[api.ROOT_MARKING_STORE_KEY]
+                        snapshot[api.ROOT_MARKING_STORE_KEY] = {**store, "records": {}}
                 return snapshot
 
             def stage_then_change(*args, **kwargs):
@@ -655,6 +662,15 @@ def test_same_existing_editor_and_export_ordinary_signed_endcap(tmp_path, monkey
             assert {p.name: p.read_bytes() for p in out.glob("*.dxf")} == prior_bytes
             armed = False
             failures.clear()
+
+            if quantity != 1:
+                count_changed = True
+                export_selected_dxf(host)
+                assert armed and any("OWNER_MARKING_QUANTITY_VERSION_SOURCE_MISMATCH" in text
+                                     for _, text in failures)
+                assert {p.name: p.read_bytes() for p in out.glob("*.dxf")} == prior_bytes
+                armed = False
+                failures.clear()
 
         if full_tools:
             import fold_designer_bridge as bridge
