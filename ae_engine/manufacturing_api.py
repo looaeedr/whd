@@ -3457,6 +3457,8 @@ from .operator_saved_endcap_copy_inputs import (
 )
 from .operator_manual_marking_copy import (
     list_ordinary_marking_copy_versions, list_saved_endcap_marking_copy_groups,
+    list_saved_scoped_marking_copy_candidates, verify_saved_scoped_marking_copy,
+    place_saved_scoped_marking_copy, supports_scoped_marking_copy,
     list_saved_endcap_marking_copy_candidates,
     verify_saved_endcap_marking_copy,
     place_saved_endcap_marking_copy,

@@ -448,3 +448,132 @@ def test_scoped_export_provider_cutting_drift_and_orphan_fail_without_output(tmp
             output_dir=tmp_path / "orphan-out", pre_commit_guard=lambda: None,
         )
     assert not calls and not (tmp_path / "orphan-out").exists()
+
+
+def test_saved_receiving_left_copy_rechecks_bay_owners_and_exports_literal_stroke(tmp_path):
+    from hashlib import sha256
+    from tests.test_issue1502_current_csv_multi_bay_once import _provider
+
+    source = _real_source()
+    a, b = _ids(source)
+    scopes = [api.open_physical_sheet_marking("base_plate", snapshot=source, selection=(0, i))
+              for i in (0, 1)]
+    centres = []
+    for offset, scope in zip((0, 35), scopes):
+        guide = next(p for p in scope.context.render_data.scene.primitives
+                     if isinstance(p, LinePrimitive) and p.layer == "BEND")
+        centres.append(Vec2((guide.p1.x + guide.p2.x) / 2 + offset, (guide.p1.y + guide.p2.y) / 2))
+    donor = api.create_physical_sheet_mark(scopes[0], (), tool="line", midpoint=centres[0],
+                                          length=12, angle_deg=90, pattern="dashed", dash=2, gap=2)
+    ledger_key = api.SCOPED_BASE_PLATE_MARKS
+    source[ledger_key] = api.commit_physical_sheet_marking(scopes[0], scopes[0], (donor,)).scoped_store
+    path = _raw_write(tmp_path / "two-bay.p6fold", source)
+    saved = read_project(path)["snapshot"]
+    live = deepcopy(saved)
+    target = api.open_physical_sheet_marking("base_plate", snapshot=live, selection=(0, 1))
+    inputs = dict(project_path=path, project_sha256=sha256(path.read_bytes()).hexdigest(),
+                  saved_snapshot=saved)
+    choice, = api.list_saved_scoped_marking_copy_candidates(**inputs, target_owner_id=b)
+    assert choice[:3] == (a, 0, 0)
+    assert choice[4:] == pytest.approx((centres[0].x, centres[0].y, 12))
+    ports = dict(**inputs, live_snapshot=live, source_owner_id=a, source_group_id=choice[3],
+                 opened_target=target)
+    with pytest.raises(ValueError, match="SAME_PHYSICAL_OWNER"):
+        api.verify_saved_scoped_marking_copy(**dict(ports, source_owner_id=b))
+    with pytest.raises(ValueError, match="SCOPED_COPY_OWNER_STALE"):
+        api.verify_saved_scoped_marking_copy(**dict(ports, live_snapshot=_resize(live, 1)))
+    tampered = deepcopy(live)
+    tampered[ledger_key][a]["source_sha256"] = "0"*64
+    with pytest.raises(ValueError, match="SCOPED_COPY_SAVED_SOURCE_CHANGED"):
+        api.verify_saved_scoped_marking_copy(**dict(ports, live_snapshot=tampered))
+    with pytest.raises(ValueError, match="SOURCE_SAVED_SOURCE_CHANGED"):
+        api.verify_saved_scoped_marking_copy(**dict(ports, project_sha256="0"*64))
+    clone = api.place_saved_scoped_marking_copy(**ports, target_features=(), target_position=centres[1])
+    assert clone != donor
+    assert live == saved and b not in live[ledger_key] and read_project(path)["snapshot"] == saved
+    result = api.commit_physical_sheet_marking(target, target, (clone,))
+    final = read_project(_raw_write(tmp_path / "copied.p6fold", {**live, ledger_key: result.scoped_store}))["snapshot"]
+    assert final[ledger_key][a] == saved[ledger_key][a]
+    assert final[ledger_key][b]["features"] == [clone]
+    provider, _ = _provider(final)
+    outputs = api.export_current_receiving_multibay_dxf(
+        final, physical_bay_geometry_provider=provider, flags={"base_plate": True},
+        output_dir=tmp_path / "export", pre_commit_guard=lambda: None,
+    )
+    _assert_two_distinct_marks(outputs, ((donor,), (clone,)))
+
+
+def test_real_scoped_copy_button_cancel_and_confirm(tmp_path, monkeypatch):
+    import tkinter as tk
+    from tkinter import filedialog, messagebox, simpledialog
+    import gui
+    from gui_modules.application.physical_part_hole_editor import open_scoped_receiving_base_plate_editor
+    from tests.test_issue3413_primary_group_real_tk import _actual_editor_confirm
+
+    source = _real_source()
+    a, b = _ids(source)
+    ledger_key = api.SCOPED_BASE_PLATE_MARKS
+    receipt = api.open_scoped_base_plate_editor(source, 0, 0)
+    guide = next(p for p in receipt.context.render_data.scene.primitives
+                 if isinstance(p, LinePrimitive) and p.layer == "BEND")
+    centre = Vec2((guide.p1.x + guide.p2.x) / 2, (guide.p1.y + guide.p2.y) / 2)
+    donor = api.create_physical_manual_marking("base_plate", receipt.context, (),
+                                               midpoint=centre, length=12, angle_deg=90)
+    source[ledger_key] = api.commit_scoped_base_plate_marks(source, receipt, (donor,))
+    saved = _raw_write(tmp_path / "same-project.p6fold", source)
+    initial = saved.read_bytes()
+    expected = read_project(saved)["snapshot"][ledger_key]
+    final_path = tmp_path / "confirmed.p6fold"
+    root = tk.Tk()
+    root.geometry("1400x900+0+0")
+    try:
+        host = gui.Phase6PrimaryApplication(root)
+        app = host.fold_designer_app
+        errors = []
+        monkeypatch.setattr(messagebox, "showerror", lambda title, message, **kw: errors.append(message))
+        monkeypatch.setattr(messagebox, "showwarning", lambda title, message, **kw: errors.append(message))
+        monkeypatch.setattr(filedialog, "askopenfilename", lambda **kw: str(saved))
+        app.project_file_menu.invoke(0)
+        root.update()
+        assert str(host.project_controller.project_path) == str(saved), errors
+        opening_live_ledger = deepcopy(app._phase6_input_snapshot[ledger_key])
+        choices = []
+        def choose(title, prompt, **kwargs):
+            choices.append(prompt)
+            return 1
+        monkeypatch.setattr(simpledialog, "askinteger", choose)
+
+        def place_from_bay_one():
+            editor = open_scoped_receiving_base_plate_editor(host, 0, 1, expected_owner=b)
+            root.update()
+            state = _state(editor)
+            assert state.manual_mark_copy_button.winfo_ismapped()
+            state.manual_mark_copy_button.invoke()
+            root.update()
+            x, y = state.canvas_view.transform.world_to_canvas(Vec2(centre.x + 35, centre.y))
+            state.canvas.event_generate("<ButtonPress-1>", x=round(x), y=round(y))
+            state.canvas.event_generate("<ButtonRelease-1>", x=round(x), y=round(y))
+            root.update()
+            candidate, = state.live_context.feature_list
+            assert candidate != donor
+            assert app._phase6_input_snapshot[ledger_key] == opening_live_ledger
+            return editor, state, candidate
+
+        editor, state, _ = place_from_bay_one()
+        state.cancel_all_btn.invoke()
+        root.update()
+        assert not editor.winfo_exists() and not errors, errors
+        assert app._phase6_input_snapshot[ledger_key] == opening_live_ledger and saved.read_bytes() == initial
+        editor, _, candidate = place_from_bay_one()
+        _actual_editor_confirm(editor)
+        root.update()
+        assert not editor.winfo_exists() and not errors, errors
+        assert len(choices) == 2 and all("\u7b2c1\u9023" in choice for choice in choices)
+        monkeypatch.setattr(filedialog, "asksaveasfilename", lambda **kw: str(final_path))
+        app.project_file_menu.invoke(2)
+        root.update()
+        ledger = read_project(final_path)["snapshot"][ledger_key]
+        assert ledger[a] == expected[a] and ledger[b]["features"] == [candidate]
+        assert saved.read_bytes() == initial
+    finally:
+        root.destroy()
