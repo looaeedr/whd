@@ -115,6 +115,27 @@ def test_existing_editor_copies_saved_head_group_into_distinct_tail(tmp_path, mo
         source_owner = api.resolve_workspace_physical_root_owner(head, "head")
         assert source_owner
         original_bytes = head_saved.read_bytes()
+        from phase6_manufacturing_adapter import build_scene_payload_for_app
+        live = current_workspace_marking_source(app)
+        live_render = host._query_fold_designer_render_data("head", build_scene_payload_for_app(app, "head"))
+        live_receipt = api.open_selected_ordinary_marking_modal_source(
+            live, api.selected_normal_marking_inventory("head", live_render), "head",
+        )
+        actual = api.open_selected_ordinary_marking_modal_source(
+            head, api.resolve_saved_endcap_copy_geometry(head, "head"), "head",
+        )
+        def brief(receipt):
+            render = receipt.context.render_data
+            return {
+                "bounds": render.material.bounds, "area": render.material.area,
+                "guides": [repr(row) for row in render.fold_guides],
+                "topology": repr(render.unfolded_topology),
+                "cut": [
+                    repr(row)[:350] for row in render.scene.primitives if row.layer == "CUTTING"
+                ][:8],
+            }
+        assert live_receipt.source_sha256 == api.read_workspace_marking_owner_record(live, source_owner)["source_sha256"]
+        assert live_receipt.source_sha256 == actual.source_sha256, (brief(live_receipt), brief(actual))
 
         open_project(tail_input)
         editor, state = open_editor("tail")

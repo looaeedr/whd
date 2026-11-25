@@ -75,6 +75,7 @@ def resolve_saved_endcap_copy_geometry(snapshot, part_key):
     structure = raw.get("workspace", {}).get("box_body_structure", raw.get("box_body_structure"))
     if not isinstance(structure, Mapping):
         raise ValueError("MANUAL_COPY_SAVED_BOX_STRUCTURE_REQUIRED")
+    authored_structure = structure
     joints = api.project_manufacturing_scene_joint_source(raw)
     vals.update(joints)
     wrap = api.normalize_endcap_bottom_wrap_state(raw)
@@ -99,7 +100,7 @@ def resolve_saved_endcap_copy_geometry(snapshot, part_key):
     if api.normalize_operator_settings_boolean(relief.get("enabled", False)):
         cuts = api.resolve_operator_committed_relief_cuts(
             part_key, values, relief_state=relief,
-            joint_state=vals, structure_state=structure, cabinet_family=model,
+            joint_state=vals, structure_state=authored_structure, cabinet_family=model,
             box_body_profile=body, part_profiles=folds,
         )
     spec = api.build_endcap_operator_part_spec(
