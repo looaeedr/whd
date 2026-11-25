@@ -3437,3 +3437,11 @@ from .operator_owner_marking_assembly_view import (
     project_checked_owner_marking_assembly_paths,
     project_workspace_owner_marking_assembly_views,
 )
+
+
+from .operator_saved_endcap_copy_inputs import resolve_saved_endcap_copy_geometry
+from .operator_manual_marking_copy import (
+    list_saved_endcap_marking_copy_groups,
+    verify_saved_endcap_marking_copy,
+    place_saved_endcap_marking_copy,
+)
