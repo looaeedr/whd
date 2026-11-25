@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass, replace
-from math import isfinite
+from math import dist, isfinite
 
 from shapely.geometry import LineString, Polygon, box
 
@@ -48,6 +48,13 @@ class VMiterTailPairOneSheet2DCheck:
     # stock that can be physically added back to an already cut panel.
     corner_signed_area_deltas_mm2: tuple[tuple[str, float], ...]
     original_finite_bends: tuple[LinePrimitive, ...]
+    # Original Engine mapper evidence ONLY, never a solved 3D corner/root.
+    finite_tip_edge_lengths_mm: tuple[tuple[str, float, float], ...] = ()
+    formed_3d_rejection: str = "V_MITER_TAIL_PAIR_3D_FINITE_TIP_OWNER_UNVERIFIED"
+
+    def require_formed_3d_check(self):
+        """Do not render/manufacture a stretched or still-unproven 3D sheet."""
+        raise GeometryError(self.formed_3d_rejection)
     geometry_model: str = "FACTORY_VERIFIED_CUSTOM_TAIL_TWO_BOTTOM_V_SINGLE_SHEET_2D_CHECK"
     manufacturing_status: str = "V_MITER_TAIL_PAIR_ONE_SHEET_2D_UNCERTIFIED"
 
@@ -62,6 +69,68 @@ def _polygon_from_proven_outline(points, code: str) -> Polygon:
             or not shape.is_valid or shape.interiors or shape.area <= _AREA_TOL):
         raise GeometryError(code)
     return shape
+
+
+
+def _finite_tip_3d_guard_from_real_stock(spec, render, stock):
+    """Reject non-isometric original finite-tip mapping, not infer new folds.
+
+    #3379 pre-corner Factory extension is CHECK-only. #3381/#3390 each
+    solve separate single-corner flange skins, not this connected two-V
+    sheet. None owns the shared X/Y root or licenses folding retained stock.
+    """
+    from .assembly_geometry_folded_mesh import _profile_map_with_guides
+    from .manufacturing_render_data import fold_guides_from_final_scene
+    missing = "V_MITER_TAIL_PAIR_3D_FINITE_TIP_SOURCE_UNPROVEN"
+    guides = fold_guides_from_final_scene(render.scene)
+    sides = sorted((g for g in guides if g.axis == "x"),
+                   key=lambda g: g.position)
+    horizontals = sorted((g for g in guides if g.axis == "y"),
+                         key=lambda g: g.position)
+    if len(sides) != 2 or not horizontals:
+        return (), missing
+    left, right = sides
+    bottom = horizontals[0]
+    minx, miny, maxx, _ = map(float, stock.bounds)
+    edges = (
+        ("side_left", (minx, bottom.position), (minx, left.span_start)),
+        ("side_right", (maxx, bottom.position), (maxx, right.span_start)),
+        ("bottom_left", (left.position, miny), (bottom.span_start, miny)),
+        ("bottom_right", (bottom.span_end, miny), (right.position, miny)),
+    )
+
+    def existing_3d(point):
+        x, y = point
+        ux, zx = _profile_map_with_guides(
+            x, y, spec.fold_profile_x, axis="x", fold_guides=guides,
+        )
+        uy, zy = _profile_map_with_guides(
+            y, x, spec.fold_profile_y, axis="y", fold_guides=guides,
+        )
+        return float(ux), float(uy), float(zx + zy)
+
+    measured = []
+    for name, start, end in edges:
+        edge = LineString((start, end))
+        # Every millimeter must exist on the REAL newly connected CUTTING
+        # boundary. No sample-only point or invented crease extension.
+        if (edge.length <= _LENGTH_TOL
+                or edge.difference(stock.boundary.buffer(1e-6)).length > 1e-6):
+            return (), missing
+        try:
+            after = dist(existing_3d(start), existing_3d(end))
+        except (GeometryError, ValueError, TypeError, ArithmeticError):
+            return (), "V_MITER_TAIL_PAIR_3D_FINITE_TIP_MAP_UNVERIFIED"
+        if not isfinite(after):
+            return (), "V_MITER_TAIL_PAIR_3D_FINITE_TIP_MAP_UNVERIFIED"
+        measured.append((name, float(edge.length), float(after)))
+    # Even when four edges look right, a continuous two-axis physical root
+    # would still need its own no-tear/no-overlap 3D source proof.
+    return tuple(measured), (
+        "V_MITER_TAIL_PAIR_3D_FINITE_TIP_STRETCH_REJECTED"
+        if any(abs(before - after) > 1e-5 for _, before, after in measured)
+        else "V_MITER_TAIL_PAIR_3D_CONTINUOUS_ROOT_UNVERIFIED"
+    )
 
 
 def project_v_miter_custom_tail_bottom_pair_one_sheet_2d_check(
@@ -261,10 +330,15 @@ def project_v_miter_custom_tail_bottom_pair_one_sheet_2d_check(
                 raise GeometryError("V_MITER_TAIL_PAIR_2D_EXTRA_SOURCE_GEOMETRY_UNSUPPORTED")
             scene.add(replace(row, layer="DATUM", color=6))
 
+    edge_lengths, rejection = _finite_tip_3d_guard_from_real_stock(
+        part_spec, render_data, final,
+    )
     return VMiterTailPairOneSheet2DCheck(
         scene=scene,
         source_area_mm2=original.area,
         combined_area_mm2=final.area,
         corner_signed_area_deltas_mm2=tuple(signed_deltas),
         original_finite_bends=bends,
+        finite_tip_edge_lengths_mm=edge_lengths,
+        formed_3d_rejection=rejection,
     )

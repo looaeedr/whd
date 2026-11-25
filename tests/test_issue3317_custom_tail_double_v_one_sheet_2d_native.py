@@ -177,6 +177,12 @@ def test_native_main_save_open_shows_one_verified_2d_plus_both_original_independ
         assert "單片雙角 2D CHECK" in win._saved_endcap_pair_2d_notebook.tab(0, "text")
         assert win._saved_endcap_pair_3d_figure is None
         assert "不提供雙角合成 3D" in win._saved_endcap_pair_3d_warning.cget("text")
+        assert candidate.formed_3d_rejection == (
+            "V_MITER_TAIL_PAIR_3D_FINITE_TIP_STRETCH_REJECTED"
+        )
+        assert "V_MITER_TAIL_PAIR_3D_FINITE_TIP_STRETCH_REJECTED" in (
+            win._saved_endcap_pair_3d_warning.cget("text")
+        )
         assert path.read_bytes() == project_bytes
         close_saved_live_check_window(opened)
         # A source-only width change invalidates BOTH old records and cannot

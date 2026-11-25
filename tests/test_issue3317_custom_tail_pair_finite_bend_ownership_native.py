@@ -279,3 +279,54 @@ def test_true_custom_tail_relief_hole_still_refuses_unverified_one_sheet_3d():
         assert tuple(render.scene.primitives) == before_scene
     finally:
         root.destroy()
+
+
+def test_true_custom_tail_engine_rejects_joined_3d_from_source_edge_measurement():
+    """The original 2D/3D survives; joined V-3D is NOT claimed repaired."""
+    from ae_engine.sheetmetal_geometry_core import GeometryError
+    from ae_engine.assembly_geometry_folded_mesh import folded_mesh_from_polygon
+
+    root = tk.Tk()
+    root.withdraw()
+    try:
+        app = BoxCalculatorGUI(root)
+        _make_tail_pair(app, "ROUND_R")
+        _, _, spec, render = _selected_source(
+            app, app._make_original_fold_designer_snapshot(),
+        )
+        before = render.material.wkb, tuple(render.scene.primitives)
+        guides = fold_guides_from_final_scene(render.scene)
+        original_formed = folded_mesh_from_polygon(
+            render.material, spec.fold_profile_x, spec.fold_profile_y,
+            fold_guides=guides,
+        )
+        assert original_formed
+        checks = {
+            side: api.project_operator_v_miter_live_corner_check(
+                spec, render, side, first_bend_axis="x", relief_mode="ROUND_R",
+            )
+            for side in CORNERS
+        }
+        pair = api.project_v_miter_custom_tail_bottom_pair_one_sheet_2d_check(
+            spec, render, checks,
+        )
+        assert pair.formed_3d_rejection == (
+            "V_MITER_TAIL_PAIR_3D_FINITE_TIP_STRETCH_REJECTED"
+        )
+        assert [name for name, _, _ in pair.finite_tip_edge_lengths_mm] == [
+            "side_left", "side_right", "bottom_left", "bottom_right"
+        ]
+        for name, before_mm, after_mm in pair.finite_tip_edge_lengths_mm:
+            assert before_mm == pytest.approx(1., abs=1e-7), name
+            assert after_mm == pytest.approx(21.23676058, abs=1e-6), name
+        with pytest.raises(
+            GeometryError, match="V_MITER_TAIL_PAIR_3D_FINITE_TIP_STRETCH_REJECTED"
+        ):
+            pair.require_formed_3d_check()
+        assert (render.material.wkb, tuple(render.scene.primitives)) == before
+        assert folded_mesh_from_polygon(
+            render.material, spec.fold_profile_x, spec.fold_profile_y,
+            fold_guides=guides,
+        ) == original_formed
+    finally:
+        root.destroy()
