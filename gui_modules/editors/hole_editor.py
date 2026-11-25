@@ -866,7 +866,8 @@ def open_part_hole_editor(host, part_key):
         return None
     # Do not mutate active physical part until Engine has accepted its identity.
     host.workspace_controller.set_active_part(route.part_key)
-    if route.kind == "simple_part" and route.part_key == "door" and app is not None:
+    if (route.kind == "simple_part" and app is not None
+            and (route.part_key == "door" or route.prefer_verified_marking)):
         from gui_modules.application.physical_part_hole_editor import open_workspace_sheet_editor
         if route.part_key in app.designer_workspace.available_parts:
             try:

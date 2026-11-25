@@ -422,7 +422,8 @@ def test_established_ordinary_left_cursor_first_confirm_and_replacement_isolated
 
 @pytest.mark.parametrize(("key", "full_tools"), (("head", False), ("tail", False),
                                                    ("head", True), ("tail", True),
-                                                   ("vault-door", False), ("vault-door-multi", False)))
+                                                   ("vault-door", False), ("vault-door-multi", False),
+                                                   ("vault-base", False)))
 def test_same_existing_editor_and_export_ordinary_signed_endcap(tmp_path, monkeypatch, key, full_tools):
     import ezdxf
     from gui import Phase6PrimaryApplication
@@ -432,14 +433,14 @@ def test_same_existing_editor_and_export_ordinary_signed_endcap(tmp_path, monkey
     from tests.test_issue3414_scoped_marking_proto import _real_source, _resize, _raw_write
 
     multi = key == "vault-door-multi"
-    if key.startswith("vault-door"):
+    if key.startswith("vault-"):
         from tests.test_issue2517_direct_door_partspec_original_source_engine_gate import _row
-        key = "door"
+        key = "base_plate" if key == "vault-base" else "door"
         source = _row()
         source["multi_door_enabled"] = False
     else:
         source = _resize(_real_source(), 1)
-    source["existing_parts"] = ["box_body", "base_plate", key]
+    source["existing_parts"] = list(dict.fromkeys(("box_body", "base_plate", key)))
     original = _raw_write(tmp_path / f"genuine-{key}.p6fold", source)
     root = tk.Tk()
     root.geometry("1400x900+0+0")
@@ -598,7 +599,23 @@ def test_same_existing_editor_and_export_ordinary_signed_endcap(tmp_path, monkey
                                    if e.plain_text().startswith("Q"))
                 assert quantities == ("Q1",)
 
-        if key == "door":
+        if key == "base_plate":
+            from ae_engine.sheetmetal_geometry_core import GeometryError
+            query = host._query_fold_designer_render_data
+
+            def unavailable_source(part_key, payload):
+                if part_key == key:
+                    raise GeometryError("base stock no longer verifiable")
+                return query(part_key, payload)
+
+            with monkeypatch.context() as unavailable:
+                unavailable.setattr(host, "_query_fold_designer_render_data", unavailable_source)
+                assert host.open_part_hole_editor(key) is None
+            assert failures and "base stock no longer verifiable" in failures[-1][1]
+            assert read_project(save)["snapshot"] == saved
+            failures.clear()
+
+        if key in {"door", "base_plate"}:
             from gui_modules.application import physical_part_hole_editor as sheet_editor
             original_reader = sheet_editor.current_workspace_marking_source
             original_stage = api.stage_quantity_operator_export

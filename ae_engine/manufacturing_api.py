@@ -45,6 +45,7 @@ from .door_layout_numeric_transitions import (
     DoorLayoutRecomputeResult, DoorLayoutCommitValidation,
 )
 from .dxf_serialization import save_scene_dxf
+from .sheetmetal_geometry_core import GeometryError as PhysicalSheetGeometryError
 from .ae_door_indicator import (
     feature_surface_from_drawing_scene as project_operator_feature_surface_from_drawing_scene,
 )
