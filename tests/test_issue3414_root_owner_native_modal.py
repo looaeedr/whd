@@ -421,7 +421,8 @@ def test_established_ordinary_left_cursor_first_confirm_and_replacement_isolated
 
 
 @pytest.mark.parametrize(("key", "full_tools"), (("head", False), ("tail", False),
-                                                   ("head", True), ("tail", True), ("vault-door", False)))
+                                                   ("head", True), ("tail", True),
+                                                   ("vault-door", False), ("vault-door-multi", False)))
 def test_same_existing_editor_and_export_ordinary_signed_endcap(tmp_path, monkeypatch, key, full_tools):
     import ezdxf
     from gui import Phase6PrimaryApplication
@@ -430,7 +431,8 @@ def test_same_existing_editor_and_export_ordinary_signed_endcap(tmp_path, monkey
     from gui_modules.application.physical_part_hole_editor import current_workspace_marking_source
     from tests.test_issue3414_scoped_marking_proto import _real_source, _resize, _raw_write
 
-    if key == "vault-door":
+    multi = key == "vault-door-multi"
+    if key.startswith("vault-door"):
         from tests.test_issue2517_direct_door_partspec_original_source_engine_gate import _row
         key = "door"
         source = _row()
@@ -457,11 +459,13 @@ def test_same_existing_editor_and_export_ordinary_signed_endcap(tmp_path, monkey
         reference = tmp_path / "original-unmarked-export"
         reference.mkdir()
         for k in ("z", "head", "tail", "door", "base_plate", "ib", "ib_door"):
-            getattr(host, f"export_{k}_var").set(k == key)
+            getattr(host, f"export_{k}_var").set(k == key or (multi and k == "base_plate"))
         monkeypatch.setattr(filedialog, "askdirectory", lambda **kw: str(reference))
         export_selected_dxf(host)
         assert not failures, failures
-        unmarked, = reference.glob("*.dxf")
+        first = {p.name: p for p in reference.glob("*.dxf")}
+        assert len(first) == (2 if multi else 1)
+        unmarked = None if multi else next(iter(first.values()))
         editor = host.open_part_hole_editor(key)
         root.update()
         assert editor is not None and hasattr(editor, "_manual_marking_controls"), failures
@@ -469,7 +473,7 @@ def test_same_existing_editor_and_export_ordinary_signed_endcap(tmp_path, monkey
         state = dict(zip(callback.__code__.co_freevars, (c.cell_contents for c in callback.__closure__)))["s"]
         assert set(state.manual_marking_draft.allowed_tools) == {"line", "circle", "cross", "l", "pair_l", "quad_l"}
         assert state.manual_marking_draft.output_capability == "verified_normal"
-        original_bytes = unmarked.read_bytes()
+        original_bytes = unmarked.read_bytes() if unmarked is not None else None
         from ae_engine.sheetmetal_drawing import CirclePrimitive
         hole = next((row for row in state.manual_marking_draft.context.render_data.scene.primitives
                      if isinstance(row, CirclePrimitive) and row.layer == "CUTTING"), None)
@@ -545,13 +549,16 @@ def test_same_existing_editor_and_export_ordinary_signed_endcap(tmp_path, monkey
         app.activate_part(key)
         root.update()
         for k in ("z", "head", "tail", "door", "base_plate", "ib", "ib_door"):
-            getattr(host, f"export_{k}_var").set(k == key)
+            getattr(host, f"export_{k}_var").set(k == key or (multi and k == "base_plate"))
         out = tmp_path / "operator-export"
         out.mkdir()
         monkeypatch.setattr(filedialog, "askdirectory", lambda **kw: str(out))
         export_selected_dxf(host)
         assert not failures, failures
-        target, = out.glob("*.dxf")
+        delivered = {p.name: p for p in out.glob("*.dxf")}
+        assert len(delivered) == len(first)
+        target, = (p for name, p in delivered.items() if not multi or name not in first)
+        unmarked, = (p for name, p in first.items() if not multi or name not in delivered)
         doc = ezdxf.readfile(target)
         inks = tuple(doc.modelspace().query('LWPOLYLINE[layer=="MARKING"]'))
         assert tuple(map(tuple, inks[0].get_points("xy"))) == tuple((p.x, p.y) for p in mark.points)
@@ -579,11 +586,23 @@ def test_same_existing_editor_and_export_ordinary_signed_endcap(tmp_path, monkey
 
         assert physical_rows(doc) == physical_rows(ezdxf.readfile(unmarked))
 
+        if multi:
+            baseline_base, = (p for name, p in first.items() if name in delivered)
+            actual_base = ezdxf.readfile(delivered[baseline_base.name])
+            before_base = ezdxf.readfile(baseline_base)
+            assert physical_rows(actual_base) == physical_rows(before_base)
+            assert not actual_base.modelspace().query('*[layer=="MARKING"]')
+            assert actual_base.header["$INSUNITS"] == 4
+            for drawing in (doc, actual_base):
+                quantities = tuple(e.plain_text() for e in drawing.modelspace().query('MTEXT[layer=="CHECK"]')
+                                   if e.plain_text().startswith("Q"))
+                assert quantities == ("Q1",)
+
         if key == "door":
             from gui_modules.application import physical_part_hole_editor as sheet_editor
             original_reader = sheet_editor.current_workspace_marking_source
             original_stage = api.stage_quantity_operator_export
-            prior_bytes = target.read_bytes()
+            prior_bytes = {name: p.read_bytes() for name, p in delivered.items()}
             armed = False
 
             def current_source(model):
@@ -606,8 +625,7 @@ def test_same_existing_editor_and_export_ordinary_signed_endcap(tmp_path, monkey
             export_selected_dxf(host)
             assert armed and failures
             assert any("OWNER_MARKING_PERSISTED_RECORD_REQUIRED" in text for _, text in failures), failures
-            assert list(out.glob("*.dxf")) == [target]
-            assert target.read_bytes() == prior_bytes
+            assert {p.name: p.read_bytes() for p in out.glob("*.dxf")} == prior_bytes
             armed = False
             failures.clear()
 
@@ -1069,7 +1087,11 @@ def test_same_existing_editor_and_export_ordinary_signed_endcap(tmp_path, monkey
         monkeypatch.setattr(filedialog, "askdirectory", lambda **kw: str(plain))
         export_selected_dxf(host)
         assert not failures, failures
-        plain_dxf, = plain.glob("*.dxf")
+        plain_files = {p.name: p for p in plain.glob("*.dxf")}
+        assert len(plain_files) == len(first)
+        if multi:
+            assert baseline_base.name in plain_files
+        plain_dxf, = (p for name, p in plain_files.items() if not multi or name != baseline_base.name)
         assert not ezdxf.readfile(plain_dxf).modelspace().query('LWPOLYLINE[layer=="MARKING"]')
     finally:
         root.destroy()
