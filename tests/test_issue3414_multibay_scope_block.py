@@ -194,3 +194,15 @@ def test_real_tk_export_callback_reports_ambiguous_saved_owner_without_output(
         assert tuple(destination.iterdir()) == (prior,)
     finally:
         root.destroy()
+
+
+def test_vault_root_marking_editor_still_requires_one_quantity_version():
+    from ae_engine.operator_persisted_marking_candidate import require_ordinary_selected_marking_stock
+    from ae_engine.receiving_quantity_versions import QuantityModel
+
+    model = QuantityModel()
+    model.set_piece_count(2)
+    model.add_version()
+    snapshot = {"model": "金庫型", "active_mode": "quantity", "quantity": model.snapshot()}
+    with pytest.raises(ValueError, match="OWNER_MARKING_SINGLE_NORMAL_SCOPE_REQUIRED"):
+        require_ordinary_selected_marking_stock(snapshot, None, "door")
