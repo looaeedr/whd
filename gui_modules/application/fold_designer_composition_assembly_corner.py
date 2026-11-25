@@ -462,6 +462,7 @@ def corner_data_unfold_projection_for_key(
 
         return manufacturing_api.project_workspace_owner_marking_display(
             current_workspace_marking_source(app), selected, render,
+            resolve_geometry=getattr(app, "_phase6_resolve_manufacturing_geometry", None),
         )
 
     return self.corner_data_view().unfold_projection(

@@ -14,7 +14,7 @@ from .sheetmetal_drawing import DrawingScene
 _HELD = "OWNER_MARKING_ASSEMBLY_SURFACE_UNPROVED"
 
 
-def project_workspace_owner_marking_assembly_views(snapshot, parts, visible_keys):
+def project_workspace_owner_marking_assembly_views(snapshot, parts, visible_keys, *, resolve_geometry=None):
     """Keep raw assembly parts untouched; look up only visible current owners."""
     visible = None if visible_keys is None else frozenset(visible_keys)
     parts = tuple(parts)
@@ -24,7 +24,7 @@ def project_workspace_owner_marking_assembly_views(snapshot, parts, visible_keys
         if counts[part.part_key] != 1 or (visible is not None and part.part_key not in visible):
             continue
         render = project_workspace_owner_marking_display(
-            snapshot, part.part_key, part.render_data, standalone_3d=True,
+            snapshot, part.part_key, part.render_data, standalone_3d=True, resolve_geometry=resolve_geometry,
         )
         if render is not part.render_data:
             rows.append((part.part_key, render))

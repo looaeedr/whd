@@ -847,6 +847,30 @@ def test_same_existing_editor_and_export_ordinary_signed_endcap(tmp_path, monkey
             assert physical_rows(actual["Q5"]) == physical_rows(actual_base)
             assert all(dxf.header["$INSUNITS"] == 4 for dxf in actual.values())
 
+            import fold_designer_bridge as marking_bridge
+            from ae_engine.operator_manual_marking import _manual_marking_scene_primitives
+
+            quantity_model = app.designer_workspace.quantity_model
+            active_marking_version = second_owner.version_id
+            assert api.project_operator_detached_root_marking_count(after) == 0
+            retired = {**after["quantity"], "versions": [
+                row for row in after["quantity"]["versions"] if row["version_id"] == first_version
+            ], "selected_version_id": first_version}
+            assert api.project_operator_detached_root_marking_count({**after, "quantity": retired}) == 1
+
+            for selected, count in ((active_marking_version, 2), (first_version, 0), (active_marking_version, 2)):
+                quantity_model.select(selected)
+                app.activate_part(key)
+                app.show_operator_marking_3d_var.set(True)
+                root.update()
+                request = marking_bridge._phase6_final_scene_view_request(app)
+                assert request.part_key == key
+                assert len(_manual_marking_scene_primitives(request.render_data.scene)) == count
+                projected = marking_bridge._phase6_corner_data_unfold_projection_for_key(app, key).render_data
+                assert len(_manual_marking_scene_primitives(projected.scene)) == count
+                assert projected.material.equals(request.render_data.material)
+                assert projected.fold_guides == request.render_data.fold_guides
+
             before_drift = {p.name: p.read_bytes() for p in version_out.glob("*.dxf")}
             stage = api.stage_quantity_operator_export
             drift = []

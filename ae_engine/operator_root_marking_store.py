@@ -55,7 +55,22 @@ def project_operator_detached_root_marking_count(snapshot):
     nested = snapshot.get("workspace")
     nested = nested if isinstance(nested, Mapping) else {}
     present = snapshot.get("existing_parts", nested.get("existing_parts", ())) or ()
-    bound = {resolve_workspace_physical_root_owner(snapshot, key) for key in present}
+    owners = {resolve_workspace_physical_root_owner(snapshot, key): key for key in present}
+    bound = records.keys() & owners.keys()
+    if any(key.startswith("quantity-owner:") for key in records):
+        from .operator_quantity_marking_owner import resolve_quantity_physical_marking_owner
+        for record_key in records.keys() - bound:
+            if not record_key.startswith("quantity-owner:"):
+                continue
+            _, version, root = record_key.split(":", 2)
+            if root not in owners:
+                continue
+            try:
+                owner = resolve_quantity_physical_marking_owner(snapshot, owners[root], version_id=version)
+            except ValueError:
+                continue
+            if owner.root_owner_id == root:
+                bound.add(record_key)
     return len(records.keys() - bound)
 
 
