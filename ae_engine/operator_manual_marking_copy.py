@@ -73,7 +73,7 @@ def _open_ordinary_saved_copy_source(
     from .operator_root_marking_store import open_workspace_owner_marking_draft
     from .operator_selected_marking_receipt import open_selected_ordinary_marking_modal_source
 
-    if source_part_key not in ("head", "tail"):
+    if source_part_key not in ("head", "tail", "door", "base_plate"):
         raise ValueError("MANUAL_COPY_EXPLICIT_ORDINARY_SOURCE_REQUIRED")
     path, raw = _file_identity(source_project_path, source_project_sha256, "SOURCE")
     saved = _bound_project_snapshot(raw, source_snapshot, "SOURCE")
@@ -359,7 +359,7 @@ def _open_ordinary_saved_copy_target(
     from .operator_root_marking_store import open_workspace_owner_marking_draft
     from .operator_selected_marking_receipt import open_selected_ordinary_marking_modal_source
 
-    if target_part_key not in ("head", "tail"):
+    if target_part_key not in ("head", "tail", "door", "base_plate"):
         raise ValueError("MANUAL_COPY_EXPLICIT_ORDINARY_TARGET_REQUIRED")
     path, raw = _file_identity(target_project_path, target_project_sha256, "TARGET")
     saved = _bound_project_snapshot(raw, target_snapshot, "TARGET")

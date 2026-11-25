@@ -1501,7 +1501,7 @@ def _install_manual_marking_actions(s):
         copy_target_state = None  # Independent/scoped editors do not gain Copy authority.
 
     ordinary_endcap_copy = (
-        s.part_key in {"head", "tail"}
+        api.supports_saved_ordinary_copy_part(current_workspace_marking_source(copy_app), s.part_key)
         and getattr(s.manual_marking_draft, "output_capability", None) == "verified_normal"
     )
 
@@ -1666,17 +1666,17 @@ def _install_manual_marking_actions(s):
             target_data = read_project(target_path)["snapshot"]
             if ordinary_endcap_copy:
                 source_label = simpledialog.askstring(
-                    "選擇來源板件", "輸入封頭或封尾：", parent=s.editor,
+                    "選擇來源板件", "輸入封頭、封尾、門板或底板：", parent=s.editor,
                 )
                 if source_label is None:
                     return False
-                source_role = {"封頭": "head", "封尾": "tail"}.get(source_label.strip())
+                source_role = {"封頭": "head", "封尾": "tail", "\u9580\u677f": "door", "\u5e95\u677f": "base_plate"}.get(source_label.strip())
                 if source_role is None:
                     raise ValueError("MANUAL_COPY_EXPLICIT_ORDINARY_SOURCE_REQUIRED")
                 source = dict(
                     source_snapshot=source_data, source_project_path=source_path,
                     source_project_sha256=source_sha, source_part_key=source_role,
-                    resolve_saved_geometry=api.resolve_saved_endcap_copy_geometry,
+                    resolve_saved_geometry=api.resolve_saved_ordinary_copy_geometry,
                 )
                 options = api.list_saved_endcap_marking_copy_candidates(source)
                 candidates = tuple(row[0] for row in options)
@@ -1718,7 +1718,7 @@ def _install_manual_marking_actions(s):
                 receipt = dict(source=source, source_group_id=selected_id, target=dict(
                     target_snapshot=target_data, target_project_path=target_path,
                     target_project_sha256=target_sha, target_part_key=s.part_key,
-                    resolve_saved_geometry=api.resolve_saved_endcap_copy_geometry,
+                    resolve_saved_geometry=api.resolve_saved_ordinary_copy_geometry,
                 ))
                 group, _ = api.verify_saved_endcap_marking_copy(**verified_copy_args(receipt))
             else:
