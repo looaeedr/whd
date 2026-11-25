@@ -364,3 +364,40 @@ def test_new_model_widget_attached_in_dxf_overwrite_modal_cannot_publish(
     assert destination.read_bytes() == earlier
     assert not ezdxf.readfile(destination).audit().errors
     assert workspace.snapshot()["part_features"] == saved["part_features"]
+
+
+@pytest.mark.parametrize("workspace_source", [True, False])
+def test_ordinary_outer_publish_verifies_the_committed_engine_dxf(
+    tmp_path, monkeypatch, workspace_source,
+):
+    """The final destination is verified for every ordinary export route."""
+    from pathlib import Path
+
+    saved = _project_source(tmp_path)
+    host, _ = _host(saved)
+    if not workspace_source:
+        # Exercise the supported compatibility path without a Phase6 owner.
+        host.fold_designer_app = None
+    target = tmp_path / "P1.dxf"
+    api.save_composed_panel_dxf(
+        _physical_panels(110.0), target, pre_commit_guard=lambda: None,
+    )
+    prior = target.read_bytes()
+    checked = []
+    digest = export_gui._staged_export_file_digest
+
+    def observe(path):
+        value = digest(path)
+        if Path(path) == target:
+            checked.append(value)
+        return value
+
+    monkeypatch.setattr(export_gui, "_staged_export_file_digest", observe)
+    events = _run_real_gui_export(monkeypatch, host, tmp_path)
+    assert any(isinstance(e, tuple) and e[0] == "success" for e in events)
+    assert not any(isinstance(e, tuple) and e[0] == "error" for e in events)
+    assert target.read_bytes() != prior
+    assert checked == [digest(target), digest(target)]
+    document = ezdxf.readfile(target)
+    assert document.header["$INSUNITS"] == 4 and not document.audit().errors
+    assert {"CUTTING", "BEND"} <= {e.dxf.layer for e in document.modelspace()}
