@@ -225,3 +225,68 @@ def validate_unmarked_quantity_sheet_hole_edit(snapshot, geometry, opened, editi
     if any(is_manual_mark(row) for row in accepted):
         raise ValueError("ROOT_MARKING_STORE_MARKS_ONLY")
     return accepted
+
+
+def propose_quantity_marking_and_common_holes(snapshot, opened, editing_context, holes, marks, *, build_batch):
+    """Validate all live versions before changing common holes or any marking seal."""
+    from copy import deepcopy
+    from . import manufacturing_api as api
+    from .operator_manual_marking import is_manual_mark
+    from .operator_root_marking_store import ROOT_MARKING_STORE_KEY, _root_store, normalize_workspace_root_marking_store
+
+    if not isinstance(opened, _QuantityPhysicalMarkingReceipt) or not callable(build_batch):
+        raise ValueError("ROOT_MARKING_STOCK_RECEIPT_REQUIRED")
+    key = opened.owner.physical_id
+    owner = resolve_quantity_physical_marking_owner(snapshot, key)
+    if owner != opened.owner or key not in {"door", "base_plate"}:
+        raise ValueError("ROOT_MARKING_OWNER_STALE")
+    ledger = _root_store(snapshot)
+    if owner.root_owner_id in ledger["records"]:
+        raise ValueError("OWNER_MARKING_QUANTITY_LEGACY_OWNER_UNBOUND")
+    holes = tuple(api.propose_operator_physical_sheet_hole_features(key, editing_context, holes))
+    if any(is_manual_mark(row) for row in holes):
+        raise ValueError("ROOT_MARKING_STORE_MARKS_ONLY")
+    quantity = QuantityModel.from_payload(snapshot["quantity"]).snapshot()
+    expected = {row["version_id"]: row["piece_count"] for row in quantity["versions"]}
+
+    def receipts(state):
+        result = {}
+        for row in build_batch(state).demands:
+            if row.physical_id != key:
+                continue
+            vid = row.version_id
+            if (vid in result or vid not in expected or row.piece_count != expected[vid]
+                    or row.per_box_count != 1 or row.source_part_id != key):
+                raise ValueError("OWNER_MARKING_QUANTITY_SINGLE_OWNER_COUNT_REQUIRED")
+            versioned = {**state, "quantity": {**quantity, "selected_version_id": vid}}
+            result[vid] = open_quantity_physical_marking(
+                versioned, api.selected_normal_marking_inventory(key, row.render_data), key,
+            )
+        if result.keys() != expected.keys():
+            raise ValueError("OWNER_MARKING_QUANTITY_VERSION_SOURCE_MISMATCH")
+        return result
+
+    before = receipts(snapshot)
+    selected = before[owner.version_id]
+    if (selected.owner != opened.owner or selected.saved_record != opened.saved_record
+            or selected.stock.source_sha256 != opened.stock.source_sha256):
+        raise ValueError("ROOT_MARKING_DRAFT_STALE")
+    proposed = deepcopy(snapshot)
+    proposed["part_features"] = {**(proposed.get("part_features") or {}), key: holes}
+    # Each old seal was verified above. Remove the old ledger only from this
+    # proposal, so new stock can be opened without treating it as an edit.
+    proposed[ROOT_MARKING_STORE_KEY] = {"schema_version": 1, "records": {}}
+    after = receipts(proposed)
+    for version, receipt in after.items():
+        if receipt.owner != before[version].owner:
+            raise ValueError("ROOT_MARKING_OWNER_STALE")
+        prior = before[version].saved_record
+        intent = marks if version == owner.version_id else (() if prior is None else prior["features"])
+        ink = tuple(receipt.stock.validate(intent))
+        record_key = _record_key(receipt.owner)
+        if ink:
+            ledger["records"][record_key] = {"source_sha256": receipt.stock.source_sha256, "features": ink}
+        else:
+            ledger["records"].pop(record_key, None)
+    ledger["schema_version"] = 2 if any(k.startswith("quantity-owner:") for k in ledger["records"]) else 1
+    return holes, normalize_workspace_root_marking_store(ledger)

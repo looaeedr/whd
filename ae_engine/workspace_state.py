@@ -412,6 +412,20 @@ class SharedWorkspaceState:
         self._root_occupancy, self._root_marking_store = occupancy, accepted
         return changed
 
+    def commit_quantity_marking_and_common_holes(self, snapshot, opened, context, holes, marks,
+                                                 *, build_batch, read_current):
+        from .operator_quantity_marking_owner import propose_quantity_marking_and_common_holes
+        from .operator_root_marking_store import _root_store
+        if _root_store(snapshot) != self._root_marking_store:
+            raise ValueError("ROOT_MARKING_WORKSPACE_STALE")
+        accepted, ledger = propose_quantity_marking_and_common_holes(
+            snapshot, opened, context, holes, marks, build_batch=build_batch,
+        )
+        if read_current() != snapshot or _root_store(snapshot) != self._root_marking_store:
+            raise ValueError("ROOT_MARKING_DRAFT_STALE")
+        self._root_marking_store = ledger
+        return accepted
+
     def commit_transferred_quantity_marking(self, snapshot, geometry, part_key, opened, *, version_id):
         from .operator_quantity_marking_owner import with_transferred_quantity_marking
         from .operator_root_marking_store import _root_store
