@@ -378,3 +378,147 @@ def test_existing_vault_editor_copies_saved_mark_between_door_and_base(tmp_path,
             }
     finally:
         root.destroy()
+def test_vault_version_copy_gui(tmp_path, monkeypatch):
+    from tests.test_issue2517_direct_door_partspec_original_source_engine_gate import _row
+    from hashlib import sha256
+    from phase6_manufacturing_adapter import build_scene_payload_for_app
+    donor, target, label = 'door', 'base_plate', '\u9580\u677f'
+
+    source = _row()
+    source["multi_door_enabled"] = False
+    source["existing_parts"] = ["box_body", "door", "base_plate"]
+    initial = _raw_write(tmp_path / "vault.p6fold", source)
+    saved = tmp_path / "saved.p6fold"
+    copied = tmp_path / "copied.p6fold"
+    root = tk.Tk()
+    root.geometry("1400x900+0+0")
+    try:
+        host = Phase6PrimaryApplication(root)
+        app = host.fold_designer_app
+        menu = app.project_file_menu
+        failures = []
+        monkeypatch.setattr(messagebox, "showerror", lambda title, text, **_: failures.append((title, text)))
+        monkeypatch.setattr(messagebox, "showinfo", lambda *args, **kwargs: None)
+
+        def open_saved(path):
+            monkeypatch.setattr(filedialog, "askopenfilename", lambda **kw: str(path))
+            menu.invoke(0)
+            root.update()
+
+        def editor(key):
+            app.activate_part(key)
+            root.update()
+            modal = host.open_part_hole_editor(key)
+            root.update()
+            callback = modal._manual_marking_place
+            state = dict(zip(callback.__code__.co_freevars, (c.cell_contents for c in callback.__closure__)))["s"]
+            return modal, state
+
+        def click(state, offset):
+            point = state.manual_marking_draft.context.render_data.material.representative_point()
+            x, y = state.canvas_view.transform.world_to_canvas(Vec2(point.x + offset, point.y))
+            host.last_hole_editor_canvas.event_generate("<Button-1>", x=round(x), y=round(y))
+            root.update()
+
+        def confirm(modal):
+            _actual_editor_confirm(modal)
+            root.update()
+            assert not modal.winfo_exists() and not failures, failures
+
+        open_saved(initial)
+        app.activate_part(donor)
+        root.update()
+        controls = app.receiving_mode_controls.quantity_editor
+        controls.count_var.set("2")
+        controls.commit_count()
+        root.update()
+        model = app.designer_workspace.quantity_model
+        first_version = model.selected_version_id
+        assert model.selected_piece_count == 2
+        controls.ports["add"]()
+        root.update()
+        second_version = model.selected_version_id
+        assert first_version != second_version
+        controls.count_var.set("3")
+        controls.commit_count()
+        root.update()
+        assert app.designer_workspace.quantity_model.selected_piece_count == 3
+        def mark(key, length, offset=0):
+            modal, state = editor(key)
+            state.manual_mark_length.set(length)
+            state.manual_mark_angle.set("0")
+            modal._manual_marking_controls[0].invoke()
+            click(state, offset)
+            confirm(modal)
+
+        mark(donor, "29")
+        mark(target, "6")
+        app.designer_workspace.quantity_model.select(first_version)
+        root.update()
+        mark(donor, "12")
+        mark(target, "8")
+        app.designer_workspace.quantity_model.select(second_version)
+        root.update()
+        monkeypatch.setattr(filedialog, "asksaveasfilename", lambda **kw: str(saved))
+        menu.invoke(2)
+        root.update()
+        snapshot = read_project(saved)["snapshot"]
+        assert api.list_ordinary_marking_copy_versions(snapshot, donor) == ((first_version, 2), (second_version, 3))
+        digest = sha256(saved.read_bytes()).hexdigest()
+        args = dict(source_snapshot=snapshot, source_project_path=saved, source_project_sha256=digest,
+                    source_part_key=donor, resolve_saved_geometry=api.resolve_saved_ordinary_copy_geometry)
+        with pytest.raises(ValueError, match="EXPLICIT_QUANTITY_VERSION"):
+            api.list_saved_endcap_marking_copy_candidates(args)
+        first, = api.list_saved_endcap_marking_copy_candidates(dict(args, source_version_id=first_version))
+        second, = api.list_saved_endcap_marking_copy_candidates(dict(args, source_version_id=second_version))
+        assert first[4] == pytest.approx(12) and second[4] == pytest.approx(29)
+        live = current_workspace_marking_source(app)
+        geometry = api.selected_normal_marking_inventory(
+            target, host._query_fold_designer_render_data(target, build_scene_payload_for_app(app, target)),
+        )
+        target_args = dict(target_snapshot=snapshot, target_project_path=saved, target_project_sha256=digest,
+                           target_part_key=target, target_version_id=first_version,
+                           target_live_snapshot=live, target_live_geometry=geometry,
+                           resolve_saved_geometry=api.resolve_saved_ordinary_copy_geometry)
+        with pytest.raises(ValueError, match="TARGET_EDITOR_SESSION_STALE"):
+            api.verify_saved_endcap_marking_copy(
+                source_group_id=first[0], source=dict(args, source_version_id=first_version), target=target_args,
+            )
+        modal, state = editor(target)
+        monkeypatch.setattr(filedialog, "askopenfilename", lambda **kw: str(saved))
+        monkeypatch.setattr(simpledialog, "askstring", lambda *args, **kwargs: label)
+        monkeypatch.setattr(simpledialog, "askinteger", lambda *args, **kwargs: 1)
+        state.manual_mark_copy_button.invoke()
+        root.update()
+        click(state, 35)
+        marks = tuple(f for f in state.live_context.feature_list if api.is_manual_mark(f))
+        assert len(marks) == 2, state.manual_mark_status.cget("text")
+        assert abs(marks[-1].points[1].x - marks[-1].points[0].x) == pytest.approx(12)
+        confirm(modal)
+        monkeypatch.setattr(filedialog, "asksaveasfilename", lambda **kw: str(copied))
+        menu.invoke(2)
+        root.update()
+        open_saved(copied)
+        final = read_project(copied)["snapshot"]
+        for key in (donor, target):
+            for version in (first_version, second_version):
+                before = api.read_quantity_physical_marking(snapshot, key, version_id=version)["features"]
+                after = api.read_quantity_physical_marking(final, key, version_id=version)["features"]
+                assert after == marks if (key, version) == (target, second_version) else after == before
+        for key in ("z", "head", "tail", "door", "base_plate", "ib", "ib_door"):
+            getattr(host, f"export_{key}_var").set(key == target)
+        out = tmp_path / "version-copy-dxf"
+        out.mkdir()
+        monkeypatch.setattr(filedialog, "askdirectory", lambda **kw: str(out))
+        export_selected_dxf(host)
+        assert not failures, failures
+        counts = {}
+        for file in out.glob("*.dxf"):
+            drawing = ezdxf.readfile(file)
+            assert drawing.header["$INSUNITS"] == 4 and not drawing.audit().errors
+            qty, = (e.plain_text() for e in drawing.modelspace().query('MTEXT[layer=="CHECK"]')
+                    if e.plain_text().startswith("Q"))
+            counts[qty] = len(drawing.modelspace().query('LWPOLYLINE[layer=="MARKING"]'))
+        assert counts == {"Q2": 1, "Q3": 2}
+    finally:
+        root.destroy()

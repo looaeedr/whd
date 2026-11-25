@@ -1500,8 +1500,12 @@ def _install_manual_marking_actions(s):
     except (ValueError, TypeError):
         copy_target_state = None  # Independent/scoped editors do not gain Copy authority.
 
+    copy_opening_snapshot = current_workspace_marking_source(copy_app)
+    copy_versions = api.list_ordinary_marking_copy_versions(copy_opening_snapshot, s.part_key)
+    copy_version = (api.project_operator_quantity_version_controls(copy_opening_snapshot["quantity"])["selected_version_id"]
+                    if copy_versions else None)
     ordinary_endcap_copy = (
-        api.supports_saved_ordinary_copy_part(current_workspace_marking_source(copy_app), s.part_key)
+        api.supports_saved_ordinary_copy_part(copy_opening_snapshot, s.part_key)
         and getattr(s.manual_marking_draft, "output_capability", None) == "verified_normal"
     )
 
@@ -1525,7 +1529,13 @@ def _install_manual_marking_actions(s):
             payload = build_scene_payload_for_app(copy_app, s.part_key)
             render = copy_host._query_fold_designer_render_data(s.part_key, payload)
             geometry = api.selected_normal_marking_inventory(s.part_key, render)
-            current = api.open_selected_ordinary_marking_modal_source(live, geometry, s.part_key)
+            if copy_version is not None:
+                version_receipt = api.open_quantity_physical_marking(live, geometry, s.part_key)
+                if version_receipt.owner.version_id != copy_version:
+                    raise ValueError("MANUAL_COPY_TARGET_EDITOR_SESSION_STALE")
+                current = version_receipt.stock
+            else:
+                current = api.open_selected_ordinary_marking_modal_source(live, geometry, s.part_key)
             opened = s.manual_marking_draft
             if (current.owner_id is None or current.owner_id != opened.owner_id
                     or current.source_sha256 != opened.source_sha256):
@@ -1678,6 +1688,18 @@ def _install_manual_marking_actions(s):
                     source_project_sha256=source_sha, source_part_key=source_role,
                     resolve_saved_geometry=api.resolve_saved_ordinary_copy_geometry,
                 )
+                source_versions = api.list_ordinary_marking_copy_versions(source_data, source_role)
+                if source_versions:
+                    choice = simpledialog.askinteger(
+                        "選擇來源孔型版本",
+                        "選擇來源板件所在的版本：\n" + "\n".join(
+                            f"{i}. {identity}（{pieces} 件）"
+                            for i, (identity, pieces) in enumerate(source_versions, 1)
+                        ), minvalue=1, maxvalue=len(source_versions), parent=s.editor,
+                    )
+                    if choice is None:
+                        return False
+                    source["source_version_id"] = source_versions[choice - 1][0]
                 options = api.list_saved_endcap_marking_copy_candidates(source)
                 candidates = tuple(row[0] for row in options)
             else:
@@ -1718,6 +1740,7 @@ def _install_manual_marking_actions(s):
                 receipt = dict(source=source, source_group_id=selected_id, target=dict(
                     target_snapshot=target_data, target_project_path=target_path,
                     target_project_sha256=target_sha, target_part_key=s.part_key,
+                    target_version_id=copy_version,
                     resolve_saved_geometry=api.resolve_saved_ordinary_copy_geometry,
                 ))
                 group, _ = api.verify_saved_endcap_marking_copy(**verified_copy_args(receipt))
