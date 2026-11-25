@@ -1639,7 +1639,7 @@ def _install_manual_marking_actions(s):
             getattr(s.host, "project_controller", None), "project_path", None,
         )
         if not target_project:
-            copy_rejection = "跨板複製：請先儲存目標專案，再選擇其他已存來源"
+            copy_rejection = "跨板複製：請先儲存目標專案，再選擇已存來源"
             checked_redraw()
             return False
         try:

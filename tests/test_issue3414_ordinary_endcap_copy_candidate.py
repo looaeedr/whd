@@ -1,12 +1,9 @@
-"""Candidate acceptance: existing ordinary Head/Tail editor, cross-file copy.
-
-Run inside an exact WHD localX checkout with native Tk. This is an unrun
-acceptance candidate, not a result and not a substitute for direct R5 validation.
-"""
+"""Exercise the real ordinary Head/Tail editor for saved group copying."""
 import tkinter as tk
 from tkinter import filedialog, simpledialog
 
 import ezdxf
+import pytest
 
 from ae_engine import manufacturing_api as api
 from ae_engine.sheetmetal_geometry import Vec2
@@ -19,10 +16,11 @@ from tests.test_issue3415_primary_marking_menu_roundtrip import _actual_editor_c
 from tests.test_issue3414_scoped_marking_proto import _raw_write, _real_source, _resize
 
 
-def test_existing_editor_copies_saved_head_group_into_distinct_tail(tmp_path, monkeypatch):
+@pytest.mark.parametrize("same_project", [False, True], ids=["other-project", "same-project"])
+def test_existing_editor_copies_saved_head_group_into_distinct_tail(tmp_path, monkeypatch, same_project):
     def initial(key):
         snapshot = _resize(_real_source(), 1)
-        snapshot["existing_parts"] = ["box_body", "base_plate", key]
+        snapshot["existing_parts"] = ["box_body", "base_plate", "head", "tail"] if same_project else ["box_body", "base_plate", key]
         return _raw_write(tmp_path / f"original-{key}.p6fold", snapshot)
 
     head_input, tail_input = initial("head"), initial("tail")
@@ -152,7 +150,15 @@ def test_existing_editor_copies_saved_head_group_into_distinct_tail(tmp_path, mo
                     print("RENDER_DIFF", key, "SAVED", repr(compare))
         assert live_receipt.source_sha256 == actual.source_sha256, "saved EndCap stock differs from native stock"
 
-        open_project(tail_input)
+        if same_project:
+            editor, state = open_editor("head")
+            monkeypatch.setattr(filedialog, "askopenfilename", lambda **_: str(head_saved))
+            monkeypatch.setattr(simpledialog, "askstring", lambda *a, **k: "封頭")
+            state.manual_mark_copy_button.invoke()
+            root.update()
+            assert "MANUAL_COPY_SAME_PHYSICAL_OWNER" in state.manual_mark_status.cget("text")
+            finish(editor)
+        open_project(head_saved if same_project else tail_input)
         editor, state = open_editor("tail")
         p = center(state)
         state.manual_mark_length.set("8")
@@ -166,7 +172,7 @@ def test_existing_editor_copies_saved_head_group_into_distinct_tail(tmp_path, mo
 
         editor, state = open_editor("tail")
         p = center(state)
-        monkeypatch.setattr(filedialog, "askopenfilename", lambda **_: str(head_saved))
+        monkeypatch.setattr(filedialog, "askopenfilename", lambda **_: str(tail_saved if same_project else head_saved))
         # Source role selected explicitly even when only one physical sheet is marked.
         monkeypatch.setattr(simpledialog, "askstring", lambda *args, **kwargs: "封頭")
         state.manual_mark_copy_button.invoke()
@@ -189,6 +195,8 @@ def test_existing_editor_copies_saved_head_group_into_distinct_tail(tmp_path, mo
         final = save_project(tail_final)
         open_project(tail_final)
         assert api.read_workspace_marking_owner_record(final, target_owner)["features"] == expected
+        if same_project:
+            assert api.read_workspace_marking_owner_record(final, source_owner)["features"] == (source_group,)
         stock, ink = stock_and_ink("tail", "copied-dxf")
         assert stock == original_stock and len(ink) > len(original_ink)
         assert head_saved.read_bytes() == original_bytes
