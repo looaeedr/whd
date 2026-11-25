@@ -423,7 +423,7 @@ def test_established_ordinary_left_cursor_first_confirm_and_replacement_isolated
 @pytest.mark.parametrize(("key", "full_tools"), (("head", False), ("tail", False),
                                                    ("head", True), ("tail", True),
                                                    ("vault-door", False), ("vault-door-multi", False),
-                                                   ("vault-base", False)))
+                                                   ("vault-base", False), ("vault-door-two-units", False)))
 def test_same_existing_editor_and_export_ordinary_signed_endcap(tmp_path, monkeypatch, key, full_tools):
     import ezdxf
     from gui import Phase6PrimaryApplication
@@ -432,7 +432,8 @@ def test_same_existing_editor_and_export_ordinary_signed_endcap(tmp_path, monkey
     from gui_modules.application.physical_part_hole_editor import current_workspace_marking_source
     from tests.test_issue3414_scoped_marking_proto import _real_source, _resize, _raw_write
 
-    multi = key == "vault-door-multi"
+    quantity = 2 if key == "vault-door-two-units" else 1
+    multi = key in {"vault-door-multi", "vault-door-two-units"}
     if key.startswith("vault-"):
         from tests.test_issue2517_direct_door_partspec_original_source_engine_gate import _row
         key = "base_plate" if key == "vault-base" else "door"
@@ -456,6 +457,12 @@ def test_same_existing_editor_and_export_ordinary_signed_endcap(tmp_path, monkey
         root.update()
         app.activate_part(key)
         root.update()
+        if quantity != 1:
+            controls = app.receiving_mode_controls.quantity_editor
+            controls.count_var.set(str(quantity))
+            controls.commit_count()
+            root.update()
+            assert app.designer_workspace.quantity_model.selected_piece_count == quantity
         assert not api.resolve_workspace_physical_root_owner(current_workspace_marking_source(app), key)
         reference = tmp_path / "original-unmarked-export"
         reference.mkdir()
@@ -541,6 +548,9 @@ def test_same_existing_editor_and_export_ordinary_signed_endcap(tmp_path, monkey
         menu.invoke(2)
         root.update()
         saved = read_project(save)["snapshot"]
+        if quantity != 1:
+            version, = saved["quantity"]["versions"]
+            assert version["piece_count"] == quantity
         owner = api.resolve_workspace_physical_root_owner(saved, key)
         assert owner and api.read_workspace_marking_owner_record(saved, owner)["features"] == authored
 
@@ -597,7 +607,7 @@ def test_same_existing_editor_and_export_ordinary_signed_endcap(tmp_path, monkey
             for drawing in (doc, actual_base):
                 quantities = tuple(e.plain_text() for e in drawing.modelspace().query('MTEXT[layer=="CHECK"]')
                                    if e.plain_text().startswith("Q"))
-                assert quantities == ("Q1",)
+                assert quantities == (f"Q{quantity}",)
 
         if key == "base_plate":
             from ae_engine.sheetmetal_geometry_core import GeometryError
@@ -621,13 +631,20 @@ def test_same_existing_editor_and_export_ordinary_signed_endcap(tmp_path, monkey
             original_stage = api.stage_quantity_operator_export
             prior_bytes = {name: p.read_bytes() for name, p in delivered.items()}
             armed = False
+            count_changed = False
 
             def current_source(model):
                 snapshot = original_reader(model)
                 if armed:
                     snapshot = dict(snapshot)
-                    store = snapshot[api.ROOT_MARKING_STORE_KEY]
-                    snapshot[api.ROOT_MARKING_STORE_KEY] = {**store, "records": {}}
+                    if count_changed:
+                        from copy import deepcopy
+                        qty = deepcopy(snapshot["quantity"])
+                        qty["versions"][0]["piece_count"] = 3
+                        snapshot["quantity"] = qty
+                    else:
+                        store = snapshot[api.ROOT_MARKING_STORE_KEY]
+                        snapshot[api.ROOT_MARKING_STORE_KEY] = {**store, "records": {}}
                 return snapshot
 
             def stage_then_change(*args, **kwargs):
@@ -645,6 +662,15 @@ def test_same_existing_editor_and_export_ordinary_signed_endcap(tmp_path, monkey
             assert {p.name: p.read_bytes() for p in out.glob("*.dxf")} == prior_bytes
             armed = False
             failures.clear()
+
+            if quantity != 1:
+                count_changed = True
+                export_selected_dxf(host)
+                assert armed and any("OWNER_MARKING_QUANTITY_VERSION_SOURCE_MISMATCH" in text
+                                     for _, text in failures)
+                assert {p.name: p.read_bytes() for p in out.glob("*.dxf")} == prior_bytes
+                armed = False
+                failures.clear()
 
         if full_tools:
             import fold_designer_bridge as bridge

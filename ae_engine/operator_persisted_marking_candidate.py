@@ -23,6 +23,18 @@ class VerifiedOwnerMarkingCandidate:
     legacy_normal_marking_allowed: bool
 
 
+def _vault_single_quantity(snapshot):
+    from .receiving_quantity_versions import QuantityModel
+
+    try:
+        quantity = QuantityModel.from_payload(snapshot.get("quantity"))
+    except ValueError as exc:
+        raise ValueError("OWNER_MARKING_SINGLE_NORMAL_SCOPE_REQUIRED") from exc
+    if quantity.version_count != 1:
+        raise ValueError("OWNER_MARKING_SINGLE_NORMAL_SCOPE_REQUIRED")
+    return quantity.selected_version_id, quantity.selected_piece_count
+
+
 def require_ordinary_selected_marking_stock(snapshot, geometry, part_key):
     """Pure stock/source/owner/ink checks before any single marked stage."""
     from . import manufacturing_api as api
@@ -32,10 +44,14 @@ def require_ordinary_selected_marking_stock(snapshot, geometry, part_key):
     from .receiving_layout import normalize_receiving_layout
 
     if (not isinstance(snapshot, Mapping)
-            or snapshot.get("active_mode", "set_bay") != "set_bay"
             or snapshot.get("receiving_quantity_box")
             or snapshot.get("v_miter_gui_check_corners")
             or snapshot.get("v_miter_endcap_live_check_sources")):
+        raise ValueError("OWNER_MARKING_SINGLE_NORMAL_SCOPE_REQUIRED")
+    mode = snapshot.get("active_mode", "set_bay")
+    if mode == "quantity" and canonical_family_name(snapshot) == "金庫型":
+        _vault_single_quantity(snapshot)
+    elif mode != "set_bay":
         raise ValueError("OWNER_MARKING_SINGLE_NORMAL_SCOPE_REQUIRED")
     if snapshot.get("receiving_layout") is not None:
         layout = normalize_receiving_layout(snapshot["receiving_layout"])
@@ -184,11 +200,11 @@ class _SelectedOwnerMarkingBatchWitness:
             if witness is not None:
                 witness.assert_render(render)
 
-    def assert_current(self):
+    def assert_current(self, current_source=None):
         from .manufacturing_export import resolved_physical_render_parts
         from .manufacturing_export_selection import select_resolved_export_geometry
         from .operator_root_marking_store import selected_workspace_owner_marking_keys
-        source = self._read()
+        source = self._read() if current_source is None else current_source
         snapshot, geometry = source
         # Owner mismatch retains priority over physical signature drift.
         for witness in self._owners.values():
@@ -238,8 +254,10 @@ def _prepare_selected_ordinary_marking_batch(expected_snapshot, resolved, flags,
 class _VaultQuantityOwnerWitness(_SelectedOwnerMarkingBatchWitness):
     """Bind every grouped flat, including unmarked companions, to the live batch."""
 
-    def __init__(self, source_witness, rows, marked):
+    def __init__(self, source_witness, rows, marked, read_current, version_scope):
         self._source = source_witness
+        self._read = read_current
+        self._version_scope = version_scope
         self._rows = tuple((key, filename, render, _selected_render_signature(render))
                            for key, filename, render in rows)
         self._by_render = {id(row[2]): row[3] for row in self._rows}
@@ -261,7 +279,12 @@ class _VaultQuantityOwnerWitness(_SelectedOwnerMarkingBatchWitness):
             self.assert_render(render)
 
     def assert_current(self):
-        self._source.assert_current()
+        current = self._read()
+        if self._version_scope is not None and (
+                current[0].get("active_mode") != "quantity"
+                or _vault_single_quantity(current[0]) != self._version_scope):
+            raise ValueError("OWNER_MARKING_QUANTITY_VERSION_SOURCE_MISMATCH")
+        self._source.assert_current(current)
         for _, _, render, _ in self._rows:
             self.assert_render(render)
 
@@ -283,12 +306,16 @@ def _stage_vault_quantity_owner(
     if (canonical_family_name(snapshot) != "金庫型"
             or len(batch.requests) != 1 or not callable(read_current) or not callable(sink)):
         raise ValueError("OWNER_MARKING_QUANTITY_ORDINARY_SCOPE_REQUIRED")
+    version_id, version_count, _request = batch.requests[0]
+    version_scope = _vault_single_quantity(snapshot) if snapshot.get("active_mode") == "quantity" else None
+    if version_scope is not None and version_scope != (version_id, version_count):
+        raise ValueError("OWNER_MARKING_QUANTITY_VERSION_SOURCE_MISMATCH")
     selection = plan_quantity_operator_export_selection(batch, workspace, flags)
     rows = tuple(selection.selected_demands)
     owner_keys = tuple(owner_keys)
     if (selection.partial_selection is not None or not owner_keys
             or len(set(owner_keys)) != len(owner_keys)
-            or any(row.version_id != batch.requests[0][0] for row in rows)):
+            or any(row.version_id != version_id for row in rows)):
         raise ValueError("OWNER_MARKING_QUANTITY_ORDINARY_SCOPE_REQUIRED")
     _, geometry = read_current()
     source_rows, witness = _prepare_selected_ordinary_marking_batch(
@@ -302,7 +329,9 @@ def _stage_vault_quantity_owner(
                    != _selected_render_signature(stock[row.physical_id]) for row in rows)):
         raise ValueError("OWNER_MARKING_QUANTITY_FLAT_SOURCE_MISMATCH")
     proofs = {key: witness.owner_row(key) for key in owner_keys}
-    if {row.physical_id for row in rows if row.physical_id in proofs and row.quantity == 1} != set(proofs):
+    # One physical sheet per box is not the same as one box in this version.
+    if {row.physical_id for row in rows if row.physical_id in proofs
+            and row.per_box_count == 1 and row.piece_count == version_count} != set(proofs):
         raise ValueError("OWNER_MARKING_QUANTITY_SINGLE_OWNER_COUNT_REQUIRED")
     groups = quantity_manufacturing_groups(
         batch, demands=tuple(replace(row, render_data=proofs[row.physical_id].render)
@@ -325,7 +354,9 @@ def _stage_vault_quantity_owner(
         staged_rows.append((group.key, group.filename, annotated))
     if set(marked) != set(proofs):
         raise ValueError("OWNER_MARKING_QUANTITY_INVENTORY_CHANGED")
-    quantity_witness = _VaultQuantityOwnerWitness(witness, staged_rows, marked.values())
+    quantity_witness = _VaultQuantityOwnerWitness(
+        witness, staged_rows, marked.values(), read_current, version_scope,
+    )
     seals = []
 
     def serialize(render, output, *, overwrite):
