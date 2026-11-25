@@ -607,19 +607,56 @@ def test_same_existing_editor_and_export_ordinary_signed_endcap(tmp_path, monkey
             guarded_cb = guarded_editor._manual_marking_place
             guarded = dict(zip(guarded_cb.__code__.co_freevars,
                                 (c.cell_contents for c in guarded_cb.__closure__)))["s"]
+            x0, x1 = authored[0].points
+            crossing = CircleFeature(diameter=7, anchor=FeatureAnchor.ABSOLUTE_FINISHED_FACE,
+                                     offset=Vec2((x0.x + x1.x) / 2, (x0.y + x1.y) / 2))
+            before_rejected = current_workspace_marking_source(app)
+            guarded.live_context.feature_list.append(crossing)
+            _actual_editor_confirm(guarded_editor)
+            root.update()
+            assert guarded_editor.winfo_exists() and added_hole in app.designer_workspace.features_for(key)
+            assert crossing not in app.designer_workspace.features_for(key)
+            assert failures, failures
+            assert current_workspace_marking_source(app) == before_rejected
+            failures.clear()
+            guarded.live_context.feature_list.remove(crossing)
             other = CircleFeature(diameter=7, anchor=FeatureAnchor.ABSOLUTE_FINISHED_FACE,
                                   offset=Vec2(point.x + 65, point.y + 20))
             guarded.live_context.feature_list.append(other)
             _actual_editor_confirm(guarded_editor)
             root.update()
-            assert guarded_editor.winfo_exists() and added_hole in app.designer_workspace.features_for(key)
-            assert other not in app.designer_workspace.features_for(key)
-            assert failures and "OWNER_MARKING_QUANTITY_HOLE_EDIT_REQUIRES_MARK_REVALIDATION" in failures[-1][1]
-            failures.clear()
-            assert api.read_quantity_physical_marking(current_workspace_marking_source(app), key,
-                                                       version_id=second_version)["features"] == authored
-            guarded_editor.destroy()
+            assert not guarded_editor.winfo_exists() and not failures, failures
+            assert other in app.designer_workspace.features_for(key)
+            fresh = current_workspace_marking_source(app)
+            prior_marked = api.read_quantity_physical_marking(before_rejected, key, version_id=second_version)
+            resealed = api.read_quantity_physical_marking(fresh, key, version_id=second_version)
+            assert resealed["features"] == authored
+            assert resealed["source_sha256"] != prior_marked["source_sha256"]
+            assert api.read_quantity_physical_marking(fresh, key) is None
+            mixed_path = tmp_path / "versioned-after-common-hole.p6fold"
+            monkeypatch.setattr(filedialog, "asksaveasfilename", lambda **kw: str(mixed_path))
+            menu.invoke(2)
             root.update()
+            monkeypatch.setattr(filedialog, "askopenfilename", lambda **kw: str(mixed_path))
+            menu.invoke(0)
+            root.update()
+            assert not failures, failures
+            assert other in app.designer_workspace.features_for(key)
+            model = app.designer_workspace.quantity_model
+            mixed_out = tmp_path / "versioned-after-common-hole-output"
+            mixed_out.mkdir()
+            monkeypatch.setattr(filedialog, "askdirectory", lambda **kw: str(mixed_out))
+            export_selected_dxf(host)
+            assert not failures, failures
+            seen = {}
+            for path in mixed_out.glob("*.dxf"):
+                dxf = ezdxf.readfile(path)
+                label, = (row.plain_text() for row in dxf.modelspace().query('MTEXT[layer=="CHECK"]')
+                          if row.plain_text().startswith("Q"))
+                assert any(abs(row.dxf.radius - 3.5) < 1e-9
+                           for row in dxf.modelspace().query('CIRCLE[layer=="CUTTING"]'))
+                seen[label] = len(dxf.modelspace().query('LWPOLYLINE[layer=="MARKING"]'))
+            assert seen == {"Q2": 0, "Q3": 1}
             model.select(second_version)
             root.update()
             controls = app.receiving_mode_controls.quantity_editor

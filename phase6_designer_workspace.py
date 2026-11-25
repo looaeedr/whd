@@ -120,6 +120,14 @@ class Phase6DesignerWorkspace:
             self.mark_dirty()
         return changed
 
+    def commit_quantity_marking_and_common_holes(self, snapshot, opened, context, holes, marks,
+                                                 *, build_batch, read_current):
+        accepted = self._shared_state.commit_quantity_marking_and_common_holes(
+            snapshot, opened, context, holes, marks, build_batch=build_batch, read_current=read_current,
+        )
+        self._part_features[opened.owner.physical_id] = list(accepted)
+        self.mark_dirty()
+
     def commit_transferred_quantity_marking(self, snapshot, geometry, part_key, opened, *, version_id):
         result = self._shared_state.commit_transferred_quantity_marking(
             {**snapshot, **self.snapshot()}, geometry, part_key, opened, version_id=version_id,

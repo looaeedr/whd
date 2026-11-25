@@ -300,10 +300,33 @@ def _open_version_bound_workspace_marking_editor(host, key, editing_context, rol
         holes = tuple(feature for feature in pending if not api.is_manual_mark(feature))
         pending_marks = tuple(feature for feature in pending if api.is_manual_mark(feature))
         if holes != role_features:
-            if pending_marks:
-                raise ValueError("OWNER_MARKING_QUANTITY_EDIT_HOLES_SEPARATELY")
-            accepted = api.validate_unmarked_quantity_sheet_hole_edit(state, live_geometry, opened, editing_context, holes)
-            workspace.stash_features(key, accepted)
+            if opened.owner.root_owner_id is not None and key in {"door", "base_plate"}:
+                from phase6_manufacturing_adapter import build_manufacturing_request, operator_finished_dimensions_for_app
+                from phase6_manufacturing_service import resolve
+
+                def build_batch(source):
+                    def scene(part):
+                        values = build_scene_payload_for_app(app, part)
+                        if part == key:
+                            values["features"] = source["part_features"].get(key, ())
+                        return values
+
+                    request = build_manufacturing_request(
+                        app, scene_payload_builder=scene, render_data_provider=app._scene_query_callback,
+                        part_spec_provider=app._part_spec_query_callback,
+                        finished_dimensions_provider=lambda part=None: operator_finished_dimensions_for_app(app, part),
+                    )
+                    return api.resolve_operator_quantity_manufacturing_batch(request, source, resolve_request=resolve)
+
+                workspace.commit_quantity_marking_and_common_holes(
+                    state, opened, editing_context, holes, pending_marks,
+                    build_batch=build_batch, read_current=lambda: read_current()[0],
+                )
+            else:
+                if pending_marks:
+                    raise ValueError("OWNER_MARKING_QUANTITY_EDIT_HOLES_SEPARATELY")
+                accepted = api.validate_unmarked_quantity_sheet_hole_edit(state, live_geometry, opened, editing_context, holes)
+                workspace.stash_features(key, accepted)
             if workspace.active_part == key:
                 app._load_part_holes(key)
             app.submit_update_intent("geometry", commit=True)
