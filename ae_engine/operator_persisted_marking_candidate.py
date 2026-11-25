@@ -243,8 +243,11 @@ class _VaultQuantityOwnerWitness(_SelectedOwnerMarkingBatchWitness):
         self._rows = tuple((key, filename, render, _selected_render_signature(render))
                            for key, filename, render in rows)
         self._by_render = {id(row[2]): row[3] for row in self._rows}
-        self.marked = marked
+        self._marked = frozenset(id(render) for render in marked)
         self.selected = source_witness.selected
+
+    def is_marked(self, render):
+        return id(render) in self._marked
 
     def assert_render(self, render):
         if self._by_render.get(id(render)) != _selected_render_signature(render):
@@ -264,9 +267,9 @@ class _VaultQuantityOwnerWitness(_SelectedOwnerMarkingBatchWitness):
 
 
 def _stage_vault_quantity_owner(
-    batch, workspace, flags, directory, snapshot, read_current, sink,
+    batch, workspace, flags, directory, snapshot, owner_keys, read_current, sink,
 ):
-    """Mark only the verified Vault door; preserve all other selected ordinary flats."""
+    """Bind confirmed marks to their exact physical owners in one Vault version."""
     from . import manufacturing_api as api
     from .cabinet_types.policy import canonical_family_name
     from .drawing_annotation_layout import annotate_quantity_render_data
@@ -279,17 +282,17 @@ def _stage_vault_quantity_owner(
 
     if (canonical_family_name(snapshot) != "金庫型"
             or len(batch.requests) != 1 or not callable(read_current) or not callable(sink)):
-        raise ValueError("OWNER_MARKING_QUANTITY_SINGLE_DOOR_REQUIRED")
+        raise ValueError("OWNER_MARKING_QUANTITY_ORDINARY_SCOPE_REQUIRED")
     selection = plan_quantity_operator_export_selection(batch, workspace, flags)
     rows = tuple(selection.selected_demands)
-    door_rows = tuple(row for row in rows if row.source_part_id == "door")
-    if (selection.partial_selection is not None or len(door_rows) != 1
-            or door_rows[0].physical_id != "door" or door_rows[0].quantity != 1
+    owner_keys = tuple(owner_keys)
+    if (selection.partial_selection is not None or not owner_keys
+            or len(set(owner_keys)) != len(owner_keys)
             or any(row.version_id != batch.requests[0][0] for row in rows)):
-        raise ValueError("OWNER_MARKING_QUANTITY_SINGLE_DOOR_REQUIRED")
+        raise ValueError("OWNER_MARKING_QUANTITY_ORDINARY_SCOPE_REQUIRED")
     _, geometry = read_current()
     source_rows, witness = _prepare_selected_ordinary_marking_batch(
-        snapshot, geometry, flags, ("door",), read_current,
+        snapshot, geometry, flags, owner_keys, read_current,
     )
     stock = dict(source_rows)
     if (len(stock) != len(source_rows) or len(stock) != len(rows)
@@ -298,34 +301,36 @@ def _stage_vault_quantity_owner(
                    or _selected_render_signature(row.render_data)
                    != _selected_render_signature(stock[row.physical_id]) for row in rows)):
         raise ValueError("OWNER_MARKING_QUANTITY_FLAT_SOURCE_MISMATCH")
-    door = door_rows[0]
-    proof = witness.owner_row("door")
+    proofs = {key: witness.owner_row(key) for key in owner_keys}
+    if {row.physical_id for row in rows if row.physical_id in proofs and row.quantity == 1} != set(proofs):
+        raise ValueError("OWNER_MARKING_QUANTITY_SINGLE_OWNER_COUNT_REQUIRED")
     groups = quantity_manufacturing_groups(
-        batch, demands=tuple(replace(row, render_data=proof.render) if row is door else row
-                             for row in rows),
+        batch, demands=tuple(replace(row, render_data=proofs[row.physical_id].render)
+                             if row.physical_id in proofs else row for row in rows),
     )
     if sum(group.quantity for group in groups) != sum(row.quantity for row in rows):
         raise ValueError("OWNER_MARKING_QUANTITY_PIECE_COUNT_CHANGED")
     staged_rows = []
-    marked = None
+    marked = {}
     for group in groups:
         annotated = annotate_quantity_render_data(group.render_data, group.quantity)
-        if any(row.physical_id == "door" for row in group.members):
-            if len(group.members) != 1 or group.render_data is not proof.render:
+        owners = tuple(row.physical_id for row in group.members if row.physical_id in proofs)
+        if owners:
+            if len(group.members) != 1 or group.render_data is not proofs[owners[0]].render:
                 raise ValueError("OWNER_MARKING_QUANTITY_OWNER_GROUP_AMBIGUOUS")
-            marked = annotated
+            marked[owners[0]] = annotated
         else:
             # Do not replace the ordinary per-part guard for companion stock.
             api._require_single_part_dxf_source(group.render_data)
         staged_rows.append((group.key, group.filename, annotated))
-    if marked is None:
+    if set(marked) != set(proofs):
         raise ValueError("OWNER_MARKING_QUANTITY_INVENTORY_CHANGED")
-    quantity_witness = _VaultQuantityOwnerWitness(witness, staged_rows, marked)
+    quantity_witness = _VaultQuantityOwnerWitness(witness, staged_rows, marked.values())
     seals = []
 
     def serialize(render, output, *, overwrite):
         api._require_single_part_dxf_source(
-            render, selected_owner_witness=quantity_witness if render is quantity_witness.marked else None,
+            render, selected_owner_witness=quantity_witness if quantity_witness.is_marked(render) else None,
         )
         quantity_witness.assert_render(render)
         saved = save_part_render_data_dxf(render.scene, output, serializer=api.save_scene_dxf,
