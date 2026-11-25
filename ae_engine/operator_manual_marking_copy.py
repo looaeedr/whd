@@ -386,8 +386,19 @@ def _open_ordinary_saved_copy_target(
     return path, live_receipt
 
 
-def _verify_ordinary_saved_copy_sources(*, source_group_id, source, target):
+def _ordinary_saved_copy_key(mark):
+    """Selection key in the sealed saved owner; not a persisted mark identity."""
+    from .operator_manual_marking import is_manual_round_mark
     from .operator_manual_marking_groups import group_parameters, is_manual_group
+    from .operator_physical_sheet_marking import is_manual_straight_mark
+
+    if is_manual_group(mark):
+        return group_parameters(mark)["group_id"]
+    kind = "line" if is_manual_straight_mark(mark) else "circle" if is_manual_round_mark(mark) else None
+    return f"{kind}:{sha256(repr(mark).encode('utf-8')).hexdigest()}" if kind else None
+
+
+def _verify_ordinary_saved_copy_sources(*, source_group_id, source, target):
 
     source_file, source_receipt, source_marks = _open_ordinary_saved_copy_source(**source)
     target_file, target_receipt = _open_ordinary_saved_copy_target(**target)
@@ -412,8 +423,7 @@ def _verify_ordinary_saved_copy_sources(*, source_group_id, source, target):
             raise ValueError("MANUAL_COPY_LIVE_DONOR_MARKS_CHANGED")
     if not isinstance(source_group_id, str) or not source_group_id:
         raise ValueError("MANUAL_COPY_EXPLICIT_GROUP_ID_REQUIRED")
-    matches = [mark for mark in source_marks if is_manual_group(mark)
-               and group_parameters(mark)["group_id"] == source_group_id]
+    matches = [mark for mark in source_marks if _ordinary_saved_copy_key(mark) == source_group_id]
     if len(matches) != 1:
         raise ValueError("MANUAL_COPY_SOURCE_GROUP_AMBIGUOUS")
     return matches[0], target_receipt
@@ -423,7 +433,11 @@ def _copy_ordinary_saved_group(
     *, source_group_id, source, target, target_features, target_position,
 ):
     """Place with the ordinary editor's full-stroke and material validation."""
-    from .operator_physical_sheet_marking import validate_physical_sheet_marking_draft
+    from .operator_manual_marking import _build_manual_round_feature, is_manual_round_mark
+    from .operator_physical_sheet_marking import (
+        is_manual_straight_mark, move_physical_sheet_straight_mark, validate_physical_sheet_marking_draft,
+    )
+    from .sheetmetal_geometry import Vec2
 
     group, receipt = _verify_ordinary_saved_copy_sources(
         source_group_id=source_group_id, source=source, target=target,
@@ -432,8 +446,22 @@ def _copy_ordinary_saved_group(
         raise ValueError("MANUAL_COPY_TARGET_POSITION_REQUIRED")
     existing = tuple(target_features)
     validate_physical_sheet_marking_draft(receipt, existing)
-    clone = _clone_copy_group(group, source_group_id, target_position)
+    if not isinstance(target_position, Vec2):
+        raise ValueError("MANUAL_COPY_TARGET_POSITION_REQUIRED")
     try:
+        if is_manual_straight_mark(group):
+            start, end = group.points
+            return move_physical_sheet_straight_mark(
+                receipt, (*existing, group), selected_index=len(existing),
+                displacement=Vec2(target_position.x - (start.x + end.x) / 2,
+                                  target_position.y - (start.y + end.y) / 2),
+            )
+        if is_manual_round_mark(group):
+            if "circle" not in receipt.allowed_tools:
+                raise ValueError("PHYSICAL_SHEET_MARKING_TOOL_UNSUPPORTED")
+            clone = _build_manual_round_feature(target_position, group.diameter)
+        else:
+            clone = _clone_copy_group(group, source_group_id, target_position)
         validate_physical_sheet_marking_draft(receipt, (*existing, clone))
     except ValueError as exc:
         raise ManualCopyPlacementRejected(str(exc)) from exc
@@ -477,10 +505,9 @@ def copy_saved_manual_marking_group_to_selected_sheet(
 
 def list_saved_endcap_marking_copy_groups(source):
     """List explicit group IDs for the selected saved physical EndCap."""
-    from .operator_manual_marking_groups import group_parameters, is_manual_group
 
     _, _, marks = _open_ordinary_saved_copy_source(**source)
-    keys = tuple(group_parameters(row)["group_id"] for row in marks if is_manual_group(row))
+    keys = tuple(key for mark in marks if (key := _ordinary_saved_copy_key(mark)) is not None)
     if not keys or len(keys) != len(set(keys)):
         raise ValueError("MANUAL_COPY_SOURCE_GROUP_AMBIGUOUS")
     return keys

@@ -1599,14 +1599,23 @@ def _install_manual_marking_actions(s):
             copy_rejection = "跨板定位被拒絕：" + str(exc)
             s.redraw()
             return "break"
-        placed_copy_receipts[api.group_parameters(clone)["group_id"]] = pending["receipt"]
+        if api.is_manual_group(clone):
+            placed_copy_receipts[api.group_parameters(clone)["group_id"]] = pending["receipt"]
+        else:
+            plain_copy_receipts.append(pending["receipt"])
         return "break"
 
+    # Standalone marks intentionally have no persisted group ID; recheck
+    # their sources at Confirm even when the operator edits the placed mark.
+    plain_copy_receipts = []
     original_confirm_features = s.on_confirm_features
 
     def confirm_with_copy_sources(features):
         if pending_copy is not None:
             raise ValueError("MANUAL_COPY_TARGET_POSITION_REQUIRED")
+        for receipt in plain_copy_receipts:
+            _, verified = api.verify_saved_endcap_marking_copy(**verified_copy_args(receipt))
+            api.validate_physical_sheet_marking_draft(verified, tuple(features))
         for feature in features:
             if not api.is_manual_group(feature):
                 continue
@@ -1708,9 +1717,12 @@ def _install_manual_marking_actions(s):
                 api.verify_saved_manual_marking_copy_sources(
                     **{**args, "target_context": s.manual_marking_draft.context},
                 )
-            kind = api.group_parameters(group)["kind"]
+            kind = (api.group_parameters(group)["kind"] if api.is_manual_group(group)
+                    else "line" if api.is_manual_straight_mark(group) else "circle")
             prompt = ("跨板複製：點選目標轉角" if kind == "l" else
                       "跨板複製：點選目標交點" if kind == "cross" else
+                      "跨板複製：點選目標中點" if kind == "line" else
+                      "跨板複製：點選目標圓心" if kind == "circle" else
                       "跨板複製：點選目標群組中心") + "（Esc 取消）"
         except (ValueError, TypeError, KeyError, OSError, RuntimeError) as exc:
             # No copy is pending yet. Preserve the warning on passive
