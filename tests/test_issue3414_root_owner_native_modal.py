@@ -424,7 +424,8 @@ def test_established_ordinary_left_cursor_first_confirm_and_replacement_isolated
                                                    ("head", True), ("tail", True),
                                                    ("vault-door", False), ("vault-door-multi", False),
                                                    ("vault-base", False), ("vault-door-two-units", False),
-                                                   ("vault-first-in-versions", False)))
+                                                   ("vault-first-in-versions", False),
+                                                   ("vault-base-first-in-versions", False)))
 def test_same_existing_editor_and_export_ordinary_signed_endcap(tmp_path, monkeypatch, key, full_tools):
     import ezdxf
     from gui import Phase6PrimaryApplication
@@ -433,12 +434,13 @@ def test_same_existing_editor_and_export_ordinary_signed_endcap(tmp_path, monkey
     from gui_modules.application.physical_part_hole_editor import current_workspace_marking_source
     from tests.test_issue3414_scoped_marking_proto import _real_source, _resize, _raw_write
 
-    first_in_multi = key == "vault-first-in-versions"
+    base_mixed = key == "vault-base-first-in-versions"
+    first_in_multi = key == "vault-first-in-versions" or base_mixed
     quantity = 2 if key == "vault-door-two-units" or first_in_multi else 1
     multi = key in {"vault-door-multi", "vault-door-two-units"}
     if key.startswith("vault-"):
         from tests.test_issue2517_direct_door_partspec_original_source_engine_gate import _row
-        key = "base_plate" if key == "vault-base" else "door"
+        key = "base_plate" if key == "vault-base" or base_mixed else "door"
         source = _row()
         source["multi_door_enabled"] = False
     else:
@@ -623,6 +625,16 @@ def test_same_existing_editor_and_export_ordinary_signed_endcap(tmp_path, monkey
             other = CircleFeature(diameter=7, anchor=FeatureAnchor.ABSOLUTE_FINISHED_FACE,
                                   offset=Vec2(point.x + 65, point.y + 20))
             guarded.live_context.feature_list.append(other)
+            newly_authored = ()
+            if base_mixed:
+                guarded.manual_mark_length.set("11")
+                guarded.manual_mark_angle.set("0")
+                guarded_editor._manual_marking_controls[0].invoke()
+                cx, cy = guarded.canvas_view.transform.world_to_canvas(Vec2(point.x - 35, point.y))
+                host.last_hole_editor_canvas.event_generate("<Button-1>", x=round(cx), y=round(cy))
+                root.update()
+                newly_authored = tuple(f for f in guarded.live_context.feature_list if api.is_manual_mark(f))
+                assert len(newly_authored) == 1, failures
             _actual_editor_confirm(guarded_editor)
             root.update()
             assert not guarded_editor.winfo_exists() and not failures, failures
@@ -632,7 +644,8 @@ def test_same_existing_editor_and_export_ordinary_signed_endcap(tmp_path, monkey
             resealed = api.read_quantity_physical_marking(fresh, key, version_id=second_version)
             assert resealed["features"] == authored
             assert resealed["source_sha256"] != prior_marked["source_sha256"]
-            assert api.read_quantity_physical_marking(fresh, key) is None
+            first_record = api.read_quantity_physical_marking(fresh, key)
+            assert (first_record["features"] if first_record else ()) == newly_authored
             mixed_path = tmp_path / "versioned-after-common-hole.p6fold"
             monkeypatch.setattr(filedialog, "asksaveasfilename", lambda **kw: str(mixed_path))
             menu.invoke(2)
@@ -656,7 +669,9 @@ def test_same_existing_editor_and_export_ordinary_signed_endcap(tmp_path, monkey
                 assert any(abs(row.dxf.radius - 3.5) < 1e-9
                            for row in dxf.modelspace().query('CIRCLE[layer=="CUTTING"]'))
                 seen[label] = len(dxf.modelspace().query('LWPOLYLINE[layer=="MARKING"]'))
-            assert seen == {"Q2": 0, "Q3": 1}
+            assert seen == {"Q2": int(base_mixed), "Q3": 1}
+            if base_mixed:
+                return
             model.select(second_version)
             root.update()
             controls = app.receiving_mode_controls.quantity_editor
