@@ -577,3 +577,68 @@ def test_real_scoped_copy_button_cancel_and_confirm(tmp_path, monkeypatch):
         assert saved.read_bytes() == initial
     finally:
         root.destroy()
+
+
+def test_copy_picker_excludes_stale_donor_without_blocking_healthy_bay(tmp_path):
+    from hashlib import sha256
+
+    source = _resize(_real_source(), 3)
+    bays = source["receiving_layout"]["sets"][0]["bays"]
+    bays[2].update(nfb_config_submitted=True, nfb_config=deepcopy(bays[1]["nfb_config"]))
+    a, b, c = _ids(source)
+    ledger_key = api.SCOPED_BASE_PLATE_MARKS
+    for index in (0, 1):
+        draft = api.open_physical_sheet_marking("base_plate", snapshot=source, selection=(0, index))
+        guide = next(p for p in draft.context.render_data.scene.primitives
+                     if isinstance(p, LinePrimitive) and p.layer == "BEND")
+        midpoint = Vec2((guide.p1.x + guide.p2.x) / 2, (guide.p1.y + guide.p2.y) / 2)
+        mark = api.create_physical_sheet_mark(draft, (), tool="line", midpoint=midpoint,
+                                              length=12, angle_deg=90)
+        source[ledger_key] = api.commit_physical_sheet_marking(draft, draft, (mark,)).scoped_store
+
+    path = _raw_write(tmp_path / "three-bay.p6fold", source)
+    persisted = read_project(path)["snapshot"]
+    original_bytes = path.read_bytes()
+    choices = api.list_saved_scoped_marking_copy_candidates(
+        project_path=path, project_sha256=sha256(original_bytes).hexdigest(),
+        saved_snapshot=persisted, target_owner_id=c,
+    )
+    first, second = choices
+    assert (first[0], second[0]) == (a, b)
+
+    source[ledger_key][a]["source_sha256"] = "0" * 64
+    _raw_write(path, source)
+    stale_bytes = path.read_bytes()
+    saved = read_project(path)["snapshot"]
+    inputs = dict(project_path=path, project_sha256=sha256(stale_bytes).hexdigest(),
+                  saved_snapshot=saved)
+    target = api.open_physical_sheet_marking("base_plate", snapshot=saved, selection=(0, 2))
+    assert api.list_saved_scoped_marking_copy_candidates(**inputs, target_owner_id=c) == (second,)
+    with pytest.raises(ValueError, match="SCOPED_COPY_SAVED_SOURCE_CHANGED"):
+        api.list_saved_scoped_marking_copy_candidates(**inputs, target_owner_id=a)
+    with pytest.raises(ValueError, match="SCOPED_COPY_SAVED_SOURCE_CHANGED"):
+        api.verify_saved_scoped_marking_copy(
+            **inputs, live_snapshot=saved, source_owner_id=a, source_group_id=first[3],
+            opened_target=target,
+        )
+    clone = api.place_saved_scoped_marking_copy(
+        **inputs, live_snapshot=saved, source_owner_id=b, source_group_id=second[3],
+        opened_target=target, target_features=(), target_position=Vec2(*second[4:6]),
+    )
+    result = api.commit_physical_sheet_marking(target, target, (clone,))
+    assert result.scoped_store[a] == saved[ledger_key][a]
+    assert result.scoped_store[b] == saved[ledger_key][b]
+    assert result.scoped_store[c]["features"] == [clone]
+    assert path.read_bytes() == stale_bytes
+
+    from tests.test_issue1502_current_csv_multi_bay_once import _provider
+
+    provider, _ = _provider(saved)
+    output_dir = tmp_path / "blocked-dxf"
+    with pytest.raises(ValueError, match="SCOPED_MARK_SAVED_PHYSICAL_SOURCE_CHANGED"):
+        api.export_current_receiving_multibay_dxf(
+            saved, physical_bay_geometry_provider=provider, flags={"base_plate": True},
+            output_dir=output_dir, pre_commit_guard=lambda: None,
+        )
+    assert not output_dir.exists() or not list(output_dir.rglob("*.dxf"))
+    assert path.read_bytes() == stale_bytes
