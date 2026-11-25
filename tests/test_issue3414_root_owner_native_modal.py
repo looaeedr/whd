@@ -599,6 +599,22 @@ def test_same_existing_editor_and_export_ordinary_signed_endcap(tmp_path, monkey
                                    if e.plain_text().startswith("Q"))
                 assert quantities == ("Q1",)
 
+        if key == "base_plate":
+            from ae_engine.sheetmetal_geometry_core import GeometryError
+            query = host._query_fold_designer_render_data
+
+            def unavailable_source(part_key, payload):
+                if part_key == key:
+                    raise GeometryError("base stock no longer verifiable")
+                return query(part_key, payload)
+
+            with monkeypatch.context() as unavailable:
+                unavailable.setattr(host, "_query_fold_designer_render_data", unavailable_source)
+                assert host.open_part_hole_editor(key) is None
+            assert failures and "base stock no longer verifiable" in failures[-1][1]
+            assert read_project(save)["snapshot"] == saved
+            failures.clear()
+
         if key in {"door", "base_plate"}:
             from gui_modules.application import physical_part_hole_editor as sheet_editor
             original_reader = sheet_editor.current_workspace_marking_source

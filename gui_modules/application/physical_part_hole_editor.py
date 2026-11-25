@@ -26,8 +26,21 @@ def open_workspace_sheet_editor(host, key, *, verified_only=False):
             key, render, custom_spec=custom_spec,
         )
 
-    payload, context = current_context()
     features = workspace.features_for(key)
+    snapshot = current_workspace_marking_source(app)
+    owner = manufacturing_api.resolve_workspace_physical_root_owner(snapshot, key)
+    claim = owner is not None and manufacturing_api.read_workspace_marking_owner_record(snapshot, owner)
+    legacy_marks = any(manufacturing_api.is_manual_mark(row) for row in features)
+    if claim and legacy_marks:
+        raise ValueError("ROOT_MARKING_SOURCE_STALE")
+    try:
+        payload, context = current_context()
+    except manufacturing_api.PhysicalSheetGeometryError:
+        # An old ordinary BasePlate may still have a hole-only editor without
+        # a resolvable stock scene. Preserve access, never mask a saved mark.
+        if key == "base_plate" and verified_only and not claim and not legacy_marks:
+            return None
+        raise
     opened = (
         manufacturing_api.open_physical_sheet_marking(key, context=context, features=features)
         if manufacturing_api.first_sheet_manual_marking_supported(key, context.render_data)
@@ -35,12 +48,6 @@ def open_workspace_sheet_editor(host, key, *, verified_only=False):
     )
     project_epoch = host.project_controller.project_load_epoch if opened is not None else None
 
-    snapshot = current_workspace_marking_source(app)
-    owner = manufacturing_api.resolve_workspace_physical_root_owner(snapshot, key)
-    claim = owner is not None and manufacturing_api.read_workspace_marking_owner_record(snapshot, owner)
-    legacy_marks = any(manufacturing_api.is_manual_mark(row) for row in features)
-    if claim and legacy_marks:
-        raise ValueError("ROOT_MARKING_SOURCE_STALE")
     if snapshot and (opened is not None or verified_only) and not legacy_marks:
         try:
             return _open_owner_bound_workspace_marking_editor(
