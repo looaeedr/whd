@@ -51,6 +51,7 @@ class OperatorHoleEditorRoute:
     part_key: str
     column_index: int | None = None
     row_index: int | None = None
+    prefer_verified_marking: bool = False
 
 
 def project_operator_hole_editor_route(
@@ -99,5 +100,9 @@ def project_operator_hole_editor_route(
     if key == "door" and multi:
         return OperatorHoleEditorRoute("selected_door_cell", key)
     if key in {"door", "base_plate", "indicator_box", "indicator_door"}:
-        return OperatorHoleEditorRoute("simple_part", key)
+        return OperatorHoleEditorRoute(
+            "simple_part", key,
+            prefer_verified_marking=(key == "base_plate" and has_fold_designer
+                                     and canonical_family_name(model) == "金庫型"),
+        )
     raise ValueError("HOLE_EDITOR_PART_ID_UNSUPPORTED")
