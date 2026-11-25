@@ -296,13 +296,17 @@ def _stage_vault_quantity_owner(
     from . import manufacturing_api as api
     from .cabinet_types.policy import canonical_family_name
     from .drawing_annotation_layout import annotate_quantity_render_data
-    from .dxf_serialization import verify_quantity_check_dxf
-    from .manufacturing_export import _save_resolved_rows_atomic, save_part_render_data_dxf
     from .quantity_manufacturing_groups import quantity_manufacturing_groups
     from .receiving_nfb_quantity_partial import (
-        QuantityOperatorStagedExport, plan_quantity_operator_export_selection,
+        plan_quantity_operator_export_selection,
     )
 
+    from .operator_quantity_marking_owner import _selected_version_root_records
+    scoped = _selected_version_root_records(snapshot, owner_keys)
+    if scoped:
+        return _stage_vault_version_bound_marking(
+            batch, workspace, flags, directory, snapshot, owner_keys, read_current, sink, scoped,
+        )
     if (canonical_family_name(snapshot) != "金庫型"
             or len(batch.requests) != 1 or not callable(read_current) or not callable(sink)):
         raise ValueError("OWNER_MARKING_QUANTITY_ORDINARY_SCOPE_REQUIRED")
@@ -357,6 +361,15 @@ def _stage_vault_quantity_owner(
     quantity_witness = _VaultQuantityOwnerWitness(
         witness, staged_rows, marked.values(), read_current, version_scope,
     )
+    return _publish_vault_quantity_marking(staged_rows, directory, quantity_witness, sink)
+
+
+def _publish_vault_quantity_marking(staged_rows, directory, quantity_witness, sink):
+    from . import manufacturing_api as api
+    from .dxf_serialization import verify_quantity_check_dxf
+    from .manufacturing_export import _save_resolved_rows_atomic, save_part_render_data_dxf
+    from .receiving_nfb_quantity_partial import QuantityOperatorStagedExport
+
     seals = []
 
     def serialize(render, output, *, overwrite):
@@ -376,3 +389,115 @@ def _stage_vault_quantity_owner(
     )
     sink(quantity_witness.assert_current, tuple(seals))
     return QuantityOperatorStagedExport(tuple(Path(p).name for p in outputs.values()))
+
+
+def _stage_vault_version_bound_marking(
+    batch, workspace, flags, directory, snapshot, owner_keys, read_current, sink, scoped,
+):
+    """One normal quantity output, with immutable version+physical-board ink per demand."""
+    from copy import deepcopy
+    from . import manufacturing_api as api
+    from .drawing_annotation_layout import annotate_quantity_render_data
+    from .manufacturing_export import resolved_physical_render_parts
+    from .operator_quantity_marking_owner import (
+        _selected_version_root_records, open_quantity_physical_marking,
+    )
+    from .operator_root_marking_store import read_workspace_marking_owner_record
+    from .quantity_manufacturing_groups import quantity_manufacturing_groups
+    from .receiving_nfb_quantity_partial import plan_quantity_operator_export_selection
+    from .receiving_quantity_versions import QuantityModel
+    from .workspace_state import resolve_workspace_physical_root_owner
+
+    if not callable(read_current) or not callable(sink):
+        raise ValueError("PHYSICAL_MARKING_CURRENT_SOURCE_REQUIRED")
+    versions = QuantityModel.from_payload(snapshot.get("quantity")).snapshot()
+    selected = snapshot.get("quantity", {}).get("selected_version_id")
+    expected_counts = {row["version_id"]: row["piece_count"] for row in versions["versions"]}
+    if expected_counts != {vid: count for vid, count, _ in batch.requests}:
+        raise ValueError("OWNER_MARKING_QUANTITY_VERSION_SOURCE_MISMATCH")
+    for key in owner_keys:
+        owner = resolve_workspace_physical_root_owner(snapshot, key)
+        if read_workspace_marking_owner_record(snapshot, owner) is not None:
+            raise ValueError("OWNER_MARKING_QUANTITY_LEGACY_OWNER_UNBOUND")
+    selection = plan_quantity_operator_export_selection(batch, workspace, flags)
+    if selection.partial_selection is not None:
+        raise ValueError("OWNER_MARKING_QUANTITY_ORDINARY_SCOPE_REQUIRED")
+    rows = tuple(selection.selected_demands)
+    proofs = {}
+    output_rows = []
+    for row in rows:
+        key = (row.version_id, row.physical_id)
+        record = scoped.get(key)
+        if record is None:
+            api._require_single_part_dxf_source(row.render_data)
+            output_rows.append(row)
+            continue
+        if (key in proofs or row.per_box_count != 1 or row.physical_id != row.source_part_id
+                or row.piece_count != expected_counts[row.version_id]):
+            raise ValueError("OWNER_MARKING_QUANTITY_SINGLE_OWNER_COUNT_REQUIRED")
+        versioned = deepcopy(versions)
+        versioned["selected_version_id"] = row.version_id
+        receipt = open_quantity_physical_marking(
+            {**snapshot, "quantity": versioned},
+            api.selected_normal_marking_inventory(row.physical_id, row.render_data),
+            row.physical_id,
+        )
+        if receipt.stock.source_sha256 != record["source_sha256"]:
+            raise ValueError("ROOT_MARKING_SOURCE_STALE")
+        ink = project_selected_physical_marking_features(
+            receipt.stock.source, record["features"], _allow_shapes=True,
+        )
+        marked = replace(row.render_data, scene=DrawingScene([*row.render_data.scene.primitives, *ink]))
+        proofs[key] = marked
+        output_rows.append(replace(row, render_data=marked))
+    if set(proofs) != set(scoped):
+        raise ValueError("OWNER_MARKING_QUANTITY_INVENTORY_CHANGED")
+
+    def current_projection(source):
+        live, geometry = source
+        return (
+            QuantityModel.from_payload(live.get("quantity")).snapshot(),
+            _selected_version_root_records(live, owner_keys),
+            tuple((key, resolve_workspace_physical_root_owner(live, key),
+                   read_workspace_marking_owner_record(live, resolve_workspace_physical_root_owner(live, key)))
+                  for key in owner_keys),
+            tuple((key, _selected_render_signature(render))
+                  for key, render in resolved_physical_render_parts(geometry)),
+        )
+
+    live = read_current()
+    expected = current_projection(live)
+    if expected[0] != versions or expected[1] != scoped or any(row[2] is not None for row in expected[2]):
+        raise ValueError("OWNER_MARKING_QUANTITY_VERSION_SOURCE_MISMATCH")
+    # Initial native geometry is independently checked against the selected
+    # version's authoritative request for each marked stock, not a role alias.
+    current_rows = dict(resolved_physical_render_parts(live[1]))
+    for row in rows:
+        if row.version_id == selected and row.physical_id in owner_keys:
+            if (row.physical_id not in current_rows or _selected_render_signature(row.render_data)
+                    != _selected_render_signature(current_rows[row.physical_id])):
+                raise ValueError("OWNER_MARKING_QUANTITY_FLAT_SOURCE_MISMATCH")
+
+    class SourceWitness:
+        selected = tuple(proofs)
+
+        def assert_current(self, source):
+            if current_projection(source) != expected:
+                raise ValueError("OWNER_MARKING_QUANTITY_VERSION_SOURCE_MISMATCH")
+
+    groups = quantity_manufacturing_groups(batch, demands=output_rows)
+    if sum(group.quantity for group in groups) != sum(row.quantity for row in rows):
+        raise ValueError("OWNER_MARKING_QUANTITY_PIECE_COUNT_CHANGED")
+    staged, marked_rows = [], []
+    for group in groups:
+        render = annotate_quantity_render_data(group.render_data, group.quantity)
+        ids = {(row.version_id, row.physical_id) for row in group.members}
+        marked_ids = ids.intersection(proofs)
+        if marked_ids and marked_ids != ids:
+            raise ValueError("OWNER_MARKING_QUANTITY_OWNER_GROUP_AMBIGUOUS")
+        if marked_ids:
+            marked_rows.append(render)
+        staged.append((group.key, group.filename, render))
+    witness = _VaultQuantityOwnerWitness(SourceWitness(), staged, marked_rows, read_current, None)
+    witness.assert_current()
+    return _publish_vault_quantity_marking(staged, directory, witness, sink)

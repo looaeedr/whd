@@ -1889,17 +1889,18 @@ def _phase6_final_scene_view_request(self):
     from gui_modules.application.physical_part_hole_editor import current_workspace_marking_source
 
     snapshot = current_workspace_marking_source(self)
+    resolve_geometry = getattr(self, "_phase6_resolve_manufacturing_geometry", None)
     if request.part_key == "assembly":
         assembly = request.render_data
         views = manufacturing_api.project_workspace_owner_marking_assembly_views(
-            snapshot, assembly.assembly_parts, assembly.visible_part_keys,
+            snapshot, assembly.assembly_parts, assembly.visible_part_keys, resolve_geometry=resolve_geometry,
         )
         if views:
             return replace(request, render_data=replace(assembly, owner_marking_views=views))
         return request
     render = manufacturing_api.project_workspace_owner_marking_display(
         snapshot, request.part_key, request.render_data,
-        standalone_3d=True,
+        standalone_3d=True, resolve_geometry=resolve_geometry,
     )
     return request if render is request.render_data else replace(request, render_data=render)
 

@@ -49,6 +49,12 @@ def open_workspace_sheet_editor(host, key, *, verified_only=False):
     project_epoch = host.project_controller.project_load_epoch if opened is not None else None
 
     if snapshot and (opened is not None or verified_only) and not legacy_marks:
+        if claim and manufacturing_api.quantity_marking_can_offer_legacy_transfer(snapshot, key):
+            if not _offer_legacy_quantity_marking_transfer(host, key):
+                return None
+            snapshot = current_workspace_marking_source(app)
+        if manufacturing_api.uses_quantity_physical_marking_editor(snapshot, key):
+            return _open_version_bound_workspace_marking_editor(host, key, context, features)
         try:
             return _open_owner_bound_workspace_marking_editor(
                 host, key, editing_context=context, role_features=features,
@@ -119,7 +125,7 @@ def current_workspace_marking_source(app):
                 raise ValueError("ROOT_MARKING_PROJECT_SOURCE_REQUIRED")
         return {}
     snapshot = dict(source)
-    for field in ("existing_parts", "part_features", api.ROOT_PHYSICAL_OCCUPANCY_KEY, api.ROOT_MARKING_STORE_KEY):
+    for field in ("existing_parts", "part_features", "active_mode", "quantity", api.ROOT_PHYSICAL_OCCUPANCY_KEY, api.ROOT_MARKING_STORE_KEY):
         if field in state:
             snapshot[field] = state[field]
         elif field in (api.ROOT_PHYSICAL_OCCUPANCY_KEY, api.ROOT_MARKING_STORE_KEY):
@@ -231,6 +237,86 @@ def _open_owner_bound_workspace_marking_editor(host, key, *, editing_context, ro
         host, key, operator_part_label(key, snapshot=snapshot), editing_context,
         (*role_features, *saved_marks), modal, confirm,
         solid_marking_only=("circle" not in modal.allowed_tools),
+    )
+
+
+def _offer_legacy_quantity_marking_transfer(host, key):
+    from tkinter import messagebox
+    from ae_engine import manufacturing_api as api
+    from phase6_manufacturing_adapter import build_scene_payload_for_app
+
+    app = host.fold_designer_app
+    workspace = app.designer_workspace
+    epoch = host.project_controller.project_load_epoch
+
+    def read():
+        _require_current_project(host, app, workspace, epoch)
+        payload = build_scene_payload_for_app(app, key)
+        render = host._query_fold_designer_render_data(key, payload)
+        return current_workspace_marking_source(app), api.selected_normal_marking_inventory(key, render)
+
+    snapshot, geometry = read()
+    opened = api.open_unassigned_quantity_marking_transfer(snapshot, geometry, key)
+    if opened is None:
+        return False
+    target = opened[0].owner.version_id
+    # Ask before moving the saved record; opening the editor alone is not consent.
+    if not messagebox.askyesno(
+        "舊打標版本歸屬",
+        f"這塊板的舊打標未指定版本。只移到目前選取的版本 {target}？",
+        parent=app.root,
+    ):
+        return False
+    snapshot, geometry = read()
+    workspace.commit_transferred_quantity_marking(snapshot, geometry, key, opened, version_id=target)
+    app._phase6_publish_live_state(force=True)
+    return True
+
+
+def _open_version_bound_workspace_marking_editor(host, key, editing_context, role_features):
+    from ae_engine import manufacturing_api as api
+    from phase6_part_navigation import operator_part_label
+    from phase6_manufacturing_adapter import build_scene_payload_for_app
+
+    app = host.fold_designer_app
+    workspace = app.designer_workspace
+    project_epoch = host.project_controller.project_load_epoch
+    role_features = tuple(role_features)
+
+    def read_current():
+        _require_current_project(host, app, workspace, project_epoch)
+        if tuple(workspace.features_for(key)) != role_features:
+            raise ValueError("ROOT_MARKING_ROLE_FEATURES_STALE")
+        payload = build_scene_payload_for_app(app, key)
+        render = host._query_fold_designer_render_data(key, payload)
+        return current_workspace_marking_source(app), api.selected_normal_marking_inventory(key, render)
+
+    snapshot, geometry = read_current()
+    opened = api.open_quantity_physical_marking(snapshot, geometry, key)
+    saved = () if opened.saved_record is None else opened.saved_record["features"]
+
+    def confirm(pending):
+        state, live_geometry = read_current()
+        holes = tuple(feature for feature in pending if not api.is_manual_mark(feature))
+        pending_marks = tuple(feature for feature in pending if api.is_manual_mark(feature))
+        if holes != role_features:
+            if pending_marks:
+                raise ValueError("OWNER_MARKING_QUANTITY_EDIT_HOLES_SEPARATELY")
+            accepted = api.validate_unmarked_quantity_sheet_hole_edit(state, live_geometry, opened, editing_context, holes)
+            workspace.stash_features(key, accepted)
+            if workspace.active_part == key:
+                app._load_part_holes(key)
+            app.submit_update_intent("geometry", commit=True)
+            return
+        if workspace.commit_quantity_owner_marking(
+            state, opened, pending_marks, version_id=opened.owner.version_id, geometry=live_geometry,
+        ):
+            app._phase6_publish_live_state(force=True)
+
+    return _present_physical_sheet_editor(
+        host, key, operator_part_label(key, snapshot=snapshot), editing_context,
+        (*role_features, *saved), opened.stock, confirm,
+        solid_marking_only=("circle" not in opened.stock.allowed_tools),
     )
 
 

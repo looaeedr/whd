@@ -112,6 +112,22 @@ class Phase6DesignerWorkspace:
             self.mark_dirty()
         return changed
 
+    def commit_quantity_owner_marking(self, snapshot, receipt, marks, *, version_id, geometry):
+        changed = self._shared_state.commit_quantity_owner_marking(
+            {**snapshot, **self.snapshot()}, receipt, marks, version_id=version_id, geometry=geometry,
+        )
+        if changed:
+            self.mark_dirty()
+        return changed
+
+    def commit_transferred_quantity_marking(self, snapshot, geometry, part_key, opened, *, version_id):
+        result = self._shared_state.commit_transferred_quantity_marking(
+            {**snapshot, **self.snapshot()}, geometry, part_key, opened, version_id=version_id,
+        )
+        if result:
+            self.mark_dirty()
+        return result
+
     def reconcile_root_occupancy_family(self, model):
         self._shared_state.reconcile_root_occupancy_family(model)
 
