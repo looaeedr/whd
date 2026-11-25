@@ -1,9 +1,9 @@
 """#3414 explicit copy of one saved manual-marking group into another real sheet.
 
-The receiving LEFT BasePlate is the *only* currently proven copy source
-and destination.  A same-named Bay/version must never be inferred from the
-part name; multi-scope projects fail closed until a physical scoped resolver
-exists. The caller selects the destination editor and one saved source file.
+The legacy Receiving LEFT BasePlate path remains cross-project only.
+The ordinary EndCap path uses explicit, independently verified physical
+owners. A same-named Bay/version must never be inferred from the part name.
+The caller selects the destination editor and one saved source file.
 No auto-sync and no import of another project's manufacturing permission.
 """
 from __future__ import annotations
@@ -391,10 +391,25 @@ def _verify_ordinary_saved_copy_sources(*, source_group_id, source, target):
 
     source_file, source_receipt, source_marks = _open_ordinary_saved_copy_source(**source)
     target_file, target_receipt = _open_ordinary_saved_copy_target(**target)
-    if source_file == target_file:
-        raise ValueError("MANUAL_COPY_SAME_PHYSICAL_PROJECT")
     if source_receipt.owner_id == target_receipt.owner_id:
         raise ValueError("MANUAL_COPY_SAME_PHYSICAL_OWNER")
+    if Path(source_file).samefile(target_file):
+        # Two explicit physical owners may share one project file. Bind both
+        # to one saved revision and independently recheck the live donor.
+        if source["source_project_sha256"] != target["target_project_sha256"]:
+            raise ValueError("MANUAL_COPY_SAME_PROJECT_REVISION_CHANGED")
+        from .operator_root_marking_store import open_workspace_owner_marking_draft
+        from .operator_selected_marking_receipt import open_selected_ordinary_marking_modal_source
+        live = target["target_live_snapshot"]
+        key = source["source_part_key"]
+        geometry = _resolve_bound_saved_marking_geometry(live, key, source["resolve_saved_geometry"])
+        current = open_selected_ordinary_marking_modal_source(live, geometry, key)
+        if (current.output_capability != "verified_normal"
+                or current.owner_id != source_receipt.owner_id
+                or current.source_sha256 != source_receipt.source_sha256):
+            raise ValueError("MANUAL_COPY_LIVE_DONOR_SOURCE_CHANGED")
+        if open_workspace_owner_marking_draft(live, current).saved_marks != source_marks:
+            raise ValueError("MANUAL_COPY_LIVE_DONOR_MARKS_CHANGED")
     if not isinstance(source_group_id, str) or not source_group_id:
         raise ValueError("MANUAL_COPY_EXPLICIT_GROUP_ID_REQUIRED")
     matches = [mark for mark in source_marks if is_manual_group(mark)
