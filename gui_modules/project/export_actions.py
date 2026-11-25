@@ -1070,20 +1070,11 @@ def export_selected_dxf(self):
             owner_transport[0][0]()
 
         try:
-            if owner_transport:
-                committed = _commit_staged_project_export(
-                    stage_folder, folder, pre_commit_guard=check_owned_outer_publish,
-                    expected_manifest=staged_manifest, verify_moved_bytes=True,
-                )
-            elif final_publish_guard is None:
-                committed = _commit_staged_project_export(
-                    stage_folder, folder, expected_manifest=staged_manifest,
-                )
-            else:
-                committed = _commit_staged_project_export(
-                    stage_folder, folder, pre_commit_guard=final_publish_guard,
-                    expected_manifest=staged_manifest,
-                )
+            commit_guard = check_owned_outer_publish if owner_transport else final_publish_guard
+            committed = _commit_staged_project_export(
+                stage_folder, folder, pre_commit_guard=commit_guard,
+                expected_manifest=staged_manifest, verify_moved_bytes=True,
+            )
         except Exception as ex:
             messagebox.showerror("輸出失敗", f"批次提交失敗：{ex}")
             return
