@@ -1580,12 +1580,12 @@ def stage_quantity_operator_export(
 
     def write_stage(target):
         if owner_snapshot is not None:
-            from .operator_persisted_marking_candidate import _stage_vault_singleton_quantity_owner
+            from .operator_persisted_marking_candidate import _stage_vault_quantity_owner
             from .operator_root_marking_store import selected_workspace_owner_marking_keys
             if (source.use_current_csv_export
                     or selected_workspace_owner_marking_keys(owner_snapshot, flags) != ("door",)):
                 raise ValueError("OWNER_MARKING_QUANTITY_SINGLE_DOOR_REQUIRED")
-            return _stage_vault_singleton_quantity_owner(
+            return _stage_vault_quantity_owner(
                 batch, workspace_snapshot, flags, target,
                 owner_snapshot, read_current_owner, owner_guard_sink,
             )
