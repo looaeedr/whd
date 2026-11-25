@@ -52,10 +52,9 @@ def select_saved_endcap_copy_inputs(snapshot, selected_part):
     })
 
 
-def resolve_saved_endcap_copy_geometry(snapshot, part_key):
+def _build_saved_endcap_copy_part_spec(snapshot, part_key):
     """Build selected saved stock from the same Engine owners as the live editor."""
     from . import manufacturing_api as api
-    from .contracts import ManufacturingContext
 
     selected = select_saved_endcap_copy_inputs(snapshot, part_key)
     raw = selected["saved_inputs"]
@@ -103,12 +102,19 @@ def resolve_saved_endcap_copy_geometry(snapshot, part_key):
             joint_state=vals, structure_state=authored_structure, cabinet_family=model,
             box_body_profile=body, part_profiles=folds,
         )
-    spec = api.build_endcap_operator_part_spec(
+    return api.build_endcap_operator_part_spec(
         values, model_name=None if unknown else model, is_tail=part_key == "tail",
         holes=features, corner_policy=policy, fold_profiles=folds,
         resolved_assembly_relief_cuts=cuts, box_body_fold_profile=body,
         box_body_structure_state=structure, endcap_bottom_wrap_state=wrap,
         assembly_joints=vals.get("assembly_joints"), assembly_joint_state=vals,
     )
+
+
+def resolve_saved_endcap_copy_geometry(snapshot, part_key):
+    from . import manufacturing_api as api
+    from .contracts import ManufacturingContext
+
+    spec = _build_saved_endcap_copy_part_spec(snapshot, part_key)
     render = api.build_operator_part_render_data(spec, ManufacturingContext(draw_stock=False))
     return api.selected_normal_marking_inventory(part_key, render)

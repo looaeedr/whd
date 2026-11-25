@@ -135,7 +135,22 @@ def test_existing_editor_copies_saved_head_group_into_distinct_tail(tmp_path, mo
                 ][:8],
             }
         assert live_receipt.source_sha256 == api.read_workspace_marking_owner_record(live, source_owner)["source_sha256"]
-        assert live_receipt.source_sha256 == actual.source_sha256, (brief(live_receipt), brief(actual))
+        if live_receipt.source_sha256 != actual.source_sha256:
+            from dataclasses import fields
+            from ae_engine.operator_saved_endcap_copy_inputs import _build_saved_endcap_copy_part_spec
+            live_spec, _ = host._fold_designer_part_spec_from_payload("head", build_scene_payload_for_app(app, "head"))
+            detached_spec = _build_saved_endcap_copy_part_spec(head, "head")
+            for field in fields(live_spec):
+                first, second = getattr(live_spec, field.name), getattr(detached_spec, field.name)
+                if first != second:
+                    print("ENDCAP_DIFF", field.name, "LIVE", repr(first))
+                    print("ENDCAP_DIFF", field.name, "SAVED", repr(second))
+            for key, value in brief(live_receipt).items():
+                compare = brief(actual)[key]
+                if value != compare:
+                    print("RENDER_DIFF", key, "LIVE", repr(value))
+                    print("RENDER_DIFF", key, "SAVED", repr(compare))
+        assert live_receipt.source_sha256 == actual.source_sha256, "saved EndCap stock differs from native stock"
 
         open_project(tail_input)
         editor, state = open_editor("tail")
