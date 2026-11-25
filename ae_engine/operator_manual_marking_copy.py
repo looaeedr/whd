@@ -588,6 +588,10 @@ def supports_scoped_marking_copy(draft):
     return isinstance(draft, PhysicalSheetMarkingDraft) and draft._selection is not None
 
 
+class _ScopedCopySavedSourceChanged(ValueError):
+    """A saved marking no longer matches its original physical board."""
+
+
 def _open_scoped_copy_owner(snapshot, owner_id):
     """Resolve current durable owner, not an address remembered by a picker."""
     from .operator_physical_sheet_marking import open_physical_sheet_marking
@@ -602,7 +606,7 @@ def _open_scoped_copy_owner(snapshot, owner_id):
     )
     seal = _physical_seal(owner_id, draft.context.render_data, snapshot["t"])
     if draft.saved_marks and draft._selection.saved_seal != seal:
-        raise ValueError("SCOPED_COPY_SAVED_SOURCE_CHANGED")
+        raise _ScopedCopySavedSourceChanged("SCOPED_COPY_SAVED_SOURCE_CHANGED")
     return draft, seal
 
 
@@ -625,7 +629,12 @@ def list_saved_scoped_marking_copy_candidates(*, project_path, project_sha256,
     for (si, bi), owner in owners.items():
         if owner is None or owner == target_owner_id or owner not in ledger:
             continue
-        source, _ = _open_scoped_copy_owner(saved, owner)
+        try:
+            source, _ = _open_scoped_copy_owner(saved, owner)
+        except _ScopedCopySavedSourceChanged:
+            # This donor is not selectable. The saved record is left intact and
+            # an explicit selection of it still fails verification.
+            continue
         for mark in source.saved_marks:
             a, b = mark.points
             rows.append((owner, si, bi, _ordinary_saved_copy_key(mark),
