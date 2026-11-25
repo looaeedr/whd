@@ -90,6 +90,9 @@ def resolved_physical_render_parts(resolved_geometry, *, include_unreleased_sour
         render_data = getattr(part, 'render_data', None)
         if render_data is None:
             raise ValueError(f'resolved manufacturing part missing render_data: {key}')
+        # The selected Vault lower V is CHECK only, never CNC.
+        from .operator_tail_lower_v import reject_tail_lower_v_preview_for_dxf
+        reject_tail_lower_v_preview_for_dxf(render_data)
         # Source-flat fixing plates have real physical PartRenderData for the
         # GUI and a separate source DXF export. Until finished BEND/weld Z is
         # verified, they are NOT part of the full cabinet production DXF set.
@@ -161,16 +164,37 @@ def resolved_physical_dxf_filename(
     return f'{stem}.dxf'
 
 
+def verified_dxf_content_digest(path):
+    """Exact bytes of the real unlinked staged/read-back document."""
+    from hashlib import sha256
+    candidate = Path(path)
+    if candidate.is_symlink() or not candidate.is_file():
+        raise ValueError("WHD_STAGED_DXF_VERIFIED_BYTES_CHANGED")
+    with candidate.open("rb") as source:
+        digest = sha256()
+        for chunk in iter(lambda: source.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _assert_verified_dxf_bytes(path, expected):
+    if verified_dxf_content_digest(path) != expected:
+        raise ValueError("WHD_STAGED_DXF_VERIFIED_BYTES_CHANGED: " + Path(path).name)
+
+
 def _atomic_commit_staged_dxfs(
     staged: dict[str, Path],
     root: Path,
     *,
     overwrite: bool,
     pre_commit_guard=None,
+    verified_byte_seals=None,
 ) -> dict[str, str]:
-    """Commit verified DXFs; roll back if the original source changes."""
+    """Commit verified DXFs; roll back if original source or sealed bytes change."""
     if pre_commit_guard is not None and not callable(pre_commit_guard):
         raise TypeError("WHD_PRECOMMIT_SOURCE_GUARD_INVALID")
+    if verified_byte_seals is not None and set(verified_byte_seals) != set(staged):
+        raise ValueError("WHD_STAGED_DXF_VERIFIED_ROWS_CHANGED")
     root.mkdir(parents=True, exist_ok=True)
     destinations = {key: root / path.name for key, path in staged.items()}
     names = [path.name for path in destinations.values()]
@@ -196,10 +220,17 @@ def _atomic_commit_staged_dxfs(
             pre_commit_guard()
         for key, stage_path in staged.items():
             destination = destinations[key]
+            if verified_byte_seals is not None:
+                _assert_verified_dxf_bytes(stage_path, verified_byte_seals[key])
             os.replace(stage_path, destination)
             moved.append(destination)
+            if verified_byte_seals is not None:
+                _assert_verified_dxf_bytes(destination, verified_byte_seals[key])
         if pre_commit_guard is not None:
             pre_commit_guard()
+        if verified_byte_seals is not None:
+            for key, destination in destinations.items():
+                _assert_verified_dxf_bytes(destination, verified_byte_seals[key])
         return {key: str(destinations[key]) for key in staged}
     except Exception:
         for destination in reversed(moved):
@@ -309,7 +340,13 @@ def _save_resolved_rows_atomic(
     pre_commit_guard=None,
     durable_stage_commit=None,
     guard_during_atomic_move: bool = False,
+    _selected_owner_witness=None,
+    _verified_byte_seals_sink=None,
 ) -> dict[str, str]:
+    if _verified_byte_seals_sink is not None and (
+        _selected_owner_witness is None or not callable(_verified_byte_seals_sink)
+    ):
+        raise ValueError("WHD_STAGED_DXF_VERIFIED_SEAL_SINK_INVALID")
     # Only the independent EAR SIDE export opts into late move-time checks.
     # Existing W-03 verified batch callers retain exactly the two historical
     # pre_commit_guard invocations (before stage and after Save→Reload).
@@ -319,6 +356,25 @@ def _save_resolved_rows_atomic(
     require_dxf_overwrite_boolean(overwrite)
     # Check all physical-part evidence before any output path is created.
     rows = tuple(rows)
+    # #3414: selected-only saved marking source before any stage is created.
+    from .operator_manual_marking_batch import (
+        _has_saved_manual_intent, witness_selected_manual_marking_rows,
+    )
+    if _selected_owner_witness is None:
+        marking_witness = witness_selected_manual_marking_rows(
+            (str(key), render) for key, _filename, render in rows
+        )
+    else:
+        from .operator_persisted_marking_candidate import (
+            _SingleSelectedOwnerMarkingWitness, _SelectedOwnerMarkingBatchWitness,
+        )
+        if (not isinstance(_selected_owner_witness, (_SingleSelectedOwnerMarkingWitness, _SelectedOwnerMarkingBatchWitness))
+                or verify_all_staged is not True or part_only or quantity_group
+                or durable_stage_commit is not None):
+            raise ValueError("OWNER_MARKING_SINGLE_NORMAL_SCOPE_REQUIRED")
+        marking_witness = _selected_owner_witness
+        marking_witness.assert_verified_rows(rows)
+        marking_witness.assert_current()
     _reject_unapproved_nfb_pad_ear_manufacturing(rows)
     for output_key, _, render_data in rows:
         reject_unverified_receiving_nfb_tier_base(
@@ -347,6 +403,7 @@ def _save_resolved_rows_atomic(
     root.mkdir(parents=True, exist_ok=True)
     stage_dir = Path(tempfile.mkdtemp(prefix='.whd-dxf-stage-', dir=str(root)))
     staged: dict[str, Path] = {}
+    verified_byte_seals = {} if _selected_owner_witness is not None else None
     try:
         filenames: set[str] = set()
         for output_key, filename, render_data in rows:
@@ -359,8 +416,15 @@ def _save_resolved_rows_atomic(
             paired_door = (isinstance(metadata, Mapping)
                            and metadata.get("nfb_pair_roundtrip_required") is True
                            and metadata.get("nfb_trial_export_approved") is True)
-            if verify_all_staged or str(output_key) in verified_nfb_parts or paired_door:
+            # Saved operator MARKING is manufacturing ink: mandatory staged
+            # reopen even when the legacy public batch verify flag is off.
+            if (verify_all_staged or str(output_key) in verified_nfb_parts
+                    or paired_door or _has_saved_manual_intent(render_data)):
                 from .manufacturing_verification import verify_saved_part_render_data_dxf
+                if verified_byte_seals is not None:
+                    # Anchor the bytes the independent reader is about to
+                    # verify; never rehash potentially changed bytes as new proof.
+                    verified_byte_seals[str(output_key)] = verified_dxf_content_digest(stage_path)
                 verified = verify_saved_part_render_data_dxf(render_data, stage_path)
                 if not verified.ok:
                     raise ValueError(
@@ -370,20 +434,33 @@ def _save_resolved_rows_atomic(
                             if verify_all_staged else "NFB_BASE_PART_STAGED_DXF_ROUNDTRIP_FAILED"
                         )
                     )
+                if verified_byte_seals is not None:
+                    _assert_verified_dxf_bytes(stage_path, verified_byte_seals[str(output_key)])
             staged[str(output_key)] = stage_path
+        marking_witness.assert_current()
         if pre_commit_guard is not None:
             pre_commit_guard()  # fail closed after Save→Reload, before replace
+        marking_witness.assert_current()
         if durable_stage_commit is not None:
             # Explicit private W-06 hook ONLY, after WHD owned Save->Reload
             # verification of ALL 1..20 staged physical DXFs. This path does
             # not use the in-process-only commit/rollback owner.
             return durable_stage_commit(dict(staged), root)
-        return _atomic_commit_staged_dxfs(
+        outputs = _atomic_commit_staged_dxfs(
             staged, root, overwrite=overwrite,
+            **({"verified_byte_seals": verified_byte_seals} if verified_byte_seals is not None else {}),
             pre_commit_guard=(
-                pre_commit_guard if guard_during_atomic_move else None
+                (lambda: (marking_witness.assert_current(),
+                          pre_commit_guard() if guard_during_atomic_move
+                          and pre_commit_guard is not None else None))
+                if marking_witness.selected else (
+                    pre_commit_guard if guard_during_atomic_move else None
+                )
             ),
         )
+        if _verified_byte_seals_sink is not None:
+            _verified_byte_seals_sink(tuple((staged[key].name, value) for key, value in verified_byte_seals.items()))
+        return outputs
     finally:
         shutil.rmtree(stage_dir, ignore_errors=True)
 

@@ -420,6 +420,12 @@ def refresh_content_switch(host) -> str:
     """Project the current display mode onto legacy compatibility button handles."""
     mode = str(getattr(host, "_phase6_3d_display_mode", "single") or "single")
     active = "assembly" if mode == "assembly" else "corner_data" if mode == "corner_data" else "input"
+    show_marking = getattr(host, "show_operator_marking_3d_check", None)
+    if show_marking is not None:
+        if mode in {"single", "assembly"} and getattr(host, "preview_3d_enabled", True):
+            show_marking.grid()
+        else:
+            show_marking.grid_remove()
     mapping = {
         "input": getattr(host, "input_content_button", None),
         "assembly": getattr(host, "assembly_content_button", None),

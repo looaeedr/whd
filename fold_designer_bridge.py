@@ -13,7 +13,7 @@ from phase6_corner_dimension_display import (
 )
 
 from copy import deepcopy
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from phase6_sync_envelope import (
     materialize_sync_value,
     plan_live_sync_envelope,
@@ -1880,7 +1880,28 @@ def _phase6_mesh_profiles_for_part(self, part_key, material):
 
 def _phase6_final_scene_view_request(self):
     """Compatibility delegate for final-scene request construction."""
-    return _phase6_final_scene_adapter(self).build_request()
+    request = _phase6_final_scene_adapter(self).build_request()
+    if request is None:
+        return None
+    visibility = getattr(self, "show_operator_marking_3d_var", None)
+    if visibility is not None and not visibility.get():
+        return replace(request, show_operator_marking=False)
+    from gui_modules.application.physical_part_hole_editor import current_workspace_marking_source
+
+    snapshot = current_workspace_marking_source(self)
+    if request.part_key == "assembly":
+        assembly = request.render_data
+        views = manufacturing_api.project_workspace_owner_marking_assembly_views(
+            snapshot, assembly.assembly_parts, assembly.visible_part_keys,
+        )
+        if views:
+            return replace(request, render_data=replace(assembly, owner_marking_views=views))
+        return request
+    render = manufacturing_api.project_workspace_owner_marking_display(
+        snapshot, request.part_key, request.render_data,
+        standalone_3d=True,
+    )
+    return request if render is request.render_data else replace(request, render_data=render)
 
 
 
@@ -2908,7 +2929,20 @@ def _fix11_add_part(self, key):
             key,
             default_profiles=defaults,
             default_features=(),
+            explicit_root_source=self._phase6_input_snapshot,
         )
+        if (key == "head" and manufacturing_api.operator_canonical_family_name(
+                self._phase6_input_snapshot) == "受電箱"):
+            # First render and Save/Open must derive from the same physical
+            # presence, not the Designer snapshot from before EndCap Add.
+            source = self._phase6_input_snapshot
+            projected = manufacturing_api.project_operator_assembly_joint_snapshot(
+                source,
+                existing_parts=self.designer_workspace.snapshot()["existing_parts"],
+                assembly_type=assembly_intent_value(self._phase6_assembly_type),
+            )
+            for field in ("existing_parts", "assembly_joint_schema_version", "assembly_joints"):
+                source[field] = projected[field]
         self._refresh_part_buttons()
         self._refresh_add_part_menu()
     self.activate_part(key)

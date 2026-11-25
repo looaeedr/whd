@@ -168,3 +168,63 @@ def test_prompt_healthcheck_is_read_only_without_second_current_owner() -> None:
     assert "**明確要求修正**" in owner
     assert "不建立另一份 CURRENT Skill" in owner
     assert "not** a second WHD Skill authoring" in method
+
+
+def test_governance_ci_uses_exact_pr_head_and_runs_skill_router_contracts() -> None:
+    """A governance GREEN must include the relevant Skill discovery tests on the PR head."""
+    workflow = (ROOT / ".github/workflows/whd-localx-governance-tests.yml").read_text(encoding="utf-8")
+    expected = (
+        "tests/knowledge/test_skill_registry_coverage_contract.py",
+        "tests/knowledge/test_skill_registry_domain_reference_contract.py",
+    )
+    watched_paths = workflow.split("on:", 1)[1].split("permissions:", 1)[0]
+    governance_job = workflow.split("  governance-contracts:", 1)[1].split("  process-contracts:", 1)[0]
+    checkout = governance_job.split("      - name: Checkout PR source", 1)[1].split("      - name: Python", 1)[0]
+    assert "ref: ${{ github.event.pull_request.head.sha }}" in checkout
+    pytest_node_list = governance_job.split("python -m pytest -q ", 1)[1].split("\n", 1)[0].split()
+    for path in expected:
+        assert f"      - {path}\n" in watched_paths, path
+        assert path in pytest_node_list, path
+
+
+def test_inquiry_mentions_are_not_automatic_dispatch_or_release_routes() -> None:
+    for prompt in (
+        "說明 /推推 的使用條件",
+        "比較 /派工 跟 /接手 哪個適合",
+        "解釋 \x60/接手\x60 的 RC 權限",
+    ):
+        assert not {"推推", "派工", "root-local-first", "執行開發任務"} & set(
+            required_skills_for(task=prompt)
+        ), prompt
+
+    # Editing the respective Skill retains file-path grounding regardless
+    # of question wording; a file route is never mutation authorization.
+    selected = set(required_skills_for(
+        task="說明 /推推 的條件",
+        changed_files=[".agents/skills/engineering/推推/SKILL.md"],
+    ))
+    assert "推推" in selected
+
+
+
+def test_markdown_and_multilingual_long_prompt_discovery_is_bounded() -> None:
+    prompts = (
+        "請逐一解釋下列 WHD commands：\n\x60\x60\x60text\n/派工\n/接手\n/推推\n\x60\x60\x60",
+        "Compare these commands:\n1. /派工 #42\n2. /接手 #42\n3. /推推",
+        "The following are literal examples:\n> /接手 #42\n> /推推",
+    )
+    high_impact = {"派工", "issue-closure-gate", "root-local-first",
+                   "執行開發任務", "推推"}
+    for task in prompts:
+        assert not high_impact & set(required_skills_for(task=task)), task
+
+    real = "Examples of commands:\n/推推\n\n現在 /派工 #42"
+    assert "派工" in required_skills_for(task=real)
+    assert "推推" not in required_skills_for(task=real)
+    # File routes remain available when reviewing the actual Skill itself.
+    selected = set(required_skills_for(
+        task="下列為範例：\n/接手 #42",
+        changed_files=[".agents/skills/engineering/推推/SKILL.md"],
+    ))
+    assert "推推" in selected
+

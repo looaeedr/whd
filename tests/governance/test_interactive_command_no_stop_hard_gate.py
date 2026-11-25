@@ -116,6 +116,41 @@ class InteractiveNoStopGate(unittest.TestCase):
             ("新增功能", "diagnosing-bugs", "tdd", "派工", "issue-closure-gate"),
         )
 
+
+    def test_negated_bare_dispatch_and_deletion_aliases_do_not_route(self):
+        # The discovery matcher must not silently turn an explicit refusal
+        # into a dispatch, takeover or destructive Skill route.
+        rejected = (
+            "不要派工", "不想再派工", "不要接手工單",
+            "不要刪除", "不准刪掉", "別清除", "不用清空",
+            "不要 /刪除", "不用 `/清空`", "don't /刪除",
+            "不想清掉", "不要移除 staging", "不要移除 0",
+            "別清 staging", "不想清 active 0",
+            "don't delete", "do not remove",
+        )
+        forbidden = {"派工", "issue-closure-gate", "root-local-first",
+                     "執行開發任務", "刪除"}
+        for task in rejected:
+            with self.subTest(task=task):
+                self.assertFalse(forbidden & set(required_skills_for(task=task)))
+
+    def test_negated_verb_does_not_cancel_other_affirmative_command(self):
+        cases = (
+            ("不要刪除，改用 /派工 #42", "派工", "刪除"),
+            ("不要派工，改用 /debug #42", "diagnosing-bugs", "派工"),
+            ("不想再 /推推，請刪除舊暫存", "刪除", "推推"),
+            ("不要接手工單，改用 /功能 設計", "新增功能", "root-local-first"),
+        )
+        for task, present, absent in cases:
+            with self.subTest(task=task):
+                selected = set(required_skills_for(task=task))
+                self.assertIn(present, selected)
+                self.assertNotIn(absent, selected)
+
+        # A separate, later affirmative command remains discoverable.
+        selected = set(required_skills_for(task="不要刪除；改決定，現在請刪除暫存"))
+        self.assertIn("刪除", selected)
+
     def test_negative_publish_mentions_are_not_explicit_commands(self):
         # /推推 is a Registry entry, not a local/RC command.
         for task in ("不要 /推推，只合 localX", "這次不推推", "不想 /推推"):
@@ -125,6 +160,113 @@ class InteractiveNoStopGate(unittest.TestCase):
         self.assertEqual(
             ordered_command_skills("/推推 /派工 #42"), ("派工", "issue-closure-gate"),
         )
+
+
+    def test_questions_and_quoted_commands_are_not_execution_routes(self):
+        examples = (
+            "請說明 \x60/推推\x60 規則",
+            "比較 \x60/派工\x60 與 \x60/接手\x60 的差異",
+            "「/派工」和「/接手」差在哪？",
+            "請解釋 /派工 是什麼",
+            "文件提到 \x60/接手\x60 的權限",
+            "怎麼用 /接手？",
+            "引用 \x60/推推\x60 的發版條件",
+            "/推推 有什麼條件？",
+            "「/推推」",
+        )
+        forbidden = {"派工", "issue-closure-gate", "root-local-first",
+                     "執行開發任務", "推推"}
+        for task in examples:
+            with self.subTest(task=task):
+                self.assertEqual(ordered_command_skills(task), ())
+                self.assertFalse(forbidden & set(required_skills_for(task=task)))
+
+    def test_discussion_followed_by_explicit_command_keeps_only_action(self):
+        cases = (
+            ("比較 /派工 與 /接手，現在 /派工 #42",
+             ("派工", "issue-closure-gate"),
+             ("root-local-first", "執行開發任務", "推推")),
+            ("說明 /推推 規則；接著 /接手 #42",
+             ("root-local-first", "執行開發任務"),
+             ("派工", "推推")),
+            ("解釋 /派工 的功能，再 /派工 #42",
+             ("派工", "issue-closure-gate"),
+             ("root-local-first", "推推")),
+            ("請 /派工 #42 並說明驗收結果",
+             ("派工", "issue-closure-gate"),
+             ("root-local-first", "推推")),
+            ("不要 /接手，改用 /派工 #42",
+             ("派工", "issue-closure-gate"),
+             ("root-local-first", "執行開發任務")),
+        )
+        for task, wanted, forbidden in cases:
+            with self.subTest(task=task):
+                selected = set(required_skills_for(task=task))
+                ordered = set(ordered_command_skills(task))
+                for skill in wanted:
+                    self.assertIn(skill, selected)
+                    self.assertIn(skill, ordered)
+                for skill in forbidden:
+                    self.assertNotIn(skill, selected)
+                    self.assertNotIn(skill, ordered)
+
+    def test_standalone_user_commands_remain_routable(self):
+        for task, expected in (
+            ("/派工 #42", ("派工", "issue-closure-gate")),
+            ("/接手 #42", ("root-local-first", "執行開發任務")),
+            ("/功能 /DEBUG /派工 #42", ("新增功能", "diagnosing-bugs",
+                                        "tdd", "派工", "issue-closure-gate")),
+        ):
+            with self.subTest(task=task):
+                self.assertEqual(ordered_command_skills(task), expected)
+        # Publishing is never added to the ordered execution-command chain.
+        self.assertEqual(ordered_command_skills("/推推"), ())
+        self.assertIn("推推", required_skills_for(task="/推推"))
+
+
+    def test_long_markdown_examples_and_blockquotes_are_not_commands(self):
+        samples = (
+            "下列是指令範例：\n\x60\x60\x60bash\n/派工 #42\n/接手 #42\n/推推\n\x60\x60\x60",
+            "Examples of WHD commands:\n~~~text\n/推推\n/接手 #42\n/派工 #42\n~~~",
+            "Quoted note:\n> /推推\n> /派工 #42\n> /接手 #42",
+            "請比較以下命令：\n1. /派工 #42\n2. /接手 #42\n3. /推推",
+            "Here are examples of commands:\n- \x60/推推\x60\n- \x60/接手\x60\n- /派工 #42",
+            "Do not run:\n/派工 #42\n/接手 #42\n/推推",
+            "Code sample:\n    /派工 #42\n    /接手 #42\n    /推推",
+        )
+        forbidden = {"派工", "issue-closure-gate", "root-local-first",
+                     "執行開發任務", "推推"}
+        for task in samples:
+            with self.subTest(task=task):
+                self.assertEqual(ordered_command_skills(task), ())
+                self.assertFalse(forbidden & set(required_skills_for(task=task)))
+
+    def test_long_reference_then_independent_real_command(self):
+        cases = (
+            ("以下為命令示例：\n\x60\x60\x60shell\n/接手 #42\n/推推\n\x60\x60\x60\n\n現在 /派工 #42",
+             ("派工", "issue-closure-gate"), ("root-local-first", "執行開發任務", "推推")),
+            ("Examples of commands:\n/派工 #41\n/推推\n\nPlease execute /接手 #42",
+             ("root-local-first", "執行開發任務"), ("派工", "推推")),
+            ("比較以下命令：\n- /派工\n- /接手\n\n請 /派工 #42",
+             ("派工", "issue-closure-gate"), ("root-local-first", "執行開發任務")),
+            ("~~~sh\n/派工 #41\n~~~\n/接手 #42",
+             ("root-local-first", "執行開發任務"), ("派工",)),
+            ("請使用 \x60/派工\x60 #42",
+             ("派工", "issue-closure-gate"), ("root-local-first", "執行開發任務")),
+            ("引用：\n> /接手\n/功能 /DEBUG /派工 #42",
+             ("新增功能", "diagnosing-bugs", "tdd", "派工", "issue-closure-gate"),
+             ("root-local-first", "執行開發任務")),
+        )
+        for task, wanted, forbidden in cases:
+            with self.subTest(task=task):
+                selected = set(required_skills_for(task=task))
+                ordered = set(ordered_command_skills(task))
+                for skill in wanted:
+                    self.assertIn(skill, selected)
+                    self.assertIn(skill, ordered)
+                for skill in forbidden:
+                    self.assertNotIn(skill, selected)
+                    self.assertNotIn(skill, ordered)
 
     def test_real_executor_invokes_other_authorized_work_after_refusal(self):
         calls = []

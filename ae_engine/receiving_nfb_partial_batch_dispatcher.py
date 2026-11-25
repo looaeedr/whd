@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import os
 import json
+from copy import deepcopy
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Mapping
@@ -87,7 +88,25 @@ def export_highlighted_nfb_inner_doors(ports, *, set_index, bay_indices,
     selected = require_highlighted_nfb_inner_doors(
         ports, set_index, requested, allow_held=allow_held,
     )
-    current_views = {bi: ports["manifest"](set_index, bi) for bi in requested}
+    # A writer may mutate the same nested manifest object during staging.
+    # Snapshot detached source data so a shallow reference cannot mask drift.
+    current_views = {
+        bi: deepcopy(ports["manifest"](set_index, bi)) for bi in requested
+    }
+
+    def require_same_live_source():
+        try:
+            still_ready = require_highlighted_nfb_inner_doors(
+                ports, set_index, requested, allow_held=allow_held,
+            )
+            if still_ready != selected or any(
+                ports["manifest"](set_index, bi) != current_views[bi]
+                for bi in requested
+            ):
+                raise ValueError("NFB_PARTIAL_LIVE_MANIFEST_CHANGED")
+        except (ValueError, TypeError, KeyError, IndexError, OSError) as exc:
+            raise ValueError("NFB_PARTIAL_SOURCE_CHANGED_BEFORE_COMMIT") from exc
+
     root = Path(output_directory)
     if not root.is_dir():
         raise ValueError("NFB partial export destination must already exist")
@@ -180,17 +199,20 @@ def export_highlighted_nfb_inner_doors(ports, *, set_index, bay_indices,
                 "not_exported_bays": held,
                 "deferred_assembly": ["PAD", "EAR_ATTACHMENT"],
             }, ensure_ascii=False, indent=2), encoding="utf-8")
-        # Hard links in the same directory/filesystem provide exclusive,
-        # no-overwrite publication. Roll back on a collision or IO failure.
+        # Recheck every requested Bay (including held records) after true
+        # physical DXF staging and after the atomic publication. Any source
+        # change inside the commit must withdraw every already-linked file.
         published = []
         try:
+            require_same_live_source()
             for source, destination, _ in staged:
                 os.link(source, destination)
                 published.append(destination)
             if report_source is not None:
                 os.link(report_source, report_destination)
                 published.append(report_destination)
-        except OSError:
+            require_same_live_source()
+        except Exception:
             for destination in reversed(published):
                 destination.unlink()
             raise

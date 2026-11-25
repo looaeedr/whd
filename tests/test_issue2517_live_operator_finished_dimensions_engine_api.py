@@ -136,7 +136,7 @@ def test_sparse_live_finished_dimensions_use_exact_settings_t_not_2mm_default():
                settings={"t": "2.5"})
     before = deepcopy((app._phase6_input_snapshot, app._settings_values))
     assert _engine(app, part_key="box_body", triangles=triangles) == pytest.approx(
-        (100.0, 200.0, 5.0)
+        (100.0, 200.0, 2.5)
     )
     assert (app._phase6_input_snapshot, app._settings_values) == before
 

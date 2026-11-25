@@ -303,3 +303,67 @@ def test_saved_pad_base_q2_cannot_use_old_receiving_family_after_unsynced_gui_sw
     assert loaded == pristine
     assert not list(tmp_path.glob("*.dxf"))
     assert not any(path.is_dir() for path in tmp_path.iterdir())
+
+
+def test_native_pad_base_action_preflight_preserves_prior_check_q(tmp_path, monkeypatch):
+    import os
+    import tkinter as tk
+
+    if os.name != "nt" and not os.environ.get("DISPLAY"):
+        pytest.skip("actual Tk requires a desktop display")
+
+    from gui import Phase6PrimaryApplication
+
+    saved, _loaded, _chosen, _parts, _sheets = _physical_gui_saved_source(tmp_path)
+    output = tmp_path / "native-check-q"
+    output.mkdir()
+    root = tk.Tk()
+    try:
+        host = Phase6PrimaryApplication(root)
+        app = host.fold_designer_app
+        monkeypatch.setattr(gui.filedialog, "askopenfilename", lambda **kw: str(saved))
+        app.project_file_menu.invoke(0)
+        root.update()
+        assert host.project_controller.project_path == str(saved)
+        source = app._phase6_input_snapshot
+        assert api.require_receiving_pad_base_export_preflight(source) is None
+
+        dialogs, folders, errors, successes = [], [], [], []
+        monkeypatch.setattr(
+            simpledialog, "askstring",
+            lambda title, prompt: dialogs.append(title) or (
+                "SPCC" if "材質" in title else "LASER"
+            ),
+        )
+        monkeypatch.setattr(simpledialog, "askinteger", lambda *args, **kw: 2)
+        monkeypatch.setattr(
+            gui.filedialog, "askdirectory",
+            lambda **kw: folders.append(output) or str(output),
+        )
+        monkeypatch.setattr(gui.messagebox, "showerror", lambda *args: errors.append(args))
+        monkeypatch.setattr(gui.messagebox, "showinfo", lambda *args: successes.append(args))
+        host.export_receiving_pad_base_part_only_dxf()
+
+        assert not errors and len(successes) == len(folders) == 1
+        assert "PAD 2 片" in successes[0][1] and "底板 2 片" in successes[0][1]
+        files = list(output.rglob("*.dxf"))
+        assert len(files) == 2
+        before = {path: path.read_bytes() for path in output.rglob("*") if path.is_file()}
+        for path in files:
+            doc = ezdxf.readfile(path)
+            assert doc.header["$INSUNITS"] == 4 and not doc.audit().errors
+            assert {"CUTTING", "CHECK"} <= {e.dxf.layer for e in doc.modelspace()}
+
+        # Remove actual admission, not the GUI wiring or the downstream writer.
+        app._phase6_input_snapshot = {**source, "nfb_config_submitted": False}
+        try:
+            host.export_receiving_pad_base_part_only_dxf()
+        finally:
+            app._phase6_input_snapshot = source
+
+        assert len(errors) == len(successes) == len(folders) == 1
+        assert len(dialogs) == 2
+        assert "須在受電箱提交 NFB 後" in errors[0][1]
+        assert {path: path.read_bytes() for path in output.rglob("*") if path.is_file()} == before
+    finally:
+        root.destroy()

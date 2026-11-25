@@ -6,6 +6,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from ae_engine import receiving_nfb_pad_operator_parts as pad_source
 from ae_engine import manufacturing_api
 from gui_modules.project import export_actions as gui
 
@@ -200,7 +201,7 @@ def test_pad_operator_alias_reaches_engine_source_check_before_any_picker(monkey
     original = deepcopy(source)
     seen = []
     monkeypatch.setattr(
-        manufacturing_api, "committed_nfb_pad_draft_parts",
+        pad_source, "committed_nfb_pad_draft_parts",
         lambda snapshot: seen.append(snapshot) or ("verified-draft",),
     )
     monkeypatch.setattr(
@@ -224,7 +225,7 @@ def test_pad_operator_alias_reaches_engine_source_check_before_any_picker(monkey
 def test_pad_nonreceiving_remains_blocked_before_engine_draft(monkeypatch):
     calls = []
     monkeypatch.setattr(
-        manufacturing_api, "committed_nfb_pad_draft_parts",
+        pad_source, "committed_nfb_pad_draft_parts",
         lambda _snapshot: calls.append("wrong_family") or ("bad",),
     )
     messages = []

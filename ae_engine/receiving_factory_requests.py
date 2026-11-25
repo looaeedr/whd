@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from copy import deepcopy
-from dataclasses import fields
+from dataclasses import dataclass, fields
 from math import isclose, isfinite
 
 from .box_body_fold_profile import build_box_body_profile
@@ -18,7 +18,7 @@ from .box_body_operator_part_spec import build_box_body_operator_part_spec
 from .cabinet_types import policy as family_policy
 from .endcap_factory_fold import build_endcap_xy_fold_profiles
 from .endcap_operator_part_spec import build_endcap_operator_part_spec
-from .contracts import DoorPartSpec
+from .contracts import BoxBodyPartSpec, DoorPartSpec, EndCapPartSpec, PartSpec
 from .part_dimension_projection import door_part_projections
 from .sheetmetal_part_adapters import validate_door_layout_dimensions
 from .sheetmetal_geometry import FourCornerTypePolicy, CornerTypeSelection
@@ -908,3 +908,60 @@ def build_receiving_factory_confirmed_parts(
             confirmed_features=confirmed_base_plate_features,
         ))
     return tuple(parts)
+
+
+
+@dataclass(frozen=True)
+class ReceivingFactoryConfirmedDoorHandoff:
+    """Ordered existing PartSpecs; frame requirement is not certification."""
+
+    ordered_parts: tuple[tuple[str, PartSpec], ...]
+    requires_inner_door_frame_resolution: bool
+
+    @property
+    def door_parts(self) -> tuple[tuple[str, DoorPartSpec], ...]:
+        return tuple((key, part) for key, part in self.ordered_parts
+                     if isinstance(part, DoorPartSpec))
+
+
+def plan_receiving_factory_confirmed_door_handoff(
+    source_dimensions: Mapping[str, object], *,
+    confirmation: str | None = None,
+    operator_snapshot: Mapping[str, object] | None = None,
+    confirmed_door_layout_columns=(),
+    confirmed_door_features: Mapping[str, object] | None = None,
+) -> ReceivingFactoryConfirmedDoorHandoff:
+    """Plan an explicitly confirmed Receiving cabinet's Body/Door/Head/Tail handoff.
+
+    The existing Factory validates the layout, properties and finished-face
+    Features, then chooses the physical Door IDs. A fresh multi-Door handoff
+    still requires independent canonical A/B/D frame resolution for complete
+    Bay use; this flag alone must not certify those frames or a full Bay.
+    Saved projects do not obtain fresh-frame authority through this path.
+    The result does not execute manufacturing or alter PART_ONLY isolation.
+    """
+    parts = build_receiving_factory_confirmed_parts(
+        source_dimensions, confirmation=confirmation,
+        operator_snapshot=operator_snapshot,
+        confirmed_door_layout_columns=confirmed_door_layout_columns,
+        confirmed_door_features=confirmed_door_features,
+    )
+    if len(parts) == len(_CORE_PARTS):
+        raise ValueError("RECEIVING_DOOR_LAYOUT_REQUIRED")
+
+    box_body, head, tail, *doors = parts
+    if (tuple(key for key, _ in parts[:3]) != _CORE_PARTS
+            or len({key for key, _ in parts}) != len(parts)
+            or not isinstance(box_body[1], BoxBodyPartSpec)
+            or not isinstance(head[1], EndCapPartSpec) or head[1].is_tail is not False
+            or not isinstance(tail[1], EndCapPartSpec) or tail[1].is_tail is not True
+            or any(not isinstance(part, DoorPartSpec)
+                   or part.feature_space != "finished_face" for _, part in doors)):
+        raise ValueError("RECEIVING_ENGINE_CONFIRMED_PART_ROLES_INVALID")
+
+    return ReceivingFactoryConfirmedDoorHandoff(
+        ordered_parts=(box_body, *doors, head, tail),
+        requires_inner_door_frame_resolution=(
+            confirmation == "fresh_family_confirmed" and len(doors) > 1
+        ),
+    )

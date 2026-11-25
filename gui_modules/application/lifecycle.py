@@ -468,6 +468,39 @@ def _apply_phase6_project_snapshot(self, snapshot):
         manufacturing_api.normalize_operator_settings_boolean(
             snapshot["use_box_distance"]
         )
+    # Source-only CHECK snapshots V1 and V2: validate BOTH Engine contracts
+    # before resetting the previous GUI/project session. No preview can
+    # authorize any CUTTING/BEND/MARKING or provide GUI-owned geometry.
+    v_miter_v1 = manufacturing_api.project_operator_v_miter_relief_preview_source(
+        snapshot or {}
+    )
+    v_miter_v2 = manufacturing_api.project_operator_v_miter_radius_ba_preview_source(
+        snapshot or {}
+    )
+    v_miter_gui_choice = manufacturing_api.normalize_operator_v_miter_gui_choices(
+        (snapshot or {}).get("v_miter_gui_check_corners"),
+    )
+    v_miter_gui_relief = manufacturing_api.normalize_operator_v_miter_gui_relief_modes(
+        (snapshot or {}).get("v_miter_gui_relief_modes"),
+        v_miter_gui_choice,
+    )
+    v_miter_gui_first_bends = manufacturing_api.normalize_operator_v_miter_gui_first_bend_axes(
+        (snapshot or {}).get("v_miter_gui_first_bend_axes"),
+        v_miter_gui_choice,
+    )
+    from .endcap_live_v_check_consumer import ATTR, validate_live_sources
+    from .endcap_live_v_check_view import close_saved_live_check_window
+    # New project/source ownership always retires the previous CHECK window.
+    close_saved_live_check_window(self)
+    live_endcap_check = validate_live_sources(snapshot or {})
+    setattr(self, ATTR, live_endcap_check)
+    # Switching projects must drop both previous sources; preflight failure
+    # above must leave BOTH old records and session unchanged.
+    self._v_miter_relief_trial_preview = v_miter_v1
+    self._v_miter_radius_ba_trial_preview = v_miter_v2
+    self.v_miter_gui_check_corners = v_miter_gui_choice
+    self.v_miter_gui_relief_modes = v_miter_gui_relief
+    self.v_miter_gui_first_bend_axes = v_miter_gui_first_bends
     self.workspace_controller.reset_receiving_mode_session()
     self._reset_manual_corner_parameter_locks()
     snapshot = deepcopy(dict(snapshot or {}))
@@ -560,18 +593,24 @@ def _apply_phase6_project_snapshot(self, snapshot):
         self.door_indicator_offset_x = 0.0
         self.door_indicator_offset_y = 0.0
 
-    # A saved Receiving physical source must survive even the normal
-    # Open Project route (open_designer=False). The GUI otherwise rebuilds
-    # a live snapshot containing only visible settings, and a later 3D
-    # open silently loses the user's already persisted BasePlate choice.
-    # Restore exactly this stored value, never infer a missing sheet.
-    if (model in ("受電箱", "RECEIVING")
-            and "receiving_base_plate" in snapshot):
-        effective = getattr(self, "_phase6_input_snapshot", None)
-        if isinstance(effective, dict):
-            effective["receiving_base_plate"] = deepcopy(
-                snapshot["receiving_base_plate"]
-            )
+    # Main Open (open_designer=False) must retain the committed physical
+    # source for the later *new* Designer. A freshly opened Main may not yet
+    # have _phase6_input_snapshot at all; silently checking isinstance(dict)
+    # drops a legitimate saved LEFT sheet and makes MARKING fail at export.
+    # Only the Engine detaches an explicitly persisted Receiving source.
+    # Missing or reset values must never be filled from a UI/default pattern.
+    saved_plate = manufacturing_api.project_operator_receiving_base_plate_snapshot_source(
+        snapshot, snapshot,
+    )
+    effective = getattr(self, "_phase6_input_snapshot", None)
+    if not isinstance(effective, dict) and saved_plate:
+        effective = {}
+        self._phase6_input_snapshot = effective
+    if isinstance(effective, dict):
+        # Opening another project without a committed plate must not recycle
+        # the previous project's LEFT pattern, even when a Designer existed.
+        effective.pop("receiving_base_plate", None)
+        effective.update(deepcopy(saved_plate))
     self.workspace_controller.set_active_part(snapshot.get("active_part") or workspace.get("active_part"))
     self._active_cabinet_type = _current_cabinet_type_name(self)
     self._reload_current_baseline_features()
@@ -608,6 +647,8 @@ def _merge_live_receiving_candidate_libraries(self, snapshot):
          manufacturing_api.normalize_receiving_hole_candidates),
         ("receiving_inner_door_candidates",
          manufacturing_api.normalize_receiving_inner_door_candidates),
+        (manufacturing_api.SCOPED_BASE_PLATE_MARKS,
+         manufacturing_api.normalize_scoped_base_plate_mark_ledger),
     )
     if live is None:
         # Close publishes the current editor into ProjectController before the
@@ -643,6 +684,32 @@ def _compose_phase6_project_snapshot_from_main_gui(self):
     """從目前主 GUI 狀態建立唯一 canonical committed snapshot。"""
     snapshot = self._make_original_fold_designer_snapshot()
     snapshot.pop("_runtime_project_path", None)
+    from .endcap_live_v_check_consumer import ATTR, KEY, validate_live_sources
+    records = validate_live_sources({KEY: getattr(self, ATTR, {})})
+    if records:
+        snapshot[KEY] = records
+    else:
+        snapshot.pop(KEY, None)
+    saved_v1_source = getattr(self, "_v_miter_relief_trial_preview", None)
+    if saved_v1_source is not None:
+        # Preserve the original V1 operator inputs, not computed 2D/3D.
+        snapshot["v_miter_trial_preview"] = (
+            manufacturing_api.project_operator_v_miter_relief_preview_source({
+                "v_miter_trial_preview": saved_v1_source,
+            })
+        )
+    saved_r_ba_source = getattr(
+        self, "_v_miter_radius_ba_trial_preview", None
+    )
+    if saved_r_ba_source is not None:
+        # The current GUI does not own these measured parameters or the
+        # DXF source scene. Preserve only the already-validated operator
+        # source envelope; replay later verifies real CUTTING/BEND SHA.
+        snapshot["v_miter_radius_ba_trial_preview"] = (
+            manufacturing_api.project_operator_v_miter_radius_ba_preview_source({
+                "v_miter_radius_ba_trial_preview": saved_r_ba_source,
+            })
+        )
     snapshot = _merge_live_receiving_candidate_libraries(self, snapshot)
     workspace_state = self.workspace_controller.workspace_snapshot()
     workspace = {
@@ -666,6 +733,12 @@ def _compose_phase6_project_snapshot_from_main_gui(self):
         workspace["assembly_placements"] = deepcopy(workspace_state["assembly_placements"])
     elif "assembly_placements" in snapshot:
         workspace["assembly_placements"] = deepcopy(snapshot["assembly_placements"])
+    for root_key in (manufacturing_api.ROOT_PHYSICAL_OCCUPANCY_KEY, manufacturing_api.ROOT_MARKING_STORE_KEY):
+        if workspace_state.get(root_key):
+            snapshot[root_key] = deepcopy(workspace_state[root_key])
+            workspace[root_key] = deepcopy(workspace_state[root_key])
+        else:
+            snapshot.pop(root_key, None)
     if "custom_parts" in workspace_state:
         workspace["custom_parts"] = deepcopy(workspace_state["custom_parts"])
     for key in ("active_mode", "quantity", "custom_parts", "receiving_quantity_box", "receiving_layout"):
@@ -795,6 +868,16 @@ def _apply_original_fold_designer_snapshot(self, snapshot):
         "part_features": snapshot.get("part_features") or ws_source.get("part_features", {}),
         "part_face_features": snapshot.get("part_face_features") or ws_source.get("part_face_features", {}),
         "custom_parts": deepcopy(snapshot.get("custom_parts", ws_source.get("custom_parts"))),
+        manufacturing_api.ROOT_MARKING_STORE_KEY: manufacturing_api.normalize_workspace_root_marking_store(
+            snapshot.get(manufacturing_api.ROOT_MARKING_STORE_KEY,
+                         ws_source.get(manufacturing_api.ROOT_MARKING_STORE_KEY)),
+        ),
+        manufacturing_api.ROOT_PHYSICAL_OCCUPANCY_KEY: manufacturing_api.normalize_workspace_root_occupancy(
+            snapshot.get(manufacturing_api.ROOT_PHYSICAL_OCCUPANCY_KEY,
+                         ws_source.get(manufacturing_api.ROOT_PHYSICAL_OCCUPANCY_KEY)),
+            existing_parts=snapshot.get("existing_parts") or ws_source.get("existing_parts") or (),
+            model=snapshot.get("model"),
+        ),
         **{key: deepcopy(snapshot[key]) for key in ("active_mode", "quantity", "receiving_quantity_box", "receiving_layout") if key in snapshot},
     })
     self._sync_fold_designer_manual_corner_context(snapshot.get("active_part"))
@@ -858,6 +941,9 @@ def _store_fold_designer_workspace(self, workspace):
     for key in ("active_mode", "quantity", "custom_parts", "receiving_quantity_box", "receiving_layout"):
         if key in workspace:
             committed_workspace[key] = deepcopy(workspace[key])
+    for root_key in (manufacturing_api.ROOT_PHYSICAL_OCCUPANCY_KEY, manufacturing_api.ROOT_MARKING_STORE_KEY):
+        if root_key in workspace:
+            committed_workspace[root_key] = deepcopy(workspace[root_key])
     self.workspace_controller.commit_workspace(committed_workspace)
 
 def _apply_fold_designer_live_snapshot(self, payload):
@@ -1241,7 +1327,12 @@ def open_original_fold_designer(self, *, target_window=None):
         destroy_designer_window()
 
     def load_project_from_designer(path):
-        destroy_designer_window()
+        # The packaged Primary Designer owns the Tk root itself. Destroying
+        # that window before loading also destroys the only Tcl application.
+        # Legacy child Designers still use their original rebuild lifecycle;
+        # Primary reuses the live Designer and Engine snapshot hydration.
+        if window is not self.root:
+            destroy_designer_window()
         return self.load_phase6_project(path, open_designer=True)
 
     def save_project_from_designer(*, save_as=False, active_part=None):

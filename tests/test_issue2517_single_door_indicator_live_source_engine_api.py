@@ -76,11 +76,14 @@ def test_disabled_single_door_retains_legacy_display_compatibility():
 def test_fit_uses_strict_engine_gate_not_gui_sanitizing(monkeypatch):
     calls = []
 
-    def validate(**params):
-        calls.append(params)
+    def validate(raw, **params):
+        # The test double must still enforce the exact public Engine state
+        # contract; invalid physical sources cannot be accepted by a mock.
+        manufacturing_api.project_operator_door_cell_indicator_manufacturing_source(raw)
+        calls.append((raw, params))
         return (55.0, 75.0)
 
-    monkeypatch.setattr(manufacturing_api, "validate_door_indicator_fit", validate)
+    monkeypatch.setattr(manufacturing_api, "validate_operator_indicator_state_fit", validate)
     host = SimpleNamespace(
         _normalize_door_indicator_state=lambda _:
             pytest.fail("GUI display normalization must not authorize hole geometry"),
@@ -92,11 +95,10 @@ def test_fit_uses_strict_engine_gate_not_gui_sanitizing(monkeypatch):
     assert manufacturing_adapter._validate_indicator_state_fit(
         host, valid, finished_width=400.0, finished_height=600.0, thickness=2.0,
     ) == (55.0, 75.0)
-    assert calls == [{
-        "mode": "indicator", "groups": (3, 2),
+    assert calls == [(valid, {
         "finished_width": 400.0, "finished_height": 600.0,
-        "thickness": 2.0, "offset": (-1.25, 2.75),
-    }]
+        "thickness": 2.0,
+    })]
     with pytest.raises(ValueError):
         manufacturing_adapter._validate_indicator_state_fit(
             host, {**valid, "groups": [True, 2]},
@@ -119,6 +121,7 @@ def test_source_has_no_gui_live_integer_clamp_or_default():
     live = single[:single.index('if mode != "none":') + 15]
     assert "normalize_operator_hole_editor_indicator_state(" in single
     fit = inspect.getsource(manufacturing_adapter._validate_indicator_state_fit)
-    assert "project_operator_door_cell_indicator_manufacturing_source(" in fit
+    assert "validate_operator_indicator_state_fit(" in fit
+    assert '["groups"][:' not in fit
     assert "_normalize_door_indicator_state(" not in fit
     assert "max(1, min(6, int(" not in fit

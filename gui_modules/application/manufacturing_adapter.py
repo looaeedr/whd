@@ -46,11 +46,12 @@ def _box_body_part_spec_from_values(
 ):
     """Collect operator/workspace inputs; Engine builds the real BoxBodyPartSpec."""
     controller = self.workspace_controller
+    # Pass the authored Fold source untouched. The Engine owns which axis
+    # and physical lower Fold segment supplies each EndCap outside dimension.
     endcap_y_profiles = {}
     for key, override in (("head", head_ybottom1), ("tail", tail_ybottom1)):
         if override is None:
-            source = controller.profile_for(key) or {}
-            endcap_y_profiles[key] = list(dict(source).get("Y", ()) or ())
+            endcap_y_profiles[key] = controller.profile_for(key) or {}
     return manufacturing_api.build_box_body_operator_part_spec(
         val,
         model_name=model_name,
@@ -244,17 +245,11 @@ def _door_layout_part_spec(self, cell, val):
     )
 
 def _validate_indicator_state_fit(self, state, *, finished_width, finished_height, thickness):
-    # Use the same strictly validated source that DoorPartSpec and Hole Editor
-    # consume. The GUI may not sanitize live physical groups or hole offsets.
-    source = manufacturing_api.project_operator_door_cell_indicator_manufacturing_source(state)
-    if source["mode"] == "none":
-        return (0.0, 0.0)
-    return manufacturing_api.validate_door_indicator_fit(
-        mode=source["mode"],
-        groups=tuple(source["groups"][:source["layers"]]),
-        finished_width=finished_width, finished_height=finished_height,
-        thickness=thickness,
-        offset=(source["offset_x"], source["offset_y"]),
+    # Pass original saved/live physical source; Engine alone qualifies the
+    # active mode, layer selection, offsets, and actual finished-face fit.
+    return manufacturing_api.validate_operator_indicator_state_fit(
+        state, finished_width=finished_width,
+        finished_height=finished_height, thickness=thickness,
     )
 
 def _validate_single_door_indicator_fit(self, val, state=None):
@@ -323,14 +318,12 @@ def _indicator_component_editor_contexts(self, state, val, *, box_features, door
     """View-only adapter: ask the engine for physical surfaces and display them."""
     # The component geometry must use the same strict, unsanitized physical
     # source as Door manufacturing, not the GUI's display-repair function.
-    state = manufacturing_api.project_operator_door_cell_indicator_manufacturing_source(state)
-    groups = tuple(state["groups"][:state["layers"]])
-    door_spec = self._indicator_door_part_spec(val, groups, features=door_features)
-    geometry = manufacturing_api.resolve_indicator_editor_components(
-        groups, thickness=val["t"], door_spec=door_spec,
+    projected = manufacturing_api.resolve_operator_indicator_editor_components(
+        state, val, door_features=door_features,
     )
-    box = geometry["indicator_box"]
-    door = geometry["indicator_door"]
+    groups = projected.groups
+    box = projected.components["indicator_box"]
+    door = projected.components["indicator_door"]
     return {
         "indicator_box": {
             "part_key": "indicator_box", "title": "指示燈盒 — 盒體（基準檔＋指示燈）",

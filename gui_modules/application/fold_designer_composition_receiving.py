@@ -843,6 +843,11 @@ def receiving_bay_preview_request(self, namespace, set_index, bay_index, *, prev
         finished_dimensions=dimensions(), thickness=manufacturing_api.normalize_operator_source_dimension(
             snapshot.get("t", 2), field="t",
         ),
+        receiving_collision_geometry=resolved,
+        receiving_collision_identity=(
+            str(snapshot["receiving_layout"]["sets"][set_index]["stable_id"]),
+            str(snapshot["receiving_layout"]["sets"][set_index]["bays"][bay_index]["stable_id"]),
+        ),
     )
     if preview_layout is None:
         _retain_committed_receiving_bay_preview(
@@ -977,6 +982,9 @@ def receiving_settings_ports(self, namespace, set_index):
 
     return {
         "row": lambda: adapter.layout["sets"][set_index],
+        # Read-only actual layout source for the Engine cross-Bay diagnostic;
+        # no GUI derivative Joint offset or physical-pair classification.
+        "layout": lambda: adapter.layout,
         "select": selected, "change": change, "share": share, "unlink": unlink,
         "dimensions": dimensions, "alignment": alignment, "brand": brand, "holes": holes,
         "subscribe": listeners.append,
@@ -1113,6 +1121,13 @@ def settings_panel(self, namespace):
         ),
         corner_target_changed=lambda part_key, target_key: self.corner_target_var_changed(
             namespace, part_key, target_key
+        ),
+        tail_lower_v_selected=lambda part_key, choice_var: self.select_tail_lower_v_choice(
+            namespace, choice_var
+        ),
+        tail_d4_check_requested=lambda: self.show_tail_d4_check(namespace),
+        tail_lower_v_first_bends_selected=lambda left_var, right_var: self.select_tail_lower_v_first_bends(
+            namespace, left_var, right_var,
         ),
         sync_context_extension=lambda state, context: self.sync_settings_panel_extension(
             namespace, state, context
@@ -3181,6 +3196,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
             if bundle is None:
                 raise ValueError("受電箱底板無已提交的 NFB 原始來源及實體孔位驗證")
             current = nfb_physical_bay_snapshot(set_index, bay_index)
+            manufacturing_api.require_scoped_base_plate_export_held(current, {"base_plate": True})
             # Reuse the original manufacturing PartSpec owner.  In
             # particular, this must not synthesize base_plate_cN_rN.
             spec, _ = self.app._part_spec_query_callback("base_plate", current)
@@ -3208,6 +3224,7 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
                 export_current_csv_nfb_door_base_pair,
             )
             current = nfb_physical_bay_snapshot(set_index, bay_index)
+            manufacturing_api.require_scoped_base_plate_export_held(current, {"base_plate": True})
             layer_count = manufacturing_api.project_receiving_committed_csv_nfb_pair_layer_count(
                 current,
             )
@@ -3653,6 +3670,16 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         mount_inner_editor()
         return container
 
+    def edit_scoped_base_plate(set_index, bay_index, owner, on_close):
+        from .physical_part_hole_editor import open_scoped_receiving_base_plate_editor
+
+        host = getattr(self.app._scene_query_callback, "__self__", None)
+        if host is None:
+            raise ValueError("底板打標工作區尚未連接")
+        return open_scoped_receiving_base_plate_editor(
+            host, set_index, bay_index, expected_owner=owner, on_close=on_close,
+        )
+
     return open_multi_settings(
         self.app.root,
         # Avoid copying the entire workspace merely to read the mode.
@@ -3676,6 +3703,10 @@ def open_receiving_multi_settings(self, namespace, *, single=False, embedded_inn
         set_brand=set_single_brand if single else set_global_brand,
         get_brand_change_impact=preview_parent_brand_impact,
         get_settings_ports=lambda index: self.receiving_settings_ports(namespace, index),
+        edit_scoped_base_plate=None if single else edit_scoped_base_plate,
+        get_scoped_base_plate_mark_status=None if single else lambda: (
+            manufacturing_api.scoped_base_plate_mark_status(self.app._phase6_input_snapshot)
+        ),
         get_original_door_marks=existing_door_marks,
         get_initial_door_marks=cached_initial_door_marks,
         get_applied_version_labels=applied_version_labels,

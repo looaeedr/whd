@@ -88,7 +88,8 @@ def add_drawing_scene_to_dxf(msp, scene: DrawingScene) -> None:
 
 def save_scene_dxf(filepath, scene: DrawingScene) -> None:
     """Serialize one already-resolved DrawingScene to a new DXF document."""
-    doc = ezdxf.new("R2010")
+    # WHD DrawingScene coordinates are 1:1 millimeters; ezdxf defaults to meters (6).
+    doc = ezdxf.new("R2010", units=ezdxf.units.MM)
     setup_dxf_layers(doc)
     add_drawing_scene_to_dxf(doc.modelspace(), scene)
     doc.saveas(filepath)

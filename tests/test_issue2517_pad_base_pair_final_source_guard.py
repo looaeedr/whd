@@ -9,6 +9,7 @@ from types import SimpleNamespace
 import ezdxf
 import pytest
 
+from ae_engine import receiving_nfb_pad_operator_parts as pad_source
 from ae_engine import manufacturing_api as api
 from ae_engine import receiving_nfb_pad_pair_manufacturing as owner
 from gui_modules.project import export_actions as gui
@@ -165,7 +166,7 @@ def _gui_host_and_stubs(monkeypatch, tmp_path):
         _flush_phase6_authoritative_state=lambda: None,
     )
     events = []
-    monkeypatch.setattr(api, "committed_nfb_pad_draft_parts",
+    monkeypatch.setattr(pad_source, "committed_nfb_pad_draft_parts",
                         lambda _: ("verified-current-pad",))
     monkeypatch.setattr(
         bridge, "_phase6_final_scene_adapter",

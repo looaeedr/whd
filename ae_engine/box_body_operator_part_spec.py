@@ -50,11 +50,14 @@ def _confirmed_endcap_lower_length(raw):
 
 
 def _endcap_lower_outside_value(rows, values):
-    """Read the same validated manufacturing ybottom1 as the GUI adapter.
+    """Read validated ybottom1 from a saved EndCap profile or legacy Y rows.
 
-    Source presence selects the real authored material/Fold. The historical
-    value fallback only applies when no ybottom1 row exists at all.
+    EndCap axis selection belongs to Engine, not GUI. Existing headless
+    clients may continue to pass a Y-row sequence; GUI forwards the original
+    X/Y mapping without manufacturing interpretation or in-place mutation.
     """
+    if isinstance(rows, Mapping):
+        rows = rows.get("Y", ()) or ()
     measured = project_manufacturing_endcap_bottom_fold_inputs({
         "head": {"Y": rows or ()},
     })

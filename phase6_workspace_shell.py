@@ -63,6 +63,7 @@ class WorkspaceShellActions:
     refresh_sticky_structure_tree: Callable[[], Any]
     install_keyboard_shortcuts: Callable[[], Any]
     toggle_fullscreen: Callable[[], Any]
+    refresh_3d_marking_visibility: Callable[[], Any] | None = None
 
 
 class WorkspaceShellOwner:
@@ -95,6 +96,8 @@ class WorkspaceShellOwner:
         "right_global_host",
         "right_controls_primary",
         "visual_controls",
+        "show_operator_marking_3d_var",
+        "show_operator_marking_3d_check",
         "ui_text_size_combo",
         "fullscreen_button",
         "left_scroll_canvas",
@@ -328,6 +331,15 @@ class WorkspaceShellOwner:
             command=self.actions.queue_update,
             length=110,
         ).grid(row=0, column=5, sticky="ew", padx=(4, 0))
+        self.show_operator_marking_3d_var = original.tk.BooleanVar(
+            master=self.visual_controls, value=True,
+        )
+        self.show_operator_marking_3d_check = original.ttk.Checkbutton(
+            self.visual_controls, text="顯示手動打標（3D）",
+            variable=self.show_operator_marking_3d_var,
+            command=self.actions.refresh_3d_marking_visibility,
+        )
+        self.show_operator_marking_3d_check.grid(row=0, column=6, sticky="w", padx=(8, 0))
         return self.visual_controls
 
     def build_persistent_top_area(self):

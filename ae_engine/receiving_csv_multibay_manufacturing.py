@@ -9,6 +9,8 @@ sheet CUTTING coordinate. One atomic output includes all selected Bays.
 from __future__ import annotations
 
 from dataclasses import replace
+from copy import deepcopy
+from collections.abc import Mapping
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -238,6 +240,28 @@ def export_current_receiving_multibay_dxf(
         raise ValueError("RECEIVING_MULTIBAY_CURRENT_FAMILY_REQUIRED")
     if saved_snapshot.get("active_mode","set_bay")!="set_bay":
         raise ValueError("RECEIVING_MULTIBAY_NOT_QUANTITY_MODE")
+    from .operator_scoped_base_plate_marks import (
+        plan_scoped_base_plate_normal_output, apply_scoped_base_plate_output,
+        verify_scoped_base_plate_dxf,
+    )
+    scoped_marks = plan_scoped_base_plate_normal_output(saved_snapshot, flags, group_mode)
+    scoped_output_filenames = set()
+    scoped_seen = set()
+    scoped_guard = pre_commit_guard
+    if scoped_marks:
+        if nfb_pair_requests is not None or emit_debug:
+            raise ValueError("SCOPED_MARK_BASE_PLATE_EXPORT_NOT_RELEASED")
+        if not callable(pre_commit_guard):
+            raise ValueError("SCOPED_MARK_LIVE_SOURCE_GUARD_REQUIRED")
+        original_snapshot = deepcopy(saved_snapshot)
+        source_flags = flags
+        original_flags = deepcopy(source_flags)
+
+        def scoped_guard():
+            pre_commit_guard()
+            if saved_snapshot != original_snapshot or source_flags != original_flags:
+                raise ValueError("SCOPED_MARK_SAVED_SOURCE_CHANGED_DURING_OUTPUT")
+
     layout=normalize_receiving_layout(saved_snapshot.get("receiving_layout"))
     # Externally supplied approved NFB pairs may join independent core flats.
     # The same saved-layout fingerprint check later still rejects foreign NFB.
@@ -252,6 +276,28 @@ def export_current_receiving_multibay_dxf(
             raise ValueError("RECEIVING_COMPOSED_NFB_INDEPENDENT_CORE_SCOPE_REQUIRED")
     all_bays=tuple((i,j) for i,s in enumerate(layout["sets"])
                    for j,_ in enumerate(s["bays"]))
+    # #3414: a root/workspace BasePlate mark has no persisted Set/Bay owner.
+    # Even a namespaced output filename cannot turn that one unscoped intent
+    # into one independently authored marking for EACH physical Bay.  Do not
+    # let a provider silently drop it from the new per-Bay FinalScene.
+    # Other selected roles remain governed by their own original sources.
+    if (len(all_bays) > 1 or scoped_marks) and bool(flags.get("base_plate")):
+        from .operator_manual_marking import is_manual_mark
+        workspace = saved_snapshot.get("workspace")
+        for stored in (
+            saved_snapshot.get("part_features"),
+            workspace.get("part_features") if isinstance(workspace, Mapping) else None,
+        ):
+            if not isinstance(stored, Mapping):
+                continue
+            authored = stored.get("base_plate")
+            if is_manual_mark(authored) or (
+                isinstance(authored, (tuple, list))
+                and any(is_manual_mark(feature) for feature in authored)
+            ):
+                raise ValueError(
+                    "MANUAL_BATCH_SET_BAY_OWNER_UNRESOLVED:base_plate"
+                )
     # The original main export button has no second NFB output directory.
     # If the operator selected both physical pair roles, derive the immutable
     # original Door/Base Requests from THIS saved Set/Bay layout in Engine.
@@ -275,7 +321,13 @@ def export_current_receiving_multibay_dxf(
                 )
                 for si,bi in all_bays
             )
-    if len(all_bays)<1 or (len(all_bays)<2 and group_mode is None):
+    scoped_singleton = len(all_bays) == 1 and bool(scoped_marks)
+    if scoped_singleton:
+        from .manufacturing_export_selection import normalize_operator_selected_export_flags
+        # Use exactly the same checked intent as the scoped owner planner.
+        # Keep the original mutable caller source separately for the guard.
+        flags = normalize_operator_selected_export_flags(flags)
+    if not all_bays or (len(all_bays) < 2 and group_mode is None and not scoped_singleton):
         raise ValueError("RECEIVING_MULTIBAY_REQUIRES_MULTIPLE_PHYSICAL_BAYS")
     if not callable(physical_bay_geometry_provider):
         raise TypeError("RECEIVING_MULTIBAY_LIVE_BAY_RESOLVER_REQUIRED")
@@ -334,7 +386,7 @@ def export_current_receiving_multibay_dxf(
         is_csv=(source.get("nfb_config_submitted") is True
                 and not independent_core_with_nfb_pair)
         selected_logical=tuple(p for p in actual.parts
-            if (p.part_key.startswith("custom:")
+            if ((p.part_key.startswith("custom:") and not scoped_singleton)
                 or receiving_export_part_selected(p.part_key,flags))
             and not (nfb_pair_requests is not None and (
                 p.part_key.startswith("inner_door:")
@@ -420,6 +472,18 @@ def export_current_receiving_multibay_dxf(
             formed={}
             uv=()
         physical_rows=tuple(resolved_physical_render_parts(selected))
+        if len(all_bays) > 1:
+            # Canonical physical role alone is not scoped ownership.  A live
+            # marked sheet must carry a real owner all the way from its
+            # persisted Set/Bay/version, which this legacy route does not.
+            # Preserve the old DXF; never infer the owner from a panel label.
+            from .operator_manual_marking_batch import _has_saved_manual_intent
+            for key, render in physical_rows:
+                if _has_saved_manual_intent(render):
+                    raise ValueError(
+                        "MANUAL_BATCH_SET_BAY_OWNER_UNRESOLVED:"
+                        + ns + ":" + key
+                    )
         if not physical_rows:
             raise ValueError("RECEIVING_MULTIBAY_SELECTED_FINALSCENE_EMPTY")
         if len({key for key,_ in physical_rows})!=len(physical_rows):
@@ -449,12 +513,20 @@ def export_current_receiving_multibay_dxf(
             part_only=False,
         )
         for key,render in physical_rows:
+            scoped_row = scoped_marks.get((si, bi))
+            if scoped_row is not None and key == "base_plate":
+                if key not in approved:
+                    raise ValueError("SCOPED_MARK_BASE_PLATE_NOT_SOURCE_VERIFIED")
+                render = apply_scoped_base_plate_output(saved_snapshot, (si, bi), scoped_row, render)
+                scoped_seen.add((si, bi))
             filename=_resolved_physical_dxf_filename(
                 key,instance_namespace=ns,
             )
             if filename in expected_keys:
                 raise ValueError("RECEIVING_MULTIBAY_OUTPUT_NAMESPACE_COLLISION")
             expected_keys.add(filename)
+            if scoped_row is not None and key == "base_plate":
+                scoped_output_filenames.add(filename)
             if key in approved:
                 # This exact physical Bay key was re-proven from current CSV
                 # against its own real 2D/3D FinalScene, XYZ and CHECK/Q.
@@ -516,6 +588,10 @@ def export_current_receiving_multibay_dxf(
                     seg for receipt in uv if receipt.side_piece_id==side
                     for seg in receipt.marking_segments
                 ),owner.scene))
+    if scoped_seen != set(scoped_marks):
+        raise ValueError("SCOPED_MARK_SELECTED_PHYSICAL_SHEET_MISSING")
+    if scoped_marks:
+        scoped_guard()
     if not output_rows and nfb_pair_requests is None:
         raise ValueError("RECEIVING_MULTIBAY_NO_SELECTED_PHYSICAL_SHEETS")
     root=Path(output_dir)
@@ -552,6 +628,10 @@ def export_current_receiving_multibay_dxf(
                 save_scene_dxf(path,render.scene)
             else:
                 save_part_render_data_dxf(render,path,overwrite=False)
+            if filename in scoped_output_filenames:
+                # Keep the owner-aware diagnosis before the shared receipt;
+                # both checks still run on every valid scoped staged sheet.
+                verify_scoped_base_plate_dxf(render, path)
             if not verify_saved_part_render_data_dxf(render,path).ok:
                 raise ValueError("RECEIVING_MULTIBAY_SAVED_DXF_ROUNDTRIP_FAILED:"+
                                  namespace+":"+key)
@@ -577,4 +657,5 @@ def export_current_receiving_multibay_dxf(
             pre_commit_guard()
         return _atomic_commit_staged_dxfs(
             staged,root,overwrite=overwrite,
+            pre_commit_guard=scoped_guard if scoped_marks else None,
         )

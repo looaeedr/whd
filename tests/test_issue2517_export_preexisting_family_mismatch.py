@@ -112,3 +112,80 @@ def test_same_original_family_model_alias_still_uses_public_engine_gate():
     assert api.operator_resolve_legacy_baseline_manufacturing_family(
         live["model_selection"]["value"]
     ) == "金庫型"
+
+
+@pytest.mark.parametrize("model", ("受電箱", "", None, True))
+def test_direct_engine_export_family_gate_rejects_conflicting_present_selector(model):
+    saved = {"model": "金庫型"}
+    live = {"model_selection": {"reader_present": True, "value": model}}
+    with pytest.raises(ValueError, match="DXF 即時箱型與製造快照不一致"):
+        api.require_selected_export_matching_operator_family(saved, live)
+
+
+def test_direct_engine_export_gate_preserves_family_alias_and_absent_reader():
+    saved = {"cabinet_type": "金庫型"}
+    api.require_selected_export_matching_operator_family(
+        saved, {"model_selection": {"reader_present": True, "value": "VAULT"}},
+    )
+    api.require_selected_export_matching_operator_family(
+        saved, {"model_selection": {"reader_present": False, "value": "受電箱"}},
+    )
+
+
+def test_native_selected_dxf_publishes_matching_family_and_preserves_dxf_on_conflict(
+    tmp_path, monkeypatch,
+):
+    import os
+    from pathlib import Path
+    import tkinter as tk
+    from gui import Phase6PrimaryApplication
+
+    if os.name != "nt" and not os.environ.get("DISPLAY"):
+        pytest.skip("actual Tk requires a desktop display")
+
+    root = tk.Tk()
+    try:
+        host = Phase6PrimaryApplication(root)
+        app = host.fold_designer_app
+        fixture = (
+            Path(__file__).parent / "fixtures" / "vault_overlay_w400_t2_fw25.p6fold"
+        )
+        monkeypatch.setattr(gui.filedialog, "askopenfilename", lambda **kw: str(fixture))
+        app.project_file_menu.invoke(0)
+        root.update()
+        assert host.project_controller.project_path == str(fixture)
+        assert host.baseline_var.get() == app._phase6_input_snapshot["model"] == "金庫型"
+        for key in ("z", "head", "tail", "door", "base_plate", "ib", "ib_door"):
+            getattr(host, f"export_{key}_var").set(key == "door")
+
+        folders, errors, successes = [], [], []
+        monkeypatch.setattr(
+            gui.filedialog, "askdirectory",
+            lambda **kw: folders.append(tmp_path) or str(tmp_path),
+        )
+        monkeypatch.setattr(gui.messagebox, "showerror", lambda *args, **kw: errors.append(args))
+        monkeypatch.setattr(gui.messagebox, "showwarning", lambda *args, **kw: errors.append(args))
+        monkeypatch.setattr(gui.messagebox, "showinfo", lambda *args, **kw: successes.append(args))
+
+        gui.export_selected_dxf(host)
+        assert not errors and len(successes) == len(folders) == 1
+        target, = tmp_path.glob("*.dxf")
+        before = target.read_bytes()
+        doc = ezdxf.readfile(target)
+        assert doc.header["$INSUNITS"] == 4 and not doc.audit().errors
+        assert {"CUTTING", "BEND"} <= {e.dxf.layer for e in doc.modelspace()}
+
+        # Model a not-yet-synced selector using a real Tk control, leaving the
+        # authentic Designer, project, resolution and export path unchanged.
+        matching_selector = host.baseline_var
+        host.baseline_var = tk.StringVar(root, "受電箱")
+        try:
+            gui.export_selected_dxf(host)
+        finally:
+            host.baseline_var = matching_selector
+        assert len(errors) == len(successes) == len(folders) == 1
+        assert "DXF 即時箱型與製造快照不一致" in errors[0][1]
+        assert tuple(tmp_path.glob("*.dxf")) == (target,)
+        assert target.read_bytes() == before
+    finally:
+        root.destroy()

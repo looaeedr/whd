@@ -602,6 +602,7 @@ class HoleEditorModalLifecycle:
         door_indicator_state, collect_indicator_state, door_indicator_commit,
         editor_closed, editor, on_close, insert_mode, set_insert_mode,
         cancel_active_edit, on_confirm=None, before_commit=None,
+        sync_on_cancel=True,
     ):
         self.hole_session = hole_session
         self.has_selected_feature = has_selected_feature
@@ -620,6 +621,7 @@ class HoleEditorModalLifecycle:
         self.insert_mode = insert_mode
         self.set_insert_mode = set_insert_mode
         self.cancel_active_edit = cancel_active_edit
+        self.sync_on_cancel = sync_on_cancel
 
     def confirm_reference_edit(self):
         if not self.has_selected_feature():
@@ -668,7 +670,8 @@ class HoleEditorModalLifecycle:
             return
         self.hole_session.finish(commit=False)
         self.editor_closed[0] = True
-        self.sync_all()
+        if self.sync_on_cancel:
+            self.sync_all()
         self.editor.destroy()
         if self.on_close is not None:
             self.on_close()
@@ -864,6 +867,15 @@ def open_part_hole_editor(host, part_key):
     # Do not mutate active physical part until Engine has accepted its identity.
     host.workspace_controller.set_active_part(route.part_key)
     if route.kind == "endcap":
+        if app is not None:
+            from gui_modules.application.physical_part_hole_editor import open_workspace_sheet_editor
+            try:
+                approved = open_workspace_sheet_editor(host, route.part_key, verified_only=True)
+            except ValueError as exc:
+                messagebox.showerror("開孔失敗", str(exc))
+                return None
+            if approved is not None:
+                return approved
         return open_hole_editor(host, route.part_key)
     if route.kind == "door_cell":
         return host.open_door_layout_cell_editor(

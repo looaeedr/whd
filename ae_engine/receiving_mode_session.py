@@ -45,7 +45,9 @@ def fresh_receiving_mode(mode, dimensions, *, thickness=2.0, auto_nfb=False):
         columns.append([width, list(partition.values)])
     result["door_layout_columns"] = columns
     result["receiving_layout"] = new_receiving_layout(
-        width=dims["w"], height=dims["h"], depth=dims["d"])
+        width=dims["w"], height=dims["h"], depth=dims["d"],
+        new_physical_board=(mode == SET_BAY_MODE),
+    )
     result = ensure_receiving_layout(result)
     result["active_mode"] = mode
     _validate_common_receiving_state(result)
@@ -156,6 +158,11 @@ class ReceivingModeSession:
             # Project-global deletion has an authoritative meaning too.
             # An inactive mode buffer must not resurrect removed versions.
             candidate.pop("receiving_inner_door_candidates", None)
+        from .operator_scoped_base_plate_marks import SCOPED_BASE_PLATE_MARKS, normalize_scoped_base_plate_marks
+        if SCOPED_BASE_PLATE_MARKS in current:
+            candidate[SCOPED_BASE_PLATE_MARKS] = normalize_scoped_base_plate_marks(current)
+        else:
+            candidate.pop(SCOPED_BASE_PLATE_MARKS, None)
         self._buffers[self._mode] = current
         self._active = candidate
         self._mode = target

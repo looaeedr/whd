@@ -7,6 +7,7 @@ from tkinter import ttk, filedialog, messagebox
 import pytest
 
 from ae_engine import manufacturing_api as api
+from ae_engine.receiving_layout import new_receiving_layout
 from gui_modules.application import receiving_multi_settings_window as gui
 
 
@@ -26,6 +27,11 @@ def _open_window(status):
     root = tk.Tk()
     root.geometry("900x650+0+0")
     root.update()
+    # The original GUI always has a canonical Set/Bay adapter. The old
+    # synthetic boolean-only fixture omitted its layout and accidentally
+    # asserted that a source-free writer should be allowed to publish.
+    layout = new_receiving_layout(width=800, height=1600, depth=350)
+    snapshot = {"active_mode": "set_bay", "receiving_layout": layout}
     actions = []
     ports = {
         "state": lambda *args: {
@@ -44,8 +50,9 @@ def _open_window(status):
         ),
     }
     win = gui.open_multi_settings(
-        root, get_snapshot=lambda: {"active_mode": "set_bay"},
+        root, get_snapshot=lambda: snapshot,
         get_switch=lambda: SimpleNamespace(
+            layout=layout,
             connection_counts=lambda: (1,),
         ),
         switch_mode=lambda _mode: True,

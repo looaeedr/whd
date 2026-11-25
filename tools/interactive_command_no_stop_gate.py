@@ -77,9 +77,15 @@ _COMMAND_SKILLS = {
 }
 _COMMAND_PATTERN = re.compile(r"(?<![A-Za-z0-9_])/(?:功能|debug|派工|接手)(?![A-Za-z0-9_])", re.IGNORECASE)
 # Publishing is routed by Registry, not the ordered execution-command route.
-# Cover /推推 and prompt-healthcheck aliases (also bare forms) in negative instructions.
+# Mask nearby explicit negations of slash commands and high-impact bare aliases
+# (dispatch, deletion, publishing, and prompt healthcheck) for discovery only.
 _NEGATABLE_COMMAND_PATTERN = re.compile(
-    r"(?<![A-Za-z0-9_])(?:/(?:功能|debug|派工|接手|推推|提示詞健檢|提視詞健檢)|推推|提示詞健檢|提視詞健檢|prompt audit|prompt healthcheck)(?![A-Za-z0-9_])",
+    r"(?<![A-Za-z0-9_])"
+    r"(?:/(?:功能|debug|派工|接手|推推|提示詞健檢|提視詞健檢|刪除|刪掉|清除|清掉|清空)"
+    r"|推推|派工|接手|提示詞健檢|提視詞健檢"
+    r"|刪除|刪掉|清除|清掉|清空|移除|清\s*(?:staging|active\s*0)"
+    r"|delete|remove|prompt audit|prompt healthcheck)"
+    r"(?![A-Za-z0-9_])",
     re.IGNORECASE,
 )
 # A negative instruction names a command to forbid it, not to activate it.
@@ -109,9 +115,144 @@ def without_negated_command_mentions(task: str) -> str:
     return "".join(result)
 
 
+# Advisory discovery should not mistake quoted or explanatory text for a
+# command. In particular, mentioning /接手 must never select the RC route.
+# Preserve independent affirmative commands in later clauses or instructions.
+_ACTION_ONLY_COMMAND_PATTERN = re.compile(
+    r"(?<![A-Za-z0-9_])(?:/(?:推推|派工|接手)|推推|派工|接手)(?![A-Za-z0-9_])",
+    re.IGNORECASE,
+)
+_CLAUSE_BOUNDARY = re.compile(r"[，,；;。！？!?\n]")
+_REFERENCE_INTENT = re.compile(
+    r"(?:說明|解釋|比較|介紹|查詢|詢問|引用|提到|文件中|文檔中|"
+    r"差別|差異|不同|什麼意思|為什麼|怎麼用|如何使用|用途|用法|講解|教學|"
+    r"explain|compare|meaning|documentation|quoted|about)",
+    re.IGNORECASE,
+)
+_REFERENCE_SUFFIX = re.compile(
+    r"^\s*[」』'\"\x60)\]]*\s*(?:的\s*)?"
+    r"(?:規則|條件|意思|用途|用法|差異|差別|是什麼|有什麼|怎麼|如何|"
+    r"可不可以|能不能|該怎麼|要怎麼|有何|代表|意味|嗎\b|meaning\b|how\b)",
+    re.IGNORECASE,
+)
+_EXPLICIT_ACTION_PREFIX = re.compile(
+    r"(?:請|執行|啟動|改用|改成|開始|現在|直接|接著|然後|之後|再|並|使用|"
+    r"run|execute|use|start)\s*[\x60\"'「『(\[]?\s*$",
+    re.IGNORECASE,
+)
+_REFERENCE_COMPARISON = re.compile(
+    r"(?:比較|差別|差異|差在哪|有什麼不同|有何不同|compare|versus)",
+    re.IGNORECASE,
+)
+
+
+# Markdown command examples and blockquotes are documentation, not executable
+# user commands. Keep original string length and newline positions so adjacent
+# affirmative instructions still route independently.
+_FENCE_START = re.compile(r"^[ \t]{0,3}(\x60{3,}|~{3,})")
+_FENCE_END = re.compile(r"^[ \t]{0,3}(\x60{3,}|~{3,})[ \t]*$")
+_MARKDOWN_QUOTE_LINE = re.compile(r"^[ \t]{0,3}>")
+_INDENTED_CODE_LINE = re.compile(r"^(?: {4,}|\t)\S")
+_REFERENCE_EXAMPLES_INTRO = re.compile(
+    r"(?:以下|下列|下面|下方|這些|例如|範例|示例|"
+    r"examples?|samples?|following|compare|for example|do not run|不要執行|禁止執行)"
+    r"[^\r\n]{0,100}[：:。.]\s*$",
+    re.IGNORECASE,
+)
+_REFERENCE_EXAMPLE_COMMAND = re.compile(
+    r"^[ \t]*(?:[-*+]\s+|\d+[.)]\s+)?[\x60\"'「『(]*\s*"
+    r"/?(?:推推|派工|接手|功能|debug)(?![A-Za-z0-9_])",
+    re.IGNORECASE,
+)
+
+
+def without_markdown_command_examples(task: str) -> str:
+    """Mask fenced/indented code, quoted lines, and clearly introduced examples.
+
+    This is limited to advisory Skill/Reference routing; it never authorizes
+    execution or makes quoted user text executable.
+    """
+    result = list(task)
+    in_fence: str | None = None
+    reference_examples = False
+    offset = 0
+
+    def mask_line(start: int, content: str) -> None:
+        for idx, char in enumerate(content):
+            if char not in "\r\n":
+                result[start + idx] = " "
+
+    for line in task.splitlines(keepends=True):
+        content = line.rstrip("\r\n")
+        stripped = content.strip()
+        close = _FENCE_END.fullmatch(content)
+        if in_fence is not None:
+            mask_line(offset, content)
+            if close is not None and close.group(1)[0] == in_fence[0] and len(close.group(1)) >= len(in_fence):
+                in_fence = None
+            offset += len(line)
+            continue
+        opening = _FENCE_START.match(content)
+        if opening is not None:
+            in_fence = opening.group(1)
+            reference_examples = False
+            mask_line(offset, content)
+        elif not stripped:
+            reference_examples = False
+        elif _MARKDOWN_QUOTE_LINE.match(content) or _INDENTED_CODE_LINE.match(content):
+            mask_line(offset, content)
+        elif _REFERENCE_EXAMPLES_INTRO.search(content):
+            reference_examples = True
+            mask_line(offset, content)
+        elif reference_examples and _REFERENCE_EXAMPLE_COMMAND.match(content):
+            mask_line(offset, content)
+        else:
+            reference_examples = False
+        offset += len(line)
+    return "".join(result)
+
+
+def without_non_action_command_mentions(task: str) -> str:
+    """Exclude explicit discussion/quotation of commands from *action* routing.
+
+    This is a narrow advisory Skill-routing filter, not a publication/RC
+    authorization service. An actual mutation still needs independent user
+    authorization, target identity and the applicable GitHub gates.
+    """
+    routable = without_negated_command_mentions(without_markdown_command_examples(task))
+    result = list(routable)
+    for match in _ACTION_ONLY_COMMAND_PATTERN.finditer(routable):
+        start, end = match.span()
+        prior_breaks = list(_CLAUSE_BOUNDARY.finditer(routable[:start]))
+        next_break = _CLAUSE_BOUNDARY.search(routable, end)
+        left_start = prior_breaks[-1].end() if prior_breaks else 0
+        right_end = next_break.start() if next_break else len(routable)
+        prefix = routable[left_start:start]
+        suffix = routable[end:right_end]
+        clause = routable[left_start:right_end]
+        action_before = bool(_EXPLICIT_ACTION_PREFIX.search(prefix))
+        reference = (
+            bool(_REFERENCE_INTENT.search(prefix))
+            or bool(_REFERENCE_SUFFIX.match(suffix))
+            or (bool(_REFERENCE_COMPARISON.search(clause))
+                and len(_ACTION_ONLY_COMMAND_PATTERN.findall(clause)) > 1
+                and not re.search(r"#\d+", clause))
+            or bool(
+                re.fullmatch(
+                    r"[\x60\"'「『]\s*/(?:推推|派工|接手)\s*[\x60\"'」』]",
+                    routable.strip(),
+                    re.IGNORECASE,
+                )
+            )
+        )
+        if reference and not action_before:
+            result[start:end] = " " * (end - start)
+    return "".join(result)
+
+
 def ordered_command_skills(task: str) -> tuple[str, ...]:
     """Explicit commands share one sequence; only affirmative /接手 selects RC skills."""
-    routable = without_negated_command_mentions(task)
+    routable = without_non_action_command_mentions(task)
     present = {match.group(0).casefold() for match in _COMMAND_PATTERN.finditer(routable)}
     ordered: list[str] = []
     for command in ("/功能", "/debug", "/派工", "/接手"):

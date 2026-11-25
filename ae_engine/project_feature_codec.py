@@ -124,6 +124,14 @@ def _decode_feature(type_name, row):
     data["anchor"] = FeatureAnchor(data.get("anchor", FeatureAnchor.PANEL_CENTER.value))
     data["offset"] = _as_vec2(data.get("offset", {"x": 0.0, "y": 0.0}))
     data["source_params"] = tuple(tuple(v) for v in data.get("source_params", ()) or ())
+    # #3413: JSON lists must round-trip to one immutable group identity with
+    # stable per-member local-mm offsets, not list-valued source fragments.
+    # Legacy V1 line source_params remain bit-for-bit compatible.
+    if data.get("source_type") == "WHD_MANUAL_MARKING_GROUP_V1":
+        data["source_params"] = tuple(
+            (key, tuple(tuple(item) for item in value) if key == "members" else value)
+            for key, value in data["source_params"]
+        )
     if type_name == "CircleFeature":
         if "diameter" in data:
             data["diameter"] = _finite_saved_feature_dimension(data["diameter"], field="diameter")

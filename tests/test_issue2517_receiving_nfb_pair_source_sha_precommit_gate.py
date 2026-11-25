@@ -12,7 +12,7 @@ from types import SimpleNamespace
 import ezdxf
 import pytest
 
-from ae_engine import manufacturing_api
+from ae_engine import manufacturing_api, manufacturing_export
 from ae_engine import receiving_nfb_numeric_catalog as catalog
 from ae_engine import receiving_nfb_pair_export as owner
 from ae_engine import manufacturing_verification as verification
@@ -102,6 +102,72 @@ def test_csv_changed_during_actual_staged_dxf_reopen_refuses_atomic_pair(
         )
     assert len(calls) == tiers + 1
     assert list(root.iterdir()) == []
+
+
+@pytest.mark.parametrize("tiers", (1, 2))
+def test_current_csv_pair_rolls_back_when_source_changes_after_first_publish_move(
+    tiers, tmp_path, monkeypatch,
+):
+    snapshot, parts = _current_parts(tiers)
+    brand = "士林"
+    original = catalog.brand_csv_path(brand)
+    original_bytes = original.read_bytes()
+    proof = tmp_path / "source-proof-copy.csv"
+    proof.write_bytes(original_bytes)
+    monkeypatch.setattr(
+        owner, "brand_csv_path",
+        lambda requested: proof if requested == brand else catalog.brand_csv_path(requested),
+    )
+    root = tmp_path / "output"
+    root.mkdir()
+
+    def export():
+        return manufacturing_api.export_current_csv_nfb_door_base_pair(
+            snapshot, assembly_parts=parts, base_spec=None, output_directory=root,
+        )
+
+    def assert_reopened_dxf_count():
+        paths = tuple(root.glob("*.dxf"))
+        assert len(paths) == tiers + 1
+        assert set(paths) == set(root.iterdir())
+        assert all(not ezdxf.readfile(path).audit().errors for path in paths)
+        return {path.name: path.read_bytes() for path in paths}
+
+    real_move = manufacturing_export.os.replace
+    moved = []
+
+    def move_and_change_source(path, destination, *args, **kwargs):
+        result = real_move(path, destination, *args, **kwargs)
+        destination = Path(destination)
+        if destination.parent == root and destination.suffix.lower() == ".dxf":
+            assert not ezdxf.readfile(destination).audit().errors
+            moved.append(destination)
+            if len(moved) == 1:
+                proof.write_bytes(original_bytes[:-1] + bytes((original_bytes[-1] ^ 1,)))
+        return result
+
+    # Empty folder: the race occurs during the actual shared publish moves,
+    # after every staged DXF has passed the existing independent reopen check.
+    with monkeypatch.context() as injected:
+        injected.setattr(manufacturing_export.os, "replace", move_and_change_source)
+        with pytest.raises(ValueError, match="CSV_PAIR_COMMITTED_BRAND_CSV_CHANGED_BEFORE_COMMIT"):
+            export()
+    assert len(moved) == tiers + 1
+    assert list(root.iterdir()) == []
+
+    # A restored source supports a clean retry, then existing output stays
+    # byte-for-byte intact and never enters the move path on a second request.
+    proof.write_bytes(original_bytes)
+    export()
+    expected = assert_reopened_dxf_count()
+    moved.clear()
+    with monkeypatch.context() as injected:
+        injected.setattr(manufacturing_export.os, "replace", move_and_change_source)
+        with pytest.raises(FileExistsError, match="CSV_(PAIR|TWO_TIER)_EXISTING_DXF_NOT_OVERWRITTEN"):
+            export()
+    assert not moved
+    assert assert_reopened_dxf_count() == expected
+    assert original.read_bytes() == original_bytes
 
 
 def test_each_submitted_csv_brand_is_fingerprinted_independently(tmp_path, monkeypatch):

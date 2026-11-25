@@ -212,6 +212,18 @@ def _resolve_user_holes(holes, geometry, finished_width, finished_depth, *, norm
     return resolve_endcap_features(context, features)
 
 
+def _live_vault_fixed_feature_policy(model_name, explicit_policy=None):
+    """Use the same Engine runtime policy as advanced Settings for Vault only."""
+    if explicit_policy is not None:
+        return explicit_policy
+    if str(model_name or "").strip() not in ("金庫型", "VAULT"):
+        return None
+    # The Settings transaction replaces ae.VAULT_ENDCAP_FEATURE_POLICY;
+    # ae_config/ae_endcap's import-time reference is not the live policy.
+    from . import ae as engine_runtime
+    return engine_runtime.VAULT_ENDCAP_FEATURE_POLICY
+
+
 def _build_end_cap_scene(*, w, d, t, fw, yl1, yr1, ytop1, ybottom1,
                          x_topology="folded", depth_comp_t=3.0, draw_stock=False, is_tail=False, holes=None,
                          model_name=None, feature_policy=None):
@@ -232,7 +244,7 @@ def _build_end_cap_scene(*, w, d, t, fw, yl1, yr1, ytop1, ybottom1,
         model_name=model_name,
         relief_config=RELIEF_CONFIG,
         is_tail=is_tail,
-        feature_policy=feature_policy,
+        feature_policy=_live_vault_fixed_feature_policy(model_name, feature_policy),
     )
     scene.extend(resolved_features_to_primitives(fixed_features))
     scene.extend(build_endcap_check(
@@ -273,7 +285,8 @@ def _build_unknown_end_cap_scene(*, w, d, t, fw, yl1, yr1, ytop1, ybottom1,
                                   corner_policy, x_topology="folded", depth_comp_t=3.0,
                                   nominal_yl1=None, nominal_yr1=None,
                                   box_body_formed_fw_left=None, box_body_formed_fw_right=None,
-                                  draw_stock=False, is_tail=False, holes=None):
+                                  draw_stock=False, is_tail=False, holes=None,
+                                  outline_semantic_id=None):
     """Unknown/manual EndCap scene. Vault fixed holes/policies are intentionally excluded."""
     result = build_unknown_endcap_result(
         w=w, d=d, t=t, fw=fw, yl1=yl1, yr1=yr1,
@@ -287,7 +300,9 @@ def _build_unknown_end_cap_scene(*, w, d, t, fw, yl1, yr1, ytop1, ybottom1,
     scene = DrawingScene()
     if draw_stock:
         scene.add(build_stock_outline(result.width, result.height))
-    scene.extend(structural_result_to_primitives(result))
+    scene.extend(structural_result_to_primitives(
+        result, outline_semantic_id=outline_semantic_id,
+    ))
     if not is_tail:
         scene = mirror_drawing_scene_y(scene, result.height)
     scene.extend(resolved_features_to_primitives(
@@ -423,6 +438,7 @@ def get_stretched_end_cap_data(
         source_loader=(globals().get("load_baseline_dxf_source") or ezdxf.readfile),
         get_end_cap_contour_points=get_end_cap_contour_points,
         relief_config=RELIEF_CONFIG,
+        vault_fixed_policy=_live_vault_fixed_feature_policy(model_name),
     )
 
 
@@ -430,6 +446,8 @@ def _build_stretched_end_cap_scene(
     model_name, W_val, H_val, D_val, T_val, FW_val=None, *,
     x_topology="folded", draw_stock=False, is_tail=False, holes=None, corner_policy=None,
     box_body_formed_fw_left=None, box_body_formed_fw_right=None,
+    target_fold_left=None, target_fold_right=None,
+    target_fold_top=None, target_fold_bottom=None,
 ):
     """Assemble one complete stretched End Cap scene and normalize head orientation once.
 
@@ -439,6 +457,8 @@ def _build_stretched_end_cap_scene(
     scene_data = get_stretched_end_cap_data(
         model_name, W_val, H_val, D_val, T_val, FW_val, is_tail, corner_policy, x_topology,
         box_body_formed_fw_left, box_body_formed_fw_right,
+        target_fold_left=target_fold_left, target_fold_right=target_fold_right,
+        target_fold_top=target_fold_top, target_fold_bottom=target_fold_bottom,
     )
     p = scene_data.params
     total_width = p['total_width']
