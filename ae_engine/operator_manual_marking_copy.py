@@ -72,7 +72,7 @@ def list_ordinary_marking_copy_versions(snapshot, part_key):
                  for row in model.snapshot()["versions"])
 
 
-def _read_ordinary_copy_owner(snapshot, geometry, key, version_id, *, require_selected=False):
+def _read_ordinary_copy_owner(snapshot, geometry, key, version_id, *, require_selected=False, allow_unowned=False):
     from .operator_quantity_marking_owner import open_quantity_physical_marking
     from .operator_root_marking_store import open_workspace_owner_marking_draft
     from .operator_selected_marking_receipt import open_selected_ordinary_marking_modal_source
@@ -94,10 +94,9 @@ def _read_ordinary_copy_owner(snapshot, geometry, key, version_id, *, require_se
         if version_id is not None:
             raise ValueError("MANUAL_COPY_QUANTITY_VERSION_UNAVAILABLE")
         receipt = open_selected_ordinary_marking_modal_source(snapshot, geometry, key)
-        if receipt.output_capability != "verified_normal" or receipt.owner_id is None:
-            raise ValueError("MANUAL_COPY_PHYSICAL_OWNER_UNRESOLVED")
-        marks = open_workspace_owner_marking_draft(snapshot, receipt).saved_marks
-    if receipt.output_capability != "verified_normal" or receipt.owner_id is None:
+        marks = (() if receipt.owner_id is None else
+                 open_workspace_owner_marking_draft(snapshot, receipt).saved_marks)
+    if receipt.output_capability != "verified_normal" or (receipt.owner_id is None and not allow_unowned):
         raise ValueError("MANUAL_COPY_PHYSICAL_OWNER_UNRESOLVED")
     return receipt, tuple(marks)
 
@@ -401,10 +400,11 @@ def _open_ordinary_saved_copy_target(
         saved, target_part_key, resolve_saved_geometry,
     )
     saved_receipt, saved_marks = _read_ordinary_copy_owner(
-        saved, target_saved_geometry, target_part_key, target_version_id,
+        saved, target_saved_geometry, target_part_key, target_version_id, allow_unowned=True,
     )
     live_receipt, live_marks = _read_ordinary_copy_owner(
-        target_live_snapshot, target_live_geometry, target_part_key, target_version_id, require_selected=True,
+        target_live_snapshot, target_live_geometry, target_part_key, target_version_id,
+        require_selected=True, allow_unowned=True,
     )
     if saved_receipt.owner_id != live_receipt.owner_id:
         raise ValueError("MANUAL_COPY_TARGET_LIVE_OWNER_CHANGED")
@@ -434,6 +434,8 @@ def _verify_ordinary_saved_copy_sources(*, source_group_id, source, target):
     if source_receipt.owner_id == target_receipt.owner_id:
         raise ValueError("MANUAL_COPY_SAME_PHYSICAL_OWNER")
     if Path(source_file).samefile(target_file):
+        if source["source_part_key"] == target["target_part_key"]:
+            raise ValueError("MANUAL_COPY_SAME_PHYSICAL_OWNER")
         # Two explicit physical owners may share one project file. Bind both
         # to one saved revision and independently recheck the live donor.
         if source["source_project_sha256"] != target["target_project_sha256"]:

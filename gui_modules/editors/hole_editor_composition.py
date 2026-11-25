@@ -1537,7 +1537,7 @@ def _install_manual_marking_actions(s):
             else:
                 current = api.open_selected_ordinary_marking_modal_source(live, geometry, s.part_key)
             opened = s.manual_marking_draft
-            if (current.owner_id is None or current.owner_id != opened.owner_id
+            if (current.owner_id != opened.owner_id
                     or current.source_sha256 != opened.source_sha256):
                 raise ValueError("MANUAL_COPY_TARGET_EDITOR_SESSION_STALE")
             return geometry, live

@@ -274,7 +274,8 @@ def test_existing_editor_copies_saved_head_group_into_distinct_tail(tmp_path, mo
     ("door", "base_plate", "\u9580\u677f"),
     ("base_plate", "door", "\u5e95\u677f"),
 ])
-def test_existing_vault_editor_copies_saved_mark_between_door_and_base(tmp_path, monkeypatch, donor, target, label):
+@pytest.mark.parametrize("target_previously_marked", [True, False])
+def test_existing_vault_editor_copies_saved_mark_between_door_and_base(tmp_path, monkeypatch, donor, target, label, target_previously_marked):
     from tests.test_issue2517_direct_door_partspec_original_source_engine_gate import _row
     from phase6_manufacturing_adapter import build_scene_payload_for_app
 
@@ -321,6 +322,8 @@ def test_existing_vault_editor_copies_saved_mark_between_door_and_base(tmp_path,
 
         open_saved(initial)
         for part, length in ((donor, "12"), (target, "6")):
+            if part == target and not target_previously_marked:
+                continue
             modal, state = editor(part)
             state.manual_mark_length.set(length)
             modal._manual_marking_controls[0].invoke()
@@ -341,7 +344,9 @@ def test_existing_vault_editor_copies_saved_mark_between_door_and_base(tmp_path,
                 snapshot, api.resolve_saved_ordinary_copy_geometry(snapshot, key), key,
             )
             assert replay.source_sha256 == receipt.source_sha256, key
-            old[key] = api.read_workspace_marking_owner_record(snapshot, receipt.owner_id)["features"]
+            record = (None if receipt.owner_id is None else
+                      api.read_workspace_marking_owner_record(snapshot, receipt.owner_id))
+            old[key] = () if record is None else record["features"]
         modal, state = editor(target)
         monkeypatch.setattr(filedialog, "askopenfilename", lambda **kw: str(saved))
         monkeypatch.setattr(simpledialog, "askstring", lambda *args, **kwargs: label)
@@ -349,8 +354,8 @@ def test_existing_vault_editor_copies_saved_mark_between_door_and_base(tmp_path,
         root.update()
         click(state, 35)
         marks = tuple(f for f in state.live_context.feature_list if api.is_manual_mark(f))
-        assert len(marks) == 2 and marks[0] == old[target][0], state.manual_mark_status.cget("text")
-        copied_mark = marks[1]
+        assert len(marks) == len(old[target]) + 1 and marks[:-1] == old[target], state.manual_mark_status.cget("text")
+        copied_mark = marks[-1]
         assert copied_mark != old[donor][0]
         confirm(modal)
         monkeypatch.setattr(filedialog, "asksaveasfilename", lambda **kw: str(copied))
@@ -378,7 +383,8 @@ def test_existing_vault_editor_copies_saved_mark_between_door_and_base(tmp_path,
             }
     finally:
         root.destroy()
-def test_vault_version_copy_gui(tmp_path, monkeypatch):
+@pytest.mark.parametrize("target_previously_marked", [True, False])
+def test_vault_version_copy_gui(tmp_path, monkeypatch, target_previously_marked):
     from tests.test_issue2517_direct_door_partspec_original_source_engine_gate import _row
     from hashlib import sha256
     from phase6_manufacturing_adapter import build_scene_payload_for_app
@@ -452,11 +458,13 @@ def test_vault_version_copy_gui(tmp_path, monkeypatch):
             confirm(modal)
 
         mark(donor, "29")
-        mark(target, "6")
+        if target_previously_marked:
+            mark(target, "6")
         app.designer_workspace.quantity_model.select(first_version)
         root.update()
         mark(donor, "12")
-        mark(target, "8")
+        if target_previously_marked:
+            mark(target, "8")
         app.designer_workspace.quantity_model.select(second_version)
         root.update()
         monkeypatch.setattr(filedialog, "asksaveasfilename", lambda **kw: str(saved))
@@ -492,7 +500,7 @@ def test_vault_version_copy_gui(tmp_path, monkeypatch):
         root.update()
         click(state, 35)
         marks = tuple(f for f in state.live_context.feature_list if api.is_manual_mark(f))
-        assert len(marks) == 2, state.manual_mark_status.cget("text")
+        assert len(marks) == (2 if target_previously_marked else 1), state.manual_mark_status.cget("text")
         assert abs(marks[-1].points[1].x - marks[-1].points[0].x) == pytest.approx(12)
         confirm(modal)
         monkeypatch.setattr(filedialog, "asksaveasfilename", lambda **kw: str(copied))
@@ -502,8 +510,8 @@ def test_vault_version_copy_gui(tmp_path, monkeypatch):
         final = read_project(copied)["snapshot"]
         for key in (donor, target):
             for version in (first_version, second_version):
-                before = api.read_quantity_physical_marking(snapshot, key, version_id=version)["features"]
-                after = api.read_quantity_physical_marking(final, key, version_id=version)["features"]
+                before = (api.read_quantity_physical_marking(snapshot, key, version_id=version) or {}).get("features", ())
+                after = (api.read_quantity_physical_marking(final, key, version_id=version) or {}).get("features", ())
                 assert after == marks if (key, version) == (target, second_version) else after == before
         for key in ("z", "head", "tail", "door", "base_plate", "ib", "ib_door"):
             getattr(host, f"export_{key}_var").set(key == target)
@@ -519,6 +527,6 @@ def test_vault_version_copy_gui(tmp_path, monkeypatch):
             qty, = (e.plain_text() for e in drawing.modelspace().query('MTEXT[layer=="CHECK"]')
                     if e.plain_text().startswith("Q"))
             counts[qty] = len(drawing.modelspace().query('LWPOLYLINE[layer=="MARKING"]'))
-        assert counts == {"Q2": 1, "Q3": 2}
+        assert counts == ({"Q2": 1, "Q3": 2} if target_previously_marked else {"Q2": 0, "Q3": 1})
     finally:
         root.destroy()
