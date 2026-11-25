@@ -423,7 +423,8 @@ def test_established_ordinary_left_cursor_first_confirm_and_replacement_isolated
 @pytest.mark.parametrize(("key", "full_tools"), (("head", False), ("tail", False),
                                                    ("head", True), ("tail", True),
                                                    ("vault-door", False), ("vault-door-multi", False),
-                                                   ("vault-base", False), ("vault-door-two-units", False)))
+                                                   ("vault-base", False), ("vault-door-two-units", False),
+                                                   ("vault-first-in-versions", False)))
 def test_same_existing_editor_and_export_ordinary_signed_endcap(tmp_path, monkeypatch, key, full_tools):
     import ezdxf
     from gui import Phase6PrimaryApplication
@@ -432,7 +433,8 @@ def test_same_existing_editor_and_export_ordinary_signed_endcap(tmp_path, monkey
     from gui_modules.application.physical_part_hole_editor import current_workspace_marking_source
     from tests.test_issue3414_scoped_marking_proto import _real_source, _resize, _raw_write
 
-    quantity = 2 if key == "vault-door-two-units" else 1
+    first_in_multi = key == "vault-first-in-versions"
+    quantity = 2 if key == "vault-door-two-units" or first_in_multi else 1
     multi = key in {"vault-door-multi", "vault-door-two-units"}
     if key.startswith("vault-"):
         from tests.test_issue2517_direct_door_partspec_original_source_engine_gate import _row
@@ -474,6 +476,23 @@ def test_same_existing_editor_and_export_ordinary_signed_endcap(tmp_path, monkey
         first = {p.name: p for p in reference.glob("*.dxf")}
         assert len(first) == (2 if multi else 1)
         unmarked = None if multi else next(iter(first.values()))
+        if first_in_multi:
+            model = app.designer_workspace.quantity_model
+            first_version = model.selected_version_id
+            controls.ports["add"]()
+            root.update()
+            controls.count_var.set("3")
+            controls.commit_count()
+            root.update()
+            second_version = model.selected_version_id
+            assert first_version != second_version
+            untouched = host.open_part_hole_editor(key)
+            root.update()
+            assert untouched is not None and not failures, failures
+            _actual_editor_confirm(untouched)
+            root.update()
+            assert not untouched.winfo_exists() and not failures, failures
+            assert api.resolve_workspace_physical_root_owner(current_workspace_marking_source(app), key) is None
         editor = host.open_part_hole_editor(key)
         root.update()
         assert editor is not None and hasattr(editor, "_manual_marking_controls"), failures
@@ -548,6 +567,43 @@ def test_same_existing_editor_and_export_ordinary_signed_endcap(tmp_path, monkey
         menu.invoke(2)
         root.update()
         saved = read_project(save)["snapshot"]
+        if first_in_multi:
+            stored_owner = api.resolve_quantity_physical_marking_owner(saved, key)
+            assert stored_owner.version_id == second_version
+            assert api.read_quantity_physical_marking(saved, key)["features"] == authored
+            assert api.read_quantity_physical_marking(saved, key, version_id=first_version) is None
+            assert api.read_workspace_marking_owner_record(saved, stored_owner.root_owner_id) is None
+            lines = {}
+            monkeypatch.setattr(filedialog, "askdirectory", lambda **kw: str(tmp_path))
+            export_selected_dxf(host)
+            assert not failures, failures
+            for path in tmp_path.glob("*.dxf"):
+                data = ezdxf.readfile(path)
+                q, = (e.plain_text() for e in data.modelspace().query('MTEXT[layer=="CHECK"]')
+                      if e.plain_text().startswith("Q"))
+                lines[q] = tuple(data.modelspace().query('LWPOLYLINE[layer=="MARKING"]'))
+            assert set(lines) == {"Q2", "Q3"} and not lines["Q2"] and len(lines["Q3"]) == 1
+            controls = app.receiving_mode_controls.quantity_editor
+            assert controls.ports["delete"](True)
+            root.update()
+            assert model.version_count == 1 and model.selected_version_id == first_version
+            controls.ports["add"]()
+            root.update()
+            assert model.version_count == 2 and model.selected_version_id not in {first_version, second_version}
+            after_replace = current_workspace_marking_source(app)
+            assert api.read_quantity_physical_marking(after_replace, key) is None
+            assert not api.require_existing_normal_owner_marking_route(after_replace, {key: True}, ordinary=True)
+            new_out = tmp_path / "after-replacing-marked-version"
+            new_out.mkdir()
+            monkeypatch.setattr(filedialog, "askdirectory", lambda **kw: str(new_out))
+            export_selected_dxf(host)
+            assert not failures, failures
+            only, = new_out.glob("*.dxf")
+            file = ezdxf.readfile(only)
+            assert not file.modelspace().query('LWPOLYLINE[layer=="MARKING"]')
+            assert [e.plain_text() for e in file.modelspace().query('MTEXT[layer=="CHECK"]')
+                    if e.plain_text().startswith("Q")] == ["Q3"]
+            return
         if quantity != 1:
             version, = saved["quantity"]["versions"]
             assert version["piece_count"] == quantity

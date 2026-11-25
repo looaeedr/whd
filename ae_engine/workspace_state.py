@@ -390,15 +390,26 @@ class SharedWorkspaceState:
         return changed
 
     def commit_quantity_owner_marking(self, snapshot, receipt, marks, *, version_id, geometry):
-        from .operator_quantity_marking_owner import with_confirmed_quantity_physical_marking
+        from dataclasses import replace
+        from .operator_quantity_marking_owner import (
+            _update_quantity_marking_ledger, _validate_quantity_marking_update,
+        )
         from .operator_root_marking_store import _root_store
         if _root_store(snapshot) != self._root_marking_store:
             raise ValueError("ROOT_MARKING_WORKSPACE_STALE")
-        accepted = with_confirmed_quantity_physical_marking(
-            {**snapshot, **self.snapshot()}, receipt, marks, version_id=version_id, geometry=geometry,
+        current = {**snapshot, **self.snapshot()}
+        owner, stock, marks = _validate_quantity_marking_update(
+            current, receipt, marks, version_id=version_id, geometry=geometry,
         )
+        occupancy = self._root_occupancy
+        if owner.root_owner_id is None:
+            if not marks:
+                return False
+            occupancy = self._propose_marked_legacy_root(owner.physical_id, current["model"])
+            owner = replace(owner, root_owner_id=occupancy[owner.physical_id]["owner_id"])
+        accepted = _update_quantity_marking_ledger(current, owner, stock, marks)
         changed = accepted != self._root_marking_store
-        self._root_marking_store = accepted
+        self._root_occupancy, self._root_marking_store = occupancy, accepted
         return changed
 
     def snapshot(self) -> dict:

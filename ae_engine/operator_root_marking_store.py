@@ -245,6 +245,10 @@ def selected_workspace_owner_marking_keys(snapshot, flags):
             receiving_export_part_selected(key, flags)
             and resolve_workspace_physical_root_owner(snapshot, key) in scoped_roots for key in (parts or ())):
         raise ValueError("OWNER_MARKING_QUANTITY_VERSION_EXPORT_REQUIRES_QUANTITY_MODE")
+    if scoped_roots and snapshot.get("active_mode") == "quantity":
+        from .operator_quantity_marking_owner import _selected_version_root_records
+        active_keys = {part for _, part in _selected_version_root_records(snapshot, parts or ())}
+        scoped_roots = {resolve_workspace_physical_root_owner(snapshot, part) for part in active_keys}
     return tuple(key for key in (parts or ()) if receiving_export_part_selected(key, flags)
                  and (resolve_workspace_physical_root_owner(snapshot, key) in store
                       or resolve_workspace_physical_root_owner(snapshot, key) in scoped_roots))
