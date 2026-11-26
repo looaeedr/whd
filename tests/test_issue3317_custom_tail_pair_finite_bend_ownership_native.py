@@ -330,3 +330,128 @@ def test_true_custom_tail_engine_rejects_joined_3d_from_source_edge_measurement(
         ) == original_formed
     finally:
         root.destroy()
+
+
+@pytest.mark.parametrize("x", (1.0, 421.0))
+@pytest.mark.parametrize("uv_span", (0.2, 0.02, 0.002))
+def test_custom_tail_finite_tip_public_engine_map_is_discontinuous_inside_source(x, uv_span):
+    """Real Tk, actual candidate UV and PUBLIC Engine: a mesh cannot fix this.
+
+    Red geometry acceptance remains separately enforced. This is positive
+    counterexample evidence that the current mapper has a finite jump even
+    on a vanishingly short line of continuous interior material. No virtual
+    crease, assumed radius or altered Factory stock.
+    """
+    from math import dist
+    from shapely.geometry import LineString
+
+    root = tk.Tk()
+    root.withdraw()
+    try:
+        app = BoxCalculatorGUI(root)
+        _make_tail_pair(app, "ROUND_R")
+        _, _, spec, render = _selected_source(
+            app, app._make_original_fold_designer_snapshot(),
+        )
+        source = (render.material.wkb, tuple(render.scene.primitives))
+        checks = {
+            side: api.project_operator_v_miter_live_corner_check(
+                spec, render, side, first_bend_axis="x", relief_mode="ROUND_R",
+            )
+            for side in CORNERS
+        }
+        combined = api.project_v_miter_custom_tail_bottom_pair_one_sheet_2d_check(
+            spec, render, checks,
+        )
+        outline = next(
+            p for p in combined.scene.primitives
+            if isinstance(p, PolylinePrimitive) and p.layer == "CHECK"
+        )
+        stock = Polygon([(p.x, p.y) for p in outline.points])
+        guides = fold_guides_from_final_scene(render.scene)
+        left, right = sorted(
+            (g for g in guides if g.axis == "x"), key=lambda g: g.position
+        )
+        selected = left if x == 1. else right
+        assert (selected.position, selected.span_start) == pytest.approx(
+            (15., 16.) if x == 1. else (407., 16.)
+        )
+        a = (x, selected.span_start - uv_span / 2)
+        b = (x, selected.span_start + uv_span / 2)
+        segment = LineString((a, b))
+        assert segment.length == pytest.approx(uv_span, abs=1e-10)
+        assert stock.contains(Point(*a)) and stock.contains(Point(*b))
+        assert stock.covers(segment), (a, b)
+        before = api.fold_profile_map_with_guides(
+            a[0], a[1], spec.fold_profile_x, axis="x", fold_guides=guides,
+        )
+        after = api.fold_profile_map_with_guides(
+            b[0], b[1], spec.fold_profile_x, axis="x", fold_guides=guides,
+        )
+        formed = dist(before, after)
+        # Dot's direct source samples are W400/D250/T2 regression evidence,
+        # not universal dimensions or allowable material stretching.
+        assert 19.7 < formed < 20.1, (x, uv_span, formed)
+        # With a correct continuous two-V map, this assertion will have to
+        # change to an actual near-zero limiting jump, not a test waiver.
+        if uv_span == 0.002:
+            assert formed / uv_span > 9000
+        assert source == (render.material.wkb, tuple(render.scene.primitives))
+    finally:
+        root.destroy()
+
+
+def test_custom_tail_original_finite_x_y_guides_still_move_without_new_bends():
+    """Existing original source and both actual folds keep their own route."""
+    from math import dist
+    from ae_engine.assembly_geometry_folded_mesh import folded_mesh_from_polygon
+    root = tk.Tk()
+    root.withdraw()
+    try:
+        app = BoxCalculatorGUI(root)
+        _make_tail_pair(app, "ROUND_R")
+        _, _, spec, render = _selected_source(
+            app, app._make_original_fold_designer_snapshot(),
+        )
+        original = (render.material.wkb, tuple(render.scene.primitives))
+        guides = fold_guides_from_final_scene(render.scene)
+        xs = sorted((g for g in guides if g.axis == "x"), key=lambda g:g.position)
+        ys = sorted((g for g in guides if g.axis == "y"), key=lambda g:g.position)
+        assert [(g.position, g.span_start) for g in xs] == pytest.approx(
+            [(15., 16.), (407., 16.)]
+        )
+        bottom = ys[0]
+        assert (bottom.position, bottom.span_start, bottom.span_end) == pytest.approx(
+            (15., 16., 406.)
+        )
+        for x, guide in ((1., xs[0]), (421., xs[1])):
+            active = api.fold_profile_map_with_guides(
+                x, (guide.span_start + guide.span_end)/2,
+                spec.fold_profile_x, axis="x", fold_guides=guides,
+            )
+            inactive = api.fold_profile_map_with_guides(
+                x, guide.span_start - 0.1,
+                spec.fold_profile_x, axis="x", fold_guides=guides,
+            )
+            assert dist(active, inactive) > 19.7
+        active_y = api.fold_profile_map_with_guides(
+            1., (bottom.span_start + bottom.span_end)/2,
+            spec.fold_profile_y, axis="y", fold_guides=guides,
+        )
+        inactive_y = api.fold_profile_map_with_guides(
+            1., bottom.span_start - 0.1,
+            spec.fold_profile_y, axis="y", fold_guides=guides,
+        )
+        assert dist(active_y, inactive_y) > 1.
+        original_mesh = folded_mesh_from_polygon(
+            render.material, spec.fold_profile_x, spec.fold_profile_y,
+            fold_guides=guides,
+        )
+        assert original_mesh
+        assert original == (render.material.wkb, tuple(render.scene.primitives))
+        assert original_mesh == folded_mesh_from_polygon(
+            render.material, spec.fold_profile_x, spec.fold_profile_y,
+            fold_guides=guides,
+        )
+    finally:
+        root.destroy()
