@@ -5,7 +5,11 @@ from dataclasses import replace
 import pytest
 
 from ae_engine import manufacturing_api as api
-from ae_engine.contracts import WirePullBoxSpec, BoxBodyPartSpec, ManufacturingContext
+from ae_engine.contracts import (
+    WirePullBoxSpec, BoxBodyPartSpec, ManufacturingContext, DoorPartSpec, EndCapPartSpec,
+    BasePlatePartSpec, IndicatorBoxPartSpec, ResolvedManufacturingGeometry,
+    ResolvedManufacturingPart,
+)
 from ae_engine.cabinet_types import resolve_cabinet_type
 from ae_engine.assembly_geometry import diagnose_world_mesh_triangle_edge_incidence
 from ae_engine.assembly_geometry_primitives import triangle_bounds
@@ -103,3 +107,50 @@ def test_candidate_family_and_actual_render_cannot_enter_production(tmp_path):
         api.generate_part(BoxBodyPartSpec(637,411,223,2,25,model_name="拉線箱"),
                           path,ManufacturingContext())
     assert not path.parent.exists()
+
+
+@pytest.mark.parametrize("family", ["拉線箱", "WIRE_PULL"])
+def test_no_legacy_single_part_or_structure_fallback(family):
+    source_box = api.resolve_standard_cabinet_topology(source()).part("box_body")
+    body = BoxBodyPartSpec(637,411,223,2,25,model_name=family,
+                           fold_profile=source_box.x_profile)
+    specs = (
+        body,
+        DoorPartSpec(637,411,2,25,model_name=family),
+        EndCapPartSpec(637,223,2,25,model_name=family),
+        BasePlatePartSpec(637,411,2,0,0,0,0,20,model_name=family),
+        IndicatorBoxPartSpec((2,3),2,model_name=family),
+    )
+    for spec in specs:
+        for entry in (api.build_part_scene, api.build_part_render_data,
+                      api.build_operator_part_render_data):
+            with pytest.raises(ValueError,match="STANDARD_CABINET_TOPOLOGY_SOURCE_REQUIRED"):
+                entry(spec)
+    with pytest.raises(ValueError,match="STANDARD_CABINET_TOPOLOGY_SOURCE_REQUIRED"):
+        api.build_box_body_structure_render_data(body)
+
+
+def test_candidate_cannot_bypass_via_verified_batch_or_composed_existing_target(tmp_path):
+    result = api.resolve_standard_cabinet_topology(source())
+    # Metadata-dropping adapters do not turn a preview source into production.
+    render = replace(result.part("lid").render_data,metadata={})
+    normal_path = tmp_path/"lid.dxf"
+    composed_path = tmp_path/"combined.dxf"
+    normal_path.write_bytes(b"existing single DXF")
+    composed_path.write_bytes(b"existing composed DXF")
+    guard_calls=[]
+    def guard():
+        guard_calls.append(True)
+    with pytest.raises(ValueError,match="CABINET_FAMILY_NOT_IMPLEMENTED"):
+        api.save_part_render_data_dxf(render,normal_path,overwrite=True,verify_reopen=True)
+    with pytest.raises(ValueError,match="CABINET_FAMILY_NOT_IMPLEMENTED"):
+        api.save_verified_final_scene_batch_dxf(
+            (("lid",render),),tmp_path,pre_commit_guard=guard,overwrite=True)
+    geometry=ResolvedManufacturingGeometry((ResolvedManufacturingPart("lid",render),))
+    with pytest.raises(ValueError,match="CABINET_FAMILY_NOT_IMPLEMENTED"):
+        api.save_composed_panel_dxf((("P1",geometry),),composed_path,
+                                    pre_commit_guard=guard,overwrite=True)
+    assert normal_path.read_bytes() == b"existing single DXF"
+    assert composed_path.read_bytes() == b"existing composed DXF"
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["combined.dxf","lid.dxf"]
+    assert not guard_calls

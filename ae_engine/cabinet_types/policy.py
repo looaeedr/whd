@@ -469,6 +469,20 @@ def endcap_corner_policy(source, *, frame_width: float, thickness: float, state=
     )
 
 
+def require_legacy_part_family_source(source):
+    """Keep a new standard-topology-only Family out of legacy formula fallback."""
+    name = canonical_family_name(source)
+    if not name:
+        return
+    try:
+        registration = resolve_cabinet_type(name)
+    except KeyError:
+        return
+    module = import_module(registration.module_name)
+    if getattr(module, "LEGACY_PART_SPEC_ALLOWED", True) is False:
+        raise ValueError("STANDARD_CABINET_TOPOLOGY_SOURCE_REQUIRED: " + registration.canonical_name)
+
+
 def resolve_standard_cabinet_topology(spec):
     """Resolve an explicit standard-assembly source, not manufacturing admission.
 

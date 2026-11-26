@@ -929,6 +929,7 @@ def build_operator_part_render_data(
     multi-sheet structure. Preserve the legacy canonical normalization and
     two existing factories; do not issue manufacturing/export authorization.
     """
+    cabinet_family_policy.require_legacy_part_family_source(getattr(spec, "model_name", None))
     if isinstance(spec, BoxBodyPartSpec):
         structure = normalize_box_body_structure_state(spec.structure_state)
         if structure.get("active_type") != BoxBodyStructureType.INTEGRAL.value:

@@ -10,6 +10,9 @@ REGISTRATION = CabinetTypeRegistration(
 )
 
 
+LEGACY_PART_SPEC_ALLOWED = False
+
+
 def resolve_standard_topology(spec):
     # Avoid a package-init dependency on manufacturing_api.
     from .wire_pull_topology import resolve

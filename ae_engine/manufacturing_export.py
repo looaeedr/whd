@@ -76,9 +76,16 @@ def resolved_physical_dxf_stem(part_id: str, *, box_body_physical_piece_roles) -
 def require_standard_cabinet_render_manufacturing(render_data):
     """A standard topology candidate cannot bypass Family admission via scenes."""
     metadata = getattr(render_data, "metadata", None)
+    topology = getattr(render_data, "unfolded_topology", None)
+    # Preserve the source-owned candidate identity even if a presentation
+    # adapter drops optional metadata. This P1 source is never certified DXF.
+    if getattr(topology, "source", None) == "WIRE_PULL_EXPLICIT_TOPOLOGY":
+        raise ValueError("CABINET_FAMILY_NOT_IMPLEMENTED: 拉線箱")
     if isinstance(metadata, Mapping) and "standard_cabinet_family" in metadata:
         from .cabinet_types.policy import require_implemented_manufacturing_family
         require_implemented_manufacturing_family(metadata["standard_cabinet_family"])
+        if metadata.get("formed_geometry_verified") is not True:
+            raise ValueError("STANDARD_CABINET_RENDER_UNVERIFIED")
 
 
 def resolved_physical_render_parts(resolved_geometry, *, include_unreleased_source_flats=False):
