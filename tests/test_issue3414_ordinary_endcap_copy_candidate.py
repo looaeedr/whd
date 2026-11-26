@@ -450,12 +450,18 @@ def test_existing_vault_editor_copies_saved_mark_between_door_and_base(tmp_path,
             }
     finally:
         root.destroy()
-@pytest.mark.parametrize("target_previously_marked", [True, False])
-def test_vault_version_copy_gui(tmp_path, monkeypatch, target_previously_marked):
+
+
+@pytest.mark.parametrize(("target_previously_marked", "target", "source_tool"), [
+    (True, "base_plate", "line"), (False, "base_plate", "line"),
+    pytest.param(True, "door", "line", id="distinct-door-versions"),
+    pytest.param(True, "door", "circle", id="distinct-door-versions-circle"),
+])
+def test_vault_version_copy_gui(tmp_path, monkeypatch, target_previously_marked, target, source_tool):
     from tests.test_issue2517_direct_door_partspec_original_source_engine_gate import _row
     from hashlib import sha256
     from phase6_manufacturing_adapter import build_scene_payload_for_app
-    donor, target, label = 'door', 'base_plate', '\u9580\u677f'
+    donor, label = 'door', '\u9580\u677f'
 
     source = _row()
     source["multi_door_enabled"] = False
@@ -516,21 +522,26 @@ def test_vault_version_copy_gui(tmp_path, monkeypatch, target_previously_marked)
         controls.commit_count()
         root.update()
         assert app.designer_workspace.quantity_model.selected_piece_count == 3
-        def mark(key, length, offset=0):
+        def mark(key, length, offset=0, tool="line"):
             modal, state = editor(key)
-            state.manual_mark_length.set(length)
-            state.manual_mark_angle.set("0")
-            modal._manual_marking_controls[0].invoke()
+            if tool == "circle":
+                button, diameter = modal._manual_round_marking_controls
+                diameter.set(length)
+                button.invoke()
+            else:
+                state.manual_mark_length.set(length)
+                state.manual_mark_angle.set("0")
+                modal._manual_marking_controls[0].invoke()
             click(state, offset)
             confirm(modal)
 
         mark(donor, "29")
-        if target_previously_marked:
+        if target_previously_marked and target != donor:
             mark(target, "6")
         app.designer_workspace.quantity_model.select(first_version)
         root.update()
-        mark(donor, "12")
-        if target_previously_marked:
+        mark(donor, "12", tool=source_tool)
+        if target_previously_marked and target != donor:
             mark(target, "8")
         app.designer_workspace.quantity_model.select(second_version)
         root.update()
@@ -559,6 +570,56 @@ def test_vault_version_copy_gui(tmp_path, monkeypatch, target_previously_marked)
             api.verify_saved_endcap_marking_copy(
                 source_group_id=first[0], source=dict(args, source_version_id=first_version), target=target_args,
             )
+        def export_versions(folder):
+            from collections import Counter
+            for key in ("z", "head", "tail", "door", "base_plate", "ib", "ib_door"):
+                getattr(host, f"export_{key}_var").set(key == target)
+            folder.mkdir()
+            monkeypatch.setattr(filedialog, "askdirectory", lambda **kw: str(folder))
+            export_selected_dxf(host)
+            assert not failures, failures
+            versions = {}
+            for file in folder.glob("*.dxf"):
+                drawing = ezdxf.readfile(file)
+                assert drawing.header["$INSUNITS"] == 4 and not drawing.audit().errors
+                modelspace = drawing.modelspace()
+                quantity, = (e.plain_text() for e in modelspace.query('MTEXT[layer=="CHECK"]')
+                             if e.plain_text().startswith("Q"))
+                assert quantity not in versions
+                ink = Counter()
+                for entity in modelspace.query('*[layer=="MARKING"]'):
+                    if entity.dxftype() == "CIRCLE":
+                        key = ("circle", tuple(entity.dxf.center), entity.dxf.radius * 2)
+                    else:
+                        assert entity.dxftype() == "LWPOLYLINE"
+                        key = ("line", tuple(map(tuple, entity.get_points("xy"))))
+                    ink[key] += 1
+                versions[quantity] = ink
+            return versions
+
+        before_export = export_versions(tmp_path / "before-copy-dxf")
+        if target_previously_marked:
+            assert set(before_export) == {"Q2", "Q3"}
+        else:
+            # Before either variant has ink the identical blanks are one Q5 output.
+            assert set(before_export) == {"Q5"}
+            blank = before_export["Q5"]
+            before_export = {"Q2": blank.copy(), "Q3": blank.copy()}
+        if target == donor:
+            selected_target = dict(target_args, target_version_id=second_version)
+            with pytest.raises(ValueError, match="MANUAL_COPY_SAME_PHYSICAL_OWNER"):
+                api.verify_saved_endcap_marking_copy(
+                    source_group_id=second[0], source=dict(args, source_version_id=second_version),
+                    target=selected_target,
+                )
+            duplicate = tmp_path / "saved-as.p6fold"
+            duplicate.write_bytes(saved.read_bytes())
+            with pytest.raises(ValueError, match="MANUAL_COPY_SAME_PHYSICAL_OWNER"):
+                api.verify_saved_endcap_marking_copy(
+                    source_group_id=first[0], source=dict(args, source_version_id=first_version,
+                                                          source_project_path=duplicate),
+                    target=selected_target,
+                )
         modal, state = editor(target)
         monkeypatch.setattr(filedialog, "askopenfilename", lambda **kw: str(saved))
         monkeypatch.setattr(simpledialog, "askstring", lambda *args, **kwargs: label)
@@ -568,7 +629,10 @@ def test_vault_version_copy_gui(tmp_path, monkeypatch, target_previously_marked)
         click(state, 35)
         marks = tuple(f for f in state.live_context.feature_list if api.is_manual_mark(f))
         assert len(marks) == (2 if target_previously_marked else 1), state.manual_mark_status.cget("text")
-        assert abs(marks[-1].points[1].x - marks[-1].points[0].x) == pytest.approx(12)
+        if source_tool == "circle":
+            assert api.is_manual_round_mark(marks[-1]) and marks[-1].diameter == 12
+        else:
+            assert abs(marks[-1].points[1].x - marks[-1].points[0].x) == pytest.approx(12)
         confirm(modal)
         monkeypatch.setattr(filedialog, "asksaveasfilename", lambda **kw: str(copied))
         menu.invoke(2)
@@ -580,20 +644,15 @@ def test_vault_version_copy_gui(tmp_path, monkeypatch, target_previously_marked)
                 before = (api.read_quantity_physical_marking(snapshot, key, version_id=version) or {}).get("features", ())
                 after = (api.read_quantity_physical_marking(final, key, version_id=version) or {}).get("features", ())
                 assert after == marks if (key, version) == (target, second_version) else after == before
-        for key in ("z", "head", "tail", "door", "base_plate", "ib", "ib_door"):
-            getattr(host, f"export_{key}_var").set(key == target)
-        out = tmp_path / "version-copy-dxf"
-        out.mkdir()
-        monkeypatch.setattr(filedialog, "askdirectory", lambda **kw: str(out))
-        export_selected_dxf(host)
-        assert not failures, failures
-        counts = {}
-        for file in out.glob("*.dxf"):
-            drawing = ezdxf.readfile(file)
-            assert drawing.header["$INSUNITS"] == 4 and not drawing.audit().errors
-            qty, = (e.plain_text() for e in drawing.modelspace().query('MTEXT[layer=="CHECK"]')
-                    if e.plain_text().startswith("Q"))
-            counts[qty] = len(drawing.modelspace().query('LWPOLYLINE[layer=="MARKING"]'))
-        assert counts == ({"Q2": 1, "Q3": 2} if target_previously_marked else {"Q2": 0, "Q3": 1})
+        after_export = export_versions(tmp_path / "version-copy-dxf")
+        assert set(after_export) == {"Q2", "Q3"}
+        assert after_export["Q2"] == before_export["Q2"]
+        clone = marks[-1]
+        expected = (("circle", (clone.offset.x, clone.offset.y, 0), clone.diameter)
+                    if source_tool == "circle" else
+                    ("line", tuple((p.x, p.y) for p in clone.points)))
+        before_export["Q3"][expected] += 1
+        assert after_export["Q3"] == before_export["Q3"]
+        assert sha256(saved.read_bytes()).hexdigest() == digest
     finally:
         root.destroy()
