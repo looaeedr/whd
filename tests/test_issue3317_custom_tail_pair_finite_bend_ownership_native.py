@@ -521,6 +521,10 @@ def test_custom_tail_original_vs_v_tip_material_and_triangle_control():
                     "new_v_boundary_distance_mm": round(
                         sheet.boundary.distance(segment), 9),
                 })
+                # Verified exact sample: original Factory corner removes
+                # this cross-tip bridge, while ROUND_R creates real material.
+                # Original 3D perimeter parity is not a joined-V solution.
+                assert not render.material.covers(segment)
                 assert sheet.covers(segment)
         assert (render.material.wkb, tuple(render.scene.primitives)) == before
         warnings.warn(
