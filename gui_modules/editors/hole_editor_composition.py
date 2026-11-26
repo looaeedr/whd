@@ -341,8 +341,14 @@ def _build_sidebar_workspace_state(s):
             edit_bar, text="鏡射（群組中心垂直軸）", bg="#3a3a44", fg="white",
         )
         s.manual_group_mirror.pack(side=d.tk.LEFT, padx=2)
+        copy_bar = edit_bar
+        if d.manufacturing_api.supports_scoped_marking_copy(s.manual_marking_draft):
+            # Keep the scoped copy action reachable when the Windows font
+            # and circle controls use the entire first toolbar row.
+            copy_bar = d.tk.Frame(s.center, bg=host.COLOR_PANEL)
+            copy_bar.pack(before=s.canvas, fill=d.tk.X, padx=4, pady=(0, 2))
         s.manual_mark_copy_button = d.tk.Button(
-            mark_bar if d.manufacturing_api.supports_scoped_marking_copy(s.manual_marking_draft) else edit_bar,
+            copy_bar,
             text=("從本專案其他連複製打標"
                   if d.manufacturing_api.supports_scoped_marking_copy(s.manual_marking_draft)
                   else "從另存專案複製群組"), bg="#3a3a44", fg="white",
