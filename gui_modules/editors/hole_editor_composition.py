@@ -1570,6 +1570,13 @@ def _install_manual_marking_actions(s):
             return {**receipt, "live_snapshot": live, "opened_target": s.manual_marking_draft}
         if ordinary_endcap_copy:
             geometry, live = live_copy_target(receipt["target"]["target_project_path"])
+            source = receipt["source"]
+            if (source.get("source_version_id") is not None
+                    and source["source_part_key"] in ("head", "tail")
+                    and source["source_project_path"].samefile(receipt["target"]["target_project_path"])):
+                from fold_designer_bridge import _phase6_collect_workspace_state
+                workspace = _phase6_collect_workspace_state(copy_app)
+                live = {**live, **workspace, "workspace": workspace}
             return {**receipt, "target": {**receipt["target"], "target_live_snapshot": live,
                                           "target_live_geometry": geometry}}
         context, live_snapshot = live_copy_target(receipt["target_project_path"])

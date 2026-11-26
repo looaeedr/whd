@@ -47,7 +47,7 @@ def _bound_project_snapshot(raw, claimed, role):
     return saved
 
 
-def _resolve_bound_saved_marking_geometry(saved, key, resolve_saved_geometry):
+def _resolve_bound_saved_marking_geometry(saved, key, resolve_saved_geometry, version_id=None):
     """Ask the trusted adapter only after the same bytes have been decoded.
 
     A saved FinalScene is not a project authority. This private port takes
@@ -58,6 +58,14 @@ def _resolve_bound_saved_marking_geometry(saved, key, resolve_saved_geometry):
 
     if not callable(resolve_saved_geometry):
         raise TypeError("MANUAL_COPY_CANONICAL_SAVED_RENDER_REQUIRED")
+    if version_id is not None and key in ("head", "tail"):
+        from .receiving_quantity_versions import QuantityModel, normalize_quantity_snapshot
+
+        if version_id not in {vid for vid, _ in list_ordinary_marking_copy_versions(saved, key)}:
+            raise ValueError("MANUAL_COPY_EXPLICIT_QUANTITY_VERSION_REQUIRED")
+        model = QuantityModel.from_payload(saved["quantity"])
+        model.select(version_id)
+        saved = normalize_quantity_snapshot({**saved, "quantity": model.snapshot()})
     return resolve_saved_geometry(deepcopy(saved), key)
 
 
@@ -66,7 +74,7 @@ def list_ordinary_marking_copy_versions(snapshot, part_key):
     from .operator_quantity_marking_owner import uses_quantity_physical_marking_editor
     from .receiving_quantity_versions import QuantityModel
 
-    if part_key not in {"door", "base_plate"} or not uses_quantity_physical_marking_editor(snapshot, part_key):
+    if part_key not in {"head", "tail", "door", "base_plate"} or not uses_quantity_physical_marking_editor(snapshot, part_key):
         return ()
     model = QuantityModel.from_payload(snapshot["quantity"])
     return tuple((row["version_id"], row["piece_count"])
@@ -117,7 +125,7 @@ def _open_ordinary_saved_copy_source(
     path, raw = _file_identity(source_project_path, source_project_sha256, "SOURCE")
     saved = _bound_project_snapshot(raw, source_snapshot, "SOURCE")
     source_geometry = _resolve_bound_saved_marking_geometry(
-        saved, source_part_key, resolve_saved_geometry,
+        saved, source_part_key, resolve_saved_geometry, source_version_id,
     )
     receipt, marks = _read_ordinary_copy_owner(saved, source_geometry, source_part_key, source_version_id)
     if not marks:
@@ -398,7 +406,7 @@ def _open_ordinary_saved_copy_target(
     path, raw = _file_identity(target_project_path, target_project_sha256, "TARGET")
     saved = _bound_project_snapshot(raw, target_snapshot, "TARGET")
     target_saved_geometry = _resolve_bound_saved_marking_geometry(
-        saved, target_part_key, resolve_saved_geometry,
+        saved, target_part_key, resolve_saved_geometry, target_version_id,
     )
     saved_receipt, saved_marks = _read_ordinary_copy_owner(
         saved, target_saved_geometry, target_part_key, target_version_id, allow_unowned=True,
@@ -450,7 +458,9 @@ def _verify_ordinary_saved_copy_sources(*, source_group_id, source, target):
             raise ValueError("MANUAL_COPY_SAME_PROJECT_REVISION_CHANGED")
         live = target["target_live_snapshot"]
         key = source["source_part_key"]
-        geometry = _resolve_bound_saved_marking_geometry(live, key, source["resolve_saved_geometry"])
+        geometry = _resolve_bound_saved_marking_geometry(
+            live, key, source["resolve_saved_geometry"], source.get("source_version_id"),
+        )
         current, current_marks = _read_ordinary_copy_owner(
             live, geometry, key, source.get("source_version_id"),
         )
