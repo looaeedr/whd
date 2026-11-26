@@ -5,10 +5,12 @@ from dataclasses import dataclass
 from hashlib import sha256
 import re
 
-from .operator_manual_marking import MANUAL_MARK_SOURCE, require_first_sheet_manual_marking_render
+from .operator_manual_marking import (
+    MANUAL_MARK_SOURCE, is_manual_round_mark, require_first_sheet_manual_marking_render,
+)
 from .physical_sheet_editor_context import resolve_physical_sheet_editor_context
 from .receiving_layout import normalize_receiving_layout
-from .sheetmetal_feature_core import ProfileFeature
+from .sheetmetal_feature_core import CircleFeature, ProfileFeature
 
 SCOPED_BASE_PLATE_MARKS = "receiving_base_plate_manual_marks"
 _DIGEST = re.compile(r"[0-9a-f]{64}")
@@ -41,14 +43,14 @@ def normalize_scoped_base_plate_mark_ledger(raw):
         if not isinstance(owner, str) or not _OWNER.fullmatch(owner):
             raise ValueError("SCOPED_MARK_LEDGER_OWNER_INVALID")
         if not isinstance(features, (tuple, list)):
-            raise ValueError("SCOPED_MARK_LEDGER_STRAIGHT_MARK_ONLY")
+            raise ValueError("SCOPED_MARK_LEDGER_LINE_OR_CIRCLE_REQUIRED")
         decoded = []
         for mark in features:
             if isinstance(mark, Mapping):
                 from .receiving_nfb_committed_final_scene import _physical_feature_from_transport
                 mark = _physical_feature_from_transport(mark)
-            if not isinstance(mark, ProfileFeature) or mark.source_type != MANUAL_MARK_SOURCE:
-                raise ValueError("SCOPED_MARK_LEDGER_STRAIGHT_MARK_ONLY")
+            if not is_scoped_base_plate_mark(mark):
+                raise ValueError("SCOPED_MARK_LEDGER_LINE_OR_CIRCLE_REQUIRED")
             decoded.append(deepcopy(mark))
         if decoded:
             result[owner] = ({"features": decoded, "source_sha256": seal} if seal else decoded)
@@ -129,6 +131,11 @@ def open_scoped_base_plate_editor(snapshot, set_index, bay_index, *, expected_ow
     else:
         marks, seal = tuple(record), None
     return ScopedBasePlateEditor(owner, location, context, _source(context), marks, seal)
+
+
+def is_scoped_base_plate_mark(mark):
+    return (isinstance(mark, ProfileFeature) and mark.source_type == MANUAL_MARK_SOURCE
+            or isinstance(mark, CircleFeature) and is_manual_round_mark(mark))
 
 
 def commit_scoped_base_plate_marks(snapshot, editor, marks):
@@ -258,17 +265,21 @@ def apply_scoped_base_plate_output(snapshot, location, owner_row, render):
 def verify_scoped_base_plate_dxf(render, target):
     """Independently reopen every MARKING entity, including physical DASH segments."""
     import ezdxf
-    from .sheetmetal_drawing import LinePrimitive, PolylinePrimitive
+    from .sheetmetal_drawing import CirclePrimitive, DrawingScene, LinePrimitive, PolylinePrimitive
+    from .dxf_acceptance import verify_reopened_marking
 
     def coords(a, b):
         return tuple(sorted((tuple(round(float(v), 8) for v in a),
                              tuple(round(float(v), 8) for v in b))))
 
     expected = []
+    circles = []
     for item in render.scene.primitives:
         if item.layer != "MARKING":
             continue
-        if isinstance(item, LinePrimitive):
+        if isinstance(item, CirclePrimitive) and is_manual_round_mark(item):
+            circles.append(item)
+        elif isinstance(item, LinePrimitive):
             expected.append(coords((item.p1.x, item.p1.y), (item.p2.x, item.p2.y)))
         elif isinstance(item, PolylinePrimitive) and not item.closed and len(item.points) == 2:
             a, b = item.points
@@ -279,12 +290,15 @@ def verify_scoped_base_plate_dxf(render, target):
     if doc.layers.get("MARKING").dxf.linetype.upper() != "CONTINUOUS":
         raise ValueError("SCOPED_MARK_DXF_LINETYPE_CHANGED")
     actual = []
+    round_count = 0
     for entity in doc.modelspace():
         if entity.dxf.layer.upper() != "MARKING":
             continue
         if entity.dxf.linetype.upper() not in {"BYLAYER", "CONTINUOUS"}:
             raise ValueError("SCOPED_MARK_DXF_LINETYPE_CHANGED")
-        if entity.dxftype() == "LINE":
+        if entity.dxftype() == "CIRCLE":
+            round_count += 1
+        elif entity.dxftype() == "LINE":
             a, b = entity.dxf.start, entity.dxf.end
             actual.append(coords((a.x, a.y), (b.x, b.y)))
         elif entity.dxftype() == "LWPOLYLINE" and not entity.closed:
@@ -294,5 +308,7 @@ def verify_scoped_base_plate_dxf(render, target):
             actual.append(coords(points[0][:2], points[1][:2]))
         else:
             raise ValueError("SCOPED_MARK_DXF_UNSUPPORTED_PRIMITIVE")
+    if round_count != len(circles) or (circles and verify_reopened_marking(DrawingScene(circles), doc, 1e-6)):
+        raise ValueError("SCOPED_MARK_DXF_ROUND_CHANGED")
     if sorted(actual) != sorted(expected):
         raise ValueError("SCOPED_MARK_DXF_POINTS_CHANGED")

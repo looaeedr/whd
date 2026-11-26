@@ -15,6 +15,7 @@ import json
 from pathlib import Path
 from uuid import uuid4
 
+from .operator_manual_marking import is_manual_round_mark
 from .sheetmetal_feature_core import ProfileFeature
 
 
@@ -638,9 +639,12 @@ def list_saved_scoped_marking_copy_candidates(*, project_path, project_sha256,
             # an explicit selection of it still fails verification.
             continue
         for mark in source.saved_marks:
-            a, b = mark.points
-            rows.append((owner, si, bi, _ordinary_saved_copy_key(mark),
-                         (a.x + b.x) / 2, (a.y + b.y) / 2, hypot(b.x - a.x, b.y - a.y)))
+            if is_manual_round_mark(mark):
+                x, y, size = mark.offset.x, mark.offset.y, mark.diameter
+            else:
+                a, b = mark.points
+                x, y, size = (a.x + b.x) / 2, (a.y + b.y) / 2, hypot(b.x - a.x, b.y - a.y)
+            rows.append((owner, si, bi, _ordinary_saved_copy_key(mark), x, y, size))
     if len({(row[0], row[3]) for row in rows}) != len(rows):
         raise ValueError("MANUAL_COPY_SOURCE_GROUP_AMBIGUOUS")
     return tuple(rows)
@@ -649,6 +653,7 @@ def list_saved_scoped_marking_copy_candidates(*, project_path, project_sha256,
 def verify_saved_scoped_marking_copy(*, project_path, project_sha256, saved_snapshot,
                                      live_snapshot, source_owner_id, source_group_id, opened_target):
     """Recheck both stocks and ledgers and the actual target modal, with no writes."""
+    from .manufacturing_contracts import freeze_manufacturing_value
     from .operator_physical_sheet_marking import PhysicalSheetMarkingDraft
 
     if (not isinstance(opened_target, PhysicalSheetMarkingDraft)
@@ -659,19 +664,27 @@ def verify_saved_scoped_marking_copy(*, project_path, project_sha256, saved_snap
         raise ValueError("MANUAL_COPY_SAME_PHYSICAL_OWNER")
     saved = _read_scoped_copy_file(project_path, project_sha256, saved_snapshot)
     stock = {}
+    saved_donor = ()
     for owner in (source_owner_id, target_owner):
         original, original_seal = _open_scoped_copy_owner(saved, owner)
         current, current_seal = _open_scoped_copy_owner(live_snapshot, owner)
-        if original_seal != current_seal or original.saved_marks != current.saved_marks:
+        # The project-open manufacturing transport freezes authored numbers.
+        # Compare against that same transport representation, not an ad hoc
+        # tolerance. The source file digest and both physical seals stay exact.
+        if (original_seal != current_seal or
+                freeze_manufacturing_value(original.saved_marks) !=
+                freeze_manufacturing_value(current.saved_marks)):
             raise ValueError("SCOPED_COPY_LIVE_SOURCE_CHANGED")
         stock[owner] = current
+        if owner == source_owner_id:
+            saved_donor = original.saved_marks
     current = stock[target_owner]
     if (opened_target._selection.location != current._selection.location
             or opened_target._source != current._source
             or opened_target.saved_marks != current.saved_marks
             or opened_target._selection.saved_seal != current._selection.saved_seal):
         raise ValueError("MANUAL_COPY_TARGET_EDITOR_SESSION_STALE")
-    matches = [row for row in stock[source_owner_id].saved_marks
+    matches = [row for row in saved_donor
                if source_group_id and _ordinary_saved_copy_key(row) == source_group_id]
     if len(matches) != 1:
         raise ValueError("MANUAL_COPY_SOURCE_GROUP_AMBIGUOUS")
@@ -681,7 +694,8 @@ def verify_saved_scoped_marking_copy(*, project_path, project_sha256, saved_snap
 def place_saved_scoped_marking_copy(*, target_features, target_position, **ports):
     """Stage one literal stroke via the same placement validator as other copies."""
     from .operator_physical_sheet_marking import (
-        move_physical_sheet_straight_mark, validate_physical_sheet_marking_draft,
+        move_physical_sheet_round_mark, move_physical_sheet_straight_mark,
+        validate_physical_sheet_marking_draft,
     )
     from .sheetmetal_geometry import Vec2
 
@@ -689,9 +703,13 @@ def place_saved_scoped_marking_copy(*, target_features, target_position, **ports
     if not isinstance(target_position, Vec2):
         raise ValueError("MANUAL_COPY_TARGET_POSITION_REQUIRED")
     existing = tuple(target_features)
-    a, b = mark.points
     try:
         validate_physical_sheet_marking_draft(target, existing)
+        if is_manual_round_mark(mark):
+            return move_physical_sheet_round_mark(
+                target, (*existing, mark), selected_index=len(existing), centre=target_position,
+            )
+        a, b = mark.points
         return move_physical_sheet_straight_mark(
             target, (*existing, mark), selected_index=len(existing),
             displacement=Vec2(target_position.x - (a.x + b.x) / 2,
