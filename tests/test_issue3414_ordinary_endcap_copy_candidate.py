@@ -20,12 +20,18 @@ from tests.test_issue3414_scoped_marking_proto import _raw_write, _real_source, 
     pytest.param(False, "group", id="other-project"),
     pytest.param(True, "group", id="same-project"),
     pytest.param(False, "line", id="standalone-line"),
+    pytest.param(False, "line_discard_delete", id="standalone-discard-delete"),
+    pytest.param(False, "line_discard_undo", id="standalone-discard-undo"),
+    pytest.param(False, "line_keep", id="standalone-retained-source-changed"),
+    pytest.param(False, "line_keep_undo", id="standalone-delete-undo-source-changed"),
+    pytest.param(False, "line_keep_moved", id="standalone-moved-source-changed"),
     pytest.param(False, "line_choice", id="two-source-lines"),
     pytest.param(True, "circle", id="standalone-circle"),
 ])
 def test_existing_editor_copies_saved_head_group_into_distinct_tail(tmp_path, monkeypatch, same_project, shape):
     multiple = shape == "line_choice"
-    if multiple:
+    copy_lifecycle = shape.removeprefix("line_") if shape.startswith(("line_discard_", "line_keep")) else ""
+    if multiple or copy_lifecycle:
         shape = "line"
     def initial(key):
         snapshot = _resize(_real_source(), 1)
@@ -242,6 +248,56 @@ def test_existing_editor_copies_saved_head_group_into_distinct_tail(tmp_path, mo
                 assert length(copied) != pytest.approx(length(not_chosen))
         else:
             assert copied.diameter == source_group.diameter
+        if copy_lifecycle:
+            if copy_lifecycle in {"discard_delete", "keep_undo"}:
+                index = next(i for i, f in enumerate(state.live_context.feature_list) if f is copied)
+                from phase6_hole_editor_session import HoleEditorAction
+                state.hole_session.execute(HoleEditorAction.select(index))
+                state.delete_btn.invoke()
+                root.update()
+                assert all(f is not copied for f in state.live_context.feature_list)
+            if copy_lifecycle in {"discard_undo", "keep_undo"}:
+                state.undo_btn.invoke()
+                root.update()
+            keep = copy_lifecycle.startswith("keep")
+            assert any(f is copied for f in state.live_context.feature_list) == keep
+            if copy_lifecycle == "keep_moved":
+                p1, p2 = copied.points
+                midpoint = Vec2((p1.x + p2.x) / 2, (p1.y + p2.y) / 2)
+                canvas = host.last_hole_editor_canvas
+                for event, delta, timestamp in (("<ButtonPress-1>", 0, 1500),
+                                                ("<B1-Motion>", 14, 1530),
+                                                ("<ButtonRelease-1>", 14, 1580)):
+                    x, y = state.canvas_view.transform.world_to_canvas(Vec2(midpoint.x + delta, midpoint.y))
+                    canvas.event_generate(event, x=round(x), y=round(y), time=timestamp)
+                    root.update()
+                edited, = [f for f in state.live_context.feature_list if predicate(f) and f not in original_marks]
+                assert edited is not copied and edited.points != copied.points
+            head_saved.write_bytes(original_bytes + b"\n")
+            assert read_project(head_saved)["snapshot"] == head
+            target_file_before = tail_saved.read_bytes()
+            if keep:
+                _actual_editor_confirm(editor)
+                root.update()
+                assert editor.winfo_exists()
+                assert any("MANUAL_COPY_SOURCE_SAVED_SOURCE_CHANGED" in text for _, text in failures)
+                assert tail_saved.read_bytes() == target_file_before
+                return
+            state.manual_mark_length.set("11")
+            editor._manual_marking_controls[0].invoke()
+            click(state, Vec2(p.x - 44, p.y + 15))
+            surviving = tuple(f for f in state.live_context.feature_list if api.is_manual_mark(f))
+            assert surviving[:len(original_marks)] == original_marks
+            assert len(surviving) == len(original_marks) + 1
+            assert all(f is not copied for f in surviving)
+            finish(editor)
+            assert tail_saved.read_bytes() == target_file_before
+            final = save_project(tail_final)
+            open_project(tail_final)
+            assert api.read_workspace_marking_owner_record(final, target_owner)["features"] == surviving
+            stock, ink = stock_and_ink("tail", "discarded-copy-dxf")
+            assert stock == original_stock and len(ink) == len(original_ink) + 1
+            return
         finish(editor)
         live = current_workspace_marking_source(app)
         assert api.resolve_workspace_physical_root_owner(live, "tail") == target_owner

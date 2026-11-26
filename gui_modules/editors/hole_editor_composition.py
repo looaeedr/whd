@@ -927,6 +927,7 @@ def _install_manual_marking_actions(s):
         return
     from phase6_hole_editor_session import HoleEditorAction
     from math import hypot
+    from weakref import ref
     d = s.d
     api = d.manufacturing_api
     real_redraw = s.redraw
@@ -938,6 +939,24 @@ def _install_manual_marking_actions(s):
     pending_copy = None
     copy_rejection = None
     placed_copy_receipts = {}
+    # Standalone copies have no persisted group ID. Session Undo retains the
+    # exact row, so use transient object identity, not geometry equality.
+    # A weak reference also releases abandoned drag previews and old edits.
+    plain_copy_receipts = {}
+
+    def remember_plain_copy(feature, receipt):
+        key = id(feature)
+
+        def discard(dead):
+            binding = plain_copy_receipts.get(key)
+            if binding is not None and binding[0] is dead:
+                plain_copy_receipts.pop(key)
+
+        plain_copy_receipts[key] = (ref(feature, discard), receipt)
+
+    def plain_copy_receipt(feature):
+        binding = plain_copy_receipts.get(id(feature))
+        return binding[1] if binding is not None and binding[0]() is feature else None
 
     def checked_redraw():
         try:
@@ -1299,7 +1318,10 @@ def _install_manual_marking_actions(s):
             if kind == "group":
                 clear_member_edit()
                 corner_arm[0] = None
+            receipt = plain_copy_receipt(previous)
             s.hole_session.execute(HoleEditorAction.replace_selected(moved))
+            if receipt is not None:
+                remember_plain_copy(moved, receipt)
             drag_origin[0] = (*grab[:-1], moved)
             s.redraw()
             return "break"
@@ -1626,22 +1648,20 @@ def _install_manual_marking_actions(s):
         if api.is_manual_group(clone):
             placed_copy_receipts[api.group_parameters(clone)["group_id"]] = pending["receipt"]
         else:
-            plain_copy_receipts.append(pending["receipt"])
+            remember_plain_copy(clone, pending["receipt"])
         return "break"
 
-    # Standalone marks intentionally have no persisted group ID; recheck
-    # their sources at Confirm even when the operator edits the placed mark.
-    plain_copy_receipts = []
     original_confirm_features = s.on_confirm_features
 
     def confirm_with_copy_sources(features):
         if pending_copy is not None:
             raise ValueError("MANUAL_COPY_TARGET_POSITION_REQUIRED")
-        for receipt in plain_copy_receipts:
-            verify = api.verify_saved_scoped_marking_copy if scoped_copy else api.verify_saved_endcap_marking_copy
-            _, verified = verify(**verified_copy_args(receipt))
-            api.validate_physical_sheet_marking_draft(verified, tuple(features))
         for feature in features:
+            receipt = plain_copy_receipt(feature)
+            if receipt is not None:
+                verify = api.verify_saved_scoped_marking_copy if scoped_copy else api.verify_saved_endcap_marking_copy
+                _, verified = verify(**verified_copy_args(receipt))
+                api.validate_physical_sheet_marking_draft(verified, tuple(features))
             if not api.is_manual_group(feature):
                 continue
             receipt = placed_copy_receipts.get(api.group_parameters(feature)["group_id"])
