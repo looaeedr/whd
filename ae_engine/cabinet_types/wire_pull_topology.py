@@ -141,6 +141,11 @@ def _flat(key, width, height, t, dims, placement, *, outer_plane, z_center=0.):
         tuple(m.local for m in mapped), ((0,0,1),)*len(mapped), t,
     )
     mesh = place_assembly_triangles(mesh, placement, dims)
+    # The shared top placement swaps Y/Z (determinant -1). Its points
+    # and UV orientation are correct; restore the outward triangle winding
+    # of the closed solid after the reflection. Bottom/front preserve it.
+    if placement == "top":
+        mesh = tuple((a,c,b) for a,b,c in mesh)
     axis, sign = (2,1) if placement == "front" else (1,1 if placement == "top" else -1)
     bounds = triangle_bounds(mesh)
     delta = outer_plane - bounds[axis][1 if sign > 0 else 0]

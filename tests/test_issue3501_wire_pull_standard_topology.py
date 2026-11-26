@@ -154,3 +154,33 @@ def test_candidate_cannot_bypass_via_verified_batch_or_composed_existing_target(
     assert composed_path.read_bytes() == b"existing composed DXF"
     assert sorted(p.name for p in tmp_path.iterdir()) == ["combined.dxf","lid.dxf"]
     assert not guard_calls
+
+
+def _cross(a,b):
+    return (a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0])
+
+
+@pytest.mark.parametrize("t",[1.5,3.])
+def test_installed_shell_winding_and_cap_outward_normals(t):
+    result = api.resolve_standard_cabinet_topology(source(t))
+    for part in result.parts:
+        # Signed tetrahedral volume from the actual installed triangles,
+        # not declared face metadata or bounding boxes alone.
+        volume = sum(sum(x*y for x,y in zip(a,_cross(b,c)))
+                     for a,b,c in part.world_triangles)/6.
+        assert volume > 0, part.part_key
+    for key,axis,sign in (("head",1,1),("tail",1,-1),("lid",2,1)):
+        part = result.part(key)
+        bounds = triangle_bounds(part.world_triangles)
+        for plane,direction in ((bounds[axis][1],1),(bounds[axis][0],-1)):
+            faces = [(a,b,c) for a,b,c in part.world_triangles
+                     if all(abs(p[axis]-plane)<1e-6 for p in (a,b,c))]
+            assert faces
+            for a,b,c in faces:
+                normal = _cross(tuple(y-x for x,y in zip(a,b)),
+                                tuple(y-x for x,y in zip(a,c)))
+                assert normal[axis]*direction > 0, key
+        assert part.mounting_faces[0].outward_normal[axis] == sign
+        volume = sum(sum(x*y for x,y in zip(a,_cross(b,c)))
+                     for a,b,c in part.world_triangles)/6.
+        assert volume == pytest.approx(part.render_data.material.area*t)
