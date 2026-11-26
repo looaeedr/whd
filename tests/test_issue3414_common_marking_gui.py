@@ -37,8 +37,8 @@ def test_two_real_scoped_selection_receipts_share_existing_tk_actions(tmp_path):
             state = dict(zip(cb.__code__.co_freevars, (c.cell_contents for c in cb.__closure__)))["s"]
             receipt = state.manual_marking_draft
             assert receipt.owner_id == original_ids[bay]
-            assert receipt.allowed_tools == ("line",)
-            assert not hasattr(editor, "_manual_round_marking_controls")
+            assert receipt.allowed_tools == ("line", "circle")
+            assert hasattr(editor, "_manual_round_marking_controls")
             assert not state.manual_group_tools
             return editor, state
 

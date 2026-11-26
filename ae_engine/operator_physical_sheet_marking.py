@@ -17,6 +17,7 @@ from .operator_manual_marking_groups import create_physical_manual_marking_group
 from .operator_scoped_base_plate_marks import (
     open_scoped_base_plate_editor,
     commit_scoped_base_plate_marks,
+    is_scoped_base_plate_mark,
 )
 from .physical_sheet_editor_context import (
     PhysicalSheetEditorContext,
@@ -74,7 +75,7 @@ def open_physical_sheet_marking(part_key, *, context=None, features=(),
             snapshot, *selection, expected_owner=expected_owner,
         )
         return PhysicalSheetMarkingDraft(
-            scoped.context, scoped.owner, ("line",), scoped.saved_marks,
+            scoped.context, scoped.owner, ("line", "circle"), scoped.saved_marks,
             _source(scoped.context), scoped, snapshot,
         )
     if (snapshot is not None or expected_owner is not None
@@ -122,9 +123,9 @@ def validate_physical_sheet_marking_draft(draft, features):
     ctx = _require_draft(draft)
     checked = propose_operator_physical_sheet_hole_features(ctx.part_key, ctx, features)
     if draft._selection is not None and any(
-        getattr(row, "source_type", None) != MANUAL_MARK_SOURCE for row in checked
+        not is_scoped_base_plate_mark(row) for row in checked
     ):
-        raise ValueError("SCOPED_MARK_LEDGER_STRAIGHT_MARK_ONLY")
+        raise ValueError("SCOPED_MARK_LEDGER_LINE_OR_CIRCLE_REQUIRED")
     return checked
 
 

@@ -1671,8 +1671,11 @@ def _install_manual_marking_actions(s):
         )
         if not options:
             raise ValueError("MANUAL_COPY_SOURCE_GROUP_MISSING")
-        labels = [f"{i}. 第{si + 1}套／第{bi + 1}連：直線 {length:.2f} mm，X={x:.2f}, Y={y:.2f}"
-                  for i, (_, si, bi, _, x, y, length) in enumerate(options, 1)]
+        labels = [
+            f"{i}. 第{si + 1}套／第{bi + 1}連："
+            f"{'圓形 Ø' if key.startswith('circle:') else '直線 '}{size:.2f} mm，X={x:.2f}, Y={y:.2f}"
+            for i, (_, si, bi, key, x, y, size) in enumerate(options, 1)
+        ]
         picked = simpledialog.askinteger(
             "選擇來源連與打標", "\n".join(labels), minvalue=1, maxvalue=len(options), parent=s.editor,
         )
@@ -1680,8 +1683,9 @@ def _install_manual_marking_actions(s):
             return None
         owner, _, _, group_id, *_ = options[picked - 1]
         receipt = dict(**binding, source_owner_id=owner, source_group_id=group_id)
-        api.verify_saved_scoped_marking_copy(**verified_copy_args(receipt))
-        return receipt, "跨板複製：點選目標中點（Esc 取消）"
+        mark, _ = api.verify_saved_scoped_marking_copy(**verified_copy_args(receipt))
+        anchor = "圓心" if api.is_manual_round_mark(mark) else "中點"
+        return receipt, f"跨板複製：點選目標{anchor}（Esc 取消）"
 
     def copy_from_other_saved_project():
         """Select one saved group; wait for the operator's target anchor."""

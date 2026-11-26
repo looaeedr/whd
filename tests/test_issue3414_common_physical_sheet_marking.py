@@ -48,7 +48,7 @@ def test_same_tool_ordinary_and_two_physical_scoped_owners(actual_sheet, tmp_pat
     b = api.open_physical_sheet_marking("base_plate", snapshot=source, selection=(0, 1))
     assert a.owner_id == owner_a and b.owner_id == owner_b
     assert a.owner_id != b.owner_id != ordinary.owner_id
-    assert a.allowed_tools == b.allowed_tools == ("line",)
+    assert a.allowed_tools == b.allowed_tools == ("line", "circle")
     mark_a, mark_b = _place(a, shift=14), _place(b, shift=-18)
     assert mark_a != mark_b
     a_update = api.commit_physical_sheet_marking(a, a, (mark_a,))
@@ -61,7 +61,7 @@ def test_same_tool_ordinary_and_two_physical_scoped_owners(actual_sheet, tmp_pat
     with pytest.raises(ValueError, match="OWNER_STALE"):
         api.commit_physical_sheet_marking(b, a, (mark_a,))
     with pytest.raises(ValueError, match="TOOL_UNSUPPORTED"):
-        api.create_physical_sheet_mark(a, (), tool="circle")
+        api.create_physical_sheet_mark(a, (), tool="l")
 
     old_a = api.open_physical_sheet_marking("base_plate", snapshot=current, selection=(0, 0))
     assert old_a.saved_marks == (mark_a,)
