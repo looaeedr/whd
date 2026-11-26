@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Any, MutableSequence, Sequence
+from weakref import ref
 
 
 @dataclass(frozen=True)
@@ -124,6 +125,7 @@ class Phase6HoleEditorSession:
         self._contexts: dict[str, _ContextState] = {
             key: _ContextState(feature_list, list(feature_list))
         }
+        self._copy_sources = {}
         self._active_context_key = key
         self._selected_index = -1
         self._active_before: list[Any] | None = None
@@ -149,6 +151,27 @@ class Phase6HoleEditorSession:
     def _context(self) -> _ContextState:
         return self._contexts[self._active_context_key]
 
+    def bind_copy_source(self, feature, receipt):
+        # Undo snapshots retain the actual immutable row. Track that instance,
+        # including old revisions until neither the draft nor Undo needs them.
+        key = id(feature)
+        def discard(dead):
+            current = self._copy_sources.get(key)
+            if current is not None and current[0] is dead:
+                self._copy_sources.pop(key)
+
+        self._copy_sources[key] = (ref(feature, discard), receipt)
+
+    def copy_source(self, feature):
+        entry = self._copy_sources.get(id(feature))
+        return entry[1] if entry is not None and entry[0]() is feature else None
+
+    def _replace_feature(self, index, replacement):
+        receipt = self.copy_source(self.active_features[index])
+        self.active_features[index] = replacement
+        if receipt is not None:
+            self.bind_copy_source(replacement, receipt)
+
     def snapshot(self) -> HoleEditorSessionSnapshot:
         return HoleEditorSessionSnapshot(
             context_key=self._active_context_key,
@@ -169,7 +192,7 @@ class Phase6HoleEditorSession:
         elif kind == "replace_selected":
             index = self._require_selected()
             self._begin_active_if_needed()
-            self.active_features[index] = action.feature
+            self._replace_feature(index, action.feature)
         elif kind == "commit_active":
             self._commit_active(keep_selected=action.keep_selected)
         elif kind == "cancel_active":
@@ -178,7 +201,7 @@ class Phase6HoleEditorSession:
             index = self._require_selected()
             self._commit_active(keep_selected=True)
             before = list(self.active_features)
-            self.active_features[index] = action.feature
+            self._replace_feature(index, action.feature)
             if before != list(self.active_features):
                 self._undo.push(before)
             self._active_before = None

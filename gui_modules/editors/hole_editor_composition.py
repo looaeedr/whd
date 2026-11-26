@@ -1626,18 +1626,20 @@ def _install_manual_marking_actions(s):
         if api.is_manual_group(clone):
             placed_copy_receipts[api.group_parameters(clone)["group_id"]] = pending["receipt"]
         else:
-            plain_copy_receipts.append(pending["receipt"])
+            s.hole_session.bind_copy_source(clone, pending["receipt"])
         return "break"
 
     # Standalone marks intentionally have no persisted group ID; recheck
     # their sources at Confirm even when the operator edits the placed mark.
-    plain_copy_receipts = []
     original_confirm_features = s.on_confirm_features
 
     def confirm_with_copy_sources(features):
         if pending_copy is not None:
             raise ValueError("MANUAL_COPY_TARGET_POSITION_REQUIRED")
-        for receipt in plain_copy_receipts:
+        for feature in features:
+            receipt = s.hole_session.copy_source(feature)
+            if receipt is None:
+                continue
             verify = api.verify_saved_scoped_marking_copy if scoped_copy else api.verify_saved_endcap_marking_copy
             _, verified = verify(**verified_copy_args(receipt))
             api.validate_physical_sheet_marking_draft(verified, tuple(features))
