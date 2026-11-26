@@ -263,6 +263,11 @@ def export_current_receiving_multibay_dxf(
                 raise ValueError("SCOPED_MARK_SAVED_SOURCE_CHANGED_DURING_OUTPUT")
 
     layout=normalize_receiving_layout(saved_snapshot.get("receiving_layout"))
+    # A persisted marking is tied to a confirmed physical BasePlate. A
+    # revoked Bay cannot be made eligible by a cached FinalScene provider.
+    if any(layout["sets"][si]["bays"][bi].get("nfb_config_submitted") is not True
+           for si, bi in scoped_marks):
+        raise ValueError("SCOPED_MARK_BASE_PLATE_NOT_SOURCE_VERIFIED")
     # Externally supplied approved NFB pairs may join independent core flats.
     # The same saved-layout fingerprint check later still rejects foreign NFB.
     # GUI include_saved_nfb_pairs retains its own original selection policy.
