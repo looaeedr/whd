@@ -25,6 +25,7 @@ from tests.test_issue3414_scoped_marking_proto import _raw_write, _real_source, 
     pytest.param(False, "line_keep", id="standalone-retained-source-changed"),
     pytest.param(False, "line_keep_undo", id="standalone-delete-undo-source-changed"),
     pytest.param(False, "line_keep_moved", id="standalone-moved-source-changed"),
+    pytest.param(False, "line_keep_edited", id="standalone-session-edited-source-changed"),
     pytest.param(False, "line_choice", id="two-source-lines"),
     pytest.param(True, "circle", id="standalone-circle"),
 ])
@@ -272,6 +273,16 @@ def test_existing_editor_copies_saved_head_group_into_distinct_tail(tmp_path, mo
                     canvas.event_generate(event, x=round(x), y=round(y), time=timestamp)
                     root.update()
                 edited, = [f for f in state.live_context.feature_list if predicate(f) and f not in original_marks]
+                assert edited is not copied and edited.points != copied.points
+            if copy_lifecycle == "keep_edited":
+                from phase6_hole_editor_session import HoleEditorAction
+                index = next(i for i, f in enumerate(state.live_context.feature_list) if f is copied)
+                state.hole_session.execute(HoleEditorAction.select(index))
+                edited = api.move_physical_sheet_straight_mark(
+                    state.manual_marking_draft, tuple(state.live_context.feature_list),
+                    selected_index=index, displacement=Vec2(3, 0),
+                )
+                state.hole_session.execute(HoleEditorAction.replace_selected_committed(edited))
                 assert edited is not copied and edited.points != copied.points
             head_saved.write_bytes(original_bytes + b"\n")
             assert read_project(head_saved)["snapshot"] == head
