@@ -619,7 +619,9 @@ def list_saved_scoped_marking_copy_candidates(*, project_path, project_sha256,
                                               saved_snapshot, target_owner_id):
     """Return readable literal strokes, each bound to an explicit physical Bay."""
     from math import hypot
-    from .operator_scoped_base_plate_marks import _current_owners, normalize_scoped_base_plate_marks
+    from .operator_scoped_base_plate_marks import (
+        ScopedBasePlateOriginalSourceRequired, _current_owners, normalize_scoped_base_plate_marks,
+    )
 
     saved = _read_scoped_copy_file(project_path, project_sha256, saved_snapshot)
     _open_scoped_copy_owner(saved, target_owner_id)
@@ -631,7 +633,7 @@ def list_saved_scoped_marking_copy_candidates(*, project_path, project_sha256,
             continue
         try:
             source, _ = _open_scoped_copy_owner(saved, owner)
-        except _ScopedCopySavedSourceChanged:
+        except (_ScopedCopySavedSourceChanged, ScopedBasePlateOriginalSourceRequired):
             # This donor is not selectable. The saved record is left intact and
             # an explicit selection of it still fails verification.
             continue
