@@ -417,9 +417,8 @@ def test_custom_tail_original_finite_x_y_guides_still_move_without_new_bends():
         guides = fold_guides_from_final_scene(render.scene)
         xs = sorted((g for g in guides if g.axis == "x"), key=lambda g:g.position)
         ys = sorted((g for g in guides if g.axis == "y"), key=lambda g:g.position)
-        assert [(g.position, g.span_start) for g in xs] == pytest.approx(
-            [(15., 16.), (407., 16.)]
-        )
+        assert tuple(g.position for g in xs) == pytest.approx((15., 407.))
+        assert tuple(g.span_start for g in xs) == pytest.approx((16., 16.))
         bottom = ys[0]
         assert (bottom.position, bottom.span_start, bottom.span_end) == pytest.approx(
             (15., 16., 406.)
