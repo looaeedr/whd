@@ -915,6 +915,11 @@ from .manufacturing_scene_orchestration import (
     build_part_render_data,
 )
 
+def resolve_standard_cabinet_topology(spec):
+    """Engine-owned standard assembly projection from explicit Family source."""
+    return cabinet_family_policy.resolve_standard_cabinet_topology(spec)
+
+
 def build_operator_part_render_data(
     spec: PartSpec, context: ManufacturingContext | None = None,
 ) -> PartRenderData | BoxBodyStructureRenderData:
@@ -939,6 +944,7 @@ def _require_single_part_dxf_source(render_data, *, selected_owner_witness=None)
     else:
         selected_owner_witness.assert_render(render_data)
     metadata = getattr(render_data, "metadata", None) or {}
+    _manufacturing_export.require_standard_cabinet_render_manufacturing(render_data)
     # A CHECK-only V preview is never a production cutting plan.
     reject_tail_lower_v_preview_for_dxf(render_data)
     blocked = metadata.get("baseline_fit_error")

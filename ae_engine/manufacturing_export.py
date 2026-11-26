@@ -73,6 +73,14 @@ def resolved_physical_dxf_stem(part_id: str, *, box_body_physical_piece_roles) -
     return safe_dxf_part_stem(value)
 
 
+def require_standard_cabinet_render_manufacturing(render_data):
+    """A standard topology candidate cannot bypass Family admission via scenes."""
+    metadata = getattr(render_data, "metadata", None)
+    if isinstance(metadata, Mapping) and "standard_cabinet_family" in metadata:
+        from .cabinet_types.policy import require_implemented_manufacturing_family
+        require_implemented_manufacturing_family(metadata["standard_cabinet_family"])
+
+
 def resolved_physical_render_parts(resolved_geometry, *, include_unreleased_source_flats=False):
     """Project ordinary DXF parts or full physical BOM inventory.
 
@@ -93,6 +101,7 @@ def resolved_physical_render_parts(resolved_geometry, *, include_unreleased_sour
         # The selected Vault lower V is CHECK only, never CNC.
         from .operator_tail_lower_v import reject_tail_lower_v_preview_for_dxf
         reject_tail_lower_v_preview_for_dxf(render_data)
+        require_standard_cabinet_render_manufacturing(render_data)
         # Source-flat fixing plates have real physical PartRenderData for the
         # GUI and a separate source DXF export. Until finished BEND/weld Z is
         # verified, they are NOT part of the full cabinet production DXF set.
@@ -377,6 +386,7 @@ def _save_resolved_rows_atomic(
         marking_witness.assert_current()
     _reject_unapproved_nfb_pad_ear_manufacturing(rows)
     for output_key, _, render_data in rows:
+        require_standard_cabinet_render_manufacturing(render_data)
         reject_unverified_receiving_nfb_tier_base(
             render_data, output_key=str(output_key),
         )

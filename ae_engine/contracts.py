@@ -227,6 +227,27 @@ class CustomFoldPartSpec:
     features: tuple[FeatureLike, ...] = ()
 
 
+@dataclass(frozen=True)
+class WirePullBoxSpec:
+    """Explicit first-type assembly source; no shop fold/dimension defaults.
+
+    W/H/D measure the installed physical enclosure. Return lengths are
+    material lengths (CURRENT 07), not formed outside lengths. End plates
+    must each have an explicitly selected supported form and fit clearance.
+    """
+    width: float
+    height: float
+    depth: float
+    thickness: float
+    left_return_material_mm: float | None = None
+    right_return_material_mm: float | None = None
+    head_form: str | None = None
+    tail_form: str | None = None
+    head_clearance_mm: float | None = None
+    tail_clearance_mm: float | None = None
+    model_name: str = "拉線箱"
+
+
 PartSpec: TypeAlias = CustomFoldPartSpec | DoorPartSpec | BoxBodyPartSpec | EndCapPartSpec | BasePlatePartSpec | IndicatorBoxPartSpec
 
 

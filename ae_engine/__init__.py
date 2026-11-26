@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Replaceable AE manufacturing engine package."""
 from .contracts import (
-    ManufacturingPolicy, ManufacturingContext, DoorPartSpec, BoxBodyPartSpec,
+    ManufacturingPolicy, ManufacturingContext, DoorPartSpec, BoxBodyPartSpec, WirePullBoxSpec,
     EndCapPartSpec, BasePlatePartSpec, IndicatorBoxPartSpec, CustomFoldPartSpec, PartExportResult, PartSpec,
 )
 from .integration_api import (
@@ -19,6 +19,7 @@ from .receiving_part_only_door_handoff import (
     ReceivingPartOnlyDoorIndicatorIntent, resolve_receiving_part_only_door_request,
 )
 from .manufacturing_api import (
+    resolve_standard_cabinet_topology,
     ReceivingFactoryConfirmedDoorHandoff,
     plan_receiving_factory_confirmed_door_handoff,
     commit_operator_endcap_fw_profile_save,
