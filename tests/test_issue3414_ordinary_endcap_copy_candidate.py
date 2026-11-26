@@ -452,20 +452,25 @@ def test_existing_vault_editor_copies_saved_mark_between_door_and_base(tmp_path,
         root.destroy()
 
 
-@pytest.mark.parametrize(("target_previously_marked", "target", "source_tool"), [
-    (True, "base_plate", "line"), (False, "base_plate", "line"),
-    pytest.param(True, "door", "line", id="distinct-door-versions"),
-    pytest.param(True, "door", "circle", id="distinct-door-versions-circle"),
+@pytest.mark.parametrize(("target_previously_marked", "target", "source_tool", "donor"), [
+    (True, "base_plate", "line", "door"), (False, "base_plate", "line", "door"),
+    pytest.param(True, "door", "line", "door", id="distinct-door-versions"),
+    pytest.param(True, "door", "circle", "door", id="distinct-door-versions-circle"),
+    pytest.param(True, "base_plate", "circle", "head", id="quantity-head-circle-to-base"),
+    pytest.param(True, "base_plate", "line", "tail", id="quantity-tail-line-to-base"),
 ])
-def test_vault_version_copy_gui(tmp_path, monkeypatch, target_previously_marked, target, source_tool):
+def test_vault_version_copy_gui(tmp_path, monkeypatch, target_previously_marked, target, source_tool, donor):
     from tests.test_issue2517_direct_door_partspec_original_source_engine_gate import _row
     from hashlib import sha256
     from phase6_manufacturing_adapter import build_scene_payload_for_app
-    donor, label = 'door', '\u9580\u677f'
+    label = {"door": "門板", "head": "封頭", "tail": "封尾"}[donor]
 
     source = _row()
     source["multi_door_enabled"] = False
     source["existing_parts"] = ["box_body", "door", "base_plate"]
+    if donor in ("head", "tail"):
+        source.update(zl1=15.0, zl2=20.0, zr1=15.0, zr2=20.0, z_comp=-10.0)
+        source["existing_parts"].append(donor)
     initial = _raw_write(tmp_path / "vault.p6fold", source)
     saved = tmp_path / "saved.p6fold"
     copied = tmp_path / "copied.p6fold"
@@ -540,6 +545,10 @@ def test_vault_version_copy_gui(tmp_path, monkeypatch, target_previously_marked,
             mark(target, "6")
         app.designer_workspace.quantity_model.select(first_version)
         root.update()
+        if donor in ("head", "tail"):
+            from ae_engine.sheetmetal_feature_core import CircleFeature, FeatureAnchor
+            hole = CircleFeature(6, FeatureAnchor.ABSOLUTE_FINISHED_FACE, Vec2(100, 100))
+            app.designer_workspace.stash_features(donor, (hole,))
         mark(donor, "12", tool=source_tool)
         if target_previously_marked and target != donor:
             mark(target, "8")
@@ -558,6 +567,9 @@ def test_vault_version_copy_gui(tmp_path, monkeypatch, target_previously_marked,
         first, = api.list_saved_endcap_marking_copy_candidates(dict(args, source_version_id=first_version))
         second, = api.list_saved_endcap_marking_copy_candidates(dict(args, source_version_id=second_version))
         assert first[4] == pytest.approx(12) and second[4] == pytest.approx(29)
+        if donor in ("head", "tail"):
+            versions = snapshot["quantity"]["versions"]
+            assert versions[0][donor + "_features"] == [hole] and not versions[1][donor + "_features"]
         live = current_workspace_marking_source(app)
         geometry = api.selected_normal_marking_inventory(
             target, host._query_fold_designer_render_data(target, build_scene_payload_for_app(app, target)),
