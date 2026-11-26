@@ -15,6 +15,10 @@ _DIGEST = re.compile(r"[0-9a-f]{64}")
 _OWNER = re.compile(r"receiving:base_plate:[0-9a-f]{32}:[1-9][0-9]{0,17}")
 
 
+class ScopedBasePlateOriginalSourceRequired(ValueError):
+    """The selected Bay has no confirmed original source for its board."""
+
+
 def normalize_scoped_base_plate_marks(snapshot):
     """Validate saved authored shape; intentionally retain rows for deleted owners."""
     return normalize_scoped_base_plate_mark_ledger(snapshot.get(SCOPED_BASE_PLATE_MARKS, {}))
@@ -167,7 +171,7 @@ def resolve_scoped_base_plate_render(snapshot, set_index, bay_index):
     # Never select a second Bay's plate by a shared root alias: require that
     # this Bay itself carries confirmed original NFB source.
     if source.get("nfb_config_submitted") is not True or not isinstance(source.get("nfb_config"), Mapping):
-        raise ValueError("SCOPED_MARK_BAY_ORIGINAL_SOURCE_REQUIRED")
+        raise ScopedBasePlateOriginalSourceRequired("SCOPED_MARK_BAY_ORIGINAL_SOURCE_REQUIRED")
     source.pop("receiving_base_plate", None)
     values, policy = api.resolve_fold_designer_base_plate_source(
         "base_plate", source, width=source["w"], height=source["h"], thickness=source["t"],

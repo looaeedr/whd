@@ -579,7 +579,11 @@ def test_real_scoped_copy_button_cancel_and_confirm(tmp_path, monkeypatch):
         root.destroy()
 
 
-def test_copy_picker_excludes_stale_donor_without_blocking_healthy_bay(tmp_path):
+@pytest.mark.parametrize(("change", "reason"), [
+    ("seal", "SCOPED_COPY_SAVED_SOURCE_CHANGED"),
+    ("unconfirmed", "SCOPED_MARK_BAY_ORIGINAL_SOURCE_REQUIRED"),
+])
+def test_copy_picker_excludes_stale_donor_without_blocking_healthy_bay(tmp_path, change, reason):
     from hashlib import sha256
 
     source = _resize(_real_source(), 3)
@@ -606,7 +610,10 @@ def test_copy_picker_excludes_stale_donor_without_blocking_healthy_bay(tmp_path)
     first, second = choices
     assert (first[0], second[0]) == (a, b)
 
-    source[ledger_key][a]["source_sha256"] = "0" * 64
+    if change == "seal":
+        source[ledger_key][a]["source_sha256"] = "0" * 64
+    else:
+        bays[0]["nfb_config_submitted"] = False
     _raw_write(path, source)
     stale_bytes = path.read_bytes()
     saved = read_project(path)["snapshot"]
@@ -614,9 +621,9 @@ def test_copy_picker_excludes_stale_donor_without_blocking_healthy_bay(tmp_path)
                   saved_snapshot=saved)
     target = api.open_physical_sheet_marking("base_plate", snapshot=saved, selection=(0, 2))
     assert api.list_saved_scoped_marking_copy_candidates(**inputs, target_owner_id=c) == (second,)
-    with pytest.raises(ValueError, match="SCOPED_COPY_SAVED_SOURCE_CHANGED"):
+    with pytest.raises(ValueError, match=reason):
         api.list_saved_scoped_marking_copy_candidates(**inputs, target_owner_id=a)
-    with pytest.raises(ValueError, match="SCOPED_COPY_SAVED_SOURCE_CHANGED"):
+    with pytest.raises(ValueError, match=reason):
         api.verify_saved_scoped_marking_copy(
             **inputs, live_snapshot=saved, source_owner_id=a, source_group_id=first[3],
             opened_target=target,
@@ -631,14 +638,15 @@ def test_copy_picker_excludes_stale_donor_without_blocking_healthy_bay(tmp_path)
     assert result.scoped_store[c]["features"] == [clone]
     assert path.read_bytes() == stale_bytes
 
-    from tests.test_issue1502_current_csv_multi_bay_once import _provider
+    if change == "seal":
+        from tests.test_issue1502_current_csv_multi_bay_once import _provider
 
-    provider, _ = _provider(saved)
-    output_dir = tmp_path / "blocked-dxf"
-    with pytest.raises(ValueError, match="SCOPED_MARK_SAVED_PHYSICAL_SOURCE_CHANGED"):
-        api.export_current_receiving_multibay_dxf(
-            saved, physical_bay_geometry_provider=provider, flags={"base_plate": True},
-            output_dir=output_dir, pre_commit_guard=lambda: None,
-        )
-    assert not output_dir.exists() or not list(output_dir.rglob("*.dxf"))
-    assert path.read_bytes() == stale_bytes
+        provider, _ = _provider(saved)
+        output_dir = tmp_path / "blocked-dxf"
+        with pytest.raises(ValueError, match="SCOPED_MARK_SAVED_PHYSICAL_SOURCE_CHANGED"):
+            api.export_current_receiving_multibay_dxf(
+                saved, physical_bay_geometry_provider=provider, flags={"base_plate": True},
+                output_dir=output_dir, pre_commit_guard=lambda: None,
+            )
+        assert not output_dir.exists() or not list(output_dir.rglob("*.dxf"))
+        assert path.read_bytes() == stale_bytes
