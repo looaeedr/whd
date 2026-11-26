@@ -432,11 +432,18 @@ def _verify_ordinary_saved_copy_sources(*, source_group_id, source, target):
 
     source_file, source_receipt, source_marks = _open_ordinary_saved_copy_source(**source)
     target_file, target_receipt = _open_ordinary_saved_copy_target(**target)
-    if source_receipt.owner_id == target_receipt.owner_id:
-        raise ValueError("MANUAL_COPY_SAME_PHYSICAL_OWNER")
-    if Path(source_file).samefile(target_file):
-        if source["source_part_key"] == target["target_part_key"]:
+    same_file = Path(source_file).samefile(target_file)
+    same_root = source_receipt.owner_id == target_receipt.owner_id
+    if same_file and source["source_part_key"] == target["target_part_key"]:
+        # Stock carries the root ID. The validated quantity version distinguishes
+        # independently saved ink on two physical variants of that root.
+        donor = source.get("source_version_id")
+        destination = target.get("target_version_id")
+        if not same_root or donor is None or destination is None or donor == destination:
             raise ValueError("MANUAL_COPY_SAME_PHYSICAL_OWNER")
+    elif same_root:
+        raise ValueError("MANUAL_COPY_SAME_PHYSICAL_OWNER")
+    if same_file:
         # Two explicit physical owners may share one project file. Bind both
         # to one saved revision and independently recheck the live donor.
         if source["source_project_sha256"] != target["target_project_sha256"]:
