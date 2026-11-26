@@ -454,3 +454,79 @@ def test_custom_tail_original_finite_x_y_guides_still_move_without_new_bends():
         )
     finally:
         root.destroy()
+
+
+def test_custom_tail_original_vs_v_tip_material_and_triangle_control():
+    """Real canonical original-vs-ROUND_R finite-tip source topology control.
+
+    Compare the two source polygons and 3D tessellation without assuming the
+    factory old corner is disconnected: perimeter parity alone does not prove
+    an interior local 3D map continuous. Explicitly report original coverage.
+    """
+    from json import dumps
+    from shapely.geometry import LineString
+    from ae_engine.assembly_geometry_folded_mesh import folded_mesh_from_polygon
+
+    root = tk.Tk()
+    root.withdraw()
+    try:
+        app = BoxCalculatorGUI(root)
+        _make_tail_pair(app, "ROUND_R")
+        _, _, spec, render = _selected_source(
+            app, app._make_original_fold_designer_snapshot(),
+        )
+        before = render.material.wkb, tuple(render.scene.primitives)
+        checks = {
+            side: api.project_operator_v_miter_live_corner_check(
+                spec, render, side, first_bend_axis="x", relief_mode="ROUND_R",
+            )
+            for side in CORNERS
+        }
+        combined = api.project_v_miter_custom_tail_bottom_pair_one_sheet_2d_check(
+            spec, render, checks,
+        )
+        source_line = next(
+            p for p in combined.scene.primitives
+            if isinstance(p, PolylinePrimitive) and p.layer == "CHECK"
+        )
+        sheet = Polygon([(p.x, p.y) for p in source_line.points])
+        guides = fold_guides_from_final_scene(render.scene)
+        original_mesh = folded_mesh_from_polygon(
+            render.material, spec.fold_profile_x, spec.fold_profile_y,
+            fold_guides=guides,
+        )
+        candidate_mesh = folded_mesh_from_polygon(
+            sheet, spec.fold_profile_x, spec.fold_profile_y,
+            fold_guides=guides,
+        )
+        assert original_mesh and candidate_mesh
+        assert sheet.is_valid and not sheet.interiors
+        evidence = {
+            "original_flat_area_mm2": round(render.material.area, 9),
+            "candidate_flat_area_mm2": round(sheet.area, 9),
+            "original_3d_triangles": len(original_mesh),
+            "wrong_unverified_v_3d_triangles": len(candidate_mesh),
+            "points": [],
+        }
+        for label, x in (("left", 1.), ("right", 421.)):
+            for span in (0.2, 0.02, 0.002):
+                segment = LineString(((x, 16.-span/2.), (x, 16.+span/2.)))
+                evidence["points"].append({
+                    "side": label,
+                    "uv_mm": span,
+                    "original_has_continuous_strip": render.material.covers(segment),
+                    "new_v_has_continuous_strip": sheet.covers(segment),
+                    "original_boundary_distance_mm": round(
+                        render.material.boundary.distance(segment), 9),
+                    "new_v_boundary_distance_mm": round(
+                        sheet.boundary.distance(segment), 9),
+                })
+                assert sheet.covers(segment)
+        assert (render.material.wkb, tuple(render.scene.primitives)) == before
+        warnings.warn(
+            "WHD_3317_ORIGINAL_V_TOPOLOGY_CONTROL="+dumps(
+                evidence, ensure_ascii=True, separators=(",", ":")),
+            stacklevel=1,
+        )
+    finally:
+        root.destroy()
