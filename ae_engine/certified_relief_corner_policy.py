@@ -183,25 +183,27 @@ def _family_key(value) -> str:
     return text or "ANY"
 
 
+def lookup_certified_corner_policy_rule(*, cabinet_family, part_role):
+    """Return the matching fixed rule, including its immutable identity."""
+    family, part = _family_key(cabinet_family), str(part_role)
+    matches = [rule for rule in _CORNER_POLICY_RULES
+               if _active_status(rule.status)
+               and _family_key(rule.cabinet_family) == family
+               and part in rule.part_roles]
+    if len(matches) > 1:
+        ids = ", ".join(f"{r.rule_id}@{r.revision}" for r in matches)
+        raise CertifiedReliefRegistryAmbiguityError(
+            f"REGISTRY_AMBIGUOUS: {family}/{part}: {ids}")
+    return matches[0] if matches else None
+
+
 def lookup_certified_corner_state(*, cabinet_family, part_keys) -> dict[str, dict[str, CornerTypeSelection]]:
-    family = _family_key(cabinet_family)
-    result: dict[str, dict[str, CornerTypeSelection]] = {}
+    result = {}
     for raw_part in tuple(part_keys or ()):
         part = str(raw_part)
-        matches = [
-            rule for rule in _CORNER_POLICY_RULES
-            if _active_status(rule.status)
-            and _family_key(rule.cabinet_family) == family
-            and part in rule.part_roles
-        ]
-        if len(matches) > 1:
-            ids = ", ".join(f"{r.rule_id}@{r.revision}" for r in matches)
-            raise CertifiedReliefRegistryAmbiguityError(
-                f"REGISTRY_AMBIGUOUS: {family}/{part}: {ids}"
-            )
-        if not matches:
-            continue
-        result[part] = dict(matches[0].corner_selections)
+        rule = lookup_certified_corner_policy_rule(cabinet_family=cabinet_family, part_role=part)
+        if rule is not None:
+            result[part] = dict(rule.corner_selections)
     return result
 
 

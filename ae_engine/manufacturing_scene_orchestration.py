@@ -132,6 +132,7 @@ def build_part_scene(
     3D).  All manufacturing semantics stay in AE/PartSpec; callers must not
     rebuild baseline geometry, CornerType, holes, or operation ownership.
     """
+    cabinet_family_policy.require_legacy_part_family_source(getattr(spec, "model_name", None))
     from .contracts import CustomFoldPartSpec
     if isinstance(spec, CustomFoldPartSpec):
         from .custom_fold_manufacturing import build_custom_fold_render_data
@@ -725,6 +726,7 @@ def build_box_body_structure_render_data(
     This is the multi-piece manufacturing boundary. The legacy integral path is
     intentionally still available through ``build_part_render_data``.
     """
+    cabinet_family_policy.require_legacy_part_family_source(spec.model_name)
     from .box_body_structure import (
         resolve_box_body_structure,
         resolve_box_body_piece_face_features,
@@ -1158,6 +1160,7 @@ def build_part_render_data(
     spec: PartSpec, context: ManufacturingContext | None = None
 ) -> PartRenderData:
     """Return final manufacturing material + scene through the bounded render owner."""
+    cabinet_family_policy.require_legacy_part_family_source(getattr(spec, "model_name", None))
     from .contracts import CustomFoldPartSpec
     if isinstance(spec, CustomFoldPartSpec):
         from .custom_fold_manufacturing import build_custom_fold_render_data

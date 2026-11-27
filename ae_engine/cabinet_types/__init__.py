@@ -5,5 +5,7 @@ from .receiving import REGISTRATION as RECEIVING_REGISTRATION
 register_cabinet_type(VAULT_REGISTRATION)
 register_cabinet_type(RO_REGISTRATION)
 register_cabinet_type(RECEIVING_REGISTRATION)
+from .wire_pull import REGISTRATION as WIRE_PULL_REGISTRATION
+register_cabinet_type(WIRE_PULL_REGISTRATION)
 from . import policy as policy
 __all__ = ["CabinetTypeRegistration", "register_cabinet_type", "registered_cabinet_types", "resolve_cabinet_type", "policy"]

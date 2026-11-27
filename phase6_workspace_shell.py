@@ -150,6 +150,11 @@ class WorkspaceShellOwner:
         self.relief_registry_button.pack(side=original.tk.LEFT, padx=(6, 0))
         return self.project_toolbar
 
+    def add_standard_wire_pull_entry(self, command):
+        """Host-provided preview action; existing File indices remain stable."""
+        self.project_file_menu.add_separator()
+        self.project_file_menu.add_command(label="標準拉線箱", command=command)
+
     def build_transaction_buttons(self, parent=None):
         parent = parent or self.state.left
         self.transaction_buttons = original.ttk.Frame(parent)

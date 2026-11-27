@@ -8,9 +8,11 @@ reverse bend ownership. No TK/phase6 import or new CUTTING/relief constants.
 from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from copy import deepcopy
+from dataclasses import dataclass
+from math import isfinite
 from .box_body_fold_profile import (
     BOX_BODY_TURNS as _BOX_BODY_TURNS, _num, _ui_len, _common_dimension_len,
-    build_box_body_profile, apply_outside_dimension_compensation,
+    build_box_body_profile, apply_outside_dimension_compensation, outside_profile_to_material,
 )
 from .cabinet_types import policy as cabinet_family_policy
 from .endcap_factory_fold import (
@@ -60,7 +62,7 @@ def is_canonical_box_body_mating_profile(
             return False
     return True
 
-def box_body_front_mating_fold_chain(profile: Sequence[Mapping[str, object]]) -> list[dict]:
+def box_body_front_mating_fold_chain(profile: Sequence[Mapping[str, object]], *, preserve_material_precision=False) -> list[dict]:
     """Return the ordered box-body front mating chain before the left D core.
 
     D-W-D stays the structural center. Everything before the first D is an
@@ -76,7 +78,7 @@ def box_body_front_mating_fold_chain(profile: Sequence[Mapping[str, object]]) ->
     front = rows[:d_indexes[0]]
     result = []
     for index, seg in enumerate(front):
-        row = {"len": _ui_len(seg.get("len"))}
+        row = {"len": float(seg["len"]) if preserve_material_precision else _ui_len(seg.get("len"))}
         if "angle" in seg:
             # The Fold Chain input is authoritative.  Derived EndCap topology
             # may move bend ownership, but it must never invent/change angle.
@@ -91,7 +93,90 @@ def box_body_front_mating_fold_chain(profile: Sequence[Mapping[str, object]]) ->
         result.append(row)
     return result
 
-def build_linked_endcap_xy_fold_profiles(snapshot: Mapping[str, object], box_profile: Sequence[Mapping[str, object]]):
+@dataclass(frozen=True)
+class LinkedEndcapInsertSource:
+    """Actual support-plane spans and per-role terminal MATERIAL lengths.
+
+    For a single-return D-W-D box. Spans are measured by the assembly owner;
+    neither nominal cabinet dimensions nor another Family's D compensation.
+    Role tuples are (left, right, rear) in each native EndCap view.
+    """
+    outside_width: float
+    outside_depth: float
+    thickness: float
+    head_material: tuple[float, float, float]
+    tail_material: tuple[float, float, float]
+
+
+def _reverse_owned_bends(forward):
+    """Reverse rows AND their boundary ownership, without changing turns."""
+    reverse = []
+    for index, source_row in enumerate(reversed(forward)):
+        row = {k: v for k, v in source_row.items() if k != "angle"}
+        owner = len(forward) - 2 - index
+        if owner >= 0 and "angle" in forward[owner]:
+            row["angle"] = float(_num(forward[owner]["angle"]))
+        reverse.append(row)
+    return reverse
+
+
+def _insert_positive(value, name):
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise ValueError("WIRE_PULL_SOURCE_REQUIRED: " + name)
+    if not isfinite(value) or value <= 1e-6:
+        raise ValueError("WIRE_PULL_INVALID_DIMENSION: " + name)
+    return float(value)
+
+
+def _insert_material_axis(rows, thickness):
+    """Only the core starts as outside span; terminals already are material."""
+    rows = apply_outside_dimension_compensation(clone_profile(rows), thickness)
+    for row in rows:
+        if not row.get("core"):
+            row["len"] += row.get("ui_len_add", 0.)
+    rows = outside_profile_to_material(rows, thickness)
+    for row in rows:
+        _insert_positive(row["len"], row["phase6_key"])
+    return rows
+
+
+def _linked_physical_insert(box_profile, source):
+    if not isinstance(source, LinkedEndcapInsertSource):
+        raise TypeError("LINKED_ENDCAP_INSERT_SOURCE_REQUIRED")
+    rows = clone_profile(box_profile)
+    keys = tuple(row.get("phase6_key") for row in rows)
+    if (len(rows) != 5 or keys not in (("front_left_return", "left", "rear", "right", "front_right_return"),
+                                      ("fw_left", "d_left", "w", "d_right", "fw_right"))
+            or tuple(row.get("core") for row in rows) != (None, "D", "W", "D", None)
+            or tuple(row.get("angle") for row in rows) != (-90., -90., -90., -90., None)):
+        raise ValueError("WIRE_PULL_ENDCAP_FRONT_SUPPORT_SOURCE_REQUIRED")
+    for row in rows:
+        _insert_positive(row["len"], row["phase6_key"])
+    if rows[0]["len"] != rows[-1]["len"]:
+        raise ValueError("WIRE_PULL_ENDCAP_FRONT_FOLD_SOURCE_AMBIGUOUS")
+    # Normalize only the known physical return identities to the existing FW
+    # mating semantic. Keep the actual material length, including fractions.
+    rows[0]["phase6_key"] = "fw_left"
+    front, = box_body_front_mating_fold_chain(rows, preserve_material_precision=True)
+    t = _insert_positive(source.thickness, "thickness")
+    w = _insert_positive(source.outside_width, "insert_outside_width")
+    d = _insert_positive(source.outside_depth, "insert_outside_depth")
+    result = {}
+    for part, material in (("head", source.head_material), ("tail", source.tail_material)):
+        left, right, rear = (_insert_positive(value, part + "_" + role)
+                             for role, value in zip(("left", "right", "bottom"), material, strict=True))
+        x = [{"len": left, "angle": rows[1]["angle"], "phase6_key": "yl1"},
+             {"len": w, "angle": rows[2]["angle"], "phase6_key": "endcap_w_core", "core": "W"},
+             {"len": right, "phase6_key": "yr1"}]
+        forward = [dict(front),
+                   {"len": d, "angle": rows[1]["angle"], "phase6_key": "endcap_d_core", "core": "D"},
+                   {"len": rear, "phase6_key": "ybottom1"}]
+        y = forward if part == "head" else _reverse_owned_bends(forward)
+        result[part] = {"X": _insert_material_axis(x, t), "Y": _insert_material_axis(y, t)}
+    return result
+
+
+def build_linked_endcap_xy_fold_profiles(snapshot: Mapping[str, object], box_profile: Sequence[Mapping[str, object]], *, insert_source: LinkedEndcapInsertSource | None = None):
     """Derive EndCap mating topology without corrupting FW semantics.
 
     The box chain supplies order/turn topology. Each end cap keeps its effective
@@ -99,6 +184,8 @@ def build_linked_endcap_xy_fold_profiles(snapshot: Mapping[str, object], box_pro
     material (normally ytop1) is apportioned only across non-FW mating rows, so
     arbitrary topology stays linked while the end-cap blank span is conserved.
     """
+    if insert_source is not None:
+        return _linked_physical_insert(box_profile, insert_source)
     if is_canonical_box_body_mating_profile(box_profile, snapshot):
         return {
             "head": build_endcap_xy_fold_profiles(snapshot, part_key="head"),
@@ -220,15 +307,7 @@ def build_linked_endcap_xy_fold_profiles(snapshot: Mapping[str, object], box_pro
 
     # Tail is stored in its real native reverse order.  Reverse bend ownership
     # together with the rows, but preserve the exact entered angle value/sign.
-    tail_y = []
-    for rev_index, source_row in enumerate(reversed(tail_forward)):
-        row = {k: v for k, v in source_row.items() if k != "angle"}
-        owner_index = len(tail_forward) - 2 - rev_index
-        if owner_index >= 0 and "angle" in tail_forward[owner_index]:
-            row["angle"] = float(_num(tail_forward[owner_index].get("angle")))
-        tail_y.append(row)
-    if tail_y:
-        tail_y[-1].pop("angle", None)
+    tail_y = _reverse_owned_bends(tail_forward)
 
     head_y = apply_outside_dimension_compensation(head_y, t)
     tail_y = apply_outside_dimension_compensation(tail_y, t)

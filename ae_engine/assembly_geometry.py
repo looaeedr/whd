@@ -1064,6 +1064,7 @@ def folded_mesh_with_flat_uv_from_polygon(
     fold_exemptions=(),
     fold_guides=(),
     fold_tip_continuity=(),
+    exact_material=False,
 ):
     """Fold material exactly like :func:`folded_mesh_from_polygon`, preserving 2D UV.
 
@@ -1090,7 +1091,14 @@ def folded_mesh_with_flat_uv_from_polygon(
         geometry=(yb,yf),**tip_kwargs,
     )
     total_x, total_y = float(xb[-1]), float(yb[-1])
-    display_material = material.simplify(0.05, preserve_topology=True)
+    # Physical hole projection needs the actual CUTTING contour, not the
+    # legacy display simplification. Opt in; other callers stay unchanged.
+    display_material = material if exact_material else material.simplify(0.05, preserve_topology=True)
+    if exact_material:
+        try:
+            from shapely import constrained_delaunay_triangles
+        except ImportError as exc:
+            raise ValueError("WHD_EXACT_MATERIAL_TRIANGULATION_UNAVAILABLE") from exc
     clipped_material = display_material.intersection(box(0.0, 0.0, total_x, total_y))
     mapped_triangles = []
 
@@ -1153,7 +1161,14 @@ def folded_mesh_with_flat_uv_from_polygon(
                 regions = next_regions
 
             for piece, flags in regions:
-                for tri in triangulate(piece):
+                if exact_material:
+                    triangles = tuple(constrained_delaunay_triangles(piece).geoms)
+                    if (not triangles or any(not piece.covers(tri) for tri in triangles)
+                            or abs(sum(tri.area for tri in triangles)-piece.area)>max(1e-6,piece.area*1e-10)):
+                        raise ValueError("WHD_EXACT_MATERIAL_TRIANGULATION_INCOMPLETE")
+                else:
+                    triangles = triangulate(piece)
+                for tri in triangles:
                     if not piece.covers(tri):
                         continue
                     flat = tuple(

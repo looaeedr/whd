@@ -353,3 +353,74 @@ def place_endcap_against_box_body(
         raise ValueError(f"Unsupported EndCap assembly placement: {placement!r}")
 
     return tuple(tuple(world(point) for point in tri[:3]) for tri in (triangles or ()))
+
+
+def thicken_orthogonal_inside_surface(triangles, outward_normals, thickness):
+    """Close a connected, right-angle sheet whose Fold source is its inside skin.
+
+    Each source triangle has an explicit physical outward face normal. The
+    shared outside hinge is the intersection of the adjacent offset planes,
+    rather than independent facet offsets (which leave an open seam).
+    This is the sharp-bend geometry model, not an R/BA or factory certificate.
+    """
+    from collections import defaultdict
+    import math
+    from .contracts import PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES
+    tol = PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES.boundary_separation_tolerance
+    if isinstance(thickness, bool):
+        raise ValueError("ORTHOGONAL_SHEET_THICKNESS_INVALID")
+    t = float(thickness)
+    tris, normals = tuple(triangles), tuple(outward_normals)
+    if not math.isfinite(t) or t <= tol or not tris or len(tris) != len(normals):
+        raise ValueError("ORTHOGONAL_SHEET_SOURCE_INVALID")
+    points, faces, edges = {}, defaultdict(set), defaultdict(list)
+    oriented = []
+
+    def key(point):
+        return tuple(round(float(v) / tol) for v in point)
+
+    for tri, n in zip(tris, normals):
+        n = tuple(n)
+        if len(n) != 3 or sum(abs(v) for v in n) != 1 or any(v not in (-1, 0, 1) for v in n):
+            raise ValueError("ORTHOGONAL_SHEET_FACE_NORMAL_INVALID")
+        tri = tuple(tuple(float(v) for v in p) for p in tri)
+        if len(tri) != 3 or any(len(p) != 3 or not all(math.isfinite(v) for v in p) for p in tri):
+            raise ValueError("ORTHOGONAL_SHEET_TRIANGLE_INVALID")
+        a, b, c = tri
+        u, v = tuple(b[i]-a[i] for i in range(3)), tuple(c[i]-a[i] for i in range(3))
+        cross = (u[1]*v[2]-u[2]*v[1], u[2]*v[0]-u[0]*v[2], u[0]*v[1]-u[1]*v[0])
+        mag = math.sqrt(sum(q*q for q in cross))
+        dot = sum(q*r for q,r in zip(cross,n))
+        if mag <= tol*tol or abs(abs(dot)/mag-1) > 1e-7:
+            raise ValueError("ORTHOGONAL_SHEET_FACE_SOURCE_MISMATCH")
+        ids = tuple(key(p) for p in tri)
+        if len(set(ids)) != 3:
+            raise ValueError("ORTHOGONAL_SHEET_DEGENERATE")
+        if dot < 0:
+            ids = (ids[0], ids[2], ids[1])
+        for p in tri:
+            k = key(p)
+            points.setdefault(k, p)
+            faces[k].add(n)
+        oriented.append(ids)
+        for i in range(3):
+            a, b = ids[i], ids[(i+1)%3]
+            edges[tuple(sorted((a,b)))].append((a,b))
+
+    outer = {}
+    for k, p in points.items():
+        ns = tuple(faces[k])
+        if len(ns) > 2 or (len(ns) == 2 and sum(a*b for a,b in zip(*ns)) != 0):
+            raise ValueError("ORTHOGONAL_SHEET_HINGE_UNSUPPORTED")
+        outer[k] = tuple(p[i]+t*sum(n[i] for n in ns) for i in range(3))
+    solid = []
+    for a,b,c in oriented:
+        solid.extend(((outer[a],outer[b],outer[c]), (points[a],points[c],points[b])))
+    for adjacent in edges.values():
+        if len(adjacent) == 2 and adjacent[0] == adjacent[1][::-1]:
+            continue
+        if len(adjacent) != 1:
+            raise ValueError("ORTHOGONAL_SHEET_NONMANIFOLD_SOURCE")
+        a,b = adjacent[0]
+        solid.extend(((outer[b],outer[a],points[a]), (outer[b],points[a],points[b])))
+    return tuple(solid)

@@ -73,6 +73,21 @@ def resolved_physical_dxf_stem(part_id: str, *, box_body_physical_piece_roles) -
     return safe_dxf_part_stem(value)
 
 
+def require_standard_cabinet_render_manufacturing(render_data):
+    """A standard topology candidate cannot bypass Family admission via scenes."""
+    metadata = getattr(render_data, "metadata", None)
+    topology = getattr(render_data, "unfolded_topology", None)
+    # Preserve the source-owned candidate identity even if a presentation
+    # adapter drops optional metadata. Detached P1 previews cannot be exported.
+    if getattr(topology, "source", None) == "WIRE_PULL_EXPLICIT_TOPOLOGY":
+        raise ValueError("CABINET_FAMILY_NOT_IMPLEMENTED: 拉線箱")
+    if isinstance(metadata, Mapping) and "standard_cabinet_family" in metadata:
+        from .cabinet_types.policy import require_implemented_manufacturing_family
+        require_implemented_manufacturing_family(metadata["standard_cabinet_family"])
+        if metadata.get("formed_geometry_verified") is not True:
+            raise ValueError("STANDARD_CABINET_RENDER_UNVERIFIED")
+
+
 def resolved_physical_render_parts(resolved_geometry, *, include_unreleased_source_flats=False):
     """Project ordinary DXF parts or full physical BOM inventory.
 
@@ -93,6 +108,7 @@ def resolved_physical_render_parts(resolved_geometry, *, include_unreleased_sour
         # The selected Vault lower V is CHECK only, never CNC.
         from .operator_tail_lower_v import reject_tail_lower_v_preview_for_dxf
         reject_tail_lower_v_preview_for_dxf(render_data)
+        require_standard_cabinet_render_manufacturing(render_data)
         # Source-flat fixing plates have real physical PartRenderData for the
         # GUI and a separate source DXF export. Until finished BEND/weld Z is
         # verified, they are NOT part of the full cabinet production DXF set.
@@ -342,6 +358,7 @@ def _save_resolved_rows_atomic(
     guard_during_atomic_move: bool = False,
     _selected_owner_witness=None,
     _verified_byte_seals_sink=None,
+    _wire_pull_saved_source=None,
 ) -> dict[str, str]:
     if _verified_byte_seals_sink is not None and (
         _selected_owner_witness is None or not callable(_verified_byte_seals_sink)
@@ -356,6 +373,15 @@ def _save_resolved_rows_atomic(
     require_dxf_overwrite_boolean(overwrite)
     # Check all physical-part evidence before any output path is created.
     rows = tuple(rows)
+    if _wire_pull_saved_source is not None:
+        from .cabinet_types.wire_pull_saved_export import _SavedProjectRows
+        if (type(_wire_pull_saved_source) is not _SavedProjectRows
+                or verify_all_staged is not True or part_only or quantity_group
+                or durable_stage_commit is not None or _selected_owner_witness is not None
+                or guard_during_atomic_move is not True
+                or pre_commit_guard != _wire_pull_saved_source.assert_current):
+            raise ValueError("WIRE_PULL_SAVED_EXPORT_SCOPE_REQUIRED")
+        _wire_pull_saved_source.assert_rows(rows)
     # #3414: selected-only saved marking source before any stage is created.
     from .operator_manual_marking_batch import (
         _has_saved_manual_intent, witness_selected_manual_marking_rows,
@@ -377,6 +403,10 @@ def _save_resolved_rows_atomic(
         marking_witness.assert_current()
     _reject_unapproved_nfb_pad_ear_manufacturing(rows)
     for output_key, _, render_data in rows:
+        # The private saved-source transaction has already re-resolved and
+        # checked ALL four canonical rows. Detached previews still fail closed.
+        if _wire_pull_saved_source is None:
+            require_standard_cabinet_render_manufacturing(render_data)
         reject_unverified_receiving_nfb_tier_base(
             render_data, output_key=str(output_key),
         )
@@ -403,7 +433,7 @@ def _save_resolved_rows_atomic(
     root.mkdir(parents=True, exist_ok=True)
     stage_dir = Path(tempfile.mkdtemp(prefix='.whd-dxf-stage-', dir=str(root)))
     staged: dict[str, Path] = {}
-    verified_byte_seals = {} if _selected_owner_witness is not None else None
+    verified_byte_seals = {} if (_selected_owner_witness is not None or _wire_pull_saved_source is not None) else None
     try:
         filenames: set[str] = set()
         for output_key, filename, render_data in rows:
@@ -425,7 +455,8 @@ def _save_resolved_rows_atomic(
                     # Anchor the bytes the independent reader is about to
                     # verify; never rehash potentially changed bytes as new proof.
                     verified_byte_seals[str(output_key)] = verified_dxf_content_digest(stage_path)
-                verified = verify_saved_part_render_data_dxf(render_data, stage_path)
+                verified = verify_saved_part_render_data_dxf(render_data, stage_path,
+                    **({"verify_all_marking_circles": True} if _wire_pull_saved_source is not None else {}))
                 if not verified.ok:
                     raise ValueError(
                         "NFB_PAIR_DOOR_STAGED_DXF_ROUNDTRIP_FAILED"

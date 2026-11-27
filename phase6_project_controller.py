@@ -27,12 +27,14 @@ class Phase6ProjectController:
         write_project,
         schema: str,
         clock=None,
+        route_wire_pull=False,
     ) -> None:
         self._session = ProjectSession()
         self._read_project = read_project
         self._write_project = write_project
         self._schema = str(schema)
         self._clock = clock or self._default_clock
+        self._route_wire_pull = route_wire_pull
 
     @staticmethod
     def _default_clock() -> str:
@@ -111,9 +113,25 @@ class Phase6ProjectController:
 
     def load(self, path) -> tuple[dict, dict]:
         payload = self._read_project(path)
+        # Main workbench dispatches this separate preview workspace without
+        # replacing its existing legacy Family session or project path.
+        if self._route_wire_pull and manufacturing_api.is_wire_pull_project_snapshot(payload["snapshot"]):
+            return payload, deepcopy(payload["snapshot"])
         committed = self._session.load_project(path, payload["snapshot"])
         return payload, committed
 
+
+    def load_wire_pull_preview(self, path, *, snapshot=None):
+        """Adopt a validated standard project into its own existing session.
+
+        Main-file routing may supply the already-read snapshot. The standalone
+        window uses the same file reader; neither path mutates before replay.
+        """
+        if snapshot is None:
+            snapshot = self._read_project(path)["snapshot"]
+        proposal, renders = manufacturing_api.restore_wire_pull_project_snapshot(snapshot)
+        committed = self._session.load_project(path, snapshot)
+        return committed, proposal, renders
 
     @staticmethod
     def build_designer_payload(
