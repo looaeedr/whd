@@ -27,6 +27,17 @@ class WirePullSavedExportSource:
     """Readback identity only; not an export authorization or a render receipt."""
     source_sha256: str
     part_keys: tuple[str, ...]
+    manufacturing_blocker: str | None = None
+
+
+def _endcap_blocker(spec):
+    # Flat INSERT was a withdrawn preview, not an approved folded EndCap.
+    # Preserve its source for readback; do not use it for manufacturing.
+    if spec.head_form == "flat" or spec.tail_form == "flat":
+        return "WIRE_PULL_FLAT_ENDCAP_WITHDRAWN: 封頭尾需已確認的折邊來源"
+    if spec.head_form != 'folded' or spec.tail_form != 'folded':
+        return "WIRE_PULL_FOLDED_ENDCAP_RELIEF_UNVERIFIED: 封頭尾折邊來源未確認"
+    return None
 
 
 def _volume(triangles):
@@ -61,7 +72,15 @@ def inspect(project_path, *, expected_snapshot=None):
         raise ValueError('WIRE_PULL_SAVED_SOURCE_CHANGED')
     if tuple(key for key, _ in renders) != PART_KEYS:
         raise ValueError('WIRE_PULL_SAVED_PHYSICAL_IDENTITY_CHANGED')
-    return WirePullSavedExportSource(digest, PART_KEYS)
+    blocker = _endcap_blocker(proposal.spec)
+    if blocker is None:
+        try:
+            _validate_physical(proposal, renders)
+        except ValueError as exc:
+            # Readback remains available for a valid saved source whose
+            # manufacturing process/physical contact is not admitted.
+            blocker = str(exc)
+    return WirePullSavedExportSource(digest, PART_KEYS, blocker)
 
 
 def _validate_process_shapes(render, key):
@@ -89,9 +108,79 @@ def _validate_process_shapes(render, key):
             raise ValueError('WIRE_PULL_SAVED_PROCESS_UNSUPPORTED: '+key)
 
 
+def _verify_standard_solid_contact(physical, t):
+    """Bounded P1 proof using actual closed-solid triangles, not relief inputs.
+
+    Body/cap pairs separate in their *complete* XZ projections; all other
+    pairs separate in Y or Z. Thus no positive-volume overlap can be hidden
+    between sampled sections. Positive-area actual coplanar skins prove
+    contact (not a coincident bbox or line/point). Unknown topology fails.
+    """
+    from shapely.ops import unary_union
+    from shapely.geometry import box
+    from itertools import combinations
+
+    def projected(part, axes, plane=None):
+        polygons = []
+        for tri in part.world_triangles:
+            if plane is not None and not all(_close(p[plane[0]],plane[1]) for p in tri):
+                continue
+            poly = Polygon([(p[axes[0]],p[axes[1]]) for p in tri])
+            if poly.area > 0:
+                polygons.append(poly)
+        return unary_union(polygons)
+
+    def contact(a,b,axis,coordinate,region=None):
+        axes = tuple(i for i in range(3) if i!=axis)
+        common = projected(a,axes,(axis,coordinate)).intersection(projected(b,axes,(axis,coordinate)))
+        return (common if region is None else common.intersection(region)).area
+
+    body,head,tail,lid = physical.parts
+    bounds = {p.part_key:triangle_bounds(p.world_triangles) for p in physical.parts}
+    b,l = bounds['box_body'],bounds['lid']
+    faces = {f.face_id:f for f in body.mounting_faces}
+    xmin,xmax,zmin,front = (faces['left'].world_origin[0]+t,faces['right'].world_origin[0]-t,
+                             faces['rear'].world_origin[2]+t,l[2][0])
+    bp = projected(body,(0,2))
+    evidence = {}
+    for cap,side in ((head,1),(tail,0)):
+        cb = bounds[cap.part_key]
+        if not all(_close(a,e) for a,e in zip(
+                (cb[0][0],cb[0][1],cb[2][0],cb[2][1],cb[1][side]),
+                (xmin,xmax,zmin,front,b[1][side]))):
+            raise ValueError('WIRE_PULL_SAVED_INSERT_CONTACT_MISMATCH: '+cap.part_key)
+        if bp.intersection(projected(cap,(0,2))).area > TOL:
+            raise ValueError('WIRE_PULL_SAVED_SOLID_PENETRATION: '+cap.part_key)
+        contacts = tuple(contact(body,cap,axis,coord) for axis,coord in ((0,xmin),(0,xmax),(2,zmin)))
+        contacts += (contact(cap,lid,2,front),)
+        if min(contacts)<=TOL:
+            raise ValueError('WIRE_PULL_SAVED_INSERT_CONTACT_MISMATCH: '+cap.part_key)
+        evidence[cap.part_key] = contacts
+    # The other four pairs must be separated along an actual world axis.
+    for a,c in combinations(physical.parts,2):
+        if a is body and c in (head,tail):
+            continue
+        ba,bc=bounds[a.part_key],bounds[c.part_key]
+        if not any(x[1]<=y[0]+TOL or y[1]<=x[0]+TOL for x,y in zip(ba,bc)):
+            raise ValueError('WIRE_PULL_SAVED_SOLID_PENETRATION: '+a.part_key+'/'+c.part_key)
+    rail_areas=[]
+    for name in ('front_left_return','front_right_return'):
+        from .wire_pull_topology import _face_x_extent
+        lo,hi = _face_x_extent(faces[name])
+        rail_areas.append(contact(body,lid,2,front,box(lo,b[1][0],hi,b[1][1])))
+    if min(rail_areas)<=TOL:
+        raise ValueError('WIRE_PULL_SAVED_LID_CONTACT_MISMATCH')
+    evidence['lid'] = tuple(rail_areas)
+    return evidence
+
+
 def _validate_physical(proposal, renders):
     spec = proposal.spec
-    if (spec.model_name != '拉線箱' or spec.head_form != 'flat' or spec.tail_form != 'flat'
+    blocker = _endcap_blocker(spec)
+    if blocker is not None:
+        raise ValueError(blocker)
+    # Admit only the specified first-type folded topology, not a Family unlock.
+    if (spec.model_name != '拉線箱' or spec.head_form != 'folded' or spec.tail_form != 'folded'
             or spec.head_clearance_mm != 0 or spec.tail_clearance_mm != 0):
         raise ValueError('WIRE_PULL_SAVED_STANDARD_SCOPE_REQUIRED')
     # Existing Family topology + confirmed holes are the single geometry owner.
@@ -113,14 +202,7 @@ def _validate_physical(proposal, renders):
                 (l[axis][0]-b[axis][0],b[axis][1]-l[axis][1]))
             or not _close(l[2][0],b[2][1]) or not _close(l[2][1]-l[2][0],t)):
         raise ValueError('WIRE_PULL_SAVED_LID_CONTACT_MISMATCH')
-    faces={f.face_id:f for f in body.mounting_faces}
-    for cap,side in ((head,1),(tail,0)):
-        cb=triangle_bounds(cap.world_triangles)
-        values=(cb[0][0],cb[0][1],cb[2][0],cb[2][1],cb[1][side],cb[1][1]-cb[1][0])
-        expected=(faces['left'].world_origin[0]+t,faces['right'].world_origin[0]-t,
-                  faces['rear'].world_origin[2]+t,l[2][0]-t,b[1][side],t)
-        if not all(_close(a,e) for a,e in zip(values,expected)):
-            raise ValueError('WIRE_PULL_SAVED_INSERT_CONTACT_MISMATCH')
+    _verify_standard_solid_contact(physical, t)
     for part,(key,render) in zip(physical.parts,renders):
         original=bare.part(key)
         material=render.material
@@ -129,7 +211,8 @@ def _validate_physical(proposal, renders):
                 or render.unfolded_topology.source != 'WIRE_PULL_EXPLICIT_TOPOLOGY'
                 or render.fold_guides != original.render_data.fold_guides
                 or render.fold_guides != fold_guides_from_final_scene(render.scene)
-                or len(render.fold_guides) != (4 if key=='box_body' else 0)
+                or len(render.fold_guides) != (0 if key=='lid' else 4)
+                or render.metadata.get('wire_pull_corner_rules') != original.render_data.metadata.get('wire_pull_corner_rules')
                 or not material.is_valid or material.is_empty
                 or not material.equals(material_polygon_from_final_scene(render.scene))
                 or not original.render_data.material.covers(material)
@@ -138,6 +221,12 @@ def _validate_physical(proposal, renders):
                 or part.mounting_faces != original.mounting_faces
                 or not diagnose_world_mesh_triangle_edge_incidence(part.world_triangles).edges_manifold_closed):
             raise ValueError('WIRE_PULL_SAVED_RENDER_SOURCE_CHANGED: '+key)
+        if key in ('head','tail'):
+            from .wire_pull_topology import _endcap_relief_witness
+            witness = _endcap_relief_witness(key, original.render_data, bare.part('box_body'),
+                                              original.x_profile, original.y_profile, t)
+            if render.metadata.get('wire_pull_corner_rules') != witness:
+                raise ValueError('WIRE_PULL_SAVED_ENDCAP_RULE_CHANGED: '+key)
         _validate_process_shapes(render,key)
         # Thickness/removed material readback: no invented bend allowance.
         # For the folded body use its unchanged thick baseline (hinge miters).

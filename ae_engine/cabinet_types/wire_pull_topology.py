@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from bisect import bisect_right
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from math import isfinite
 
 from ..contracts import WirePullBoxSpec, FoldProfileSegment
@@ -11,10 +11,16 @@ from ..assembly_joint import AssemblyJoint, AssemblyJointRelation, AssemblyJoint
 from ..assembly_geometry import folded_mesh_with_flat_uv_from_polygon, diagnose_world_mesh_triangle_edge_incidence
 from ..assembly_geometry_folded_mesh import _profile_geometry
 from ..assembly_geometry_primitives import (
-    place_assembly_triangles, thicken_orthogonal_inside_surface, triangle_bounds,
+    place_assembly_triangles, place_endcap_against_box_body, thicken_orthogonal_inside_surface, triangle_bounds,
 )
 from ..box_body_fold_profile import apply_outside_dimension_compensation, outside_profile_to_material
-from ..sheetmetal_geometry import Vec2, FoldSegment, StripFoldChain, build_strip_outline, build_strip_bend_segments
+from ..linked_endcap_fold import LinkedEndcapInsertSource, build_linked_endcap_xy_fold_profiles
+from ..sheetmetal_geometry import (
+    Vec2, FoldSegment, StripFoldChain, build_strip_outline, build_strip_bend_segments,
+    FourSideFlangeGeometry, RectCornerReliefPolicy, build_four_side_outline,
+    build_four_side_bend_segments, CornerTypeId,
+    CrossCornerMode, CornerDirection, resolve_corner_relief,
+)
 from ..sheetmetal_part_adapters import StructuralGeometryResult
 from ..sheetmetal_drawing import DrawingScene, structural_result_to_primitives
 from ..manufacturing_render_data import (
@@ -99,6 +105,10 @@ def _render(key, x_profile, height):
             tuple(build_strip_outline(chain)), tuple(build_strip_bend_segments(chain)),
             width, height, chain,
         )
+    return _structural_render(key, rows, (FoldProfileSegment(height, phase6_key="span"),), structural)
+
+
+def _structural_render(key, x, y, structural):
     scene = DrawingScene()
     scene.extend(structural_result_to_primitives(structural, outline_semantic_id="OUTER_BOUNDARY"))
     data = PartRenderData(
@@ -106,8 +116,8 @@ def _render(key, x_profile, height):
         fold_guides=fold_guides_from_final_scene(scene),
         unfolded_topology=UnfoldedBlankTopology(
             key,
-            tuple(MaterialSegment("X", row.phase6_key, row.length, "WIRE_PULL_EXPLICIT_TOPOLOGY") for row in rows),
-            (MaterialSegment("Y", "span", height, "WIRE_PULL_EXPLICIT_TOPOLOGY"),),
+            tuple(MaterialSegment("X", row.phase6_key, row.length, "WIRE_PULL_EXPLICIT_TOPOLOGY") for row in x),
+            tuple(MaterialSegment("Y", row.phase6_key, row.length, "WIRE_PULL_EXPLICIT_TOPOLOGY") for row in y),
             "WIRE_PULL_EXPLICIT_TOPOLOGY",
         ),
         metadata={"stable_id": key, "standard_cabinet_family": "拉線箱",
@@ -123,14 +133,16 @@ def _mapped(data, x, y, *, exact_material=False):
     )
 
 
-def _render_with_features(key, x, y, height, transform):
-    source = _render(key, x, height)
+def _render_with_features(key, x, y, height, transform, *, source=None):
+    if source is None:
+        source = _render(key, x, height)
     if transform is None:
         return source, False
     data = transform(key, source)
     if (data.fold_guides != source.fold_guides
             or data.unfolded_topology != source.unfolded_topology
             or data.metadata.get("stable_id") != key
+            or data.metadata.get("wire_pull_corner_rules") != source.metadata.get("wire_pull_corner_rules")
             or data.metadata.get("formed_geometry_verified") is not False
             or not data.material.equals(material_polygon_from_final_scene(data.scene))):
         raise ValueError("WIRE_PULL_HOLE_RENDER_SOURCE_CHANGED")
@@ -262,6 +274,138 @@ def _body(dims, t, left, right, lid, *, render_transform=None):
     return PhysicalPart("box_body",data,x,y,mesh,tuple(faces)),inside
 
 
+def _face_x_extent(face):
+    x = face.world_origin[0]
+    u0, _, u1, _ = face.flat_bounds
+    end = x + face.u_direction[0] * (u1-u0)
+    return min(x, end), max(x, end)
+
+
+def _rear_corner_rule(key):
+    """Q61: inherit ONLY the Vault rear pair; no other Family geometry."""
+    from ..certified_relief_corner_policy import lookup_certified_corner_policy_rule
+    from ..certified_relief_models import CertifiedReliefStatus
+    rule = lookup_certified_corner_policy_rule(cabinet_family="金庫型", part_role=key)
+    if (key not in ("head", "tail") or rule is None
+            or (rule.rule_id, rule.revision, rule.status) != (
+                "VAULT_ENDCAP_FIXED_POLICY_V1", 1, CertifiedReliefStatus.CERTIFIED)):
+        raise ValueError("WIRE_PULL_REAR_CORNER_RULE_SOURCE_REQUIRED")
+    selections = tuple(rule.corner_selections.get(k) for k in ("bottom_left", "bottom_right"))
+    if any(s is None or s.type_id != CornerTypeId.CROSS or
+           s.cross_mode != CrossCornerMode.EXTRA_CUT or s.direction != CornerDirection.BOTH
+           for s in selections):
+        raise ValueError("WIRE_PULL_REAR_CORNER_RULE_SOURCE_REQUIRED")
+    return rule, selections
+
+
+def _endcap_relief_witness(key, render, body, x, y, t):
+    """Compare actual outer CUTTING to both approved corner sources."""
+    from shapely.geometry import box, Polygon
+    from shapely.ops import unary_union
+    from ..certified_relief_registry import (lookup_certified_endcap_relief,
+        _assembly_joint_corner_names, _physical_cut_from_relief)
+    front = lookup_certified_endcap_relief(assembly_intent=CornerTypeId.INSERT,
+        endcap_render_data=render, box_body_x_profile=body.x_profile,
+        endcap_x_profile=x, endcap_y_profile=y, sheet_thickness=t,
+        cabinet_family="拉線箱", joint_signature_relations=("INSERT",), joint_face="TOP")
+    if front is None or (front.rule_id, front.rule_revision) != ("ENDCAP_TOP_INSERT_STRUCTURAL_CONTACT_V1", 1):
+        raise ValueError("WIRE_PULL_FRONT_CORNER_RULE_SOURCE_REQUIRED")
+    rule, selections = _rear_corner_rule(key)
+    bounds = render.material.bounds
+    back = y[-1 if key == "head" else 0].length
+    rear = tuple(_physical_cut_from_relief(name, resolve_corner_relief(selection,
+        fold_u=side.length, fold_v=back, thickness=t, fw=0.), bounds)
+        for name, selection, side in zip(_assembly_joint_corner_names(y,"BOTTOM"), selections, (x[0],x[-1])))
+    expected = box(*bounds).difference(unary_union((*front.cut_polygons,*rear)))
+    if expected.symmetric_difference(Polygon(render.material.exterior)).area > TOL:
+        raise ValueError("WIRE_PULL_ENDCAP_CERTIFIED_CUTTING_MISMATCH: "+key)
+    return (f"{front.rule_id}@{front.rule_revision}", f"{rule.rule_id}@{rule.revision}:bottom_left,bottom_right")
+
+
+def _folded_endcap(spec, key, body, inside, t, *, render_transform=None):
+    """Four real bends, shared material/corner/mesh/placement owners.
+
+    Q61 authorizes the existing Vault fixed rear pair only. Front relief
+    derives from actual rails and must agree with the structural contact rule.
+    Formal export still requires saved-source physical verification.
+    """
+    rail_left, rail_right = body.mounting_faces[0], body.mounting_faces[-1]
+    left_source, right_source = body.x_profile[0], body.x_profile[-1]
+    if left_source.phase6_key != rail_left.face_id or right_source.phase6_key != rail_right.face_id:
+        raise ValueError("WIRE_PULL_ENDCAP_FRONT_SUPPORT_SOURCE_REQUIRED")
+    if getattr(spec, key+"_clearance_mm") != 0:
+        raise ValueError("WIRE_PULL_STANDARD_INSERT_ZERO_REQUIRED")
+    xmin, xmax, zmin, zmax = inside
+    front_plane = rail_left.world_origin[2]
+    if abs(front_plane-rail_right.world_origin[2]) > TOL or front_plane <= zmax:
+        raise ValueError("WIRE_PULL_ENDCAP_FRONT_SUPPORT_SOURCE_REQUIRED")
+    rows = [dict(len=r.length, phase6_key=r.phase6_key,
+                 **({"angle": r.angle} if r.angle is not None else {}),
+                 **({"core": r.core} if r.core else {})) for r in body.x_profile]
+    source = LinkedEndcapInsertSource(xmax-xmin, front_plane-zmin, t,
+        tuple(getattr(spec, "head_"+role+"_material_mm") for role in ("left", "right", "bottom")),
+        tuple(getattr(spec, "tail_"+role+"_material_mm") for role in ("left", "right", "bottom")))
+    linked = build_linked_endcap_xy_fold_profiles({}, rows, insert_source=source)[key]
+    def segments(axis):
+        return tuple(FoldProfileSegment(r["len"], r.get("angle"), r.get("core"), r["phase6_key"])
+                     for r in linked[axis])
+    x, y = segments("X"), segments("Y")
+    front_is_low = key == "head"
+    left, right = x[0].length, x[-1].length
+    lo, hi = y[0].length, y[-1].length
+    front, back = (lo,hi) if front_is_low else (hi,lo)
+    # The physical rail free edges bound the cap's front fold. Convert those
+    # actual world coordinates to distances from the flat core bend axes.
+    core_left, core_right = xmin+t, xmax-t
+    opening_left = _face_x_extent(rail_left)[1]
+    opening_right = _face_x_extent(rail_right)[0]
+    if not core_left < opening_left < opening_right < core_right:
+        raise ValueError("WIRE_PULL_ENDCAP_FRONT_SUPPORT_SOURCE_REQUIRED")
+    front_l, front_r = left+opening_left-core_left, right+core_right-opening_right
+    front_v = front+(front_plane-zmax)
+    _, (rear_left, rear_right) = _rear_corner_rule(key)
+    rear_l = resolve_corner_relief(rear_left, fold_u=left, fold_v=back, thickness=t, fw=0.)
+    rear_r = resolve_corner_relief(rear_right, fold_u=right, fold_v=back, thickness=t, fw=0.)
+    if abs(rear_l.primary_v-rear_r.primary_v)>TOL:
+        raise ValueError("WIRE_PULL_REAR_CORNER_TOPOLOGY_UNSUPPORTED")
+    front_cuts, rear_cuts = (front_l,front_r,front_v), (rear_l.primary_u,rear_r.primary_u,rear_l.primary_v)
+    low, high = (front_cuts,rear_cuts) if front_is_low else (rear_cuts,front_cuts)
+    geom = FourSideFlangeGeometry(sum(r.length for r in x), sum(r.length for r in y), t, left, right, hi, lo)
+    policy = RectCornerReliefPolicy(low[0], low[1], high[0], high[1], low[2], high[2])
+    structural = StructuralGeometryResult(tuple(build_four_side_outline(geom, policy)),
+        tuple(build_four_side_bend_segments(geom, policy)), geom.total_width, geom.total_height, geom)
+    source = _structural_render(key,x,y,structural)
+    rules = _endcap_relief_witness(key,source,body,x,y,t)
+    source = replace(source,metadata={**source.metadata,"wire_pull_corner_rules":rules})
+    data, _ = _render_with_features(key,x,y,geom.total_height,render_transform,source=source)
+    mapped = _mapped(data,x,y,exact_material=True)
+    xb, _ = _profile_geometry(x)
+    yb, _ = _profile_geometry(y)
+    normals = []
+    for m in mapped:
+        i = bisect_right(xb, sum(p[0] for p in m.flat)/3.)-1
+        j = bisect_right(yb, sum(p[1] for p in m.flat)/3.)-1
+        if i != 1 and j != 1:
+            raise ValueError("WIRE_PULL_ENDCAP_UNRESOLVED_CORNER_MATERIAL")
+        normals.append((-1,0,0) if i==0 else (1,0,0) if i==2 else
+                       (0,-1,0) if j==0 else (0,1,0) if j==2 else (0,0,-1))
+    mesh = thicken_orthogonal_inside_surface(tuple(m.local for m in mapped),tuple(normals),t)
+    # The shared placement uses z=0 as semantic core. Here z=0 is the
+    # inside skin, so offset by one T to mate the outside plane exactly.
+    dz = (zmin+front_plane)/2.
+    placement = "top" if front_is_low else "bottom"
+    def place(tris):
+        return place_endcap_against_box_body(tris,placement,body.world_triangles,
+            offset=(0.,-t if front_is_low else t,dz),preserve_core_origin=True)
+    mesh = tuple((a,c,b) for a,b,c in place(mesh))  # both role transforms reflect winding
+    _require_closed(mesh)
+    # Core face UV uses the same role transform, not a second face geometry.
+    origin = place((((-x[1].length/2.,-y[1].length/2.,-t),)*3,))[0][0]
+    face = MountFace(key,"outer",(xb[1],yb[1],xb[2],yb[2]),origin,
+                     (1,0,0),(0,0,-1 if front_is_low else 1),(0,1 if front_is_low else -1,0))
+    return PhysicalPart(key,data,x,y,mesh,(face,))
+
+
 def resolve(spec, *, render_transform=None):
     if not isinstance(spec,WirePullBoxSpec):
         raise TypeError("WIRE_PULL_EXPLICIT_SPEC_REQUIRED")
@@ -269,13 +413,12 @@ def resolve(spec, *, render_transform=None):
                     ("width","height","depth","thickness"))
     left = _number(spec.left_return_material_mm,"left_return_material_mm")
     right = _number(spec.right_return_material_mm,"right_return_material_mm")
-    # No authority for a default head/tail fold. This
-    # first geometry candidate supports explicitly selected flat INSERT
-    # plates only; folded sources must never silently take that path.
+    # Historical flat sources replay as-is; new folded sources never migrate them.
     for key in ("head","tail"):
         form = getattr(spec,key+"_form")
-        if form != "flat":
-            raise ValueError("WIRE_PULL_ENDCAP_FORM_REQUIRED_OR_UNSUPPORTED: "+key)
+        if form not in ("flat", "folded"):
+            raise ValueError("WIRE_PULL_ENDCAP_FORM_REQUIRED_OR_UNSUPPORTED: "+key+
+                             "（需已確認的封頭尾折邊來源）")
     hc = _number(spec.head_clearance_mm,"head_clearance_mm",allow_zero=True)
     tc = _number(spec.tail_clearance_mm,"tail_clearance_mm",allow_zero=True)
     dims = (w,h,d)
@@ -286,9 +429,12 @@ def resolve(spec, *, render_transform=None):
     for key,placement,plane,clearance in (
         ("head","top",h/2,hc),("tail","bottom",-h/2,tc),
     ):
-        caps.append(_flat(key,xmax-xmin-2*clearance,zmax-zmin-2*clearance,
-                          t,dims,placement,outer_plane=plane,z_center=(zmin+zmax)/2,
-                          render_transform=render_transform))
+        if getattr(spec,key+"_form") == "folded":
+            caps.append(_folded_endcap(spec,key,body,(xmin,xmax,zmin,zmax),t,render_transform=render_transform))
+        else:
+            caps.append(_flat(key,xmax-xmin-2*clearance,zmax-zmin-2*clearance,
+                              t,dims,placement,outer_plane=plane,z_center=(zmin+zmax)/2,
+                              render_transform=render_transform))
     head,tail = caps
     if triangle_bounds(head.world_triangles)[1][0] <= triangle_bounds(tail.world_triangles)[1][1]+TOL:
         raise ValueError("WIRE_PULL_ENDCAPS_OVERLAP")

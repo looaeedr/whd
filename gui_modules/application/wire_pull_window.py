@@ -18,6 +18,12 @@ DIMENSIONS = (
     ('thickness', 'T 板厚'), ('left_return_material_mm', '左內折料長'),
     ('right_return_material_mm', '右內折料長'),
 )
+ENDCAP_DIMENSIONS = tuple(
+    (f'{role}_{edge}_material_mm', f'{label}{side}折料')
+    for role, label in (('head', '封頭'), ('tail', '封尾'))
+    for edge, side in (('left', '左'), ('right', '右'), ('bottom', '下'))
+)
+SOURCE_DIMENSIONS = DIMENSIONS + ENDCAP_DIMENSIONS
 DISTANCES = (
     ('fixed_pitch', '固定孔最大中心距'), ('seal_offset', '封印距角'),
     ('anchor_break', '壁虎距邊分界'), ('anchor_near', '壁虎第一級距邊'),
@@ -52,23 +58,33 @@ class WirePullWindow:
         self._position_readback = ('', '')
         self._size_readback = ('', '', '')
         self._options = api.wire_pull_default_hole_options()
-        left = ttk.Frame(self.window, padding=12)
+        self._endcap_forms = (WirePullBoxSpec.head_form, WirePullBoxSpec.tail_form)
+        left = ttk.Frame(self.window, padding=(8, 6))
         left.pack(side='left', fill='y')
         right = ttk.Frame(self.window, padding=12)
         right.pack(side='right', fill='both', expand=True)
         ttk.Label(left, text='尺寸／料長（mm）').grid(row=0, column=0, columnspan=2, sticky='w')
         for row, (key, label) in enumerate(DIMENSIONS + DISTANCES, 1):
-            ttk.Label(left, text=label).grid(row=row, column=0, sticky='w', pady=2)
-            value = getattr(self._options.defaults, key, '')
+            ttk.Label(left, text=label).grid(row=row, column=0, sticky='w', pady=0)
+            value = getattr(self._options.defaults, key, getattr(WirePullBoxSpec, key, ''))
             self.fields[key] = tk.StringVar(self.window, value=str(value))
-            ttk.Entry(left, textvariable=self.fields[key], width=13).grid(row=row, column=1, sticky='ew', pady=2)
+            ttk.Entry(left, textvariable=self.fields[key], width=13).grid(row=row, column=1, sticky='ew', pady=0)
         row = len(DIMENSIONS + DISTANCES) + 1
-        ttk.Label(left, text='平板封頭尾 INSERT 零間隙\n外蓋四邊 1 mm；厚向貼合').grid(row=row, column=0, columnspan=2, sticky='w', pady=5)
+        fold_fields = ttk.Frame(left)
+        fold_fields.grid(row=row, column=0, columnspan=2, sticky='ew')
+        for role_index, label in enumerate(('封頭', '封尾')):
+            ttk.Label(fold_fields, text=label+' 左／右／下').grid(row=role_index, column=0, sticky='w')
+            for j, (key, _) in enumerate(ENDCAP_DIMENSIONS[role_index*3:role_index*3+3]):
+                var = self.fields[key] = tk.StringVar(self.window, value=str(getattr(WirePullBoxSpec,key)))
+                ttk.Entry(fold_fields, textvariable=var, width=5).grid(row=role_index, column=j+1, padx=1)
+        row += 1
+        self.endcap_status = tk.StringVar(self.window, value='封頭尾上折跟箱身邊框；正式出圖須經 Engine 驗證\nINSERT 零間隙；外蓋四邊 1 mm')
+        ttk.Label(left, textvariable=self.endcap_status).grid(row=row, column=0, columnspan=2, sticky='w', pady=2)
         for index, (key, label) in enumerate(FLAGS):
             var = self.flags[key] = tk.BooleanVar(self.window, value=getattr(self._options, key))
             ttk.Checkbutton(left, text=label, variable=var).grid(row=row+1+index//2, column=index%2, sticky='w')
         self.reset_defaults_button = ttk.Button(left, text='恢復出廠預設', command=self.reset_factory_defaults)
-        self.reset_defaults_button.grid(row=row+3, column=0, columnspan=2, sticky='ew', pady=(6, 0))
+        self.reset_defaults_button.grid(row=row+3, column=0, columnspan=2, sticky='ew', pady=(2, 0))
         self.status = tk.StringVar(self.window, value='請輸入包外及兩側折邊料長；尚未確認。')
         self.part_var = tk.StringVar(self.window)
         self.part_selector = ttk.Combobox(right, textvariable=self.part_var, state='readonly')
@@ -181,8 +197,8 @@ class WirePullWindow:
         self.axis = None
 
     def _source(self):
-        spec = WirePullBoxSpec(**{key: float(self.fields[key].get()) for key, _ in DIMENSIONS},
-                               head_form='flat', tail_form='flat')
+        spec = WirePullBoxSpec(**{key: float(self.fields[key].get()) for key, _ in SOURCE_DIMENSIONS},
+                               head_form=self._endcap_forms[0], tail_form=self._endcap_forms[1])
         options = replace(self._options,
                           defaults=replace(self._options.defaults, **{
                               key: float(self.fields[key].get()) for key, _ in DISTANCES}),
@@ -358,7 +374,10 @@ class WirePullWindow:
         if self.part_var.get() not in labels:
             self.part_var.set(labels[0] if labels else '')
         self._draw_part()
-        self.status.set(f'Engine 預覽：{len(proposal.members)} 個孔特徵；出圖須確認並儲存。')
+        self.status.set(f'Engine 預覽：{len(proposal.members)} 個孔特徵；{self._cap_preview_label()}。')
+
+    def _cap_preview_label(self):
+        return '舊平板退修核對，非加工' if 'flat' in self._endcap_forms else '四折封頭尾；正式出圖依已儲存來源驗證'
 
     def _draw_part(self):
         self.canvas.delete('all')
@@ -395,7 +414,7 @@ class WirePullWindow:
         self._close_mesh()
         self.physical = physical
         self._mesh_window = tk.Toplevel(self.window)
-        self._mesh_window.title('標準拉線箱｜同源 3D 預覽')
+        self._mesh_window.title('標準拉線箱｜3D '+self._cap_preview_label())
         self._mesh_window.transient(self.window)
         figure = Figure(figsize=(6, 5))
         self.axis = figure.add_subplot(111, projection='3d')
@@ -423,12 +442,15 @@ class WirePullWindow:
             self.controller.confirm_designer(snapshot)
             self._retain_edits(self.proposal)
             self._confirmed_inputs = deepcopy(self._source())
-            self.status.set('已確認設定；儲存專案後可申請正式出圖。')
+            self.status.set('已確認設定；'+self._cap_preview_label()+'。')
         except (ValueError, TypeError, OverflowError) as exc:
             self.status.set(str(exc))
 
     def _restore(self, proposal, renders):
-        for key, _ in DIMENSIONS:
+        # Only replay the saved form, never infer or migrate a cap shape.
+        self._endcap_forms = (proposal.spec.head_form, proposal.spec.tail_form)
+        self.endcap_status.set(self._cap_preview_label()+"\nINSERT 零間隙；外蓋四邊 1 mm")
+        for key, _ in SOURCE_DIMENSIONS:
             self.fields[key].set(str(float(getattr(proposal.spec, key))))
         for key, _ in DISTANCES:
             self.fields[key].set(str(float(getattr(proposal.options.defaults, key))))
@@ -437,14 +459,14 @@ class WirePullWindow:
         self._retain_edits(proposal)
         self._show(proposal, renders)
         self._confirmed_inputs = deepcopy(self._source())
-        self.status.set('已還原確認的專案來源；正式出圖須以已存來源驗證。')
+        self.status.set('已還原確認的專案來源；'+self._cap_preview_label()+'。')
 
     def cancel(self):
         snapshot = self.controller.committed_snapshot()
         if snapshot is None:
             self._draft_edits = {}
-            for key, _ in DIMENSIONS:
-                self.fields[key].set('')
+            for key, _ in SOURCE_DIMENSIONS:
+                self.fields[key].set(str(getattr(WirePullBoxSpec,key,'')))
             for key, _ in DISTANCES:
                 self.fields[key].set(str(getattr(self._options.defaults, key)))
             for key, var in self.flags.items():
@@ -480,7 +502,7 @@ class WirePullWindow:
                 source = api.inspect_wire_pull_saved_export(target, expected_snapshot=snapshot)
                 self._saved_export = (Path(target).absolute(), source, deepcopy(snapshot),
                                       confirmed_inputs)
-                self.status.set('已儲存確認的專案；未確認變更不寫入。')
+                self.status.set('已儲存專案；未確認變更不寫入。'+self._cap_preview_label()+'。')
             except (OSError, ValueError, TypeError, OverflowError) as exc:
                 self.status.set(str(exc))
 
@@ -516,6 +538,8 @@ class WirePullWindow:
             path, source, snapshot, _ = witness
             if api.inspect_wire_pull_saved_export(path, expected_snapshot=snapshot) != source:
                 raise ValueError('WIRE_PULL_SAVED_SOURCE_CHANGED')
+            if source.manufacturing_blocker is not None:
+                raise ValueError(source.manufacturing_blocker)
             directory = filedialog.askdirectory(parent=self.window, title='選擇正式 DXF 輸出資料夾')
             if not directory:
                 self.status.set('已取消出圖。')

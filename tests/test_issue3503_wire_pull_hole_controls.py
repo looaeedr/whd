@@ -181,8 +181,9 @@ _FACTORY_KEYS = ('fixed_pitch', 'seal_offset', 'anchor_break', 'anchor_near', 'a
 _CUSTOM_VALUES = (450., 110., 1050., 110., 160., 1850.)
 
 
-def _factory_source():
-    spec = WirePullBoxSpec(1003.,1004.,223.,2.,27.,34.,'flat','flat')
+def _factory_source(legacy=False):
+    spec = (WirePullBoxSpec(1003.,1004.,223.,2.,27.,34.,'flat','flat') if legacy else
+            WirePullBoxSpec(1003.,1004.,223.,2.))
     factory = api.wire_pull_default_hole_options()
     custom = replace(factory, defaults=replace(factory.defaults, **dict(zip(_FACTORY_KEYS,_CUSTOM_VALUES))), opposite_diagonal=True)
     return spec, custom, replace(custom, defaults=factory.defaults)
@@ -229,10 +230,11 @@ def test_factory_restore_new_draft(tmp_path, monkeypatch):
         root.destroy()
 
 
-def test_factory_restore_reopen_cancel_confirm_save(tmp_path, monkeypatch):
+@pytest.mark.parametrize("legacy",[False,True])
+def test_factory_restore_reopen_cancel_confirm_save(tmp_path, monkeypatch,legacy):
     import gui
     import ezdxf
-    spec, custom, factory = _factory_source()
+    spec, custom, factory = _factory_source(legacy)
     anchors = [m for m in api.propose_wire_pull_holes(spec,custom).members if m.kind=='anchor']
     hole = CircleFeature(4.,FeatureAnchor.ABSOLUTE_FINISHED_FACE,Vec2(400.,600.),source_type='MANUAL_TEST')
     edits = dict(manual=(('box_body',(hole,)),), sizes=(api.make_wire_pull_hole_size_override(anchors[0].group_id,'box_body',diameter=14),),
@@ -292,19 +294,35 @@ def test_factory_restore_reopen_cancel_confirm_save(tmp_path, monkeypatch):
         for key in ('overrides','additions','removed','sizes'):
             assert getattr(win.proposal,key) == getattr(original,key)
         assert api.wire_pull_hole_member_size(win.proposal,anchors[0].group_id,'box_body').diameter == 14
-        monkeypatch.setattr(filedialog,'askdirectory',lambda **kw:str(out))
-        win.export_button.invoke(); root.update()
-        assert '4' in win.status.get() and len(list(out.iterdir())) == 4
-        for key,render in win.renders:
-            target=out/(key+'.dxf'); doc=ezdxf.readfile(target)
-            assert doc.header['$INSUNITS']==4 and not doc.audit().errors
-            assert api.verify_saved_part_render_data_dxf(render,target).ok
+        from tests.test_issue3503_wire_pull_gui_export import _existing_real_files
+        from ae_engine import manufacturing_export
+        _existing_real_files(out)
+        old = {p.name:(p.read_bytes(),p.stat().st_mtime_ns) for p in out.iterdir()}
+        if legacy:
+            def forbidden(*args,**kwargs): pytest.fail('withdrawn source reached picker or stage')
+            monkeypatch.setattr(filedialog,'askdirectory',forbidden)
+            monkeypatch.setattr(manufacturing_export,'_save_resolved_rows_atomic',forbidden)
+            win.export_button.invoke(); root.update()
+            assert 'WIRE_PULL_FLAT_ENDCAP_WITHDRAWN' in win.status.get()
+            assert {p.name:(p.read_bytes(),p.stat().st_mtime_ns) for p in out.iterdir()}==old
+        else:
+            from tkinter import messagebox
+            monkeypatch.setattr(filedialog,'askdirectory',lambda **kw:str(out))
+            monkeypatch.setattr(messagebox,'askyesno',lambda **kw:True)
+            win.export_button.invoke(); root.update()
+            assert '4' in win.status.get(),win.status.get()
+            assert {p.name:(p.read_bytes(),p.stat().st_mtime_ns) for p in out.iterdir()}!=old
+            for key,render in win.renders:
+                assert api.verify_saved_part_render_data_dxf(render,out/(key+'.dxf')).ok
+        assert tuple(len(r.fold_guides) for _,r in win.renders)==((4,0,0,0) if legacy else (4,4,4,0))
+        for target in out.iterdir():
+            doc=ezdxf.readfile(target); assert doc.header['$INSUNITS']==4 and not doc.audit().errors
         output = {p.name:(p.read_bytes(),p.stat().st_mtime_ns) for p in out.iterdir()}
         path.write_bytes(path.read_bytes()+b'\n')
         monkeypatch.setattr(filedialog,'askdirectory',lambda **kw:pytest.fail('stale source reached export dialog'))
         win.export_button.invoke(); assert 'SAVED_SOURCE_CHANGED' in win.status.get()
         assert {p.name:(p.read_bytes(),p.stat().st_mtime_ns) for p in out.iterdir()} == output
-        print('REOPEN: six defaults and five edit sources preserved; Ø14, four verified mm DXF; stale file rejected')
+        print('REOPEN: six defaults and five edit sources preserved; Ø14, four mm DXF verified; withdrawn and stale sources rejected')
     finally:
         root.destroy()
 

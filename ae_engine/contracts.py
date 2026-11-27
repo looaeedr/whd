@@ -229,7 +229,7 @@ class CustomFoldPartSpec:
 
 @dataclass(frozen=True)
 class WirePullBoxSpec:
-    """Explicit first-type assembly source; no shop fold/dimension defaults.
+    """First-type assembly source; operator W/H/D/T and confirmed fold defaults.
 
     W/H/D measure the installed physical enclosure. Return lengths are
     material lengths (CURRENT 07), not formed outside lengths. End plates
@@ -240,13 +240,21 @@ class WirePullBoxSpec:
     height: float
     depth: float
     thickness: float
-    left_return_material_mm: float | None = None
-    right_return_material_mm: float | None = None
-    head_form: str | None = None
-    tail_form: str | None = None
+    left_return_material_mm: float | None = 25.0
+    right_return_material_mm: float | None = 25.0
+    head_form: str | None = "folded"
+    tail_form: str | None = "folded"
     head_clearance_mm: float | None = 0.0
     tail_clearance_mm: float | None = 0.0
     model_name: str = "拉線箱"
+    # Material lengths, independent for the two physical parts. Front follows
+    # the actual body return Fold source, never a second operator constant.
+    head_left_material_mm: float = 15.0
+    head_right_material_mm: float = 15.0
+    head_bottom_material_mm: float = 15.0
+    tail_left_material_mm: float = 15.0
+    tail_right_material_mm: float = 15.0
+    tail_bottom_material_mm: float = 15.0
 
 
 PartSpec: TypeAlias = CustomFoldPartSpec | DoorPartSpec | BoxBodyPartSpec | EndCapPartSpec | BasePlatePartSpec | IndicatorBoxPartSpec

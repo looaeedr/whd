@@ -78,7 +78,7 @@ def test_first_type_real_scene_fold_assembly_outside_and_mounting_faces(t):
     ({"left_return_material_mm":None},"SOURCE_REQUIRED"),
     ({"right_return_material_mm":None},"SOURCE_REQUIRED"),
     ({"head_form":None},"ENDCAP_FORM_REQUIRED"),
-    ({"tail_form":"folded"},"ENDCAP_FORM_REQUIRED"),
+    ({"tail_form":"unsupported"},"ENDCAP_FORM_REQUIRED"),
     ({"head_clearance_mm":None},"SOURCE_REQUIRED"),
     ({"tail_clearance_mm":-1},"INVALID_DIMENSION"),
     ({"left_return_material_mm":610},"OPENING_BLOCKED"),

@@ -28,9 +28,10 @@ def test_standard_toolbar_preview_confirm_cancel_save_and_reopen(tmp_path, monke
         win = host.wire_pull_window
         assert win.window.winfo_viewable()
         assert win.window.grab_current() == win.window
-        assert all(win.fields[key].get() == '' for key in ('width','height','depth','thickness','left_return_material_mm','right_return_material_mm'))
+        assert all(win.fields[key].get() == '' for key in ('width','height','depth','thickness'))
+        assert all(float(win.fields[key].get()) == 25 for key in ('left_return_material_mm','right_return_material_mm'))
         for key, val in dict(width=637, height=1200, depth=223, thickness=3,
-                             left_return_material_mm=27, right_return_material_mm=34,
+                             left_return_material_mm=25, right_return_material_mm=25,
                              fixed_pitch=450, seal_offset=110, anchor_break=1050,
                              anchor_near=110, anchor_far=160, anchor_extra=1850).items():
             win.fields[key].set(str(val))
@@ -42,7 +43,7 @@ def test_standard_toolbar_preview_confirm_cancel_save_and_reopen(tmp_path, monke
         committed = win.controller.committed_snapshot()
         assert committed['model'] == '拉線箱'
         proposal, renders = api.restore_wire_pull_project_snapshot(committed)
-        assert proposal.spec == WirePullBoxSpec(637,1200,223,3,27,34,'flat','flat')
+        assert proposal.spec == WirePullBoxSpec(637,1200,223,3,25,25,'folded','folded')
         assert vars(proposal.options.defaults) == dict(fixed_pitch=450, seal_offset=110,
             anchor_break=1050, anchor_near=110, anchor_far=160, anchor_extra=1850)
         assert dict(renders) == dict(win.renders)

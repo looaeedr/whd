@@ -10,6 +10,8 @@ import ezdxf
 import pytest
 
 from ae_engine import manufacturing_api as api
+from tests.test_issue3504_wire_pull_rejected_flat_endcaps import hashes
+from ae_engine.contracts import EndCapPartSpec, ManufacturingContext
 from phase6_project_file import read_project
 
 pytestmark = [pytest.mark.requires_tk_display,
@@ -27,11 +29,15 @@ def _open_standard(root):
     return host, host.wire_pull_window
 
 
-def _save_and_reopen(root, host, win, monkeypatch, path, width):
-    for key, value in dict(width=width,height=1200,depth=223,thickness=3,
-                           left_return_material_mm=27,right_return_material_mm=34).items():
+def _save_and_reopen(root, host, win, monkeypatch, path, width, *, fw=25, adjust=False):
+    for key, value in dict(width=width,height=1200,depth=223,thickness=1.5 if adjust else 3,
+                           left_return_material_mm=fw,right_return_material_mm=fw).items():
         win.fields[key].set(str(value))
+    if adjust:
+        win.fields['head_left_material_mm'].set('17')
+        win.fields['tail_bottom_material_mm'].set('19')
     win.confirm_button.invoke()
+    assert win.controller.committed_snapshot() is not None, win.status.get()
     monkeypatch.setattr(filedialog,'asksaveasfilename',lambda **kw:str(path))
     win.save_button.invoke()
     assert path.exists()
@@ -43,12 +49,26 @@ def _save_and_reopen(root, host, win, monkeypatch, path, width):
     return host.wire_pull_window
 
 
+def _require_admitted(path):
+    assert api.inspect_wire_pull_saved_export(path).manufacturing_blocker is None
+
+
+def _existing_real_files(out):
+    for i,key in enumerate(('box_body','head','tail','lid')):
+        spec=EndCapPartSpec(width=500.+i*20.,height=600.,depth=200.,thickness=2.,
+                           frame_width=25.,model_name='金庫型',is_tail=key=='tail')
+        api.generate_part(spec,out/(key+'.dxf'),ManufacturingContext(resource_root=Path.cwd()))
+        doc=ezdxf.readfile(out/(key+'.dxf'))
+        assert doc.header['$INSUNITS']==4 and not doc.audit().errors
+    return _files(out)
+
+
 def _files(folder):
     return {p.name:(sha256(p.read_bytes()).hexdigest(),p.stat().st_mtime_ns)
             for p in folder.iterdir() if p.is_file()}
 
 
-def test_gui_export_confirm_save_close_reopen_and_four_dxf(tmp_path,monkeypatch):
+def test_gui_export_confirm_save_close_reopen_and_four_dxf_after_admission(tmp_path,monkeypatch):
     root=tk.Tk()
     try:
         host,win=_open_standard(root)
@@ -63,6 +83,7 @@ def test_gui_export_confirm_save_close_reopen_and_four_dxf(tmp_path,monkeypatch)
         assert win.export_button.winfo_viewable()
         assert win.export_button.winfo_rooty()+win.export_button.winfo_height() <= win.window.winfo_rooty()+win.window.winfo_height()
         before=sha256(path.read_bytes()).hexdigest()
+        _require_admitted(path)
         win.export_button.invoke(); root.update()
         assert len(dialogs)==1 and '4' in win.status.get()
         proposal,renders=api.restore_wire_pull_project_snapshot(read_project(path)['snapshot'])
@@ -96,13 +117,14 @@ def test_gui_export_confirm_save_close_reopen_and_four_dxf(tmp_path,monkeypatch)
         root.destroy()
 
 
-def test_gui_export_drift_wrong_board_and_reopen_failure_preserve_output(tmp_path,monkeypatch):
+def test_gui_export_drift_wrong_board_and_reopen_failure_preserve_output_after_admission(tmp_path,monkeypatch):
     from ae_engine import dxf_serialization
     root=tk.Tk()
     try:
         host,win=_open_standard(root)
         path=tmp_path/'wire.p6fold'; out=tmp_path/'output'; out.mkdir()
         win=_save_and_reopen(root,host,win,monkeypatch,path,637)
+        _require_admitted(path)
         monkeypatch.setattr(filedialog,'askdirectory',lambda **kw:str(out))
         win.export_button.invoke()
         old=_files(out); assert len(old)==4
@@ -174,5 +196,106 @@ def test_gui_export_drift_wrong_board_and_reopen_failure_preserve_output(tmp_pat
         for key,render in renders:
             assert api.verify_saved_part_render_data_dxf(render,out/(key+'.dxf')).ok
         assert _files(out)!=old
+    finally:
+        root.destroy()
+
+
+@pytest.mark.parametrize('fw,adjust',[(25,False),(34,True)])
+def test_gui_export_confirm_save_close_reopen_and_four_dxf(tmp_path,monkeypatch,fw,adjust):
+    from ae_engine import manufacturing_export
+    root=tk.Tk()
+    try:
+        host,win=_open_standard(root)
+        path=tmp_path/'wire.p6fold'; out=tmp_path/'output'; out.mkdir()
+        old=_existing_real_files(out)
+        def forbidden(*args,**kwargs): pytest.fail('unverified source reached picker, overwrite or staging')
+        monkeypatch.setattr(filedialog,'askdirectory',forbidden)
+        monkeypatch.setattr(messagebox,'askyesno',forbidden)
+        win.export_button.invoke(); assert '儲存' in win.status.get()
+        win=_save_and_reopen(root,host,win,monkeypatch,path,1801,fw=fw,adjust=adjust)
+        win.window.geometry('850x590'); root.update()
+        assert win.export_button.winfo_viewable()
+        assert win.export_button.winfo_rooty()+win.export_button.winfo_height() <= win.window.winfo_rooty()+win.window.winfo_height()
+        before=(path.read_bytes(),path.stat().st_mtime_ns)
+        proposal,renders=api.restore_wire_pull_project_snapshot(read_project(path)['snapshot'])
+        assert len([m for m in proposal.members if m.kind=='anchor'])==6
+        assert tuple(len(r.fold_guides) for _,r in renders)==(4,4,4,0)
+        assert dict(renders)==dict(win.renders)
+        assert proposal.spec.left_return_material_mm==proposal.spec.right_return_material_mm==fw
+        assert proposal.spec.head_left_material_mm==(17 if adjust else 15)
+        assert proposal.spec.tail_bottom_material_mm==(19 if adjust else 15)
+        _require_admitted(path)
+        monkeypatch.setattr(filedialog,'askdirectory',lambda **kw:str(out))
+        monkeypatch.setattr(messagebox,'askyesno',lambda **kw:True)
+        win.export_button.invoke(); assert '4' in win.status.get(), win.status.get()
+        for key,render in renders:
+            target=out/(key+'.dxf'); doc=ezdxf.readfile(target)
+            assert doc.header['$INSUNITS']==4 and not doc.audit().errors
+            assert api.verify_saved_part_render_data_dxf(render,target).ok
+        assert _files(out)!=old and (path.read_bytes(),path.stat().st_mtime_ns)==before
+        old=_files(out)
+        monkeypatch.setattr(filedialog,'askdirectory',forbidden)
+        monkeypatch.setattr(messagebox,'askyesno',forbidden)
+        monkeypatch.setattr(manufacturing_export,'_save_resolved_rows_atomic',forbidden)
+        original_x=win.position['X'].get(); win.position['X'].set('42')
+        win.export_button.invoke(); assert '儲存' in win.status.get()
+        win.position['X'].set(original_x)
+        win.fields['width'].set('1800')
+        win.export_button.invoke(); assert '儲存' in win.status.get()
+        win.confirm_button.invoke(); assert win.controller.committed_snapshot()!=read_project(path)['snapshot']
+        win.export_button.invoke(); assert '儲存' in win.status.get()
+        assert _files(out)==old and (path.read_bytes(),path.stat().st_mtime_ns)==before
+    finally:
+        root.destroy()
+
+
+def test_gui_export_drift_wrong_board_and_reopen_failure_preserve_output(tmp_path,monkeypatch):
+    from ae_engine import manufacturing_export
+    root=tk.Tk()
+    try:
+        host,win=_open_standard(root)
+        path=tmp_path/'wire.p6fold'; out=tmp_path/'output'; out.mkdir()
+        old=_existing_real_files(out)
+        win=_save_and_reopen(root,host,win,monkeypatch,path,637)
+        original_bytes=path.read_bytes(); committed=win.controller.committed_snapshot()
+        def forbidden(*args,**kwargs): pytest.fail('unverified source reached picker, overwrite or staging')
+        monkeypatch.setattr(filedialog,'askdirectory',forbidden)
+        monkeypatch.setattr(messagebox,'askyesno',forbidden)
+        stage=manufacturing_export._save_resolved_rows_atomic
+        monkeypatch.setattr(manufacturing_export,'_save_resolved_rows_atomic',forbidden)
+        # Asymmetry is a real unsupported source, not an inferred upper fold.
+        win.fields['right_return_material_mm'].set('34')
+        win.preview_button.invoke(); assert 'FRONT_FOLD_SOURCE_AMBIGUOUS' in win.status.get()
+        win.confirm_button.invoke(); assert 'FRONT_FOLD_SOURCE_AMBIGUOUS' in win.status.get()
+        assert win.controller.committed_snapshot()==committed and path.read_bytes()==original_bytes
+        win.export_button.invoke(); assert '儲存' in win.status.get()
+        win.cancel_button.invoke(); assert win.controller.committed_snapshot()==committed
+        assert win.fields['right_return_material_mm'].get()=='25.0'
+        # Stale and wrong physical identity retain precedence over the geometry blocker.
+        path.write_bytes(original_bytes+b'\n')
+        win.export_button.invoke(); assert 'SAVED_SOURCE_CHANGED' in win.status.get()
+        raw=json.loads(original_bytes); raw['snapshot']['wire_pull_standard']['identity']['holes'][0][3]='wrong-face'
+        path.write_text(json.dumps(raw),encoding='utf-8')
+        win.export_button.invoke(); assert 'PHYSICAL_IDENTITY_CHANGED' in win.status.get()
+        win.open_button.invoke(); assert 'PHYSICAL_IDENTITY_CHANGED' in win.status.get()
+        assert win.controller.committed_snapshot()==committed
+        # Rule identity drift is refused before picker/stage as well.
+        raw=json.loads(original_bytes); raw['snapshot']['wire_pull_standard']['identity']['corner_rules'][0][1][1]='wrong-rule@2'
+        path.write_text(json.dumps(raw),encoding='utf-8')
+        win.export_button.invoke(); assert 'PHYSICAL_IDENTITY_CHANGED' in win.status.get()
+        assert _files(out)==old
+        path.write_bytes(original_bytes)
+        monkeypatch.setattr(manufacturing_export,'_save_resolved_rows_atomic',stage)
+        monkeypatch.setattr(filedialog,'askdirectory',lambda **kw:str(out))
+        monkeypatch.setattr(messagebox,'askyesno',lambda **kw:True)
+        # A legitimate newly confirmed saved revision is eligible for export.
+        win.fields['width'].set('800'); win.confirm_button.invoke(); win.save_button.invoke()
+        assert api.inspect_wire_pull_saved_export(path).source_sha256!=sha256(original_bytes).hexdigest()
+        win.export_button.invoke(); assert '4' in win.status.get(), win.status.get()
+        assert _files(out)!=old and set(p.name for p in out.iterdir())==set(old)
+        _,renders=api.restore_wire_pull_project_snapshot(read_project(path)['snapshot'])
+        for key,render in renders:
+            assert api.verify_saved_part_render_data_dxf(render,out/(key+'.dxf')).ok
+            assert not ezdxf.readfile(out/(key+'.dxf')).audit().errors
     finally:
         root.destroy()

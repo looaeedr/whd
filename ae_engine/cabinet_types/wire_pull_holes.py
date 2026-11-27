@@ -470,11 +470,11 @@ def _confirmed_renders(spec, proposal, *, manual=()):
         return with_physical_sheet_features(key,render,
                    (*old.get(key,()),*(m.feature for m in fresh.members if m.part_key==key)))
     # Reuse the existing topology owner's material/identity/hinge checks.
-    # In P1 each physical part has one Y span; no new fold or hole formula.
+    # Use the original physical part's canonical scene, including dual-axis end caps.
     from .wire_pull_topology import _render_with_features
     renders=tuple((part.part_key,_render_with_features(
         part.part_key,part.x_profile,part.y_profile,
-        sum(row.length for row in part.y_profile),render_transform,
+        sum(row.length for row in part.y_profile),render_transform,source=part.render_data,
     )[0]) for part in source.parts)
     return source,renders
 
