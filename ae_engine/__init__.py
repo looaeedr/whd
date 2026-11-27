@@ -20,6 +20,7 @@ from .receiving_part_only_door_handoff import (
 )
 from .manufacturing_api import (
     resolve_standard_cabinet_topology,
+    inspect_wire_pull_saved_export, save_wire_pull_saved_project_dxf,
     ReceivingFactoryConfirmedDoorHandoff,
     plan_receiving_factory_confirmed_door_handoff,
     commit_operator_endcap_fw_profile_save,
@@ -437,6 +438,7 @@ from . import ae, manufacturing_api
 from .derived_part_projection import _freeze, _thaw, _unique_keys
 
 __all__ = [
+    "inspect_wire_pull_saved_export", "save_wire_pull_saved_project_dxf",
     "ReceivingFactoryConfirmedDoorHandoff",
     "plan_receiving_factory_confirmed_door_handoff",
     "ReceivingPartOnlyDoorIndicatorIntent",

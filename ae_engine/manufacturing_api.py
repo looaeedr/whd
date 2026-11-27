@@ -920,6 +920,46 @@ def resolve_standard_cabinet_topology(spec):
     return cabinet_family_policy.resolve_standard_cabinet_topology(spec)
 
 
+def wire_pull_default_hole_options():
+    """Return the Engine-owned standard hole configuration for operator forms."""
+    from .cabinet_types.wire_pull_holes import HoleOptions
+    return HoleOptions()
+
+
+def is_wire_pull_project_snapshot(snapshot):
+    from .cabinet_types.wire_pull_project import is_wire_pull_project_snapshot as identify
+    return identify(snapshot)
+
+
+def build_wire_pull_project_snapshot(spec, proposal):
+    from .cabinet_types.wire_pull_project import build_wire_pull_project_snapshot as build
+    return build(spec, proposal)
+
+
+def restore_wire_pull_project_snapshot(snapshot):
+    from .cabinet_types.wire_pull_project import restore_wire_pull_project_snapshot as restore
+    return restore(snapshot)
+
+
+def make_wire_pull_hole_addition(group_id, kind, face_id, xy):
+    """Construct an explicit group source; the existing proposal validates it."""
+    from .cabinet_types.wire_pull_holes import HoleAddition
+    return HoleAddition(group_id, kind, face_id, xy)
+
+
+def make_wire_pull_hole_size_override(group_id, part_key, *, diameter=None,
+                                      slot_width=None, slot_length=None):
+    """Construct an explicit member-size source for the existing proposal."""
+    from .cabinet_types.wire_pull_holes import HoleSizeOverride
+    return HoleSizeOverride(group_id, part_key, diameter, slot_width, slot_length)
+
+
+def wire_pull_hole_member_size(proposal, group_id, part_key):
+    """Read the actual selected member size through the hole owner."""
+    from .cabinet_types.wire_pull_holes import member_size
+    return member_size(proposal, group_id, part_key)
+
+
 def propose_wire_pull_holes(spec, options=None, *, manual=(), overrides=(), additions=(), removed=(), sizes=()):
     """Return a source-owned standard wire-pull hole candidate; no mutation."""
     from .cabinet_types.wire_pull_holes import HoleOptions, propose
@@ -943,6 +983,19 @@ def confirm_wire_pull_holes(spec, proposal, *, manual=()):
     """Compatibility projection of confirmed topology; no manufacturing admission."""
     from .cabinet_types.wire_pull_holes import confirm
     return confirm(spec, proposal, manual=manual)
+
+
+def inspect_wire_pull_saved_export(project_path, *, expected_snapshot=None):
+    """Read current saved operator source identity; does not admit manufacturing."""
+    from .cabinet_types.wire_pull_saved_export import inspect
+    return inspect(project_path, expected_snapshot=expected_snapshot)
+
+
+def save_wire_pull_saved_project_dxf(project_path, output_dir, *, expected_source_sha256, overwrite=False, pre_commit_guard=None):
+    """Re-resolve a confirmed saved standard project and export all four sheets."""
+    from .cabinet_types.wire_pull_saved_export import save
+    return save(project_path, output_dir, expected_source_sha256=expected_source_sha256,
+                overwrite=overwrite, pre_commit_guard=pre_commit_guard)
 
 
 def build_operator_part_render_data(

@@ -83,6 +83,29 @@ class HoleProposal:
     sizes: tuple = ()
 
 
+def member_size(proposal, group_id, part_key):
+    """Read the selected physical member's current dimensions, not defaults.
+
+    Profile points are the Engine's unrotated capsule source. This projection
+    never changes a Feature, and does not admit any additional hole type.
+    """
+    matches = [m for m in proposal.members
+               if m.group_id == group_id and m.part_key == part_key]
+    if len(matches) != 1:
+        raise ValueError("WIRE_PULL_HOLE_MEMBER_SOURCE_REQUIRED")
+    member = matches[0]
+    feature = member.feature
+    if isinstance(feature, CircleFeature):
+        return HoleSizeOverride(group_id, part_key, diameter=feature.diameter)
+    if (isinstance(feature, ProfileFeature) and member.kind == "fixed"
+            and member.part_key == "lid"):
+        xs = [p.x for p in feature.points]
+        ys = [p.y for p in feature.points]
+        return HoleSizeOverride(group_id, part_key,
+                                slot_width=max(ys)-min(ys), slot_length=max(xs)-min(xs))
+    raise ValueError("WIRE_PULL_HOLE_MEMBER_KIND_UNSUPPORTED")
+
+
 def _positive(value):
     if isinstance(value, bool) or not isinstance(value, (int, float)) or not isfinite(value) or value <= 0:
         raise ValueError("WIRE_PULL_HOLE_INVALID_DEFAULT")
