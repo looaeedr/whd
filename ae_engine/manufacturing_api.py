@@ -120,7 +120,7 @@ box_body_structure_manual_integer = _manual_integer
 
 from .linked_endcap_fold import (
     is_canonical_box_body_mating_profile, box_body_front_mating_fold_chain,
-    build_linked_endcap_xy_fold_profiles,
+    build_linked_endcap_xy_fold_profiles, LinkedEndcapInsertSource,
 )
 from .endcap_factory_fold import (
     selection_from_raw as endcap_corner_selection_from_raw,
@@ -915,6 +915,89 @@ from .manufacturing_scene_orchestration import (
     build_part_render_data,
 )
 
+def resolve_standard_cabinet_topology(spec):
+    """Engine-owned standard assembly projection from explicit Family source."""
+    return cabinet_family_policy.resolve_standard_cabinet_topology(spec)
+
+
+def wire_pull_default_hole_options():
+    """Return the Engine-owned standard hole configuration for operator forms."""
+    from .cabinet_types.wire_pull_holes import HoleOptions
+    return HoleOptions()
+
+
+def is_wire_pull_project_snapshot(snapshot):
+    from .cabinet_types.wire_pull_project import is_wire_pull_project_snapshot as identify
+    return identify(snapshot)
+
+
+def build_wire_pull_project_snapshot(spec, proposal):
+    from .cabinet_types.wire_pull_project import build_wire_pull_project_snapshot as build
+    return build(spec, proposal)
+
+
+def restore_wire_pull_project_snapshot(snapshot):
+    from .cabinet_types.wire_pull_project import restore_wire_pull_project_snapshot as restore
+    return restore(snapshot)
+
+
+def make_wire_pull_hole_addition(group_id, kind, face_id, xy):
+    """Construct an explicit group source; the existing proposal validates it."""
+    from .cabinet_types.wire_pull_holes import HoleAddition
+    return HoleAddition(group_id, kind, face_id, xy)
+
+
+def make_wire_pull_hole_size_override(group_id, part_key, *, diameter=None,
+                                      slot_width=None, slot_length=None):
+    """Construct an explicit member-size source for the existing proposal."""
+    from .cabinet_types.wire_pull_holes import HoleSizeOverride
+    return HoleSizeOverride(group_id, part_key, diameter, slot_width, slot_length)
+
+
+def wire_pull_hole_member_size(proposal, group_id, part_key):
+    """Read the actual selected member size through the hole owner."""
+    from .cabinet_types.wire_pull_holes import member_size
+    return member_size(proposal, group_id, part_key)
+
+
+def propose_wire_pull_holes(spec, options=None, *, manual=(), overrides=(), additions=(), removed=(), sizes=()):
+    """Return a source-owned standard wire-pull hole candidate; no mutation."""
+    from .cabinet_types.wire_pull_holes import HoleOptions, propose
+    return propose(spec, HoleOptions() if options is None else options,
+                   manual=manual, overrides=overrides, additions=additions, removed=removed, sizes=sizes)
+
+
+def choose_wire_pull_hole_alternative(spec, proposal, alternative, *, manual=()):
+    """Validate the selected alternative; no change is committed by selection."""
+    from .cabinet_types.wire_pull_holes import choose_alternative
+    return choose_alternative(spec, proposal, alternative, manual=manual)
+
+
+def confirm_wire_pull_hole_topology(spec, proposal, *, manual=()):
+    """Revalidate source and return matching canonical CUTTING and physical mesh."""
+    from .cabinet_types.wire_pull_holes import confirm_topology
+    return confirm_topology(spec, proposal, manual=manual)
+
+
+def confirm_wire_pull_holes(spec, proposal, *, manual=()):
+    """Compatibility projection of confirmed topology; no manufacturing admission."""
+    from .cabinet_types.wire_pull_holes import confirm
+    return confirm(spec, proposal, manual=manual)
+
+
+def inspect_wire_pull_saved_export(project_path, *, expected_snapshot=None):
+    """Read current saved operator source identity; does not admit manufacturing."""
+    from .cabinet_types.wire_pull_saved_export import inspect
+    return inspect(project_path, expected_snapshot=expected_snapshot)
+
+
+def save_wire_pull_saved_project_dxf(project_path, output_dir, *, expected_source_sha256, overwrite=False, pre_commit_guard=None):
+    """Re-resolve a confirmed saved standard project and export all four sheets."""
+    from .cabinet_types.wire_pull_saved_export import save
+    return save(project_path, output_dir, expected_source_sha256=expected_source_sha256,
+                overwrite=overwrite, pre_commit_guard=pre_commit_guard)
+
+
 def build_operator_part_render_data(
     spec: PartSpec, context: ManufacturingContext | None = None,
 ) -> PartRenderData | BoxBodyStructureRenderData:
@@ -924,6 +1007,7 @@ def build_operator_part_render_data(
     multi-sheet structure. Preserve the legacy canonical normalization and
     two existing factories; do not issue manufacturing/export authorization.
     """
+    cabinet_family_policy.require_legacy_part_family_source(getattr(spec, "model_name", None))
     if isinstance(spec, BoxBodyPartSpec):
         structure = normalize_box_body_structure_state(spec.structure_state)
         if structure.get("active_type") != BoxBodyStructureType.INTEGRAL.value:
@@ -939,6 +1023,7 @@ def _require_single_part_dxf_source(render_data, *, selected_owner_witness=None)
     else:
         selected_owner_witness.assert_render(render_data)
     metadata = getattr(render_data, "metadata", None) or {}
+    _manufacturing_export.require_standard_cabinet_render_manufacturing(render_data)
     # A CHECK-only V preview is never a production cutting plan.
     reject_tail_lower_v_preview_for_dxf(render_data)
     blocked = metadata.get("baseline_fit_error")

@@ -222,6 +222,7 @@ def phase6_application_host_init(self, root):
         read_project=read_phase6_project,
         write_project=write_phase6_project,
         schema=PHASE6_PROJECT_SCHEMA,
+        route_wire_pull=True,
     )
     self.workspace_controller = Phase6WorkspaceController()
     self.root.title(f"箱體展開圖計算器 (Box Unfolding Calculator) [{PHASE6_BUILD_ID}]")
@@ -1403,6 +1404,10 @@ def open_original_fold_designer(self, *, target_window=None):
     designer._corner_data_view_render_callback = self._render_fold_designer_corner_data_view
     self.fold_designer_window = window
     self.fold_designer_app = designer
+    if window is self.root and getattr(self, "_phase6_primary_workspace", False):
+        from gui_modules.application.wire_pull_window import open_wire_pull_window
+        shell = designer._phase6_workspace_shell_owner
+        shell.add_standard_wire_pull_entry(lambda: open_wire_pull_window(self))
     # Compare the first edit with the exact canonical state used to construct
     # this designer. Opening still emits no live revision or calculation.
     self._phase6_last_fold_designer_live_payload = deepcopy(getattr(designer, "_phase6_last_live_state", None))

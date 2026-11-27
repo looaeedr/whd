@@ -95,6 +95,11 @@ def load_phase6_project(self, path, *, open_designer=True):
         """載入 .p6fold 專案，並可選擇進入其保存的 3D 板件。"""
         previous_designer = getattr(self, "fold_designer_app", None)
         payload, committed = self.project_controller.load(path)
+        from ae_engine import manufacturing_api
+        if manufacturing_api.is_wire_pull_project_snapshot(committed):
+            from gui_modules.application.wire_pull_window import open_wire_pull_window
+            window = open_wire_pull_window(self, snapshot=committed, path=path)
+            return window if open_designer else payload
         snapshot = self._apply_phase6_project_snapshot(committed)
         # A reused Designer's geometry cache is scoped to the *previous*
         # project. Only clear after the new canonical load succeeds.

@@ -210,6 +210,11 @@ def project_operator_assembly_joint_snapshot(
 
 
 def normalize_project_snapshot_authority(snapshot):
+    from .cabinet_types.wire_pull_project import (
+        is_wire_pull_project_snapshot, normalize_wire_pull_project_snapshot,
+    )
+    if is_wire_pull_project_snapshot(snapshot or {}):
+        return normalize_wire_pull_project_snapshot(snapshot)
     from ae_engine.assembly_joint import migrate_legacy_snapshot_joints
     from ae_engine.cabinet_types.receiving import is_receiving_snapshot
     from ae_engine.receiving_layout import ensure_receiving_layout, project_primary_bay_legacy_aliases

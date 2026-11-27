@@ -505,15 +505,15 @@ def _marking_rows_close(expected, actual, tolerance: float) -> bool:
     return _one_to_one_tolerance_match(expected, actual, same)
 
 
-def _expected_marking_circles(scene):
-    """Check circle ink only for the newly authorized manual-round source."""
+def _expected_marking_circles(scene, *, all_circles=False):
+    """Check manual-round ink, or all circle ink for a stricter saved-source operation."""
     from .operator_manual_marking import is_manual_round_mark
 
     circles = tuple(
         row for row in scene.primitives
         if isinstance(row, CirclePrimitive) and str(row.layer).upper() == "MARKING"
     )
-    if not any(is_manual_round_mark(row) for row in circles):
+    if not all_circles and not any(is_manual_round_mark(row) for row in circles):
         return ()
     expected = tuple(
         (float(row.center.x), float(row.center.y), float(row.radius),
@@ -551,7 +551,7 @@ def _marking_circles_close(expected, actual, tolerance):
     return _one_to_one_tolerance_match(expected, actual, same)
 
 
-def verify_reopened_marking(scene, doc, coordinate_tolerance: float) -> tuple[DxfAcceptanceIssue, ...]:
+def verify_reopened_marking(scene, doc, coordinate_tolerance: float, *, all_circles=False) -> tuple[DxfAcceptanceIssue, ...]:
     """Compare only canonical MARKING against an already reopened DXF.
 
     Shared by single-sheet and composed DXF validation. Neither material
@@ -561,7 +561,7 @@ def verify_reopened_marking(scene, doc, coordinate_tolerance: float) -> tuple[Dx
     msp = doc.modelspace()
     try:
         expected_marks = _expected_marking_polylines(scene)
-        expected_rings = _expected_marking_circles(scene)
+        expected_rings = _expected_marking_circles(scene, all_circles=all_circles)
         if expected_marks or expected_rings:
             try:
                 marking_layer = doc.layers.get("MARKING")
@@ -662,6 +662,7 @@ def verify_saved_part_render_data_dxf(
     *,
     coordinate_tolerance: float = 1e-6,
     area_tolerance: float = 1e-6,
+    verify_all_marking_circles: bool = False,
 ) -> DxfAcceptanceResult:
     """Reopen one saved DXF and compare it with canonical PartRenderData."""
     for name, tolerance in (
@@ -772,6 +773,7 @@ def verify_saved_part_render_data_dxf(
             actual_circles,
         ))
 
-    issues.extend(verify_reopened_marking(render_data.scene, doc, float(coordinate_tolerance)))
+    issues.extend(verify_reopened_marking(render_data.scene, doc, float(coordinate_tolerance),
+        **({"all_circles": True} if verify_all_marking_circles else {})))
 
     return DxfAcceptanceResult(ok=not issues, issues=tuple(issues))

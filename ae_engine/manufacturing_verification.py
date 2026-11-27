@@ -10,6 +10,7 @@ def verify_saved_part_render_data_dxf(
     *,
     coordinate_tolerance: float = 1e-6,
     area_tolerance: float = 1e-6,
+    verify_all_marking_circles: bool = False,
 ):
     from .dxf_acceptance import verify_saved_part_render_data_dxf as _verify
 
@@ -18,6 +19,7 @@ def verify_saved_part_render_data_dxf(
         output_path,
         coordinate_tolerance=coordinate_tolerance,
         area_tolerance=area_tolerance,
+        **({"verify_all_marking_circles": True} if verify_all_marking_circles else {}),
     )
 
 
