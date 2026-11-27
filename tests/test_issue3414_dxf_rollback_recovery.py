@@ -48,3 +48,33 @@ def test_failed_restore_keeps_all_original_dxf_bytes(tmp_path, monkeypatch):
     assert all(sha256((folder / name).read_bytes()).hexdigest() == before[name]
                for name in restored)
     assert not list(folder.glob(".whd-dxf-stage-*"))
+
+
+def test_partial_transport_requires_exact_sealed_receipt_and_dxf(tmp_path):
+    from hashlib import sha256
+    from ae_engine.manufacturing_export import publish_staged_project_dxf_files
+
+    stage = tmp_path / "stage"
+    stage.mkdir()
+    dest = tmp_path / "out"
+    dxf, receipt = "legal.dxf", "nfb_partial_manifest.json"
+    data = {dxf: b"stage bytes after Engine verification", receipt: b'{"outputs":["legal.dxf"]}'}
+    for name, content in data.items():
+        (stage / name).write_bytes(content)
+    seals = {name: sha256(content).hexdigest() for name, content in data.items()}
+    for names, permitted, candidate, verify in (
+        ((dxf, receipt), False, seals, True),
+        ((dxf, receipt), True, None, True),
+        ((dxf, receipt), True, seals, False),
+        ((receipt,), True, {receipt: seals[receipt]}, True),
+        ((dxf, "other.json"), True, seals, True),
+    ):
+        with pytest.raises(ValueError, match="WHD_STAGED_DXF_VERIFIED_ROWS_CHANGED"):
+            publish_staged_project_dxf_files(stage, dest, names,
+                allow_nfb_partial_manifest=permitted, verified_byte_seals=candidate,
+                verify_moved_bytes=verify)
+        assert not dest.exists()
+    assert publish_staged_project_dxf_files(stage, dest, tuple(data),
+        allow_nfb_partial_manifest=True, verified_byte_seals=seals) == tuple(data)
+    assert {p.name: p.read_bytes() for p in dest.iterdir()} == data
+    assert not tuple(stage.iterdir())

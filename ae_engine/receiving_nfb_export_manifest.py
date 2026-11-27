@@ -18,6 +18,8 @@ from hashlib import sha256
 from pathlib import Path
 from typing import Mapping, Sequence
 
+NFB_PARTIAL_MANIFEST_FILENAME = "nfb_partial_manifest.json"
+
 from .receiving_nfb_part_readiness import (
     BLOCKED, READY, LEGACY, UNAFFECTED, NfbPhysicalScope,
     derive_nfb_part_readiness,

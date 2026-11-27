@@ -268,15 +268,23 @@ def _atomic_commit_staged_dxfs(
 
 def publish_staged_project_dxf_files(
     stage_folder, output_folder, names, *, pre_commit_guard=None, verified_byte_seals=None,
-    verify_moved_bytes=True,
+    verify_moved_bytes=True, allow_nfb_partial_manifest=False,
 ):
-    """Transport already-produced DXF files; this grants no manufacturing eligibility."""
+    """Transport verified DXFs and the confirmed partial-export receipt atomically."""
+    from .receiving_nfb_export_manifest import NFB_PARTIAL_MANIFEST_FILENAME
+    if type(allow_nfb_partial_manifest) is not bool:
+        raise ValueError("WHD_STAGED_DXF_VERIFIED_ROWS_CHANGED")
     stage, output = Path(stage_folder), Path(output_folder)
     names = tuple(names)
     if (not names or len(set(names)) != len(names)
             or any(not isinstance(name, str) or Path(name).name != name
                    or "/" in name or chr(92) in name or ":" in name
-                   or Path(name).suffix.lower() != ".dxf" for name in names)
+                   or (Path(name).suffix.lower() != ".dxf"
+                       and not (allow_nfb_partial_manifest and name == NFB_PARTIAL_MANIFEST_FILENAME))
+                   for name in names)
+            or (allow_nfb_partial_manifest and (
+                NFB_PARTIAL_MANIFEST_FILENAME not in names or len(names) < 2
+                or verified_byte_seals is None or verify_moved_bytes is not True))
             or stage.resolve() == output.resolve()):
         raise ValueError("WHD_STAGED_DXF_VERIFIED_ROWS_CHANGED")
     staged = {name: stage / name for name in names}

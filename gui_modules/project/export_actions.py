@@ -618,7 +618,7 @@ def _assert_staged_export_seal(stage_folder, sealed):
 
 def _commit_staged_project_export(
     stage_folder, output_folder, *, pre_commit_guard=None, expected_manifest=None,
-    verify_moved_bytes=False,
+    verify_moved_bytes=False, allow_nfb_partial_manifest=False,
 ):
     """Publish staged files only while their original physical source is current.
 
@@ -652,6 +652,7 @@ def _commit_staged_project_export(
             pre_commit_guard=check_publication,
             verified_byte_seals=dict(expected_manifest) if expected_manifest is not None else None,
             verify_moved_bytes=verify_moved_bytes,
+            allow_nfb_partial_manifest=allow_nfb_partial_manifest,
         )
     except ValueError as exc:
         if str(exc).startswith(("WHD_STAGED_DXF_VERIFIED_BYTES_CHANGED",
@@ -1062,6 +1063,7 @@ def export_selected_dxf(self):
             committed = _commit_staged_project_export(
                 stage_folder, folder, pre_commit_guard=commit_guard,
                 expected_manifest=staged_manifest, verify_moved_bytes=True,
+                allow_nfb_partial_manifest=partial_report is not None,
             )
         except Exception as ex:
             messagebox.showerror("輸出失敗", f"批次提交失敗：{ex}")
