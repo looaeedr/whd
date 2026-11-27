@@ -2229,6 +2229,13 @@ manufacturing_api.folded_material_mid_mesh、project_box_body_structure_world_po
 
 
 
+**#3503 標準拉線箱 P1：已存來源／正式四片 DXF 的 Engine 權威（2026-11-27）**
+
+- WHD GUI 只收輸入、顯示、經既有專案控制器保存與重開；由公開 `manufacturing_api.resolve_standard_cabinet_topology` 解析四片成形包外與實體身分。箱身、折邊封頭尾及平板外蓋的展開、折後厚板網格與接合取自同一份 Engine 拓樸；封頭尾零間隙 INSERT，外蓋四邊只在平面各內縮 1 mm。Q61 僅沿用金庫型後方左右截角規則，不沿用其前角或深度補償。
+- `propose_wire_pull_holes` 與確認 API 由同一板件／承接面來源計算與驗證三類孔；.p6fold 保存已確認的來源、孔參數、人工覆寫及實體身分，重開重解，不能以畫面、預覽或舊 DXF 代替。安裝來源不明、孔位衝突或身分漂移按原 Engine 閘門拒絕，不轉掛人工孔與打標。
+- 正常出圖的公開入口為 `inspect_wire_pull_saved_export`／`save_wire_pull_saved_project_dxf`：前者只檢查已存來源及版本，不授予製造資格；後者重開已確認的 .p6fold、核對來源版本與適用截角規則、重解四片實體，再沿用共用 DXF serializer、暫存回讀與原子寫入。正式四檔以 mm 重開核對適用 CUTTING／BEND／MARKING；來源、輸出身分或暫存回讀漂移時拒絕或回滾，保護舊檔。不以 CHECK/preview、舊平板封頭尾、未綁定規則的舊折邊候選或泛用單片 fallback 放行。
+- 適用 #3501–#3503 標準單外蓋 P1；不擴張到組合型、多面、未核准加工圖元或 CADSplit 製造資格。驗收證據：[PR #3504](https://github.com/looaeedr/whd/pull/3504)、[exact Product Regression](https://github.com/looaeedr/whd/actions/runs/46009094982)。合入 `localX` 不等於正式 X 發布。
+
 **#2517 EndCap 實體裝配世界面／T 厚皮公開 API（2026-11-01）**：`manufacturing_api.resolve_assembled_endcap_world_skins` 經已存在的 Engine `place_endcap_against_box_body`＋`thicken_triangle_surface` 統一回傳 immutable `AssembledEndcapWorldSkins`（折後表面、實體板厚世界三角網格）。Receiving 設定 2D、FinalScene 3D 主視圖及 fixed-relief 碰撞 probe 同源委派，沿用原 Head/Tail、T/2 實體內面接合、`preserve_core_origin` 與正常／診斷顯示來源；GUI 不再直接補償 EndCap 配置／厚度。未更動原版材、已認證 Relief、CUTTING／BEND／DXF／Save→Reload 或新增製造核准；#2517 OPEN。
 
 **#2517 箱身多片真實板厚世界座標 Engine API（2026-11-01）**：`manufacturing_api.resolve_box_body_true_world_piece_meshes(part, dimensions, thickness)` 將 3D FinalScene `_phase6_box_body_true_world_piece_meshes` 原來自行重複的物理 Box Body 源寬資格、唯一實體 ID、W/H/D、真實 T 厚網格與世界位置驗證，統一委派既有 `ae_engine.receiving_settings_assembly_mesh` 求解器及 canonical `build_joint_world_geometry`；Receiving 2D 組合視圖也共用同一公開 API。只傳已解析實體 DTO，不改來源／形狀／順序；無片、預覽占位返回空，非法來源 fail-closed。不新增製造演算法、CUTTING/BEND/DXF 認證，#2517 持續 OPEN。
