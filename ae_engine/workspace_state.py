@@ -389,6 +389,32 @@ class SharedWorkspaceState:
         self._root_marking_store = accepted
         return changed
 
+    def commit_box_body_piece_marking(self, opened, marks, *, read_current):
+        from .operator_box_body_piece_marking import _read, prepare_box_body_piece_marking_commit
+        from .operator_root_marking_store import ROOT_MARKING_STORE_KEY
+        if not callable(read_current):
+            raise TypeError("ROOT_MARKING_CURRENT_SOURCE_REQUIRED")
+        authority, geometry = read_current()
+        authority = deepcopy(authority)
+        workspace = self.snapshot()
+        current = {**authority, **workspace}
+        # Workspace is the commit authority even if a pre-edit receipt was
+        # opened from an earlier external view of it.
+        current.pop(ROOT_MARKING_STORE_KEY, None)
+        current.pop(ROOT_PHYSICAL_OCCUPANCY_KEY, None)
+        current.pop("workspace", None)
+        current.update(workspace)
+        structure, ledger = prepare_box_body_piece_marking_commit(
+            current, geometry, opened, marks,
+        )
+        fresh, fresh_geometry = read_current()
+        if (fresh != authority or self.snapshot() != workspace
+                or _read(current, fresh_geometry, opened.part_key)[0] != opened):
+            raise ValueError("ROOT_MARKING_WORKSPACE_STALE")
+        changed = (structure != self._box_body_structure or ledger != self._root_marking_store)
+        self._box_body_structure, self._root_marking_store = structure, ledger
+        return changed
+
     def commit_quantity_owner_marking(self, snapshot, receipt, marks, *, version_id, geometry):
         from dataclasses import replace
         from .operator_quantity_marking_owner import (

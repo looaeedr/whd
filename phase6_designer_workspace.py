@@ -112,6 +112,14 @@ class Phase6DesignerWorkspace:
             self.mark_dirty()
         return changed
 
+    def commit_box_body_piece_marking(self, opened, marks, *, read_current):
+        changed = self._shared_state.commit_box_body_piece_marking(
+            opened, marks, read_current=read_current,
+        )
+        if changed:
+            self.mark_dirty()
+        return changed
+
     def commit_quantity_owner_marking(self, snapshot, receipt, marks, *, version_id, geometry):
         changed = self._shared_state.commit_quantity_owner_marking(
             {**snapshot, **self.snapshot()}, receipt, marks, version_id=version_id, geometry=geometry,

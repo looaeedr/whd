@@ -1494,6 +1494,8 @@ def save_verified_resolved_manufacturing_geometry_batch_dxf(
     )
 
 
+publish_staged_project_dxf_files = _manufacturing_export.publish_staged_project_dxf_files
+
 def save_verified_final_scene_batch_dxf(
     parts,
     output_dir: str | os.PathLike[str],
@@ -3506,6 +3508,11 @@ from .operator_physical_sheet_marking_preview import (
 
 from .operator_selected_marking_receipt import (
     open_selected_ordinary_marking_modal_source, selected_normal_marking_inventory,
+)
+
+
+from .operator_box_body_piece_marking import (
+    open_box_body_piece_marking_modal_source, supports_box_body_piece_marking_editor,
 )
 
 

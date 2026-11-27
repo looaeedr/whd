@@ -378,7 +378,8 @@ def stage_quantity_operator_export(batch, workspace_snapshot, flags, staging_dir
 
     report = partial.report()
     report["outputs"] = list(names)
-    report_name = "nfb_partial_manifest.json"
+    from .receiving_nfb_export_manifest import NFB_PARTIAL_MANIFEST_FILENAME
+    report_name = NFB_PARTIAL_MANIFEST_FILENAME
     with Path(staging_directory, report_name).open("x", encoding="utf-8") as handle:
         json.dump(report, handle, ensure_ascii=False, indent=2)
     return QuantityOperatorStagedExport((*names, report_name), report)

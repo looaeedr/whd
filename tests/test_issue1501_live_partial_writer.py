@@ -359,7 +359,7 @@ def test_primary_quantity_export_writes_real_nfb_cutting_check_and_partial_manif
     )
     assert not errors
     assert "nfb_partial_manifest.json" in exported
-    report = json.loads((output / "nfb_partial_manifest.json").read_text())
+    report = json.loads((output / "nfb_partial_manifest.json").read_text(encoding="utf-8"))
     assert report["actual_export_count"] == 29 and report["held_actual_count"] == 10
     assert report["whole_cabinet_complete"] is False
     assert report["deferred_assembly"] == ["PAD", "EAR_ATTACHMENT"]
@@ -383,7 +383,7 @@ def test_primary_quantity_export_writes_real_nfb_cutting_check_and_partial_manif
     )
     assert sorted(staged.output_names) == sorted(exported)
     assert staged.partial_report == report
-    assert json.loads((headless_stage / "nfb_partial_manifest.json").read_text()) == report
+    assert json.loads((headless_stage / "nfb_partial_manifest.json").read_text(encoding="utf-8")) == report
     headless_labels = []
     for path in headless_stage.glob("*.dxf"):
         drawing = ezdxf.readfile(path)
@@ -422,7 +422,7 @@ def test_primary_quantity_export_writes_real_nfb_cutting_check_and_partial_manif
         app, str(next_output), {}, {"door": True, "base_plate": True, "box_body": True}, False,
     )
     assert files and not errors
-    stale = json.loads((next_output / "nfb_partial_manifest.json").read_text())
+    stale = json.loads((next_output / "nfb_partial_manifest.json").read_text(encoding="utf-8"))
     assert stale["actual_export_count"] == 29 and stale["held_actual_count"] == 10
     assert any(row["status"] == "READY" for row in stale["rows"])
 

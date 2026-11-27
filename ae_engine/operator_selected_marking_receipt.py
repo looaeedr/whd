@@ -38,6 +38,7 @@ class SelectedPhysicalMarkingReceipt:
     output_capability: str
     source_sha256: str
     _normal_draft: object = field(default=None, repr=False)
+    _editor_context: object = field(default=None, repr=False)
 
     @property
     def allowed_tools(self):
@@ -48,6 +49,8 @@ class SelectedPhysicalMarkingReceipt:
 
     @property
     def context(self):
+        if self._editor_context is not None:
+            return self._editor_context
         from .physical_sheet_editor_context import resolve_physical_sheet_editor_context
         return resolve_physical_sheet_editor_context(self.part_key, self.source._render)
 

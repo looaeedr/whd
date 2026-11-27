@@ -454,10 +454,9 @@ def corner_data_unfold_projection_for_key(
 
     def render_provider(selected):
         if required("_phase6_is_box_body_physical_piece_key")(selected):
-            return required("_phase6_box_body_piece_render_data")(
-                app, selected
-            )
-        render = required("_phase6_render_data_for_blank")(app, selected)
+            render = required("_phase6_box_body_piece_render_data")(app, selected)
+        else:
+            render = required("_phase6_render_data_for_blank")(app, selected)
         from .physical_part_hole_editor import current_workspace_marking_source
 
         return manufacturing_api.project_workspace_owner_marking_display(

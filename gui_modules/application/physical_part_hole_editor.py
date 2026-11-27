@@ -41,6 +41,9 @@ def open_workspace_sheet_editor(host, key, *, verified_only=False):
         if key == "base_plate" and verified_only and not claim and not legacy_marks:
             return None
         raise
+    if (snapshot and not legacy_marks and not verified_only
+            and manufacturing_api.supports_box_body_piece_marking_editor(snapshot, key)):
+        return _open_structural_sheet_marking_editor(host, key, payload, context, features)
     opened = (
         manufacturing_api.open_physical_sheet_marking(key, context=context, features=features)
         if manufacturing_api.first_sheet_manual_marking_supported(key, context.render_data)
@@ -125,7 +128,7 @@ def current_workspace_marking_source(app):
                 raise ValueError("ROOT_MARKING_PROJECT_SOURCE_REQUIRED")
         return {}
     snapshot = dict(source)
-    for field in ("existing_parts", "part_features", "active_mode", "quantity", api.ROOT_PHYSICAL_OCCUPANCY_KEY, api.ROOT_MARKING_STORE_KEY):
+    for field in ("existing_parts", "part_features", "box_body_structure", "active_mode", "quantity", api.ROOT_PHYSICAL_OCCUPANCY_KEY, api.ROOT_MARKING_STORE_KEY):
         if field in state:
             snapshot[field] = state[field]
         elif field in (api.ROOT_PHYSICAL_OCCUPANCY_KEY, api.ROOT_MARKING_STORE_KEY):
@@ -135,6 +138,53 @@ def current_workspace_marking_source(app):
         snapshot["workspace"] = {k: v for k, v in workspace.items()
                                  if k not in (api.ROOT_PHYSICAL_OCCUPANCY_KEY, api.ROOT_MARKING_STORE_KEY)}
     return snapshot
+
+
+def _open_structural_sheet_marking_editor(host, key, payload, context, features):
+    from ae_engine import manufacturing_api as api
+    from phase6_part_navigation import operator_part_label
+
+    app = host.fold_designer_app
+    workspace = app.designer_workspace
+    epoch = host.project_controller.project_load_epoch
+    role_features = tuple(features)
+
+    def read_current():
+        _require_current_project(host, app, workspace, epoch)
+        if key not in workspace.available_parts or tuple(workspace.features_for(key)) != role_features:
+            raise ValueError("ROOT_MARKING_SELECTION_STALE")
+        geometry = app._phase6_resolve_manufacturing_geometry()
+        return current_workspace_marking_source(app), geometry
+
+    opened, receipt = api.open_box_body_piece_marking_modal_source(*read_current(), key)
+
+    def confirm(pending):
+        holes = tuple(row for row in pending if not api.is_manual_mark(row))
+        marks = tuple(row for row in pending if api.is_manual_mark(row))
+        if holes != role_features:
+            # The structural mark seal references actual stock, including its
+            # holes. Do not partially apply a combined edit or silently drop ink.
+            if marks or opened.saved_marks:
+                raise ValueError("請先單獨完成板件開孔，再另行編輯打標。")
+            current, geometry = read_current()
+            fresh, _ = api.open_box_body_piece_marking_modal_source(current, geometry, key)
+            if fresh != opened:
+                raise ValueError("ROOT_MARKING_DRAFT_STALE")
+            accepted = api.propose_operator_physical_sheet_hole_features(key, context, holes)
+            workspace.stash_features(key, accepted)
+            if workspace.active_part == key:
+                app._load_part_holes(key)
+            app.submit_update_intent("geometry", commit=True)
+        elif workspace.commit_box_body_piece_marking(opened, marks, read_current=read_current):
+            app._phase6_publish_live_state(force=True)
+            refresh = getattr(app, "_phase6_refresh_corner_data_unfold_view", None)
+            if callable(refresh) and getattr(app, "_phase6_3d_display_mode", None) == "corner_data":
+                app.root.after_idle(refresh)
+
+    return _present_physical_sheet_editor(
+        host, key, operator_part_label(key, snapshot=payload), context,
+        (*role_features, *opened.saved_marks), receipt, confirm,
+    )
 
 
 def _open_owner_bound_workspace_marking_editor(host, key, *, editing_context, role_features):

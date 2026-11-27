@@ -205,12 +205,15 @@ def _atomic_commit_staged_dxfs(
     overwrite: bool,
     pre_commit_guard=None,
     verified_byte_seals=None,
+    backup_prefix=".whd-dxf-backup-",
+    verify_moved_bytes=True,
 ) -> dict[str, str]:
     """Commit verified DXFs; roll back if original source or sealed bytes change."""
     if pre_commit_guard is not None and not callable(pre_commit_guard):
         raise TypeError("WHD_PRECOMMIT_SOURCE_GUARD_INVALID")
     if verified_byte_seals is not None and set(verified_byte_seals) != set(staged):
         raise ValueError("WHD_STAGED_DXF_VERIFIED_ROWS_CHANGED")
+    verify_destination = verify_moved_bytes and verified_byte_seals is not None
     root.mkdir(parents=True, exist_ok=True)
     destinations = {key: root / path.name for key, path in staged.items()}
     names = [path.name for path in destinations.values()]
@@ -221,9 +224,10 @@ def _atomic_commit_staged_dxfs(
         if existing:
             raise FileExistsError(existing[0])
 
-    backup_dir = Path(tempfile.mkdtemp(prefix='.whd-dxf-backup-', dir=str(root)))
+    backup_dir = Path(tempfile.mkdtemp(prefix=backup_prefix, dir=str(root)))
     moved: list[Path] = []
     backups: dict[Path, Path] = {}
+    cleanup_backups = False
     try:
         if pre_commit_guard is not None:
             pre_commit_guard()
@@ -240,23 +244,74 @@ def _atomic_commit_staged_dxfs(
                 _assert_verified_dxf_bytes(stage_path, verified_byte_seals[key])
             os.replace(stage_path, destination)
             moved.append(destination)
-            if verified_byte_seals is not None:
+            if verify_destination:
                 _assert_verified_dxf_bytes(destination, verified_byte_seals[key])
         if pre_commit_guard is not None:
             pre_commit_guard()
-        if verified_byte_seals is not None:
+        if verify_destination:
             for key, destination in destinations.items():
                 _assert_verified_dxf_bytes(destination, verified_byte_seals[key])
+        cleanup_backups = True
         return {key: str(destinations[key]) for key in staged}
-    except Exception:
+    except Exception as export_error:
+        failed = []
         for destination in reversed(moved):
-            destination.unlink(missing_ok=True)
+            if destination in backups:
+                continue  # Restore by replace; avoid deleting a good copy first.
+            try:
+                destination.unlink(missing_ok=True)
+            except OSError:
+                failed.append(destination.name)
         for destination, backup in backups.items():
-            if backup.exists():
+            try:
                 os.replace(backup, destination)
+            except OSError:
+                # Continue recovering unrelated outputs, but never discard the
+                # still-unrestored originals if a target is locked or denied.
+                failed.append(destination.name)
+        if failed:
+            raise OSError(
+                "WHD_DXF_ROLLBACK_INCOMPLETE: "
+                + ", ".join(failed)
+                + f"; original backup directory: {backup_dir}; export error: {export_error}"
+            ) from export_error
+        cleanup_backups = True
         raise
     finally:
-        shutil.rmtree(backup_dir, ignore_errors=True)
+        if cleanup_backups:
+            shutil.rmtree(backup_dir, ignore_errors=True)
+
+
+def publish_staged_project_dxf_files(
+    stage_folder, output_folder, names, *, pre_commit_guard=None, verified_byte_seals=None,
+    verify_moved_bytes=True, allow_nfb_partial_manifest=False,
+):
+    """Transport verified DXFs and the confirmed partial-export receipt atomically."""
+    from .receiving_nfb_export_manifest import NFB_PARTIAL_MANIFEST_FILENAME
+    if type(allow_nfb_partial_manifest) is not bool:
+        raise ValueError("WHD_STAGED_DXF_VERIFIED_ROWS_CHANGED")
+    stage, output = Path(stage_folder), Path(output_folder)
+    names = tuple(names)
+    if (not names or len(set(names)) != len(names)
+            or any(not isinstance(name, str) or Path(name).name != name
+                   or "/" in name or chr(92) in name or ":" in name
+                   or (Path(name).suffix.lower() != ".dxf"
+                       and not (allow_nfb_partial_manifest and name == NFB_PARTIAL_MANIFEST_FILENAME))
+                   for name in names)
+            or (allow_nfb_partial_manifest and (
+                NFB_PARTIAL_MANIFEST_FILENAME not in names or len(names) < 2
+                or verified_byte_seals is None or verify_moved_bytes is not True))
+            or stage.resolve() == output.resolve()):
+        raise ValueError("WHD_STAGED_DXF_VERIFIED_ROWS_CHANGED")
+    staged = {name: stage / name for name in names}
+    if any(path.is_symlink() or not path.is_file() for path in staged.values()):
+        raise ValueError("WHD_STAGED_DXF_VERIFIED_BYTES_CHANGED")
+    published = _atomic_commit_staged_dxfs(
+        staged, output, overwrite=True, pre_commit_guard=pre_commit_guard,
+        verified_byte_seals=verified_byte_seals, backup_prefix=".whd-export-backup-",
+        verify_moved_bytes=verify_moved_bytes,
+    )
+    return tuple(published)
 
 
 def _reject_unapproved_nfb_pad_ear_manufacturing(rows) -> None:
