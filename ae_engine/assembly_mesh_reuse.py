@@ -24,6 +24,7 @@ def reuse_local_mesh(build):
     def resolve(
         material, x_profile, y_profile, *,
         fold_exemptions=(), fold_guides=(), fold_tip_continuity=(),
+        exact_material=False,
     ):
         # Old receiving/vault mesh builders accept only the original
         # fold_exemptions/fold_guides contract. An *inactive* optional tip
@@ -33,6 +34,9 @@ def reuse_local_mesh(build):
             {"fold_tip_continuity": fold_tip_continuity}
             if fold_tip_continuity else {}
         )
+        # Inactive exact mode must likewise preserve legacy builder signatures.
+        if exact_material:
+            tip_kwargs["exact_material"] = True
         cache = _active_meshes.get()
         if cache is None:
             return build(
@@ -55,7 +59,7 @@ def reuse_local_mesh(build):
                tuple((str(axis), polygon.wkb) for axis, polygon in exemptions),
                tuple((str(g.axis), float(g.position), float(g.span_start), float(g.span_end))
                      for g in guides),
-               tip_continuity)
+               tip_continuity, bool(exact_material))
         try:
             hash(key)
         except TypeError:

@@ -920,6 +920,31 @@ def resolve_standard_cabinet_topology(spec):
     return cabinet_family_policy.resolve_standard_cabinet_topology(spec)
 
 
+def propose_wire_pull_holes(spec, options=None, *, manual=(), overrides=(), additions=(), removed=(), sizes=()):
+    """Return a source-owned standard wire-pull hole candidate; no mutation."""
+    from .cabinet_types.wire_pull_holes import HoleOptions, propose
+    return propose(spec, HoleOptions() if options is None else options,
+                   manual=manual, overrides=overrides, additions=additions, removed=removed, sizes=sizes)
+
+
+def choose_wire_pull_hole_alternative(spec, proposal, alternative, *, manual=()):
+    """Validate the selected alternative; no change is committed by selection."""
+    from .cabinet_types.wire_pull_holes import choose_alternative
+    return choose_alternative(spec, proposal, alternative, manual=manual)
+
+
+def confirm_wire_pull_hole_topology(spec, proposal, *, manual=()):
+    """Revalidate source and return matching canonical CUTTING and physical mesh."""
+    from .cabinet_types.wire_pull_holes import confirm_topology
+    return confirm_topology(spec, proposal, manual=manual)
+
+
+def confirm_wire_pull_holes(spec, proposal, *, manual=()):
+    """Compatibility projection of confirmed topology; no manufacturing admission."""
+    from .cabinet_types.wire_pull_holes import confirm
+    return confirm(spec, proposal, manual=manual)
+
+
 def build_operator_part_render_data(
     spec: PartSpec, context: ManufacturingContext | None = None,
 ) -> PartRenderData | BoxBodyStructureRenderData:

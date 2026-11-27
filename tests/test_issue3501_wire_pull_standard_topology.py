@@ -184,3 +184,32 @@ def test_installed_shell_winding_and_cap_outward_normals(t):
         volume = sum(sum(x*y for x,y in zip(a,_cross(b,c)))
                      for a,b,c in part.world_triangles)/6.
         assert volume == pytest.approx(part.render_data.material.area*t)
+
+
+@pytest.mark.parametrize("t", [1.5, 3.])
+def test_standard_insert_without_clearance_matches_explicit_zero(t):
+    omitted = api.resolve_standard_cabinet_topology(
+        WirePullBoxSpec(637., 411., 223., t, 27., 34., "flat", "flat")
+    )
+    explicit = api.resolve_standard_cabinet_topology(source(t))
+    assert omitted.joint_graph.to_dict() == explicit.joint_graph.to_dict()
+    for a, b in zip(omitted.parts, explicit.parts):
+        assert a.world_triangles == b.world_triangles
+        assert a.render_data.material.equals(b.render_data.material)
+    assert tuple(hi - lo for lo, hi in omitted.outside_bounds) == (637., 411., 223.)
+    body, head, tail, lid = [triangle_bounds(p.world_triangles) for p in omitted.parts]
+    for axis in (0, 1):
+        assert (lid[axis][0]-body[axis][0], body[axis][1]-lid[axis][1]) == pytest.approx((1., 1.))
+    assert lid[2][0] == pytest.approx(body[2][1])
+    assert lid[2][1]-lid[2][0] == pytest.approx(t)
+    assert all(j.clearance_policy == j.clearance_intent == "ZERO" for j in omitted.joints)
+
+
+def test_legacy_explicit_clearance_is_not_labeled_zero_or_released():
+    result = api.resolve_standard_cabinet_topology(
+        replace(source(3.), head_clearance_mm=.5)
+    )
+    assert result.manufacturing_verified is False
+    assert result.joints[0].clearance_policy == result.joints[0].clearance_intent == "EXPLICIT_INSERT_PERIMETER"
+    assert result.joints[0].solver_constraints == {"insert_perimeter_clearance_mm": .5}
+    assert result.joints[1].clearance_policy == result.joints[1].clearance_intent == "ZERO"

@@ -233,7 +233,8 @@ class WirePullBoxSpec:
 
     W/H/D measure the installed physical enclosure. Return lengths are
     material lengths (CURRENT 07), not formed outside lengths. End plates
-    must each have an explicitly selected supported form and fit clearance.
+    must each have an explicitly selected supported form. Standard INSERT
+    has zero clearance; explicit nonzero inputs remain preview-only.
     """
     width: float
     height: float
@@ -243,8 +244,8 @@ class WirePullBoxSpec:
     right_return_material_mm: float | None = None
     head_form: str | None = None
     tail_form: str | None = None
-    head_clearance_mm: float | None = None
-    tail_clearance_mm: float | None = None
+    head_clearance_mm: float | None = 0.0
+    tail_clearance_mm: float | None = 0.0
     model_name: str = "拉線箱"
 
 

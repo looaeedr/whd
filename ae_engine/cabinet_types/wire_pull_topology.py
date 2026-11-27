@@ -116,10 +116,42 @@ def _render(key, x_profile, height):
     return data
 
 
-def _mapped(data, x, y):
+def _mapped(data, x, y, *, exact_material=False):
     return folded_mesh_with_flat_uv_from_polygon(
         data.material, x, y, fold_guides=data.fold_guides,
+        exact_material=exact_material,
     )
+
+
+def _render_with_features(key, x, y, height, transform):
+    source = _render(key, x, height)
+    if transform is None:
+        return source, False
+    data = transform(key, source)
+    if (data.fold_guides != source.fold_guides
+            or data.unfolded_topology != source.unfolded_topology
+            or data.metadata.get("stable_id") != key
+            or data.metadata.get("formed_geometry_verified") is not False
+            or not data.material.equals(material_polygon_from_final_scene(data.scene))):
+        raise ValueError("WIRE_PULL_HOLE_RENDER_SOURCE_CHANGED")
+    if data.material.equals(source.material):
+        return data, False
+    # P1 holes are fully interior to one real planar material cell. Never
+    # fill, split or cut a hinge to rescue a feature that crosses a fold.
+    from shapely.geometry import box
+    if (data.material.geom_type != "Polygon" or not data.material.is_valid
+            or not source.material.covers(data.material)
+            or not data.material.exterior.equals(source.material.exterior)):
+        raise ValueError("WIRE_PULL_HOLE_OUTER_MATERIAL_CHANGED")
+    xb, _ = _profile_geometry(x)
+    yb, _ = _profile_geometry(y)
+    cells = tuple(box(a,c,b,d) for a,b in zip(xb,xb[1:]) for c,d in zip(yb,yb[1:]))
+    cut = source.material.difference(data.material)
+    components = (cut,) if cut.geom_type == "Polygon" else tuple(cut.geoms)
+    for hole in components:
+        if not any(cell.contains(hole) and not cell.boundary.intersects(hole) for cell in cells):
+            raise ValueError("WIRE_PULL_HOLE_CROSSES_FOLD_OR_EDGE")
+    return data, True
 
 
 def _shift(mesh, dx=0., dy=0., dz=0.):
@@ -131,12 +163,12 @@ def _require_closed(mesh):
         raise ValueError("WIRE_PULL_PHYSICAL_SHELL_OPEN")
 
 
-def _flat(key, width, height, t, dims, placement, *, outer_plane, z_center=0.):
+def _flat(key, width, height, t, dims, placement, *, outer_plane, z_center=0., render_transform=None):
     width, height = _number(width, key+"_width"), _number(height, key+"_height")
     x = (FoldProfileSegment(width, phase6_key="flat"),)
     y = (FoldProfileSegment(height, phase6_key="span"),)
-    data = _render(key, x, height)
-    mapped = _mapped(data, x, y)
+    data, exact = _render_with_features(key, x, y, height, render_transform)
+    mapped = _mapped(data, x, y, exact_material=exact)
     mesh = thicken_orthogonal_inside_surface(
         tuple(m.local for m in mapped), ((0,0,1),)*len(mapped), t,
     )
@@ -163,7 +195,7 @@ def _flat(key, width, height, t, dims, placement, *, outer_plane, z_center=0.):
     return PhysicalPart(key,data,x,y,mesh,(face,))
 
 
-def _body(dims, t, left, right, lid):
+def _body(dims, t, left, right, lid, *, render_transform=None):
     w,h,d = dims
     # Joint OVERLAY: the actual lid inner skin, not a planar gap or borrowed
     # Family D compensation, is the body front outside contact plane.
@@ -192,9 +224,9 @@ def _body(dims, t, left, right, lid):
     if left+right >= x[2].length-TOL:
         raise ValueError("WIRE_PULL_OPENING_BLOCKED_BY_RETURNS")
     y = (FoldProfileSegment(h,phase6_key="height"),)
-    data = _render("box_body",x,h)
+    data, exact = _render_with_features("box_body",x,y,h,render_transform)
     boundaries, folded = _profile_geometry(x)
-    mapped = _mapped(data,x,y)
+    mapped = _mapped(data,x,y,exact_material=exact)
     face_indexes = tuple(bisect_right(boundaries,sum(p[0] for p in m.flat)/3.)-1 for m in mapped)
     mesh = thicken_orthogonal_inside_surface(
         tuple(m.local for m in mapped), tuple(NORMALS[i] for i in face_indexes), t,
@@ -230,14 +262,14 @@ def _body(dims, t, left, right, lid):
     return PhysicalPart("box_body",data,x,y,mesh,tuple(faces)),inside
 
 
-def resolve(spec):
+def resolve(spec, *, render_transform=None):
     if not isinstance(spec,WirePullBoxSpec):
         raise TypeError("WIRE_PULL_EXPLICIT_SPEC_REQUIRED")
     w,h,d,t = tuple(_number(getattr(spec,name),name) for name in
                     ("width","height","depth","thickness"))
     left = _number(spec.left_return_material_mm,"left_return_material_mm")
     right = _number(spec.right_return_material_mm,"right_return_material_mm")
-    # No authority for a default head/tail fold or factory clearance. This
+    # No authority for a default head/tail fold. This
     # first geometry candidate supports explicitly selected flat INSERT
     # plates only; folded sources must never silently take that path.
     for key in ("head","tail"):
@@ -247,22 +279,27 @@ def resolve(spec):
     hc = _number(spec.head_clearance_mm,"head_clearance_mm",allow_zero=True)
     tc = _number(spec.tail_clearance_mm,"tail_clearance_mm",allow_zero=True)
     dims = (w,h,d)
-    lid = _flat("lid",w-2*GAP_MM,h-2*GAP_MM,t,dims,"front",outer_plane=d/2)
-    body, (xmin,xmax,zmin,zmax) = _body(dims,t,left,right,lid)
+    lid = _flat("lid",w-2*GAP_MM,h-2*GAP_MM,t,dims,"front",outer_plane=d/2,
+                render_transform=render_transform)
+    body, (xmin,xmax,zmin,zmax) = _body(dims,t,left,right,lid,render_transform=render_transform)
     caps = []
     for key,placement,plane,clearance in (
         ("head","top",h/2,hc),("tail","bottom",-h/2,tc),
     ):
         caps.append(_flat(key,xmax-xmin-2*clearance,zmax-zmin-2*clearance,
-                          t,dims,placement,outer_plane=plane,z_center=(zmin+zmax)/2))
+                          t,dims,placement,outer_plane=plane,z_center=(zmin+zmax)/2,
+                          render_transform=render_transform))
     head,tail = caps
     if triangle_bounds(head.world_triangles)[1][0] <= triangle_bounds(tail.world_triangles)[1][1]+TOL:
         raise ValueError("WIRE_PULL_ENDCAPS_OVERLAP")
     joints = [
         AssemblyJoint(key+":insert",key,"box_body","perimeter","inside_"+key,
                       AssemblyJointRelation.INSERT, source=AssemblyJointSource.FAMILY_GEOMETRY,
-                      direction=direction)
-        for key,direction in (("head","+Y"),("tail","-Y"))
+                      direction=direction,
+                      clearance_policy="EXPLICIT_INSERT_PERIMETER" if clearance else "ZERO",
+                      clearance_intent="EXPLICIT_INSERT_PERIMETER" if clearance else "ZERO",
+                      solver_constraints={"insert_perimeter_clearance_mm": clearance} if clearance else {})
+        for key,direction,clearance in (("head","+Y",hc),("tail","-Y",tc))
     ]
     joints.extend(AssemblyJoint("lid:"+face,"lid","box_body","inner",face,
                                 AssemblyJointRelation.OVERLAY,
