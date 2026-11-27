@@ -57,6 +57,12 @@ def project_operator_detached_root_marking_count(snapshot):
     present = snapshot.get("existing_parts", nested.get("existing_parts", ())) or ()
     owners = {resolve_workspace_physical_root_owner(snapshot, key): key for key in present}
     bound = records.keys() & owners.keys()
+    from .cabinet_types.policy import canonical_family_name
+    from .box_body_structure_state import _SIDE_BACK_PIECES, read_box_body_piece_marking_owner
+    if canonical_family_name(snapshot) == "受電箱" and snapshot.get("active_mode", "set_bay") == "set_bay":
+        structure = snapshot.get("box_body_structure", nested.get("box_body_structure"))
+        piece_owners = {read_box_body_piece_marking_owner(structure, key) for key in _SIDE_BACK_PIECES}
+        bound |= records.keys() & (piece_owners - owners.keys())
     if any(key.startswith("quantity-owner:") for key in records):
         from .operator_quantity_marking_owner import resolve_quantity_physical_marking_owner
         for record_key in records.keys() - bound:
@@ -264,9 +270,15 @@ def selected_workspace_owner_marking_keys(snapshot, flags):
         from .operator_quantity_marking_owner import _selected_version_root_records
         active_keys = {part for _, part in _selected_version_root_records(snapshot, parts or ())}
         scoped_roots = {resolve_workspace_physical_root_owner(snapshot, part) for part in active_keys}
-    return tuple(key for key in (parts or ()) if receiving_export_part_selected(key, flags)
-                 and (resolve_workspace_physical_root_owner(snapshot, key) in store
-                      or resolve_workspace_physical_root_owner(snapshot, key) in scoped_roots))
+    ordinary = tuple(key for key in (parts or ()) if receiving_export_part_selected(key, flags)
+                     and (resolve_workspace_physical_root_owner(snapshot, key) in store
+                          or resolve_workspace_physical_root_owner(snapshot, key) in scoped_roots))
+    if not flags.get("box_body"):
+        return ordinary
+    from .box_body_structure_state import _SIDE_BACK_PIECES
+    from .operator_box_body_piece_marking import box_body_piece_marking_owner
+    return ordinary + tuple(key for key in sorted(_SIDE_BACK_PIECES)
+                            if box_body_piece_marking_owner(snapshot, key) in store)
 
 
 def require_existing_normal_owner_marking_route(snapshot, flags, *, ordinary):

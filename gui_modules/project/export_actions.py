@@ -12,7 +12,6 @@ manufacturing geometry/DXF generation remains manufacturing_api authority.
 """
 import hashlib
 import os
-import shutil
 import tempfile
 from copy import deepcopy
 from collections.abc import Mapping
@@ -636,58 +635,29 @@ def _commit_staged_project_export(
         name for name in sorted(os.listdir(stage_root))
         if os.path.isfile(os.path.join(stage_root, name))
     ]
-    backup_root = tempfile.mkdtemp(prefix=".whd-export-backup-", dir=output_root)
-    committed = []
-    backups = {}
-    sealed_digests = dict(expected_manifest) if expected_manifest is not None else None
+    def check_publication():
+        if pre_commit_guard is not None:
+            pre_commit_guard()
+        if expected_manifest is not None:
+            # The final check runs after moving the staged files. At this
+            # point the Engine validates the published bytes instead.
+            if any(os.path.lexists(os.path.join(stage_root, name)) for name in entries):
+                _assert_staged_export_seal(stage_root, expected_manifest)
+
+    if expected_manifest is not None:
+        _assert_staged_export_seal(stage_root, expected_manifest)
     try:
-        if pre_commit_guard is not None:
-            pre_commit_guard()
-        if expected_manifest is not None:
-            _assert_staged_export_seal(stage_root, expected_manifest)
-        for name in entries:
-            destination = os.path.join(output_root, name)
-            if os.path.exists(destination):
-                backup = os.path.join(backup_root, name)
-                os.replace(destination, backup)
-                backups[destination] = backup
-        if pre_commit_guard is not None:
-            pre_commit_guard()
-        if expected_manifest is not None:
-            _assert_staged_export_seal(stage_root, expected_manifest)
-        for name in entries:
-            source = os.path.join(stage_root, name)
-            destination = os.path.join(output_root, name)
-            if sealed_digests is not None:
-                if (os.path.islink(source) or not os.path.isfile(source)
-                        or _staged_export_file_digest(source) != sealed_digests[name]):
-                    raise ValueError(_STAGED_DXF_MANIFEST_MISMATCH)
-            os.replace(source, destination)
-            committed.append(destination)
-            if verify_moved_bytes and (
-                os.path.islink(destination) or _staged_export_file_digest(destination) != sealed_digests[name]
-            ):
-                raise ValueError(_STAGED_DXF_MANIFEST_MISMATCH)
-        if pre_commit_guard is not None:
-            pre_commit_guard()
-        if verify_moved_bytes:
-            for destination in committed:
-                if (os.path.islink(destination)
-                        or _staged_export_file_digest(destination) != sealed_digests[os.path.basename(destination)]):
-                    raise ValueError(_STAGED_DXF_MANIFEST_MISMATCH)
-        return tuple(os.path.basename(path) for path in committed)
-    except Exception:
-        for destination in reversed(committed):
-            try:
-                os.remove(destination)
-            except FileNotFoundError:
-                pass
-        for destination, backup in backups.items():
-            if os.path.exists(backup):
-                os.replace(backup, destination)
+        return manufacturing_api.publish_staged_project_dxf_files(
+            stage_root, output_root, entries,
+            pre_commit_guard=check_publication,
+            verified_byte_seals=dict(expected_manifest) if expected_manifest is not None else None,
+            verify_moved_bytes=verify_moved_bytes,
+        )
+    except ValueError as exc:
+        if str(exc).startswith(("WHD_STAGED_DXF_VERIFIED_BYTES_CHANGED",
+                                "WHD_STAGED_DXF_VERIFIED_ROWS_CHANGED")):
+            raise ValueError(_STAGED_DXF_MANIFEST_MISMATCH) from exc
         raise
-    finally:
-        shutil.rmtree(backup_root, ignore_errors=True)
 
 def _live_cabinet_model_selection(self):
     """Read the operator's raw Family/baseline selector, not Engine geometry.

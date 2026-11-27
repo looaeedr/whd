@@ -384,7 +384,8 @@ def test_ordinary_outer_publish_verifies_the_committed_engine_dxf(
     )
     prior = target.read_bytes()
     checked = []
-    digest = export_gui._staged_export_file_digest
+    from ae_engine import manufacturing_export
+    digest = manufacturing_export.verified_dxf_content_digest
 
     def observe(path):
         value = digest(path)
@@ -392,7 +393,7 @@ def test_ordinary_outer_publish_verifies_the_committed_engine_dxf(
             checked.append(value)
         return value
 
-    monkeypatch.setattr(export_gui, "_staged_export_file_digest", observe)
+    monkeypatch.setattr(manufacturing_export, "verified_dxf_content_digest", observe)
     events = _run_real_gui_export(monkeypatch, host, tmp_path)
     assert any(isinstance(e, tuple) and e[0] == "success" for e in events)
     assert not any(isinstance(e, tuple) and e[0] == "error" for e in events)

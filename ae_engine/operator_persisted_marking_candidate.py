@@ -126,10 +126,12 @@ def read_verified_owner_marking_candidate(snapshot, geometry, part_key):
 class _SingleSelectedOwnerMarkingWitness:
     """Single existing verified-writer invocation; never batch authorization."""
 
-    def __init__(self, receipt, draft, evidence, read_current):
+    def __init__(self, receipt, draft, evidence, read_current, *, read_candidate=_read_current, resolve_owner=None):
         self._evidence = evidence
         self._read = read_current
         self._marks = draft.saved_marks
+        self._read_candidate = read_candidate
+        self._resolve_owner = resolve_owner
         source = receipt.source._render
         self._untouched = tuple(source.scene.primitives)
         self._physical_stock = (source.material.wkb, tuple(source.fold_guides), source.unfolded_topology)
@@ -152,9 +154,10 @@ class _SingleSelectedOwnerMarkingWitness:
     def assert_current(self, current_source=None):
         from .workspace_state import resolve_workspace_physical_root_owner
         snapshot, geometry = self._read() if current_source is None else current_source
-        if resolve_workspace_physical_root_owner(snapshot, self._evidence.part_key) != self._evidence.owner_id:
+        owner = self._resolve_owner or resolve_workspace_physical_root_owner
+        if owner(snapshot, self._evidence.part_key) != self._evidence.owner_id:
             raise ValueError("ROOT_MARKING_OWNER_STALE")
-        receipt, draft, candidate = _read_current(snapshot, geometry, self._evidence.part_key)
+        receipt, draft, candidate = self._read_candidate(snapshot, geometry, self._evidence.part_key)
         if (candidate != self._evidence or draft.saved_marks != self._marks
                 or tuple(receipt.source._render.scene.primitives) != self._untouched):
             raise ValueError("ROOT_MARKING_SOURCE_STALE")
@@ -181,10 +184,11 @@ def _selected_render_signature(render):
 class _SelectedOwnerMarkingBatchWitness:
     """The same per-owner witness for each marked row, one live batch source."""
 
-    def __init__(self, selected, owner_rows, legacy, flags, read_current):
+    def __init__(self, selected, owner_rows, legacy, flags, read_current, *, intent_keys=None):
         self._ordinary = tuple((key, _selected_render_signature(render)) for key, render in selected)
         self._owners = dict(owner_rows)
         self.selected = tuple(self._owners)
+        self._intent_keys = frozenset(self._owners if intent_keys is None else intent_keys)
         self._legacy = legacy
         self._flags = dict(flags)
         self._read = read_current
@@ -209,7 +213,7 @@ class _SelectedOwnerMarkingBatchWitness:
         # Owner mismatch retains priority over physical signature drift.
         for witness in self._owners.values():
             witness.assert_current(source)
-        if set(selected_workspace_owner_marking_keys(snapshot, self._flags)) != set(self._owners):
+        if set(selected_workspace_owner_marking_keys(snapshot, self._flags)) != self._intent_keys:
             raise ValueError("ROOT_MARKING_OWNER_SELECTION_STALE")
         rows = tuple((key, _selected_render_signature(render)) for key, render in
                      resolved_physical_render_parts(select_resolved_export_geometry(geometry, self._flags)))
@@ -230,23 +234,41 @@ def _prepare_selected_ordinary_marking_batch(expected_snapshot, resolved, flags,
         raise ValueError("PHYSICAL_MARKING_CURRENT_SOURCE_REQUIRED")
     snapshot, geometry = read_current()
     rows = tuple(resolved_physical_render_parts(select_resolved_export_geometry(resolved, flags)))
+    from .box_body_structure_state import _SIDE_BACK_PIECES
+    from .operator_box_body_piece_marking import (
+        box_body_piece_marking_owner, read_persisted_box_body_piece_evidence,
+    )
+
     owner_results = []
     for key in owner_keys:
-        expected_owner = resolve_workspace_physical_root_owner(expected_snapshot, key)
-        if resolve_workspace_physical_root_owner(snapshot, key) != expected_owner:
+        if key in _SIDE_BACK_PIECES:
+            resolve_owner = box_body_piece_marking_owner
+            read_candidate = read_persisted_box_body_piece_evidence
+        else:
+            resolve_owner = resolve_workspace_physical_root_owner
+            read_candidate = _read_current
+        expected_owner = resolve_owner(expected_snapshot, key)
+        if expected_owner is None or resolve_owner(snapshot, key) != expected_owner:
             raise ValueError("ROOT_MARKING_OWNER_STALE")
         if (read_workspace_marking_owner_record(expected_snapshot, expected_owner)
                 != read_workspace_marking_owner_record(snapshot, expected_owner)):
             raise ValueError("ROOT_MARKING_SAVED_RECORD_STALE")
-        receipt, draft, evidence = _read_current(snapshot, geometry, key)
+        receipt, draft, evidence = read_candidate(snapshot, geometry, key)
         _verify_original(receipt.source._render)
-        owner_results.append((key, _SingleSelectedOwnerMarkingWitness(receipt, draft, evidence, read_current)))
-    if not owner_keys or not set(owner_keys).issubset({key for key, _ in rows}):
+        owner_results.append((receipt.part_key, _SingleSelectedOwnerMarkingWitness(
+            receipt, draft, evidence, read_current,
+            read_candidate=read_candidate, resolve_owner=resolve_owner,
+        )))
+    physical_keys = {key for key, _ in owner_results}
+    if not physical_keys or not physical_keys.issubset({key for key, _ in rows}):
         raise ValueError("OWNER_MARKING_ORDINARY_BATCH_INVENTORY_CHANGED")
-    if len({w._evidence.owner_id for _, w in owner_results}) != len(owner_results):
+    if (len(physical_keys) != len(owner_results)
+            or len({w._evidence.owner_id for _, w in owner_results}) != len(owner_results)):
         raise ValueError("OWNER_MARKING_ORDINARY_BATCH_DUPLICATE_OWNER")
-    legacy = witness_selected_manual_marking_rows((key, render) for key, render in rows if key not in owner_keys)
-    witness = _SelectedOwnerMarkingBatchWitness(rows, owner_results, legacy, flags, read_current)
+    legacy = witness_selected_manual_marking_rows((key, render) for key, render in rows if key not in physical_keys)
+    witness = _SelectedOwnerMarkingBatchWitness(
+        rows, owner_results, legacy, flags, read_current, intent_keys=owner_keys,
+    )
     witness.assert_current()
     return rows, witness
 
