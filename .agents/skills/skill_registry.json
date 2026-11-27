@@ -103,6 +103,18 @@
       ]
     },
     {
+      "id": "skill-prompt-healthcheck",
+      "keywords": ["/提示詞健檢", "/提視詞健檢", "提示詞健檢", "提視詞健檢", "prompt audit", "prompt healthcheck"],
+      "boundary_keywords": ["prompt audit", "prompt healthcheck"],
+      "file_globs": [],
+      "required_skills": ["寫技能", "writing-for-agents"],
+      "required_references": [
+        "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
+        "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md"
+      ],
+      "description": "Read-only prompt healthcheck by default; explicit fixes follow GitHub localX-first governance."
+    },
+    {
       "id": "skill-discovery",
       "keywords": [
         "找技能",
@@ -161,6 +173,9 @@
         "tmp_path",
         "xfail",
         "coverage"
+      ],
+      "boundary_keywords": [
+        "mock"
       ],
       "file_globs": [
         ".agents/skills/engineering/Python測試實務/**",
@@ -323,13 +338,14 @@
       "keywords": [
         "關單",
         "關議題",
+        "結案",
+        "正式結案",
+        "關閉工單",
+        "關閉議題",
+        "關閉 Issue",
         "Issue closure",
         "close issue",
-        "Master issue",
-        "Final Combined",
-        "production integration",
-        "合併完成",
-        "正式完成"
+        "合併後關單"
       ],
       "file_globs": [
         ".agents/skills/engineering/issue-closure-gate/**"
@@ -436,10 +452,16 @@
         "stutter",
         "live-sync",
         "live sync",
-        "trace",
+        "Tk trace",
+        "GUI trace",
+        "trace callback",
         "重算",
         "recalculation",
-        "Scheduler",
+        "Tk Scheduler",
+        "GUI Scheduler",
+        "3D Scheduler",
+        "Scheduler flush",
+        "Scheduler dirty",
         "DXF cache",
         "debounce",
         "3D designer"
@@ -459,20 +481,24 @@
       "id": "phase6-release-packaging",
       "keywords": [
         "release",
-        "FULL",
-        "UPDATE",
+        "FULL 出包",
+        "UPDATE 出包",
+        "FULL 封包",
+        "UPDATE 封包",
+        "FULL release",
+        "UPDATE release",
+        "FULL package",
+        "UPDATE package",
         "package",
         "packaging",
         "打包",
         "出包",
-        "交付"
+        "正式出包"
       ],
       "file_globs": [
         "release_required_artifacts.json",
         "tools/phase6_release.py",
-        "tools/phase6_skill_preflight.py",
-        ".agents/skills/**",
-        "AGENTS.md"
+        ".agents/skills/engineering/phase6-release-packaging/SKILL.md"
       ],
       "required_skills": [
         "phase6-release-packaging"
@@ -509,6 +535,9 @@
       "id": "bugfix-tdd",
       "keywords": [
         "bug",
+        "bugs",
+        "bugfix",
+        "bug fix",
         "debug",
         "fix",
         "regression",
@@ -516,6 +545,10 @@
         "錯誤",
         "修正",
         "除錯"
+      ],
+      "boundary_keywords": [
+        "bug",
+        "fix"
       ],
       "file_globs": [],
       "required_skills": [
@@ -530,12 +563,16 @@
         "git push",
         "git fetch",
         "git pull",
-        "GitHub Connector",
-        "DNS",
+        "GitHub Connector 同步",
+        "GitHub Connector 推送",
+        "GitHub Connector fallback",
+        "git DNS",
+        "GitHub DNS",
         "remote sync",
         "遠端同步",
         "推送失敗",
-        "無法解析",
+        "git 無法解析",
+        "GitHub 無法解析",
         "Could not resolve host"
       ],
       "file_globs": [
@@ -771,7 +808,14 @@
     {
       "id": "explicit-skill-code-review",
       "keywords": [
-        "code-review"
+        "code-review",
+        "code review",
+        "PR code review",
+        "review PR #",
+        "審查 PR",
+        "審核 PR",
+        "審查程式碼",
+        "檢查程式碼差異"
       ],
       "file_globs": [
         ".agents/skills/engineering/code-review/**"
@@ -838,7 +882,13 @@
     {
       "id": "explicit-skill-resolving-merge-conflicts",
       "keywords": [
-        "resolving-merge-conflicts"
+        "resolving-merge-conflicts",
+        "merge conflict",
+        "rebase conflict",
+        "解決合併衝突",
+        "處理合併衝突",
+        "Git 合併衝突",
+        "解決 rebase 衝突"
       ],
       "file_globs": [
         ".agents/skills/engineering/resolving-merge-conflicts/**"
@@ -877,6 +927,14 @@
     {
       "id": "explicit-skill-triage",
       "keywords": [
+        "triage",
+        "/triage",
+        "工單分類",
+        "工單分級",
+        "Issue triage",
+        "問題單分級"
+      ],
+      "boundary_keywords": [
         "triage"
       ],
       "file_globs": [
@@ -1196,6 +1254,10 @@
         "delete",
         "remove"
       ],
+      "boundary_keywords": [
+        "delete",
+        "remove"
+      ],
       "file_globs": [
         ".agents/skills/engineering/刪除/**",
         "tests/process/test_delete_skill_contract.py"
@@ -1206,6 +1268,58 @@
       "required_references": [
         ".agents/skills/engineering/刪除/SKILL.md"
       ]
+    },
+    {
+      "id": "canonical-route-nfb-pad-standalone",
+      "keywords": [
+        "nfb-pad-standalone"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/nfb-pad-standalone/SKILL.md"
+      ],
+      "required_skills": [
+        "nfb-pad-standalone"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "canonical-route-receiving-base-no-manual-shrink",
+      "keywords": [
+        "receiving-base-no-manual-shrink"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/receiving-base-no-manual-shrink/SKILL.md"
+      ],
+      "required_skills": [
+        "receiving-base-no-manual-shrink"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "canonical-route-receiving-inner-door-live-nfb-opening",
+      "keywords": [
+        "receiving-inner-door-live-nfb-opening"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/receiving-inner-door-live-nfb-opening/SKILL.md"
+      ],
+      "required_skills": [
+        "receiving-inner-door-live-nfb-opening"
+      ],
+      "required_references": []
+    },
+    {
+      "id": "canonical-route-新增功能",
+      "keywords": [
+        "新增功能"
+      ],
+      "file_globs": [
+        ".agents/skills/engineering/新增功能/SKILL.md"
+      ],
+      "required_skills": [
+        "新增功能"
+      ],
+      "required_references": []
     }
   ]
 }

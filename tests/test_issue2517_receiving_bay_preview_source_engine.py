@@ -117,3 +117,43 @@ def test_gui_retains_compatibility_but_drops_domain_calculation_and_engine_has_n
     assert "for position in hidden" not in between
     engine = (root / "ae_engine/receiving_bay_preview_source.py").read_text(encoding="utf-8")
     assert "from gui_modules" not in engine and "from phase6_" not in engine
+
+
+def test_tail_owner_allocator_is_not_geometry_but_visible_physical_owner_is():
+    layout = new_receiving_layout(
+        width=800, height=1600, depth=350, new_physical_board=True,
+    )
+    original = {
+        **_snapshot(),
+        "receiving_layout": resize_receiving_bays(layout, set_index=0, bay_count=3),
+    }
+    newer = {
+        **original,
+        "receiving_layout": resize_receiving_bays(
+            original["receiving_layout"], set_index=0, bay_count=4,
+        ),
+    }
+    generation = "next_base_plate_owner_generation"
+    owner_id = "base_plate_owner_id"
+    assert newer["receiving_layout"][generation] > original["receiving_layout"][generation]
+    saved = deepcopy(newer)
+    args = dict(set_index=0, bay_index=0, allow_suffix_topology_reuse=True)
+    before_key = api.project_receiving_bay_preview_fingerprint_snapshot(original, **args)
+    assert api.project_receiving_bay_preview_fingerprint_snapshot(newer, **args) == before_key
+    assert newer == saved
+    assert generation not in before_key["receiving_layout"]
+    first = before_key["receiving_layout"]["sets"][0]["bays"][0]
+    assert first[owner_id] == original["receiving_layout"]["sets"][0]["bays"][0][owner_id]
+
+    # A canonical witness with the same geometry and an actually different
+    # current owner cannot share a cached image merely because one ignores
+    # the allocation counter. A valid unused generation is supplied.
+    changed = deepcopy(newer)
+    changed_layout = changed["receiving_layout"]
+    replacement = changed_layout[generation]
+    changed_layout[generation] += 1
+    changed_layout["sets"][0]["bays"][0][owner_id] = (
+        first[owner_id].rsplit(":", 1)[0] + f":{replacement}"
+    )
+    changed["receiving_layout"] = api.normalize_receiving_layout(changed_layout)
+    assert api.project_receiving_bay_preview_fingerprint_snapshot(changed, **args) != before_key

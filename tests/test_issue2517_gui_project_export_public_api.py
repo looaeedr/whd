@@ -73,7 +73,7 @@ def test_gui_export_never_imports_private_manufacturing_modules():
     assert "from ae_engine import manufacturing_api" in source
     assert "from ae_engine." not in source
     for name in (
-        "export_current_csv_quantity_manufacturing",
+        "stage_quantity_operator_export",
         "export_current_receiving_multibay_dxf",
         "export_receiving_ear_side_manufacturing_marking_dxf",
         "export_receiving_ear_side_check_only_dxf",

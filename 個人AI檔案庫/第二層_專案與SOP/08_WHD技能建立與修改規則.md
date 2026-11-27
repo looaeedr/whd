@@ -14,7 +14,7 @@ whd_doc_id: WHD-SOP-SKILL-AUTHORING
 ## 現行使用與驗證邊界
 
 1. 使用者當次明確指示和已核准規格優先；本文件不能創造獨立執行／發布授權。
-2. 純治理 Skill／文件變更從 GitHub 最新 `localX` 建立治理分支，經適用治理 CI、PR、合併／回讀整合 `localX`；正式 X 僅限使用者人工驗收與當次 `/推推` 依受信任 gate 發布；未經當次明確授權禁止 DC／使用者本機。
+2. 純治理 Skill／文件變更從最新 GitHub `localX` HEAD 建治理分支，適用治理 CI／PR 合併回 `localX`；正式 X 的治理與產品變更均須使用者當次 `/推推`（即驗收與發布決定）及受信任 gate。Windows 同步／人工 UAT 另記，不是發布前置；未經當次明確授權禁止 DC／本機。
 3. 產品或混合修改依 `/派工` 的雲端施工或當次明確 `/接手` 的 RC 施工路線，先整合 `localX`；產品正式發布 X 只接受當次 `/推推`。
 4. Skill identity、資料夾、Registry、required domain references 與適用 tests 應一致；可用 runtime 能力必須先核實，測試證據不得倒灌成 domain Source of Truth。
 5. 同一已核准範圍的交付不應反覆詢問相同授權，但任何 GitHub／平台權限拒絕均須遵守，不得更換傳輸繞過。
@@ -82,10 +82,10 @@ DXF Skill scope contract：
 修改時至少驗：
 
 - frontmatter `name: 派工` 與目錄 `派工/` 一致；
-- PM → Implementer → QA 狀態機；
-- owning Issue / AI Library / checkpoint / journal；
-- process-group timeout 分類與 resume；
-- remote QA monitoring；
+- 真實已授權的同一 Issue 範圍與 GitHub `localX` 施工入口，不恢復已退役 PM → Implementer → QA 交易狀態機；
+- 必要 CURRENT AI 庫、原始碼、受影響 Skill／Registry 與測試來源查核；無需建立 checkpoint／journal 才能施工；
+- 真實 CI queued／in_progress／RED／GREEN、工具拒絕及可用執行環境下的續作／修復；
+- exact HEAD 適用治理 CI、產品或混合變更的必要完整回歸，以及 GitHub `localX` PR merge/readback；
 - 不虛構背景工程師、不把聊天 runtime 當 scheduler；
 - 章節順序與自我檢查不互相矛盾。
 
@@ -196,7 +196,7 @@ WHD canonical path：`.agents/skills/engineering/UI設計與去AI味/SKILL.md`�
 
 ### 舊 Flow v2 工單交易規則（HISTORICAL／不可執行）
 
-以下為原始 legacy 規則存證，不得取代 X 現行分流、DC 授權及 CI／PR 程序：
+以下為原始 legacy 規則存證，**不得當今日執行入口**；現行分流、DC 授權及 CI／PR 程序以 GitHub `localX` exact HEAD 的 `AGENTS.md` 和 CURRENT Skill／gate 為準，正式 X 只供當次 `/推推`：
 
 > - **ONE ISSUE / ONE MUTATION WRITER**：substantive repository work 必須持有 exact Issue 的 live lease 與 ACTIVE `mutation_scope`。新 READY work 用 atomic `ACQUIRE.effect.admission_reservation` 一次取得；不得主動拆成 `ACQUIRE → RESERVE_PATHS`。
 > - **STALE PLAN MUST DIE**：每次 interactive Git mutation 綁 `issue + generation + record_fingerprint + lease_token + invocation_identity + next_action + work/target HEAD`。任一 identity 已前進，舊 plan 永久失效並從最新 structured `next_action` replan。
@@ -223,7 +223,7 @@ WHD 的文件、AI Library、Skill、handoff 或相容入口只要描述同一�
 
 ### 永久驗證
 
-**2026-10-11 實體路徑回讀**：T1 當時所稱 `tests/knowledge/test_knowledge_authority_contract.py` 已不在目前正式 X 的 Git 樹中，不能當成今天可執行的測試入口。現行 CURRENT／MIRROR 的角色核對使用 `tests/knowledge/test_current_history_authority_contract.py`，authority 分類則使用 `tests/knowledge/test_knowledge_authority_classification.py`；真正的 metadata／CURRENT owner 驗證仍依 `tools/knowledge_governance.py` 與相關 CI。這些測試只判定 authority contract 是否符合，不成為製造／幾何／產品規則的 Source of Truth。
+**2026-10-11 歷史實體路徑回讀（非當前庫存證據）**：T1 當時所稱 `tests/knowledge/test_knowledge_authority_contract.py` 未在當時 tree 找到；今天是否存在必須重新查 GitHub `localX` exact HEAD，不得用正式 X 或本段歷史清單代替。CURRENT／MIRROR 的角色核對使用 `tests/knowledge/test_current_history_authority_contract.py`，authority 分類則使用 `tests/knowledge/test_knowledge_authority_classification.py`；真正的 metadata／CURRENT owner 驗證仍依 `tools/knowledge_governance.py` 與相關 CI。這些測試只判定 authority contract 是否符合，不成為製造／幾何／產品規則的 Source of Truth。
 
 
 ## Domain route 與 domain authority（REFERENCE）

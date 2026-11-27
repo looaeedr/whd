@@ -361,3 +361,23 @@ def test_gui_unified_hole_editor_does_not_mutate_feature_list_outside_session():
         ):
             violations.append((node.lineno, node.func.attr))
     assert violations == []
+
+
+def test_equal_strokes_keep_independent_copy_sources_across_edit_delete_and_undo():
+    first, second = Feature("line"), Feature("line")
+    rows = [first, second]
+    session = Phase6HoleEditorSession("tail", rows)
+    session.bind_copy_source(first, "head-one")
+    session.bind_copy_source(second, "head-two")
+    session.execute(HoleEditorAction.select(0))
+    session.execute(HoleEditorAction.replace_selected(Feature("moved")))
+    assert [session.copy_source(row) for row in rows] == ["head-one", "head-two"]
+    session.execute(HoleEditorAction.cancel_active())
+    assert rows[0] is first
+    session.execute(HoleEditorAction.select(1))
+    session.execute(HoleEditorAction.delete_selected())
+    assert [session.copy_source(row) for row in rows] == ["head-one"]
+    session.execute(HoleEditorAction.undo())
+    assert rows[1] is second
+    assert [session.copy_source(row) for row in rows] == ["head-one", "head-two"]
+    assert session.copy_source(Feature("line")) is None

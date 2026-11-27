@@ -10,8 +10,8 @@ This module owns only operator-facing export orchestration and indicator editor
 state projection. Project persistence remains Phase6ProjectController authority;
 manufacturing geometry/DXF generation remains manufacturing_api authority.
 """
+import hashlib
 import os
-import shutil
 import tempfile
 from copy import deepcopy
 from collections.abc import Mapping
@@ -22,13 +22,19 @@ from gui_modules.application.render_snapshots import _collect_live_indicator_gro
 
 
 def export_multi_door_layout_dxfs(self, folder, val, *, draw_stock=False):
-    """Export one Door DXF per validated layout cell through the headless API."""
-    exported = []
+    """Preflight every Engine Door identity and PartSpec before writing any DXF."""
+    manufacturing_api.require_no_operator_v_miter_gui_check_for_export({
+        "v_miter_gui_check_corners": getattr(self, "v_miter_gui_check_corners", {}),
+    })
     context = self._manufacturing_context(draw_stock=draw_stock)
+    planned = []
     for cell in self.get_door_layout_cells():
         filename = manufacturing_api.door_layout_export_filename(cell)
-        filepath = os.path.join(folder, filename)
-        self._export_authoritative_part(self._door_layout_part_spec(cell, val), filepath, context)
+        spec = self._door_layout_part_spec(cell, val)
+        planned.append((filename, spec))
+    exported = []
+    for filename, spec in planned:
+        self._export_authoritative_part(spec, os.path.join(folder, filename), context)
         exported.append(filename)
     return exported
 
@@ -36,12 +42,17 @@ def export_multi_door_layout_dxfs(self, folder, val, *, draw_stock=False):
 def export_multi_door_indicator_box_parts(
     self, folder, val, *, draw_stock=False, export_box=True, export_door=True
 ):
-    """Export each per-cell Indicator-Box assembly through the headless API."""
-    exported = []
+    """Preflight all per-cell Engine source/geometry before emitting any sheet.
+
+    The GUI is a transport for original Engine PartSpecs; a malformed *later*
+    saved cell must not leave earlier DXFs behind on a directly invoked route.
+    The authoritative batch exporter still handles staged atomic publication.
+    """
     context = self._manufacturing_context(draw_stock=draw_stock)
+    planned = []
+    states = getattr(self, "door_layout_indicator_states", None)
     for cell in self.get_door_layout_cells():
         key = self._door_layout_cell_key(cell)
-        states = getattr(self, "door_layout_indicator_states", None)
         # Validate the original stored row, never a display-normalized copy.
         raw = (states.get(key) if isinstance(states, Mapping)
                else self._door_layout_indicator_state_for_key(key))
@@ -58,8 +69,7 @@ def export_multi_door_indicator_box_parts(
             spec = self._indicator_box_part_spec(
                 val, groups, features=self.door_layout_indicator_box_features.get(key, [])
             )
-            self._export_authoritative_part(spec, os.path.join(folder, filename), context)
-            exported.append(filename)
+            planned.append((filename, spec))
 
         if export_door:
             filename = manufacturing_api.door_layout_indicator_export_filename(
@@ -68,8 +78,12 @@ def export_multi_door_indicator_box_parts(
             spec = self._indicator_door_part_spec(
                 val, groups, features=self.door_layout_indicator_door_features.get(key, [])
             )
-            self._export_authoritative_part(spec, os.path.join(folder, filename), context)
-            exported.append(filename)
+            planned.append((filename, spec))
+
+    exported = []
+    for filename, spec in planned:
+        self._export_authoritative_part(spec, os.path.join(folder, filename), context)
+        exported.append(filename)
     return exported
 
 
@@ -147,7 +161,7 @@ def _selected_resolved_geometry(resolved_geometry, flags):
 
 
 def _current_authoritative_export_guard(
-    designer, snapshot, *, operator_source=None, operator_source_reader=None,
+    designer, snapshot, *, operator_source=None, operator_source_reader=None, host=None,
 ):
     """Witness saved, workspace and optional live operator export sources.
 
@@ -159,9 +173,15 @@ def _current_authoritative_export_guard(
         raise ValueError("DXF_OPERATOR_SOURCE_WITNESS_INCOMPLETE")
     if operator_source_reader is not None and not callable(operator_source_reader):
         raise TypeError("DXF_OPERATOR_SOURCE_READER_INVALID")
+    manufacturing_api.require_selected_export_matching_operator_family(
+        snapshot, operator_source,
+    )
     witness = deepcopy(snapshot)
     operator_witness = deepcopy(operator_source)
     workspace = getattr(designer, "designer_workspace", None)
+    controller = getattr(host, "project_controller", None)
+    project_epoch = getattr(controller, "project_load_epoch", None)
+    project_path = getattr(controller, "project_path", None)
     workspace_reader = getattr(workspace, "snapshot", None)
     # A missing reader and an actual snapshot() returning None are different
     # source states. Recheck both identity and readability even if no physical
@@ -172,6 +192,14 @@ def _current_authoritative_export_guard(
     )
 
     def verify():
+        # A real Open may reuse the same Designer and equal Workspace data.
+        # Never carry an export across the previous project's load epoch.
+        if (host is not None
+                and (getattr(host, "fold_designer_app", None) is not designer
+                     or getattr(host, "project_controller", None) is not controller
+                     or getattr(controller, "project_load_epoch", None) != project_epoch
+                     or getattr(controller, "project_path", None) != project_path)):
+            raise ValueError("DXF 出圖專案已切換，請重新確認出圖")
         if (operator_source_reader is not None
                 and operator_source_reader() != operator_witness):
             raise ValueError("DXF 即時操作來源已變更，請重新確認尺寸與出圖選片")
@@ -187,7 +215,10 @@ def _current_authoritative_export_guard(
     return verify
 
 
-def _export_selected_resolved_parts(self, folder, flags):
+def _export_selected_resolved_parts(self, folder, flags, *, owner_guard_sink=None, owner_session_guard=None):
+    manufacturing_api.require_no_operator_v_miter_gui_check_for_export({
+        "v_miter_gui_check_corners": getattr(self, "v_miter_gui_check_corners", {}),
+    })
     """Export the primary GUI's canonical resolved physical inventory when available."""
     designer = getattr(self, "fold_designer_app", None)
     resolver = getattr(designer, "_phase6_resolve_manufacturing_geometry", None)
@@ -203,15 +234,29 @@ def _export_selected_resolved_parts(self, folder, flags):
     active_mode = normalize_quantity_snapshot(mode_source)["active_mode"]
     chosen = getattr(self, "receiving_dxf_group_mode_var", None)
     group_mode = chosen.get() if chosen is not None else None
-    source_guard = _current_authoritative_export_guard(designer, mode_source)
+    manufacturing_api.plan_scoped_base_plate_normal_output(mode_source, flags, group_mode)
+    source_guard = _current_authoritative_export_guard(designer, mode_source, host=self)
+    marking_source = mode_source
+    if workspace is not None:
+        from gui_modules.application.physical_part_hole_editor import current_workspace_marking_source
+        marking_source = current_workspace_marking_source(designer) or mode_source
     if workspace is not None and active_mode == "quantity":
+        owner_keys = manufacturing_api.require_existing_normal_owner_marking_route(
+            marking_source, flags, ordinary=True,
+        )
+
+        def read_current_quantity_owner():
+            if owner_session_guard is not None:
+                owner_session_guard()
+            source_guard()
+            geometry = resolver()
+            source_guard()
+            if owner_session_guard is not None:
+                owner_session_guard()
+            return current_workspace_marking_source(designer), geometry
         from phase6_manufacturing_adapter import (
             build_manufacturing_request, build_scene_payload_for_app,
             operator_finished_dimensions_for_app,
-        )
-        from phase6_quantity_manufacturing import (
-            resolve_quantity_manufacturing, quantity_manufacturing_groups,
-            quantity_nfb_checked_manufacturing_groups,
         )
         request = build_manufacturing_request(
             designer,
@@ -221,71 +266,31 @@ def _export_selected_resolved_parts(self, folder, flags):
             finished_dimensions_provider=lambda key=None: operator_finished_dimensions_for_app(designer, key),
         )
         workspace_snapshot = workspace.snapshot()
-        # #2517: Engine determines whether saved/live NFB sources match and
-        # whether numeric CSV versions can use a single verified batch route.
-        # GUI owns only operator intent and the snapshot passed to the API.
-        source_policy = manufacturing_api.plan_quantity_export_source(
-            mode_source, workspace_snapshot,
+        # Engine owns the live source decision, physical output and receipt.
+        staged = manufacturing_api.stage_quantity_operator_export(
+            request, workspace_snapshot, flags, folder, operator_snapshot=mode_source,
+            **({"owner_snapshot": marking_source, "read_current_owner": read_current_quantity_owner,
+                "owner_guard_sink": owner_guard_sink} if owner_keys else {}),
         )
-        batch = resolve_quantity_manufacturing(request, workspace_snapshot)
-        if source_policy.use_current_csv_export:
-            outputs = manufacturing_api.export_current_csv_quantity_manufacturing(
-                batch, folder, flags=flags, overwrite=True,
-            )
-            return ([os.path.basename(path) for path in outputs.values()], [])
-        selection = manufacturing_api.plan_quantity_operator_export_selection(
-            batch, workspace_snapshot, flags,
-        )
-        nfb_selection = selection.partial_selection
-        selected_demands = selection.selected_demands
-        if not selected_demands:
-            if nfb_selection is not None:
-                self._phase6_nfb_partial_export_report = nfb_selection.report()
-                diagnostics = [
-                    f"{row['version_id']} / {row['part_id']}：受阻 {row['actual_count']} 片；"
-                    + ", ".join(
-                        f"{source['physical_hole_id']} / {source['source_brand']} / "
-                        f"{source['model_filename']} / datum {source['datum_revision']}"
-                        for source in row["source_dependencies"])
-                    + "；" + row["reason"]
-                    for row in nfb_selection.rows
-                ]
-                return ([], [f"NFB 選中板件全數受阻（共 {nfb_selection.held_piece_count} 片），未輸出檔案。",
-                             *diagnostics])
+        report = staged.partial_report
+        self._phase6_nfb_partial_export_report = report
+        if staged.output_names:
+            return (list(staged.output_names), [])
+        if report is None:
             return ([], ["canonical quantity export: no selected physical parts"])
-        if nfb_selection is not None:
-            # Source IDs, report selection and checked physical-demand batch
-            # are all projected by Engine, never reconstructed in GUI.
-            checked_batch = selection.checked_batch
-            live_manifests = manufacturing_api.quantity_partial_live_manifests(
-                selection.full_selection, workspace_snapshot,
-                selection.selected_reports,
-            )
-            groups, gate = quantity_nfb_checked_manufacturing_groups(
-                checked_batch, live_manifest_provider=lambda vid, _request: live_manifests[vid],
-                partial=True,
-            )
-            if gate.permitted_total_pieces != nfb_selection.exported_piece_count:
-                raise ValueError("NFB live manifest and selected physical pieces disagree")
-        else:
-            groups = quantity_manufacturing_groups(batch, demands=selected_demands)
-        if sum(group.quantity for group in groups) != sum(row.quantity for row in selected_demands):
-            raise ValueError("NFB CHECK actual piece count not conserved")
-        outputs = manufacturing_api.save_quantity_manufacturing_groups_dxf(
-            groups, folder, overwrite=True,
-        )
-        names = [os.path.basename(path) for path in outputs.values()]
-        if nfb_selection is not None:
-            import json
-            from pathlib import Path
-            report = nfb_selection.report()
-            report["outputs"] = names
-            report_name = "nfb_partial_manifest.json"
-            Path(folder, report_name).write_text(
-                json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
-            names.append(report_name)
-            self._phase6_nfb_partial_export_report = report
-        return (names, [])
+        diagnostics = [
+            f"{row['version_id']} / {row['part_id']}：受阻 {row['actual_count']} 片；"
+            + ", ".join(
+                f"{source['physical_hole_id']} / {source['source_brand']} / "
+                f"{source['model_filename']} / datum {source['datum_revision']}"
+                for source in row["source_dependencies"])
+            + "；" + row["reason"]
+            for row in report["rows"]
+        ]
+        return ([], [
+            f"NFB 選中板件全數受阻（共 {report['held_actual_count']} 片），未輸出檔案。",
+            *diagnostics,
+        ])
 
     # Engine plans physical topology and independent-source preview eligibility.
     receiving_live = dict(getattr(designer, "_phase6_input_snapshot", {}) or {})
@@ -293,6 +298,7 @@ def _export_selected_resolved_parts(self, folder, flags):
         receiving_live, flags, group_mode,
     )
     if source_plan.use_multibay:
+        manufacturing_api.require_existing_normal_owner_marking_route(marking_source, flags, ordinary=False)
         import fold_designer_bridge as receiving_bridge
         composition = receiving_bridge._phase6_composition(designer)
 
@@ -341,6 +347,7 @@ def _export_selected_resolved_parts(self, folder, flags):
             self, dict(export_route.legacy_guard_flags),
         )
     if export_route.vault_composed:
+        manufacturing_api.require_existing_normal_owner_marking_route(marking_source, flags, ordinary=False)
         # GUI never projects/serializes manufacturing geometry.
         resolved = resolver()
         selected = manufacturing_api.select_resolved_export_geometry(
@@ -357,23 +364,44 @@ def _export_selected_resolved_parts(self, folder, flags):
         return ([filename], [])
 
     # All Receiving EAR/NFB source-route guards are decided by Engine.
-    receiving_snapshot = dict(getattr(designer, "_phase6_input_snapshot", {}) or {})
     resolved = resolver()
+    def read_current_owner_source():
+        if owner_session_guard is not None:
+            owner_session_guard()
+        source_guard()
+        geometry = resolver()
+        source_guard()
+        if owner_session_guard is not None:
+            owner_session_guard()
+        snapshot = current_workspace_marking_source(designer)
+        if not snapshot:
+            raise ValueError("ROOT_MARKING_PROJECT_SOURCE_REQUIRED")
+        return snapshot, geometry
+
     outputs = manufacturing_api.save_selected_resolved_manufacturing_dxf(
-        receiving_snapshot, resolved, flags, folder,
+        marking_source, resolved, flags, folder,
+        read_current_owner_source=read_current_owner_source if workspace is not None else None,
+        owner_guard_sink=owner_guard_sink,
     )
     if not outputs:
         return ([], ["canonical resolved export: no selected physical parts"])
     return ([os.path.basename(path) for path in outputs.values()], [])
 
 
-def _export_selected_parts(self, folder, val, flags, draw_stock):
+def _export_selected_parts(self, folder, val, flags, draw_stock, *, owner_guard_sink=None, owner_session_guard=None):
+    manufacturing_api.require_no_operator_v_miter_gui_check_for_export({
+        "v_miter_gui_check_corners": getattr(self, "v_miter_gui_check_corners", {}),
+    })
     # Primary Phase6 UI already owns one canonical ResolvedManufacturingGeometry.
     # Export its physical inventory directly; logical checkboxes only filter
     # operator intention and never become a second physical-part authority.
     self._phase6_nfb_partial_export_report = None
     try:
-        canonical = _export_selected_resolved_parts(self, folder, flags)
+        canonical = _export_selected_resolved_parts(
+            self, folder, flags,
+            **({"owner_guard_sink": owner_guard_sink, "owner_session_guard": owner_session_guard}
+               if owner_guard_sink is not None else {}),
+        )
     except Exception as ex:
         return [], [f"canonical resolved export: {ex}"]
     if canonical is not None:
@@ -533,7 +561,65 @@ def _export_selected_parts(self, folder, val, flags, draw_stock):
 
 
 
-def _commit_staged_project_export(stage_folder, output_folder, *, pre_commit_guard=None):
+
+_STAGED_DXF_MANIFEST_MISMATCH = (
+    "DXF 暫存檔案與引擎回報不一致，已取消整批發布。"
+)
+
+
+def _seal_staged_export_manifest(stage_folder, exported):
+    """Capture exact Engine-reported file names and bytes for GUI publication.
+
+    Only transport integrity belongs here: the Engine has already
+    manufactured and reopened DXFs and may report companion JSON manifests.
+    """
+    if isinstance(exported, (str, bytes)):
+        raise ValueError(_STAGED_DXF_MANIFEST_MISMATCH)
+    try:
+        reported = tuple(exported)
+    except TypeError as exc:
+        raise ValueError(_STAGED_DXF_MANIFEST_MISMATCH) from exc
+    if any(
+        not isinstance(name, str) or not name.strip()
+        or name in (".", "..") or "/" in name or "\\" in name
+        for name in reported
+    ):
+        raise ValueError(_STAGED_DXF_MANIFEST_MISMATCH)
+    entries = tuple(os.listdir(stage_folder))
+    if (
+        len(set(reported)) != len(reported)
+        or sorted(reported) != sorted(entries)
+        or any(
+            os.path.islink(os.path.join(stage_folder, name))
+            or not os.path.isfile(os.path.join(stage_folder, name))
+            for name in entries
+        )
+    ):
+        raise ValueError(_STAGED_DXF_MANIFEST_MISMATCH)
+    return tuple(
+        (name, _staged_export_file_digest(os.path.join(stage_folder, name)))
+        for name in sorted(reported)
+    )
+
+
+def _staged_export_file_digest(path):
+    """Hash transport bytes without inspecting or deriving physical geometry."""
+    digest = hashlib.sha256()
+    with open(path, "rb") as source:
+        for chunk in iter(lambda: source.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _assert_staged_export_seal(stage_folder, sealed):
+    reported = tuple(name for name, _digest in sealed)
+    if _seal_staged_export_manifest(stage_folder, reported) != sealed:
+        raise ValueError(_STAGED_DXF_MANIFEST_MISMATCH)
+
+def _commit_staged_project_export(
+    stage_folder, output_folder, *, pre_commit_guard=None, expected_manifest=None,
+    verify_moved_bytes=False, allow_nfb_partial_manifest=False,
+):
     """Publish staged files only while their original physical source is current.
 
     Engine export has already manufactured/reopened each DXF. This GUI
@@ -549,40 +635,55 @@ def _commit_staged_project_export(stage_folder, output_folder, *, pre_commit_gua
         name for name in sorted(os.listdir(stage_root))
         if os.path.isfile(os.path.join(stage_root, name))
     ]
-    backup_root = tempfile.mkdtemp(prefix=".whd-export-backup-", dir=output_root)
-    committed = []
-    backups = {}
+    def check_publication():
+        if pre_commit_guard is not None:
+            pre_commit_guard()
+        if expected_manifest is not None:
+            # The final check runs after moving the staged files. At this
+            # point the Engine validates the published bytes instead.
+            if any(os.path.lexists(os.path.join(stage_root, name)) for name in entries):
+                _assert_staged_export_seal(stage_root, expected_manifest)
+
+    if expected_manifest is not None:
+        _assert_staged_export_seal(stage_root, expected_manifest)
     try:
-        if pre_commit_guard is not None:
-            pre_commit_guard()
-        for name in entries:
-            destination = os.path.join(output_root, name)
-            if os.path.exists(destination):
-                backup = os.path.join(backup_root, name)
-                os.replace(destination, backup)
-                backups[destination] = backup
-        if pre_commit_guard is not None:
-            pre_commit_guard()
-        for name in entries:
-            source = os.path.join(stage_root, name)
-            destination = os.path.join(output_root, name)
-            os.replace(source, destination)
-            committed.append(destination)
-        if pre_commit_guard is not None:
-            pre_commit_guard()
-        return tuple(os.path.basename(path) for path in committed)
-    except Exception:
-        for destination in reversed(committed):
-            try:
-                os.remove(destination)
-            except FileNotFoundError:
-                pass
-        for destination, backup in backups.items():
-            if os.path.exists(backup):
-                os.replace(backup, destination)
+        return manufacturing_api.publish_staged_project_dxf_files(
+            stage_root, output_root, entries,
+            pre_commit_guard=check_publication,
+            verified_byte_seals=dict(expected_manifest) if expected_manifest is not None else None,
+            verify_moved_bytes=verify_moved_bytes,
+            allow_nfb_partial_manifest=allow_nfb_partial_manifest,
+        )
+    except ValueError as exc:
+        if str(exc).startswith(("WHD_STAGED_DXF_VERIFIED_BYTES_CHANGED",
+                                "WHD_STAGED_DXF_VERIFIED_ROWS_CHANGED")):
+            raise ValueError(_STAGED_DXF_MANIFEST_MISMATCH) from exc
         raise
-    finally:
-        shutil.rmtree(backup_root, ignore_errors=True)
+
+def _live_cabinet_model_selection(self):
+    """Read the operator's raw Family/baseline selector, not Engine geometry.
+
+    The Tk selector can change while the designer still holds an older saved
+    model. Witness both its presence and raw value across every DXF dialog.
+    Family interpretation and manufacturing eligibility remain Engine-owned.
+    """
+    control = getattr(self, "baseline_var", None)
+    reader = getattr(control, "get", None)
+    return {
+        "reader_present": callable(reader),
+        "value": deepcopy(reader()) if callable(reader) else None,
+    }
+
+
+def _independent_export_live_operator_source(self):
+    """Witness independent DXF button's numeric and raw model intent."""
+    getter = getattr(self, "get_float_values", None)
+    return {
+        "reader_present": callable(getter),
+        "values": deepcopy(getter()) if callable(getter) else None,
+        "model_selection": _live_cabinet_model_selection(self),
+    }
+
 
 def export_receiving_ear_side_manufacturing_dxf(self):
     """#1503: signed geometry-only production MARKING for TWO side sheets.
@@ -606,7 +707,11 @@ def export_receiving_ear_side_manufacturing_dxf(self):
         )
         # Witness the original Workspace before geometry resolution: that
         # callback itself may race with a confirmed Hole Editor source edit.
-        source_guard = _current_authoritative_export_guard(designer, snapshot)
+        source_guard = _current_authoritative_export_guard(
+            designer, snapshot,
+            operator_source=_independent_export_live_operator_source(self),
+            operator_source_reader=lambda: _independent_export_live_operator_source(self),
+        )
         geometry = resolver()
     except (ValueError, KeyError, TypeError, OSError) as exc:
         messagebox.showerror("固定片側板 MARKING 不可輸出", str(exc))
@@ -652,7 +757,11 @@ def export_receiving_ear_side_check_dxf(self):
         dimensions, thickness = manufacturing_api.receiving_ear_side_check_operator_inputs(
             snapshot,
         )
-        source_guard = _current_authoritative_export_guard(designer, snapshot)
+        source_guard = _current_authoritative_export_guard(
+            designer, snapshot,
+            operator_source=_independent_export_live_operator_source(self),
+            operator_source_reader=lambda: _independent_export_live_operator_source(self),
+        )
         geometry = resolver()
     except (ValueError, KeyError, TypeError, OSError) as exc:
         messagebox.showerror("固定片 CHECK 不可用", str(exc))
@@ -720,6 +829,7 @@ def _selected_dxf_live_operator_sources(self):
     )
     return {
         "dimensions": self.get_float_values(),
+        "model_selection": _live_cabinet_model_selection(self),
         "door_layout_columns": live_door_rows,
         "surface_features": deepcopy(getattr(self, "surface_features", None)),
         "flags": _selected_export_flags(
@@ -739,11 +849,23 @@ def _selected_dxf_live_operator_sources(self):
         "door_layout_indicator_door_features": deepcopy(
             getattr(self, "door_layout_indicator_door_features", None),
         ),
+        "v_miter_gui_check_corners": deepcopy(
+            getattr(self, "v_miter_gui_check_corners", {}),
+        ),
     }
 
 
 def export_selected_dxf(self):
     """Batch export selected existing parts through authoritative manufacturing APIs."""
+    # Run before file dialogs or staging; neither a CHECK preview nor an
+    # old four-CornerType FinalScene may silently publish as V manufacture.
+    try:
+        manufacturing_api.require_no_operator_v_miter_gui_check_for_export({
+            "v_miter_gui_check_corners": getattr(self, "v_miter_gui_check_corners", {}),
+        })
+    except (TypeError, ValueError) as exc:
+        messagebox.showerror("V 型斜接尚未認證", str(exc))
+        return
     self._flush_phase6_authoritative_state()
     existing_parts = self._phase6_current_existing_parts()
     try:
@@ -792,10 +914,22 @@ def export_selected_dxf(self):
         return
     designer = getattr(self, "fold_designer_app", None)
     source_snapshot = getattr(designer, "_phase6_input_snapshot", None)
+    scoped_mark_source = source_snapshot
+    if not isinstance(scoped_mark_source, Mapping):
+        reader = getattr(getattr(self, "project_controller", None), "committed_snapshot", None)
+        scoped_mark_source = reader() if callable(reader) else None
+    try:
+        group = getattr(self, "receiving_dxf_group_mode_var", None)
+        manufacturing_api.plan_scoped_base_plate_normal_output(
+            scoped_mark_source or {}, flags, group.get() if group is not None else None,
+        )
+    except ValueError as exc:
+        messagebox.showerror("底板無法輸出", str(exc))
+        return
     if isinstance(source_snapshot, Mapping):
         try:
             final_publish_guard = _current_authoritative_export_guard(
-                designer, source_snapshot,
+                designer, source_snapshot, host=self,
                 operator_source=operator_source,
                 operator_source_reader=lambda: _selected_dxf_live_operator_sources(self),
             )
@@ -809,6 +943,24 @@ def export_selected_dxf(self):
         # Compatibility callers without Phase6 have no Workspace source.
         final_publish_guard = None
 
+    owner_transport = []
+    owner_session_guard = None
+    if designer is not None and getattr(designer, "designer_workspace", None) is not None:
+        from gui_modules.application.physical_part_hole_editor import current_workspace_marking_source
+        try:
+            marking_source = current_workspace_marking_source(designer)
+            if manufacturing_api.require_existing_normal_owner_marking_route(marking_source, flags, ordinary=True):
+                owner_session_guard = final_publish_guard
+        except ValueError as exc:
+            messagebox.showerror("DXF", str(exc))
+            return
+
+    def remember_owner_transport(guard, verified_bytes):
+        owner_transport.append((guard, verified_bytes))
+
+    owner_ports = ({"owner_guard_sink": remember_owner_transport, "owner_session_guard": owner_session_guard}
+                   if owner_session_guard is not None else {})
+
     folder = filedialog.askdirectory(title="選擇 DXF 檔案儲存資料夾")
     if not folder:
         return
@@ -819,7 +971,7 @@ def export_selected_dxf(self):
     skipped_unconfigured_base = False
     with tempfile.TemporaryDirectory(prefix=".whd-export-stage-", dir=folder) as stage_folder:
         exported, errors = _export_selected_parts(
-            self, stage_folder, val, flags, draw_stock
+            self, stage_folder, val, flags, draw_stock, **owner_ports
         )
         retry_intent = manufacturing_api.plan_unconfigured_receiving_base_export_retry(
             errors, flags,
@@ -843,8 +995,9 @@ def export_selected_dxf(self):
                 # Re-run through the same manufacturing authority with only
                 # the explicitly excluded base plate removed from selection.
                 # Other source/provenance failures must continue to block.
+                owner_transport.clear()
                 exported, errors = _export_selected_parts(
-                    self, stage_folder, val, other_flags, draw_stock
+                    self, stage_folder, val, other_flags, draw_stock, **owner_ports
                 )
                 skipped_unconfigured_base = bool(exported) and not errors
         if errors:
@@ -852,6 +1005,21 @@ def export_selected_dxf(self):
             return
         if not exported:
             messagebox.showerror("輸出失敗", "沒有產生任何 DXF 檔案。")
+            return
+        # Transport-only consistency: the GUI must publish exactly the files
+        # the authoritative Engine exporter reported, not every stray file
+        # that happens to be present in the stage directory. Conversely a
+        # reported but missing physical DXF may not become a false success.
+        # This does not classify parts or derive any manufacturing geometry.
+        try:
+            staged_manifest = _seal_staged_export_manifest(stage_folder, exported)
+            if owner_session_guard is not None and not owner_transport:
+                raise ValueError(_STAGED_DXF_MANIFEST_MISMATCH)
+            if owner_transport:
+                if len(owner_transport) != 1 or dict(staged_manifest) != dict(owner_transport[0][1]):
+                    raise ValueError(_STAGED_DXF_MANIFEST_MISMATCH)
+        except (ValueError, TypeError, OSError) as exc:
+            messagebox.showerror("輸出失敗", str(exc))
             return
         partial_report = getattr(self, "_phase6_nfb_partial_export_report", None)
         if partial_report is not None:
@@ -886,13 +1054,17 @@ def export_selected_dxf(self):
                 default="no",
             ):
                 return
+        def check_owned_outer_publish():
+            owner_session_guard()
+            owner_transport[0][0]()
+
         try:
-            if final_publish_guard is None:
-                committed = _commit_staged_project_export(stage_folder, folder)
-            else:
-                committed = _commit_staged_project_export(
-                    stage_folder, folder, pre_commit_guard=final_publish_guard,
-                )
+            commit_guard = check_owned_outer_publish if owner_transport else final_publish_guard
+            committed = _commit_staged_project_export(
+                stage_folder, folder, pre_commit_guard=commit_guard,
+                expected_manifest=staged_manifest, verify_moved_bytes=True,
+                allow_nfb_partial_manifest=partial_report is not None,
+            )
         except Exception as ex:
             messagebox.showerror("輸出失敗", f"批次提交失敗：{ex}")
             return
@@ -921,16 +1093,15 @@ def export_receiving_pad_base_part_only_dxf(self):
         self._flush_phase6_authoritative_state()
         designer = getattr(self, "fold_designer_app", None)
         snapshot = getattr(designer, "_phase6_input_snapshot", None)
-        if (not isinstance(snapshot, Mapping)
-                or manufacturing_api.resolve_live_cabinet_family(snapshot) != "受電箱"
-                or snapshot.get("nfb_config_submitted") is not True):
-            raise ValueError("須在受電箱提交 NFB 後，才能輸出 PAD＋底板")
-        if not manufacturing_api.committed_nfb_pad_draft_parts(snapshot):
-            raise ValueError("目前沒有已提交且具已確認孔位的 PAD 實體板件")
+        manufacturing_api.require_receiving_pad_base_export_preflight(snapshot)
         # Modal dialogs can change the saved Bay, Hole Editor or active
         # workspace without affecting the already resolved 3D sheets.
         # Witness only authored source; Engine still owns manufacture.
-        source_guard = _current_authoritative_export_guard(designer, snapshot)
+        source_guard = _current_authoritative_export_guard(
+            designer, snapshot,
+            operator_source=_independent_export_live_operator_source(self),
+            operator_source_reader=lambda: _independent_export_live_operator_source(self),
+        )
         from fold_designer_bridge import _phase6_final_scene_adapter
         scene = _phase6_final_scene_adapter(designer).query_assembly_render_data()
         parts=tuple(scene.assembly_parts)

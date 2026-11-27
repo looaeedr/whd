@@ -163,6 +163,8 @@ def export_verified_receiving_nfb_base_plate(
     profile_path=None,
 ):
     """Export one currently verified physical Base Plate PART_ONLY DXF."""
+    from .operator_scoped_base_plate_marks import require_scoped_base_plate_export_held
+    require_scoped_base_plate_export_held(current_snapshot, {"base_plate": True})
     composed, _pair_receipt, _panel, _profile = prepare_verified_receiving_nfb_base_plate(
         bundle, layout=layout, current_snapshot=current_snapshot,
         base_spec=base_spec, index_path=index_path, profile_path=profile_path,

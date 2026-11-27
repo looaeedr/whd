@@ -537,9 +537,9 @@ class HoleEditorIndicatorUiActions:
         self.request_indicator_redraw()
         self.schedule_idle(self.refresh_reference_fields)
 
-def draw_hole_editor_hint(canvas, canvas_width, *, endcap=False):
-    """Draw the existing double-click hole-editor hint without owning state."""
-    text = "雙擊：開孔"
+def draw_hole_editor_hint(canvas, canvas_width, *, endcap=False, owner_marking=False):
+    """Label the same physical editor route; no capability is decided here."""
+    text = "雙擊：開孔／手動打標" if owner_marking else "雙擊：開孔"
     canvas.create_text(
         canvas_width - 18,
         18,

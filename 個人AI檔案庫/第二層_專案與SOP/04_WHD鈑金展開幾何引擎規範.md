@@ -6,6 +6,20 @@ whd_schema: WHD_DOC_META_V1
 ---
 # 🔩 04. WHD 鈑金展開幾何引擎規範（ae_engine）
 
+## [CURRENT] Engine 合圖／同源單板 DXF 檔頭須宣告毫米（2026-11-22）— `WHD_DXF_MILLIMETER_HEADER_GATE_V1`
+
+- **觀察與範圍**：使用者在正式 X、GitHub `localX` 的**合圖**新產 DXF 重開發現一片座標 100 × 60 mm 的板件，檔頭卻宣告「公尺」。這是已重開檔案的報告，**尚未在使用者 CAM 實機量測，也沒有證明所有 DXF 出口受影響**；本批不改正式 X、不追溯覆寫既有 DXF。
+- **唯一座標語意**：Engine `DrawingScene`／實體板件 Flat UV 以 1:1 **mm** 計；`dxf_serialization.save_scene_dxf` 需在新建 DXF 時明確宣告 `$INSUNITS=4`（毫米），不得沿用 `ezdxf.new("R2010")` 的公尺預設 `6`。**不能以 ×1000 或 ÷1000 座標補救檔頭錯誤**；實際輪廓、折線、孔位、相對排版和 100 × 60 數值不變。正式寫入仍由原 Engine 共有 serializer，GUI／CADSplit 不得另造單位轉換。
+- **放行前重開檢查**：獨立 `dxf_acceptance.verify_saved_part_render_data_dxf` 必須就**實際磁碟 DXF**拒絕缺失／非毫米 `$INSUNITS`（`UNIT_MISMATCH`）；`composed_panel_dxf.save_composed_panel_dxf` 必須在 staged 完整合圖重開後拒絕非毫米（`COMPOSED_DXF_UNIT_MISMATCH`），原有幾何、認證與原子回滾守衛不變。正向覆蓋已知 100 × 60 單板與合圖、Receiving 各分組及總計，負向覆蓋偽改檔頭但未改圖元、舊檔不可被覆寫。
+- **加工安全**：修正完成前，使用這條合圖流程的 DXF 下料，先在 CAM 以 mm 解讀並量一個已知尺寸，不符就不切。軟體測試 GREEN 不等於 CAM 實測；正式 X 依當次 `/推推` 才更新，Windows 與 CAM 驗收獨立回報。
+
+## [CURRENT] WHD 既有板件「原樣對照圖」依 Engine 同源與箱型預設／實際工件分流（2026-11-21）— `WHD_EXISTING_PART_AS_IS_DRAWING_GATE_V1`
+
+- 此規則只管**非製造的原樣視圖來源**，不變更製造公式、Factory Policy、DXF、認證或專案資料。**一般查看 WHD 原有板件，不必提供 Project**：確認所選 Family，直接由現有 WHD 公開 Engine／Family／Policy 解析相應 PartSpec／FinalScene 的真實輪廓、折邊、截角、孔位；未指定尺寸時採用**該 Family 的既有 Engine 預設**，明確在圖／圖旁標示箱型、預設數值與單位、來源及「預設示例，非實際工件」。未指定 Family 時先沿用已確認的當前選取，否則只能依 WHD fresh-start CURRENT 10 規則採金庫型並明示；查無合法預設不得猜尺寸或借另一 Family。
+- **只有指向某個實際工件**（例如特定已存 Project、Set／Bay、physical-part ID 或當前實體製造狀態）才要求該 Project／current production state，以實際保存的 Family、尺寸、設定及 resolved physical part 取得 canonical 幾何。已明確存在但無效／缺失的實際尺寸不得降級成示例預設來充作真實加工尺寸；未指定工件時也不得拿「沒有 Project」當拒絕顯示既有板件的理由。
+- 只可從 WHD **現有 2D／3D 真實畫面截圖**或從**同一 Engine PartSpec／FinalScene 直接投影**交圖；封頭 `head`／封尾 `tail` 各自解析自己的輪廓、折邊、截角、孔位及方向，不假設相同或鏡像。可換視角、縮放、加箭頭／文字，不能補畫或修改實體幾何；禁止文字臆測、手繪、影像生成、生成 SVG、通用板型冒充同源圖。
+- 缺 Family／既有 Engine 預設／板件模型／同源視圖時，或指定實際工件卻缺該 Project 時，標 `PART_AS_IS_DRAWING_SOURCE_UNVERIFIED` 並指出確切缺項；未真取到模型投影／截圖不得宣稱已畫。交的是標明**箱型、尺寸來源、預設示例或實際工件**的原樣對照圖，**不必出 DXF**；DXF、Save→Reload、正式加工資格另循既有流程，非製造展示預設不得替代已確認的製造輸入。執行細節依 `AGENTS.md` 同名硬閘門與 `.agents/skills/engineering/驗證板件與DXF/SKILL.md`。
+
 ## [CURRENT] #2517 DXF 出圖見證須拒絕途中才接上的 Workspace／孔位來源（2026-11-13）
 
 - 原 `gui_modules.project.export_actions._current_authoritative_export_guard` 只在 `workspace_witness is not None` 時重新檢查工作區。因此開始出圖時 Workspace 尚未接入、原 snapshot() 讀回 None、或尚無 snapshot reader，後來確認視窗期間新載入真實 `part_features`／板件，Engine 實體出圖可能沿舊來源提交而守衛不知。這是 GUI 原始來源交易身份漂移，不等於製造幾何／DXF 算法缺陷。
@@ -515,13 +529,6 @@ whd_schema: WHD_DOC_META_V1
 - 原 `gui_modules/application/fold_designer_composition_receiving.confirm_receiving_opening` 把層索引、連位索引做 `int(raw)` 後才送到外部開孔 resolver；布林 `True`、小數 `1.9` 或過期索引可能錯指另一實體 Switch Cell。這不是有效的來源／實體開孔認證，且 GUI 不能藉轉型製造位置資格。
 - 沿用現有 `ae_engine.receiving_switch_layout.normalize_receiving_switch_layout` 的 Switch 層／連位物理拓樸，新增只讀 `validate_receiving_switch_opening_target(layout, layer_index, connection_index, brand)`，經 `manufacturing_api`／根包同一 callable 公開。Engine 核對 exact 整數或既有 Tk 整數字串、非負及確實存在的 layer/connection、合法品牌；拒絕 bool、fraction、過期／越界索引、非法品牌；返回 detached 目標值，輸入資料不突變。合法選取依然由原 canonical opening resolver 決定孔規格、模型與真實製造權限，不直接產生 CUTTING 或 DXF。
 - GUI `confirm_receiving_opening` 僅傳原始操作者索引與當前 Switch Layout 給公開 Engine，驗證成功才呼叫原 resolver；resolver 未提交則不得通知 geometry 更新。定向 `tests/test_issue2517_receiving_switch_opening_target_public_api.py` 驗真 GUI callback、公開 Engine、合法 StringVar／int 同義、非法來源不呼叫 resolver、不提交、來源不變、JSON roundtrip。Factory、NFB CSV、2D／3D／DXF 及 Project schema 不變，#2517 其他入口／Windows UAT 尚未結案。
-
-## [CURRENT] #2517 主 GUI 25 項製造數值輸入統一公開 Engine 實體／Fold 驗證（2026-11-08）
-
-- 原 `gui_modules/application/cabinet_controller.get_float_values` 是主 GUI 計算、單門／多門 Hole Editor 及 PartSpec 共同數值入口；逐項 `float(TkVar.get())` 先把布林 True 變成 1.0，也讓 NaN／Inf 越過入口，直到下游才可能拒絕。主 GUI 不應消除原始製造來源的錯型證據。
-- 原 25 項 TkVar 的操作順序不變，改將 raw 來源交給既有 `manufacturing_api.normalize_operator_source_dimensions` 驗 W/H/D/T/FW 正有限值，再以 `manufacturing_api.normalize_operator_settings_updates` 驗其餘 Fold／Gap／BasePlate 有限值；任何欄位被略過皆禁止返回部分資料供 2D／3D／DXF。Vault 手動底板非負限制作為另一條操作約束，不能侵入一般 Fold／INI 負數相容，沿用 #3112 契約；不新增主幾何公式。
-- `tests/test_issue2517_main_gui_numeric_source_public_engine.py` 覆蓋 GUI／headless 全 25 欄 parity、W/H/D 小數精度、負折邊及負縮量相容、非法 bool/nonfinite 來源 fail-closed、不突變、JSON Save→Reload。PartSpec、Topology、Registry、CUTTING／BEND／DXF Writer 均未改。#2517 其他入口及 Windows UAT 持續待驗。
-
 
 ## [CURRENT] #2517 Receiving NFB 兩層實體 Y 高度只在 Engine 驗操作來源（2026-11-08）
 
@@ -1811,11 +1818,6 @@ GUI／CADSplit 操作來源（來源可不同、Engine 契約相同） → WHD �
 
 
 
-## [CURRENT] #2517 封頭／封尾 FW、WRAP reserve、Joint 交易單一公開 Engine API（2026-11-02）
-
-原 `phase6_settings_transitions` 在 GUI 側合成 EndCap FW follow／override、Head/Tail WRAP reserve 和 Assembly Joint 交易，雖然最終呼叫 Engine 低層 helper，GUI 仍決定快照組合、source fallback 與物理 state 提交。現在 `manufacturing_api.operator_endcap_fw_follow`、`operator_endcap_fw_override`、`operator_endcap_bottom_wrap`、`operator_endcap_edge_relation` 統一擷取不可變 copy-on-write 輸入並呼叫既有 `endcap_factory_fold`、`endcap_bottom_wrap_state`、`assembly_joint` Canonical owner。WRAP 傳回 Engine `OperatorBottomWrapTransition(state,resolved)`；GUI 舊名稱 `BottomWrapTransition` 僅為型別別名。沿用金庫型／受電箱現有 FW 四態、Head/Tail linked→leader→independent、Joint Graph 優先、保存狀態及拒絕未支援板件，不變更工廠補償、Registry、DXF 認證或原始製造入口。#2517 仍 OPEN。
-
-
 ## [CURRENT] #2517 受電箱原始門板把手／銘牌孔位來源辨識 Engine API（2026-11-02）
 
 原 GUI `gui_modules/application/receiving_multi_settings_window.extract_original_door_marks(scene)` 會自己從 `DrawingScene` 的 `CUTTING` 外框、帶 `source_type="nameplate_mount"` 身分的圓孔與唯一內輪廓判定門板把手與銘牌孔位，形成第二份來源辨識邏輯。現保留既有函式作兼容 GUI 單向轉接，將原算法原樣移至 `ae_engine.receiving_operator_projection.project_receiving_original_door_marks(scene)`，對外公開 `manufacturing_api.project_receiving_original_door_marks(scene)`。回傳既有正規化預覽 `{"nameplate": ..., "handle": ...}`；缺外框／多個內框時拒絕猜測，保留來源 Layer 與身分條件，GUI 只按比例繪圖，不再認定物理孔位。這是原圖來源的唯讀預覽映射，**不是補充新孔位、CUTTING 修改、成品尺寸定義或 DXF 製造認證**。#2517 仍 OPEN。
@@ -2226,6 +2228,13 @@ manufacturing_api.folded_material_mid_mesh、project_box_body_structure_world_po
 - **現況不得冒稱完成。** `cabinet_types.registry` 目前主要是 identity；`manufacturing_api._export_to_temp()` 仍主要按 `PartSpec` 類別分派，尚未全入口落實 Family×Part×Operation 製造資格。CADSplit 既有金庫型 Door／EndCap Bridge 能組出 `PartSpec` 並呼叫 `generate_part`，不代表其所有 DXF 都已認證；Receiving 有條件式 Engine resolved/verified batch 路徑，但原圖正常流程尚未證實能完整組出可信請求。後續施工在 #2517 補 **既有** API／Family seam、正反例與金庫型不退化驗收，不得用文件、`prepare` 或「可匯入」代替實際 DXF 回讀驗證。
 
 
+
+**#3503 標準拉線箱 P1：已存來源／正式四片 DXF 的 Engine 權威（2026-11-27）**
+
+- WHD GUI 只收輸入、顯示、經既有專案控制器保存與重開；由公開 `manufacturing_api.resolve_standard_cabinet_topology` 解析四片成形包外與實體身分。箱身、折邊封頭尾及平板外蓋的展開、折後厚板網格與接合取自同一份 Engine 拓樸；封頭尾零間隙 INSERT，外蓋四邊只在平面各內縮 1 mm。Q61 僅沿用金庫型後方左右截角規則，不沿用其前角或深度補償。
+- `propose_wire_pull_holes` 與確認 API 由同一板件／承接面來源計算與驗證三類孔；.p6fold 保存已確認的來源、孔參數、人工覆寫及實體身分，重開重解，不能以畫面、預覽或舊 DXF 代替。安裝來源不明、孔位衝突或身分漂移按原 Engine 閘門拒絕，不轉掛人工孔與打標。
+- 正常出圖的公開入口為 `inspect_wire_pull_saved_export`／`save_wire_pull_saved_project_dxf`：前者只檢查已存來源及版本，不授予製造資格；後者重開已確認的 .p6fold、核對來源版本與適用截角規則、重解四片實體，再沿用共用 DXF serializer、暫存回讀與原子寫入。正式四檔以 mm 重開核對適用 CUTTING／BEND／MARKING；來源、輸出身分或暫存回讀漂移時拒絕或回滾，保護舊檔。不以 CHECK/preview、舊平板封頭尾、未綁定規則的舊折邊候選或泛用單片 fallback 放行。
+- 適用 #3501–#3503 標準單外蓋 P1；不擴張到組合型、多面、未核准加工圖元或 CADSplit 製造資格。驗收證據：[PR #3504](https://github.com/looaeedr/whd/pull/3504)、[exact Product Regression](https://github.com/looaeedr/whd/actions/runs/46009094982)。合入 `localX` 不等於正式 X 發布。
 
 **#2517 EndCap 實體裝配世界面／T 厚皮公開 API（2026-11-01）**：`manufacturing_api.resolve_assembled_endcap_world_skins` 經已存在的 Engine `place_endcap_against_box_body`＋`thicken_triangle_surface` 統一回傳 immutable `AssembledEndcapWorldSkins`（折後表面、實體板厚世界三角網格）。Receiving 設定 2D、FinalScene 3D 主視圖及 fixed-relief 碰撞 probe 同源委派，沿用原 Head/Tail、T/2 實體內面接合、`preserve_core_origin` 與正常／診斷顯示來源；GUI 不再直接補償 EndCap 配置／厚度。未更動原版材、已認證 Relief、CUTTING／BEND／DXF／Save→Reload 或新增製造核准；#2517 OPEN。
 

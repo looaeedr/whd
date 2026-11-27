@@ -51,6 +51,22 @@ def test_public_engine_route_preserves_canonical_part_role_and_cell_indices(
     assert ae_engine.project_operator_hole_editor_route is project_operator_hole_editor_route
 
 
+@pytest.mark.parametrize("model,connected,kind,prefer", (
+    ("金庫型", True, "simple_part", True),
+    ("金庫型", False, "simple_part", False),
+    ("RECEIVING", True, "workspace_sheet", False),
+    ("unregistered_example", True, "simple_part", False),
+))
+def test_vault_base_plate_prefers_verified_editor_without_changing_legacy_routes(
+    model, connected, kind, prefer,
+):
+    route = api.project_operator_hole_editor_route(
+        "base_plate", model=model, has_fold_designer=connected,
+    )
+    assert route.kind == kind
+    assert route.prefer_verified_marking is prefer
+
+
 @pytest.mark.parametrize("part", ("door_c0_r1", "door_c1_r0", "unknown_part", "door_c1_r-1", "", None, True))
 def test_unknown_or_zero_door_cell_identity_rejected_before_working_on_part(part):
     with pytest.raises(ValueError, match="HOLE_EDITOR_"):

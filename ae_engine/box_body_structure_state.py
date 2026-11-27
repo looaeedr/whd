@@ -16,6 +16,8 @@ from copy import deepcopy
 import math
 from enum import Enum
 from typing import Mapping
+from re import fullmatch
+from uuid import uuid4
 
 from .operator_settings_transactions import normalize_operator_settings_boolean
 
@@ -38,6 +40,46 @@ class BackPanelMode(str, Enum):
 
 
 DEFAULT_STRUCTURE_TYPE = BoxBodyStructureType.INTEGRAL
+_PIECE_OCCUPANCY_KEY = "physical_piece_marking_occupancy"
+_SIDE_BACK = BoxBodyStructureType.THREE_PIECE_SIDE_BACK_SPLIT.value
+_SIDE_BACK_PIECES = frozenset({"box_body:left_side", "box_body:back", "box_body:right_side"})
+
+
+def _normalize_piece_marking_occupancy(raw):
+    if not isinstance(raw, Mapping) or any(
+        key not in _SIDE_BACK_PIECES or type(owner) is not str
+        or not fullmatch(r"root-owner:[a-f0-9]{32}", owner)
+        for key, owner in raw.items()
+    ) or len(set(raw.values())) != len(raw):
+        raise ValueError("BOX_BODY_PIECE_MARKING_OCCUPANCY_INVALID")
+    return dict(raw)
+
+
+def read_box_body_piece_marking_owner(state, part_key):
+    """Read only the derived sheet occupancy, never a mark or an export grant."""
+    return normalize_box_body_structure_state(state).get(_PIECE_OCCUPANCY_KEY, {}).get(part_key)
+
+
+def propose_box_body_piece_marking_occupancy(state, part_key, geometry):
+    """Return detached occupancy for the current Receiving structural sheet.
+
+    The eventual Confirm transaction must compare the fresh normal-output
+    receipt and commit this together with the shared marking ledger.
+    """
+    from .manufacturing_render_data import BoxBodyStructureRenderData
+    from .physical_sheet_editor_context import resolve_box_body_piece_manufacturing_witness
+
+    result = normalize_box_body_structure_state(state)
+    if result["active_type"] != _SIDE_BACK or part_key not in _SIDE_BACK_PIECES:
+        raise ValueError("BOX_BODY_PIECE_MARKING_STRUCTURE_UNSUPPORTED")
+    resolve_box_body_piece_manufacturing_witness(geometry, part_key)
+    body = next(p.render_data for p in geometry.parts if p.part_key == "box_body")
+    if not isinstance(body, BoxBodyStructureRenderData) or body.structure_type != _SIDE_BACK:
+        raise ValueError("BOX_BODY_PIECE_MARKING_STRUCTURE_UNSUPPORTED")
+    occupancy = result.setdefault(_PIECE_OCCUPANCY_KEY, {})
+    if part_key not in occupancy:
+        occupancy[part_key] = f"root-owner:{uuid4().hex}"
+    return result
 
 
 def _default_join_settings() -> dict:
@@ -153,13 +195,20 @@ def normalize_box_body_structure_state(
                     if not isinstance(copied.get("piece_profiles", {}), Mapping):
                         copied["piece_profiles"] = {}
                 result["configs"][type_id.value].update(copied)
+    if _PIECE_OCCUPANCY_KEY in value:
+        occupancy = _normalize_piece_marking_occupancy(value[_PIECE_OCCUPANCY_KEY])
+        if occupancy and result["active_type"] == _SIDE_BACK:
+            result[_PIECE_OCCUPANCY_KEY] = occupancy
     return result
 
 
 def set_active_structure(state: Mapping[str, object] | None, type_id) -> dict:
     """只切換 active configuration，不清除任何其他型態歷史值。"""
     result = normalize_box_body_structure_state(state)
-    result["active_type"] = _structure_type(type_id).value
+    next_type = _structure_type(type_id).value
+    if result["active_type"] != next_type:
+        result.pop(_PIECE_OCCUPANCY_KEY, None)
+    result["active_type"] = next_type
     return result
 
 
@@ -246,7 +295,16 @@ def update_structure_config(
     """更新單一型態設定；其他型態設定保持不動。"""
     result = normalize_box_body_structure_state(state)
     key = _structure_type(type_id).value
-    result["configs"][key].update(deepcopy(dict(values or {})))
+    config = result["configs"][key]
+    changes = deepcopy(dict(values or {}))
+    if (key == _SIDE_BACK and _PIECE_OCCUPANCY_KEY in result
+            and "back_panel_mode" in changes
+            and _back_panel_mode(changes["back_panel_mode"]) != _back_panel_mode(config.get("back_panel_mode"))):
+        active = result[_PIECE_OCCUPANCY_KEY]
+        active.pop("box_body:back", None)
+        if not active:
+            result.pop(_PIECE_OCCUPANCY_KEY)
+    config.update(changes)
     return result
 
 

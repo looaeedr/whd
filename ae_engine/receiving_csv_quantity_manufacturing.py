@@ -85,7 +85,10 @@ def export_current_csv_quantity_manufacturing(
 
     if type(overwrite) is not bool:
         raise TypeError("RECEIVING_CSV_QUANTITY_OVERWRITE_MUST_BE_BOOLEAN")
+    from .operator_scoped_base_plate_marks import require_scoped_base_plate_export_held
     requests = tuple(batch.requests)
+    for _version_id, _count, request in requests:
+        require_scoped_base_plate_export_held(request.input_snapshot, flags)
     versions = {v.version_id:v for v in batch.versions}
     if len(versions) != len(requests) or not versions:
         raise ValueError("RECEIVING_CSV_QUANTITY_VERSION_IDENTITY_MISMATCH")

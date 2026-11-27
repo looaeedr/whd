@@ -10,7 +10,7 @@ whd_schema: WHD_DOC_META_V1
 
 ## 不得停止程序 `INTERACTIVE_COMMAND_NO_STOP_HARD_GATE_V1`
 
-承接 `/功能 /DEBUG /派工 /接手 /繼續` 的同一工作鏈；`/功能` 定義需求、`/DEBUG` 解決真實錯誤、`/派工` 直接提交／測試／合併／接下一張。**不得預先設停止程序**；可用工具仍可施工時立即呼叫工具，不可用報告、詢問是否繼續、PR 建立、CI queued、單一步驟受阻當停止理由。被拒操作不繞過權限，在同範圍直接換其他合法動作，續讀、修其他獨立部分、追已有 CI；不重做無關前置。每 2–3 次實質動作回報一次，繼續做。執行位置和 `/推推` 權限按 `AGENTS.md` 原規定。
+承接 `/功能 /DEBUG /派工 /接手 /繼續` 的同一工作鏈；`/功能` 定義需求、`/DEBUG` 解決真實錯誤、`/派工` 在已授權範圍直接提交／測試／合併與查下一張。**不得預先設停止程序**；可用工具仍可施工時即呼叫工具，不能用報告、開 PR、CI queued 或單一步驟受阻當完成理由。跨 Issue 必須另有可回讀的**該工單獨立授權**，不能把查到下一張等同取得施工權。每 2–3 次實質動作回報，繼續做合法可行部分；權限／runtime 真阻塞時誠實回報未完成，不冒稱已交付。位置和 `/推推` 依 `AGENTS.md`。
 
 
 **產品修改先讀再寫**：GitHub／雲端施工者同樣受正式 `AGENTS.md` 的 `SOURCE_READ_BEFORE_MUTATION_V1` 約束。先讀相關程式實際函式及呼叫鏈、CURRENT 文檔／基準資料與測試，回報 `SOURCE_READ_EVIDENCE`；未完成即 `SOURCE_READ_PRECONDITION_FAILED`，只准續查、不准先改後補證據。不得因此改走 DC／RC。
@@ -20,6 +20,8 @@ whd_schema: WHD_DOC_META_V1
 **【不可違反的唯一正式責任鏈】** `GUI／CADSplit 操作來源（來源可不同、Engine 輸入契約相同） → WHD 公開 Engine API〔Family／Policy／Topology／Set-Bay 按需〕 → PartSpec／FinalScene → 同源 2D／3D／DXF → 驗證`。**五條硬規則：① 唯一製造權威 Engine；② 同 Family／Part／Operation 同公開 API 與 canonical 結果；③ 箱型差異只在 Engine Family／Policy／Topology；④ Set/Bay 只按實體操作需要存在，獨立板件不得強迫建立；⑤ 2D／3D／DXF 必須同源並按操作適用範圍完成幾何／來源／DXF Save→Reload 驗證。** **PartSpec 既可由公開 API 接收作為已確認輸入，也可以由 Engine 解析建立；箭頭表示責任而非固定執行時序。** 不准讓 GUI 或 CADSplit 自算製造，也不准開第二條 CADSplit 製造接口。以上服從 AI 庫 04 CURRENT，不是技能自創製造規格。
 
 **CADSplit 使用 WHD GUI 已用的同一套正式 Engine API 取得結果，僅操作來源不同。** GUI 讀操作／Project；CADSplit 讀 DXF→CSV／尺寸／孔位／Set/Bay 關聯與已確認狀態；構造等價的 `Request／PartSpec／Context`，**之後對同 Part／Operation 調用相同的 `manufacturing_api`**，同 Family／Policy／Registry、同 physical-part／FinalScene、同 DXF Save→Reload/reopen。單板／組合／批次／NFB 依相應既有 API，不因 caller 分流。**禁止**重做 CADSplit 製造公式或新 Bridge exporter、套 Vault 預設、強迫合法內嵌 Engine 出圖改走停用的 source-only CLI、取消未認證拒絕。合法板件逐件成功、缺資料逐件失敗、整套 Set/Bay 另驗物理板件／裝配。施工與驗收必須證明同版本等價 Request 的輸出與錯誤 caller-independent，**不能只說「接好 Bridge」就結案**。規則權威為 AI 庫 04 CURRENT；不得新增另一套治理或 CI。
+
+明確否定的斜線指令不算該入口，例如「不用 `/派工`，改用 `/debug`」或「不用再 `/派工`，改用 `/debug`」只應選用肯定的 BUG 診斷入口。**詢問、比較、引用也不是執行命令**：例如「比較 `/派工` 與 `/接手`」或「說明 `/派工` 規則」都只可唯讀回答；同一段話若另有清楚肯定的 `/派工 #Issue`，僅對該命令承接已授權範圍。即使路由選到本 Skill，也不能自行推導新的施工、關單或裝置操作授權。
 
 ## 全域 DC 預設禁止（施工與整合皆不預設呼叫）
 
@@ -41,7 +43,7 @@ whd_schema: WHD_DOC_META_V1
 1. **沿用既有工作**：核對 Issue／PR／head/base，直接改程式與測試，提交原工作分支並回讀 SHA；GitHub Actions 執行適用測試。GitHub 寫檔、空 commit、文字留言、單獨搜尋外掛都不是已通過測試的證據。
 2. **本人實質接取**：工單記錄 `本體直接接取`、`execution_location=GITHUB`、Issue、分支與 PR，後續補首筆實際施工 commit SHA、exact SHA 測試 run ID／結果。只有真實施工動作才能標 `EXECUTOR_START_CONFIRMED`；不得自己留言就聲稱接取完成。
 3. **無能力才找外部代理**：先具體核對欠缺 GitHub 寫入／提交／合法雲端測試能力，確定本體無法進行才搜尋 Codex 或其他已可用代理。搜尋不能取代啟動證據；不可用時回報 `DISPATCH_REGISTERED_ONLY`／`REMOTE_EXECUTOR_UNAVAILABLE`，不宣稱背景有人施工。
-4. **治理與產品測試分流、施工來源一致**：本 Skill／`AGENTS.md`／治理測試等非產品本體修改，仍從 GitHub `localX` 開工作分支、以治理專項 CI 驗證並 PR 合回 `localX`；可免一般產品 QA，但不可按舊 `NON_PRODUCT_GOVERNANCE_DIRECT_X` 直接合 X，也不准以此擴大 DC 權限。正式 X 只能依 Windows 人工驗收、當次 `/推推` 與受信任 gate 發布。
+4. **治理與產品測試分流、施工來源一致**：本 Skill／`AGENTS.md`／治理測試等非產品修改，同樣從 GitHub `localX` 建工作分支，以治理專項 CI 驗證後 PR 合回 `localX`；可免一般產品 QA，但不能用舊 `NON_PRODUCT_GOVERNANCE_DIRECT_X` 直接合 X，也不擴充 DC。**正式 X 的產品與治理皆僅需使用者當次 `/推推` 作驗收／發布決定**，再經 exact SHA／owner 授權／受信任 X gate；Windows 人工 UAT 另記待辦，不是前置。
 
 ## 真實執行者接取：`DISPATCH_EXECUTOR_HANDOFF_REQUIRED`
 
@@ -76,7 +78,7 @@ whd_schema: WHD_DOC_META_V1
 2. `requested/queued/waiting/pending/in_progress` → `CONTINUE_POLL`，同一回合繼續查狀態；每 2–3 次操作回報，而非結束。避免高頻重抓完整 CI log。
 3. `completed/success` → `LOCALX_INTEGRATION_PENDING`：這是**待執行動作**而非待使用者再次授權；既有 `/派工` 範圍直接續行預設 GitHub `localX` 合併，不碰 DC。保留本機修改；即使 PR 仍 Draft，也不能以「綠燈但還未合併」作為完成。其他 terminal conclusion → `REPAIR_AND_RETEST`。
 4. `localX` 整合、Issue close/readback、`NEXT_ISSUE_DISCOVERY_REQUIRED` 未完成 → `CONTINUE_FINALIZATION`，不能冒稱 `RELEASED`；只有所有義務已驗證才宣告交付完成。
-5. **遇阻換合法動作繼續做**：`BLOCKED_WITH_EVIDENCE` 只表示該操作遭拒；其餘允許的來源查證、提交、測試與獨立施工仍直接執行。若所有工具實際無法使用才據實標示 `RUNTIME_LIMIT_UNRESOLVED`；不得把這些代碼拿來預先停工。
+5. **遇阻換合法動作繼續做**：`BLOCKED_WITH_EVIDENCE` 只代表該操作遭拒，其他已授權的來源查證、提交、測試仍直接執行；若全部合法工具已不可用，據實標 `RUNTIME_LIMIT_UNRESOLVED`，允許帶證據回報**未完成**而結束當輪，禁止假稱完成、無限高頻輪詢或繞權限，不設預排停止點。
 
 只增加現有流程的真實退出決策，不需要 Codex、不建新排程、不改本機施工授權，也不恢復退役 lease／claim／Flow v2。
 
@@ -85,8 +87,8 @@ whd_schema: WHD_DOC_META_V1
 1. `PR_OPEN / CI_QUEUED / CI_IN_PROGRESS / CI_PENDING` 一律 `CONTINUE_POLL`，**不是可結束的交付狀態**；在當前回合持續輪詢 exact PR SHA 與對應 run，不得把「正在測試」當成派工完成。
 2. `CI_SUCCESS` 且 PR 可整合，**直接 GitHub PR merge `localX`**，回讀 PR/remote HEAD，工單留言、close/readback；Windows 手動更新與 UAT 待完成，記 `WINDOWS_LOCALX_SYNC_PENDING`，不能虛構 `LOCALX_SYNCED` 或 DC 斷線。整段不必使用者再喊「繼續」。
    **重要先後次序**：GitHub `localX` merge＋遠端 SHA 回讀成功（本機待 Windows 同步）後，**立刻啟動 `NEXT_ISSUE_DISCOVERY_REQUIRED`**，同步完成原 Issue 留言／close/readback；**不得等 Issue CLOSED 才找下一張**，也不得以 Issue close/readback 為流程終點。
-   搜尋下一張 OPEN 且前置工單已完成的可執行 Issue；檢查相同工作是否已有 owner/PR，避免重複；可施工就建立真實工作分支、寫入派工留言並**完成首個真實施工動作**，持續執行下一張。**只找到 Issue 號碼、只寫派工留言或只建立分支都不等於接取成功，更不是退出條件**。已有下一張但未開工 → `NEXT_ISSUE_START_REQUIRED`；已有下一張且接取證據可回讀 → `NEXT_ISSUE_ALREADY_STARTED / CONTINUE_NEXT_ISSUE`，仍不能正常結束回合。只有實際核查 OPEN 工單及前置／owner／PR 後無可執行者，附可追溯清單與 `NO_ELIGIBLE_ISSUE` 證據，才允許整條派工佇列正常結束；不得假報成功派工。
+   搜尋下一張 OPEN 且前置工單已完成的 Issue，查 owner／PR 與重複施工。**跨 Issue 另依 `ISSUE_SCOPE_AUTHORIZATION_REUSE` 驗獨立授權**：有當次／可回讀的該 Issue 授權時，才建立實質工作分支、施工 commit 並進入 `NEXT_ISSUE_START_REQUIRED`／`CONTINUE_NEXT_ISSUE`；未獲授權時只讀查核並回報 `NEXT_ISSUE_AUTHORIZATION_REQUIRED`，不得寫下一張 Issue、PR 或產品程式，不能用原 Issue 核准推導新授權。找不到符合條件者保留真實 `NO_ELIGIBLE_ISSUE` 證據，原 Issue readback 照常完成；不得假報已開始或佇列已交付。
 
 3. `CI_FAILURE / CANCELLED / TIMED_OUT`：讀取 job/step/log，定位和修復後再次測試；若 run 完全缺席，先修正 workflow branch/path 接線並觸發，不得聲稱已驗收。
-4. 回報至少每 2–3 次實質操作一次；回報不構成退出。**不得停止程序**：若某一步驟受阻，繼續可合法完成的下一步；完全無法實際操作才據實保留 blocker 與最後可驗證的 PR/SHA，不得聲稱 DONE。
+4. 回報至少每 2–3 次實質操作一次；回報不構成已完成。**不得停止程序**指仍有合法動作就續作，並不要求在平台真正不能執行時無限等待；未授權的下一工單只讀回報 `NEXT_ISSUE_AUTHORIZATION_REQUIRED`，沒有可執行操作時如實保留 blocker 與最後 PR/SHA。
 5. 產品 `localX → X` 仍需使用者當次 `/推推`。不加新的 GitHub 分支保護、不恢復 Flow v2。

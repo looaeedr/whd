@@ -17,7 +17,7 @@ whd_schema: WHD_DOC_META_V1
 
 ## 現行遠端操作與公開上傳邊界
 
-本 Skill 只處理已授權工作分支的 Git 運輸／失敗備援，**不自行授權施工或 DC 存取**，也不恢復舊 remote token／receipt／unlock。`/派工` 的產品 BUILD／TEST／COMMIT 必須在 GitHub／排程／雲端執行器；`/接手` 僅在使用者當次明確指示後才能於 RC `whd-dev:/workspace/whd` 施工。兩者依現行流程將產品 PR 交付至 `localX`，正式 X 的產品發布仍只接受當次 `/推推`。純治理走受信任 `tools/change_lane_gate.py` 白名單的 GitHub／雲端治理分支直送 X。
+本 Skill 只處理已授權工作分支的 Git 運輸／失敗備援，**不自行授權施工或 DC 存取**，不恢復舊 remote token／receipt／unlock。單純閱讀 `GitHub Connector` 文件、調整 DNS 或排查一般 JSON「無法解析」**不是 Git remote sync 失敗**，不得因通用關鍵字就進入傳輸備援；路由須具備 Git push/fetch/pull、明確 GitHub 遠端同步或 GitHub host 解析失敗語意。`/派工` 的產品 BUILD／TEST／COMMIT 必須在 GitHub／排程／雲端執行器；`/接手` 只有使用者當次明確指示才可在 RC `whd-dev:/workspace/whd` 施工。純治理／產品 PR 都先合 GitHub `localX`；正式 X 一律需要使用者當次 `/推推`、受信任 CI／gate。
 
 實際平台安全審查仍然有效：若 Git/Connector/Remote Desktop 因公開上傳要求更精確批准或拒絕，不可換工具規避、偽稱已獲批准、重建不同 commit 冒充原提交；保留本機 SHA、回報原始拒絕操作與使用者可行動的步驟。
 
@@ -74,9 +74,9 @@ whd_schema: WHD_DOC_META_V1
 
 ## GitHub transport and execution-location boundary
 
-- `/派工`：BUILD／TEST／COMMIT 只由 GitHub／排程／雲端施工環境擁有；DC 僅於 exact CI SUCCESS 的 `LOCALX_INTEGRATION` 才能執行本機最終合併與回讀，不能藉 Git transport fallback 在本機施工。
+- `/派工`：BUILD／TEST／COMMIT 只由 GitHub／排程／雲端施工環境擁有，exact SHA 必要 CI GREEN 後由 GitHub PR 安全合併遠端 `localX`；`LOCALX_INTEGRATION` 不授權 DC／本機整合。Git transport fallback 不得在本機施工；DC 只限當次額外明確授權且平台准許的操作。
 - `/接手`：只有使用者當次明確授權，才可於 CoreELEC `whd-dev:/workspace/whd` 進行產品施工；不能將先前授權或普通「繼續」當成 DC 許可。
-- 治理／文件變更：依 `tools/change_lane_gate.py` 的白名單，從最新 X 的 GitHub／雲端治理分支 PR／CI／合併 X；未經當次明確授權不得接觸本機／DC。
+- 治理／文件變更：依最新 GitHub `localX` exact HEAD 的 `AGENTS.md`、CURRENT Skill 與 `tools/change_lane_gate.py` 分類，在 GitHub／雲端治理分支經適用 CI／PR 合併 `localX`；正式 X 包括治理都需當次 `/推推`，未經本次明確授權不得接觸本機／DC。
 - Connector 備援僅同步合法執行器已測試的 exact diff，不能把新遠端 SHA 假稱原始本機 git push；平台安全拒絕、commit 身分不可保存或目標衝突均須 fail closed，不 force、不更換工具繞過。
 
 ## Connector target-write hard gate

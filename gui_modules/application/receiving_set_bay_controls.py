@@ -84,6 +84,53 @@ def build_receiving_set_bay_controls(
     )
 
 
+def receiving_cross_bay_collision_display_status(layout, preview_requests, *, set_index):
+    """Display-only summary of the official Engine 3D cross-Bay diagnostics.
+
+    This is the actual Receiving GUI adapter, not another collision classifier.
+    A lack of unresolved *surface* crossings never proves solid clearance.
+    """
+    audit = manufacturing_api.project_receiving_set_cross_bay_collision_from_preview_requests(
+        layout, preview_requests, set_index=set_index,
+    )
+    status = (
+        f"跨連 3D 表面診斷：{len(audit.bay_ids)}連、"
+        f"{audit.evaluated_pair_count} 組實體配對；"
+    )
+    if audit.missing_world_keys:
+        status += f"缺 {len(audit.missing_world_keys)} 片已裝配板件 3D 網格，未完成驗收"
+    elif audit.unresolved:
+        status += f"{len(audit.unresolved)} 組未證實合法交線，不可判定零碰撞"
+    else:
+        status += "未觀察到非共面交線"
+    return audit, status + "；非實體體積穿透或製造放行證明"
+
+
+def receiving_live_cross_bay_collision_display_status(
+    layout_reader, preview_provider, *, set_index,
+):
+    """Guard the real GUI source before AND after expensive Engine 3D audit.
+
+    A shallow layout reference is unsafe: an original modal can edit the same
+    nested Bay dict during preview resolution. Snapshot its exact source bytes
+    (deep-copy the existing operator state; no physical calculation in GUI).
+    """
+    from copy import deepcopy
+
+    if not callable(layout_reader) or not callable(preview_provider):
+        raise ValueError("RECEIVING_CROSS_BAY_SOURCE_READER_REQUIRED")
+    original = deepcopy(layout_reader())
+    requests = tuple(preview_provider())
+    if layout_reader() != original:
+        raise ValueError("RECEIVING_CROSS_BAY_SOURCE_DRIFT")
+    audit, text = receiving_cross_bay_collision_display_status(
+        original, requests, set_index=set_index,
+    )
+    if layout_reader() != original:
+        raise ValueError("RECEIVING_CROSS_BAY_SOURCE_DRIFT")
+    return audit, text
+
+
 def open_receiving_layer_preview(
     parent,
     *,
@@ -183,6 +230,44 @@ def open_receiving_layer_preview(
     ttk.Button(actions, text="放大", command=lambda: view.zoom(.8)).pack(side=tk.LEFT)
     ttk.Button(actions, text="縮小", command=lambda: view.zoom(1.25)).pack(side=tk.LEFT)
     ttk.Button(actions, text="重設視角", command=view.reset_view).pack(side=tk.LEFT)
+    if not common_box and count > 1 and settings_ports is not None:
+        win._phase6_receiving_cross_bay_3d_popup = None
+
+        def clear_cross_bay_diagnostic():
+            # The original settings editor can change a Bay while this
+            # modeless 3D view remains open. Never keep stale physical geometry
+            # on screen after a committed operator update.
+            win._phase6_receiving_cross_bay_collision_audit = None
+            popup = win._phase6_receiving_cross_bay_3d_popup
+            win._phase6_receiving_cross_bay_3d_popup = None
+            if popup is not None and popup.winfo_exists():
+                popup.destroy()
+
+        def audit_cross_bay_on_demand():
+            clear_cross_bay_diagnostic()
+            try:
+                audit, status = receiving_live_cross_bay_collision_display_status(
+                    settings_ports.get("layout"), bay_request_provider,
+                    set_index=index,
+                )
+                from .receiving_cross_bay_diagnostic_3d import (
+                    open_receiving_cross_bay_3d_popup,
+                )
+                popup = open_receiving_cross_bay_3d_popup(
+                    win, tk=tk, ttk=ttk, audit=audit, status=status,
+                )
+                win._phase6_receiving_cross_bay_3d_popup = popup
+                win._phase6_receiving_cross_bay_collision_audit = audit
+                view.status.set(status)
+            except Exception as exc:
+                clear_cross_bay_diagnostic()
+                view.status.set("跨連 3D 碰撞尚未完成：" + str(exc))
+        subscribe = settings_ports.get("subscribe")
+        if callable(subscribe):
+            subscribe(clear_cross_bay_diagnostic)
+        ttk.Button(actions, text="跨連 3D 碰撞診斷",
+                   command=audit_cross_bay_on_demand).pack(side=tk.LEFT)
+        win._phase6_receiving_audit_cross_bay = audit_cross_bay_on_demand
     ttk.Label(actions, text=("共用設定套用至所有孔型版本｜滾輪：縮放｜中鍵拖曳：平移"
                              if common_box else "先選修改項目，再選連｜滾輪：縮放｜中鍵拖曳：平移")).pack(side=tk.LEFT, padx=8)
     ttk.Button(actions, text="關閉", command=win.destroy).pack(side=tk.RIGHT)

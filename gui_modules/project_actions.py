@@ -95,6 +95,11 @@ def load_phase6_project(self, path, *, open_designer=True):
         """載入 .p6fold 專案，並可選擇進入其保存的 3D 板件。"""
         previous_designer = getattr(self, "fold_designer_app", None)
         payload, committed = self.project_controller.load(path)
+        from ae_engine import manufacturing_api
+        if manufacturing_api.is_wire_pull_project_snapshot(committed):
+            from gui_modules.application.wire_pull_window import open_wire_pull_window
+            window = open_wire_pull_window(self, snapshot=committed, path=path)
+            return window if open_designer else payload
         snapshot = self._apply_phase6_project_snapshot(committed)
         # A reused Designer's geometry cache is scoped to the *previous*
         # project. Only clear after the new canonical load succeeds.
@@ -123,6 +128,24 @@ def load_phase6_project(self, path, *, open_designer=True):
             _apply_mode_snapshot(bridge._phase6_composition(designer), vars(bridge), snapshot)
             designer._refresh_part_buttons()
             designer._phase6_current_project_path = str(Path(path))
+        elif designer is previous_designer and designer is not None:
+            workspace = getattr(designer, "designer_workspace", None)
+            read_workspace = getattr(workspace, "snapshot", None)
+            has_version_marks = callable(read_workspace) and any(
+                manufacturing_api.workspace_contains_quantity_physical_markings(state)
+                for state in (snapshot, read_workspace())
+            )
+            if has_version_marks:
+                # Reusing the native Designer must not keep the previous file's
+                # quantity workspace. Hydrate the existing owner in place, using
+                # the same Engine-normalized data as a fresh Designer.
+                from copy import deepcopy
+                designer.designer_workspace.replace_receiving_snapshot(snapshot)
+                designer._phase6_input_snapshot.clear()
+                designer._phase6_input_snapshot.update(deepcopy(snapshot))
+                designer._refresh_part_buttons()
+                designer._phase6_current_project_path = str(Path(path))
+
         # #1503 real Windows saved v3: the authoritative project's original
         # Receiving BasePlate mapping is persisted in .p6fold but the newly
         # created designer initially projects only visible UI knobs and loses

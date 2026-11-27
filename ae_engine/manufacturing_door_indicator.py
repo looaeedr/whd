@@ -331,6 +331,34 @@ def validate_door_indicator_fit(
     raise ValueError(f"Unsupported door indicator mode: {mode!r}")
 
 
+def validate_operator_indicator_state_fit(
+    raw_state, *, finished_width, finished_height, thickness,
+    context: ManufacturingContext | None = None,
+) -> tuple[float, float]:
+    """Validate original saved/live Door Indicator source using one Engine fit.
+
+    GUI supplies the untouched physical state and finished-face dimensions.
+    Engine selects active layers and offsets; disabled historical controls do
+    not manufacture holes or force a new thickness/fit qualification.
+    """
+    from .fold_designer_snapshot_dimensions import (
+        project_operator_door_cell_indicator_manufacturing_source,
+    )
+
+    source = project_operator_door_cell_indicator_manufacturing_source(raw_state)
+    if source["mode"] == "none":
+        return (0.0, 0.0)
+    return validate_door_indicator_fit(
+        mode=source["mode"],
+        groups=tuple(source["groups"][:source["layers"]]),
+        finished_width=finished_width,
+        finished_height=finished_height,
+        thickness=thickness,
+        offset=(source["offset_x"], source["offset_y"]),
+        context=context,
+    )
+
+
 def _validate_door_part_indicator_fit(
     spec: DoorPartSpec, context: ManufacturingContext | None = None
 ) -> tuple[float, float] | None:

@@ -35,7 +35,8 @@ def test_skill_registry_routes_phase6_keywords_to_required_skills():
     assert "phase6-overlay-relief-basis" in skills_for("OVERLAY")
     assert "phase6-overlay-relief-basis" in skills_for("flat-X")
     assert "phase6-release-packaging" in skills_for("release")
-    assert "phase6-release-packaging" in skills_for("UPDATE")
+    assert "phase6-release-packaging" in skills_for("FULL 出包")
+    assert "phase6-release-packaging" in skills_for("UPDATE 出包")
     assert "diagnosing-bugs" in skills_for("bug")
     assert "tdd" in skills_for("bug")
 
@@ -261,7 +262,7 @@ def test_git_remote_sync_fallback_skill_is_registry_routed_and_fail_closed(tmp_p
     route = routes["git-remote-sync-fallback"]
 
     assert "git-remote-sync-fallback" in route["required_skills"]
-    for keyword in ("git push", "GitHub Connector", "DNS", "remote sync"):
+    for keyword in ("git push", "GitHub Connector 同步", "git DNS", "remote sync"):
         assert keyword in route["keywords"]
 
     skill = (ROOT / ".agents/skills/misc/git-remote-sync-fallback/SKILL.md").read_text(encoding="utf-8")
@@ -329,7 +330,12 @@ def test_part_dxf_acceptance_auto_routes_part_impacting_changed_files():
     ):
         required = set(required_skills_for(task="板件修正", changed_files=[changed_file]))
         assert "驗證板件與DXF" in required, changed_file
-        assert "monitoring-remote-qa" in required, changed_file
+        # Product-file impact routes to the acceptance Skill. Remote monitoring
+        # applies once an actual remote run/QA task exists, not solely by path.
+        assert "monitoring-remote-qa" not in required, changed_file
+
+    monitored = set(required_skills_for(task="遠端 QA", changed_files=["gui.py"]))
+    assert "monitoring-remote-qa" in monitored
 
 
 def test_final_acceptance_hard_gate_is_visible_in_agents_and_skills():
@@ -342,11 +348,12 @@ def test_final_acceptance_hard_gate_is_visible_in_agents_and_skills():
     ).read_text(encoding="utf-8")
 
     for required in (
-        "Focused GREEN 不能直接合併",
-        "focused GREEN / final acceptance pending",
-        "part-dxf-acceptance",
+        "BATCHED_FAST_FEEDBACK_THEN_CANONICAL_CI_V1",
+        "WHD Product Regression",
+        "SOURCE_READ_BEFORE_MUTATION_V1",
     ):
         assert required in agents
+    assert "part-dxf-acceptance" in acceptance
     for required in (
         "Focused QA 不得取代成品板件驗收",
         "focused GREEN / final acceptance pending",

@@ -9,7 +9,7 @@ whd_doc_id: WHD-SOP-SKILL-DISCOVERY-DEEP-SCAN
 
 ## 目的
 
-> **REFERENCE／非 CURRENT 執行權威。** 本文件保留技能發現的背景與指引，實際有效性、分類與路由仍以正式 X 的 `AGENTS.md`、`.agents/skills/skill_catalog.json`、`.agents/skills/skill_registry.json` 及 CURRENT `找技能`／`掃描深模組` Skill 為準。`Phase6 Preflight` 一詞只描述歷史路由相容性，不是現行修改與寫入前置門檻。
+> **REFERENCE／非 CURRENT 執行權威。** 本文件只保留技能發現的背景和方法。日常實際有效性／分類／路由須由 GitHub 最新 `ref=localX` exact HEAD 的 `AGENTS.md`、`.agents/skills/skill_catalog.json`、`.agents/skills/skill_registry.json` 及 CURRENT `找技能`／`掃描深模組` Skill 判定；正式 X 僅供當次 `/推推` 發布與受信任 gate 查核。`Phase6 Preflight` 只作歷史相容路由名稱，不是修改／寫入前置，也不授權 DC／RC。
 
 避免 AI 把「檔案存在」「README 有列」「Registry 可路由」「目前 Runtime 可正式使用」混成同一件事，並確保中文 Skill identity、Skill classification 與 WHD routing authority 一致。
 
@@ -79,7 +79,7 @@ Canonical supporting Skills：
 每次再執行前先確認前一輪做到哪裡，不能以聊天上下文代替 project state。最低 evidence：
 
 1. target branch / HEAD + recent deep-module commits；
-2. `.scratch/dm*/checkpoint.md`、journal/state；
+2. `.scratch/dm*/checkpoint.md`、journal/state（**僅存在時**參考；不得為了接續工作建立退役的 claim／lease／checkpoint 交易）。
 3. owning Issues、Combined Acceptance、integration/remote readback；
 4. `CONTEXT.md`、ADR、AI Library durable contract。
 
@@ -93,7 +93,7 @@ classification 只回答「WHD 是否把它視為 active canonical」，不保�
 
 ## Machine guards
 
-- **2026-10-11 實際測試路徑回讀**：過往所列 `tests/knowledge/test_skill_catalog_classification_contract.py` 在正式 X 已不存在，不得冒稱它仍是 machine guard。現存 `tests/knowledge/test_skill_registry_coverage_contract.py` 可驗 active canonical Skill 的 Registry 覆蓋／路由；分類本體依 `tools/skill_catalog.py`，其 bucket／retired alias 全面驗收不能只憑本段文字宣稱已完成。
+- **2026-10-11 歷史測試路徑回讀**：當時列出的 `tests/knowledge/test_skill_catalog_classification_contract.py` 未在該次 Git tree 中找到，不能因此推定今日 `localX` 的檔案存在性；日常路徑應以 GitHub `ref=localX` exact HEAD 重新核對。目前 CURRENT 路由契約可由 `tests/knowledge/test_skill_registry_coverage_contract.py` 及 `tools/skill_catalog.py`／`skill_catalog.json` 核對，不能只憑本 REFERENCE 文字宣稱已執行或全部驗收。
 - `tests/test_chinese_skill_identity_contract.py`：中文 folder basename / frontmatter canonical identity。
 - `tools/skill_catalog.py`：inventory + classification machine scan；未分類 fail closed。
 

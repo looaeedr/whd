@@ -25,13 +25,21 @@ whd_schema: WHD_DOC_META_V1
 3. 本次待修改的 Skill baseline 與必要引用。
 4. 一般 Skill 撰寫慣例。
 
-純治理 Skill 檔案：先從 GitHub `localX` 最新 exact HEAD 取得 baseline，在 GitHub／雲端 `governance/*`、`docs/*` 或 `skills/*` 分支修改；保留 exact diff，以適用治理檢查及必要 GitHub CI 驗證，PR base=`localX` 並合回遠端 `localX`。正式 X 只能在使用者驗收與當次 `/推推` 之後依受信任 gate 發布；不得依舊 `GOVERNANCE_DIRECT_X` 白名單直送 X。**未取得使用者當次明確授權，不得探測或操作 DC、CoreELEC、whd-dev 或使用者本機 shell**；沒有雲端能力應回報具體限制，不得轉走本機。
+純治理 Skill 檔案：先從 GitHub `localX` 最新 exact HEAD 取得 baseline，在 GitHub／雲端 `governance/*`、`docs/*` 或 `skills/*` 分支修改；保留 exact diff，以適用治理檢查及必要 GitHub CI 驗證，PR base=`localX` 並合回遠端 `localX`。正式 X 僅由使用者**當次 `/推推`（即驗收／發布決定）**經 exact SHA／owner comment／受信任 X gate 發布；Windows 人工 UAT／本機同步是獨立待辦而非額外前置。不得依舊 `GOVERNANCE_DIRECT_X` 白名單直送 X。**未取得使用者當次明確授權，不得探測或操作 DC、CoreELEC、whd-dev 或使用者本機 shell**；沒有雲端能力應回報具體限制，不得轉走本機。
 
 若包含產品或未知／混合路徑，必須回產品通道、依 `localX` 整合規則交付；發布正式 X 的產品改動仍需當次 `/推推`。任何變更均需核對修改路徑、內容、引用、適用測試與 GitHub readback，不得用舊版 Preflight／授權門檻取代實際驗證。
 
+### 提示詞健檢入口（共用現行 CURRENT Skill）
+
+`/提示詞健檢`、誤字別名 `/提視詞健檢` 與 `prompt audit` 由 Registry 的 `skill-prompt-healthcheck` 路由到本 `寫技能`，另參考 `writing-for-agents` 的 context pointer／漸進揭露方法；**不建立另一份 CURRENT Skill**。
+
+- **只要求健檢**：唯讀查同一 GitHub `localX` exact SHA 的 `AGENTS.md`、相關 CURRENT Skills、Registry、AI 庫 Authority Map、路由函式與現有契約測試，逐項核對衝突、重複、能力、觸發誤判和驗收缺口。不寫入、不發版。
+- **明確要求修正**：只在當次授權範圍，以 GitHub `localX` baseline、最小變更、正負向測試、治理 PR／CI、安全合併交付；沒有當次 `/推推` 不動 X。單純引用指令或路由命中不是寫入、RC／DC 或發布授權。
+- **單一權威**：`writing-for-agents` 是寫作方法的獨立 CURRENT contract，不是 WHD 技能 authoring owner；WHD Skill 修改依本 `寫技能`，AI 庫 08 為 REFERENCE。
+
 ## 2. 能力偵測：先看環境能做什麼
 
-在設計流程前先做**能力偵測**，只依賴本回合實際存在的可用工具。**能力偵測只看 tool availability/config，不得以實際連線 GitHub 或遠端本機來探測能力；沒有 explicit remote authority 就保持離線。**
+在設計流程前先做**能力偵測**，只依賴本回合實際存在的可用工具。先確認 connector／執行器是否存在，**但工具存在不等於取得讀寫或本機權限**。使用者已授權本專案 `localX` 的任務、或同一已核准 Issue／PR 範圍內，可直接用已連線 GitHub read API 查 exact HEAD 與 source；不得因已退役的 `USER_EXPLICIT_REMOTE`、`WORKSPACE_DELIVERY` 交易要求第二次授權。Mutation 仍按實際 scope／GitHub 平台權限執行；未明確授權不可探測 DC／RC／Windows 或本機 shell。
 
 - 能否讀/寫 repository 或檔案；
 - 能否建立 branch、commit、PR；
@@ -108,7 +116,7 @@ skill-name/
 
 ## 4. 修改既有 Skill
 
-修改既有 Skill 時，先建立 **baseline snapshot**：至少保留 executor-local repo workspace exact path、Git baseline identity、原始內容與檔案雜湊。只有已進入使用者明確授權的 remote/delivery window 時，才可附加 remote commit/ref；不得把 remote SHA 當成取得 root baseline 的前置條件。沒有 baseline 就無法知道修改改善了什麼，也無法安全回復。
+修改既有 Skill 時，先建立 **baseline snapshot**：必要基準是 GitHub `localX` 最新完整 commit SHA、原始 repository path、對應 blob SHA 與原始內容；修改前核對它們出自**同一 immutable ref**。只有已明確授權且實際存在 executor-local repo workspace 時，才額外保留本機 exact path、worktree HEAD 與原始檔 hash。**不得要求先取得本機 checkout、root baseline 或遠端 shell，才准透過 GitHub Connector 在合法治理工作分支修改。**沒有可驗證 baseline 則 fail closed，不猜原文、不直接覆寫；GitHub commit/diff 是 rollback authority，不另建立退役的 delivery receipt。
 
 ### 4.1 名稱規則
 
@@ -120,9 +128,9 @@ skill-name/
 
 WHD Skill 修改固定：
 
-1. fresh-read canonical entry，解析 executor-local repo workspace 與 production baseline。
-2. 依實際執行環境及當次授權在合法工作區完成 RED→GREEN、適用回歸與驗證；不啟用退役的 delivery reservation。
-3. 凍結 exact tested diff，記錄 source SHA、Issue、真實測試命令與 diff digest；只在合法治理或產品工作分支按現行授權交付，無需退役的測試 receipt 或 Git unlock；不可藉換工具繞過平台拒絕。
+1. fresh-read GitHub `localX` exact HEAD 的 `AGENTS.md`、CURRENT Skill／必要 AI 庫、target blob SHA 與完整原文；僅在當次授權且真有本機工作區時才核對 executor-local baseline，不以本機路徑或正式 X 代替 GitHub 來源。
+2. 依實際執行環境及當次授權在合法工作區執行定向 RED→GREEN、適用回歸與驗證；若只有 GitHub 檔案／PR 介面、無可用 pytest 執行器，明記 `TARGETED_NOT_RUN`，不得將靜態檢查或未執行的測試冒充 GREEN；不啟用退役的 delivery reservation。
+3. 凍結 exact candidate diff，記錄 GitHub source SHA／blob SHA、Issue（如適用）、真實已執行的測試命令與結果（或 `TARGETED_NOT_RUN`）及 diff identity；只在合法治理或產品工作分支按現行授權交付，無需退役的測試 receipt 或 Git unlock；不可藉換工具繞過平台拒絕。
 4. fresh target compare，依 impact revalidation 沿用 GREEN 或回 workspace 重測。
 5. 經現行 `change_lane_gate.py` 分流後，使用合法分支 push／PR／required checks；驗收後合併至對應目標並回讀實際 GitHub 結果。
 6. 同一已核准任務範圍不得因提交 SHA 改變而無故重問相同授權；若跨 repo、路徑或任務範圍則重新核實權限。

@@ -225,6 +225,150 @@ def toggle_manual_corner_parameter_lock(self):
     state[part_key] = not bool(state.get(part_key, False))
     self.refresh_corner_type_panel()
 
+def draw_v_miter_gui_live_check(host, result):
+    """Draw Engine-returned CHECK V rays and ideal 3D seam, never CNC paths."""
+    canvas = host.corner_type_preview_canvas
+    canvas.delete("all")
+    paths = tuple(
+        result.full_sheet_check_scene.primitives
+        if result.full_sheet_check_scene is not None
+        else result.check_scene.primitives
+    )
+    points = tuple(
+        p for item in paths for p in (
+            item.points if hasattr(item, "points") else
+            (item.p1, item.p2) if hasattr(item, "p1") else
+            (item.center,)
+        )
+    )
+    w = max(10, int(float(canvas.cget("width"))))
+    h = max(10, int(float(canvas.cget("height"))))
+    minx = min(point.x for point in points)
+    maxx = max(point.x for point in points)
+    miny = min(point.y for point in points)
+    maxy = max(point.y for point in points)
+    scale = min((w - 28) / max(1e-9, maxx - minx),
+                (h - 30) / max(1e-9, maxy - miny))
+
+    def xy(point):
+        return (14 + (point.x - minx) * scale,
+                h - 10 - (point.y - miny) * scale)
+
+    for item in paths:
+        fg = ("#6e8799" if item.layer == "DATUM" else
+              "#4dc7e5" if getattr(item, "color", None) == 4 else
+              "#af80ee" if getattr(item, "color", None) == 5 else
+              "#9aca40" if getattr(item, "color", None) == 3 else "#ff9f0a")
+        thick = 1 if item.layer == "DATUM" else 2
+        if hasattr(item, "points"):
+            canvas.create_polygon(
+                *(v for point in item.points for v in xy(point)),
+                fill="", outline=fg, width=thick, dash=(5, 3),
+            )
+        elif hasattr(item, "p1"):
+            if getattr(item, "color", None) in (3, 4):
+                # Cyan = current physical BEND short marks.
+                # Green = newly proposed V Factory Fold short marks;
+                # neither becomes MARKING until manufacturing certification.
+                canvas.create_line(*xy(item.p1), *xy(item.p2),
+                                   fill=fg, width=thick)
+            else:
+                canvas.create_line(*xy(item.p1), *xy(item.p2),
+                                   fill=fg, width=thick, dash=(5, 3))
+        else:
+            cx, cy = xy(item.center)
+            r = item.radius * scale
+            canvas.create_oval(
+                cx-r, cy-r, cx+r, cy+r,
+                outline=fg, width=thick, dash=(5, 3),
+            )
+    canvas.create_text(
+        w / 2, 9,
+        text=("整片剩料／V 扣料（CHECK）" if result.full_sheet_check_scene is not None
+              else "原料來源不足｜理想 V 線（CHECK）"),
+                       fill=host.COLOR_TEXT, font=("Microsoft JhengHei", 8))
+
+    # Presentation-only oblique projection of the actual Engine 3D seam.
+    # The engine, not Tk, supplies both 3D endpoints and contact length.
+    three = host.v_miter_check_3d_preview_canvas
+    three.delete("all")
+    start, end = result.ideal.formed_seam_start, result.ideal.formed_seam_end
+    delta = tuple(end[i] - start[i] for i in range(3))
+
+    def project(point):
+        dx, dy, dz = (point[i] - start[i] for i in range(3))
+        return ((dx - dy) * 0.7, (dx + dy) * 0.3 - dz)
+
+    a, b = project(start), project(end)
+    mesh = result.factory_true_t_check
+    curve = result.factory_radius_ba_check
+    outlines = (
+        (curve.first_formed_perimeter_edges, curve.second_formed_perimeter_edges)
+        if curve is not None else
+        (mesh.first_formed_perimeter_edges, mesh.second_formed_perimeter_edges)
+        if mesh is not None else ((), ())
+    )
+    projected_mesh = tuple(
+        (project(p), project(q))
+        for edges in outlines for p, q in edges
+    )
+    if projected_mesh:
+        # Only oblique rendering is in Tk; all physical 3D vertices and
+        # boundary ownership are supplied by the Engine. Scale uniformly.
+        flat = [v for edge in projected_mesh for v in edge] + [a, b]
+        lo_x, hi_x = min(v[0] for v in flat), max(v[0] for v in flat)
+        lo_y, hi_y = min(v[1] for v in flat), max(v[1] for v in flat)
+        sf = min(128.0 / max(1e-9, hi_x - lo_x),
+                 59.0 / max(1e-9, hi_y - lo_y))
+        midx = 75.0 - 0.5 * (lo_x + hi_x) * sf
+        midy = 53.0 - 0.5 * (lo_y + hi_y) * sf
+        for edges, color in zip(outlines, ("#4dc7e5", "#af80ee")):
+            for p, q in edges:
+                x, y = project(p), project(q)
+                three.create_line(
+                    midx + x[0] * sf, midy + x[1] * sf,
+                    midx + y[0] * sf, midy + y[1] * sf,
+                    fill=color, width=1,
+                )
+    else:
+        mag = max(1.0, abs(b[0]), abs(b[1]))
+        sf = min(55.0 / mag, 1.0)
+        midx, midy = 75.0, 58.0
+    three.create_line(
+        midx + a[0] * sf, midy + a[1] * sf,
+        midx + b[0] * sf, midy + b[1] * sf,
+        fill="#ff9f0a", width=2,
+    )
+    three.create_oval(
+        midx + a[0] * sf - 2, midy + a[1] * sf - 2,
+        midx + a[0] * sf + 2, midy + a[1] * sf + 2,
+        outline="#ff9f0a",
+    )
+    three.create_text(
+        75, 10, text=("3D 預設 R/BA／有限T CHECK" if curve is not None
+                      else "3D 零R／有限T 網格 CHECK" if mesh is not None
+                      else "3D 理想成形接合線"),
+        fill=host.COLOR_TEXT, font=("Microsoft JhengHei", 8),
+    )
+    if result.sharp_t_witness is not None:
+        # Draw the two actual Engine 3D points of the local sharp-T bisector.
+        # This is a CHECK-only thickness cross-section, not a machined bevel.
+        section = result.sharp_t_witness
+        m, t = project(section.seam_midpoint), project(section.cross_section_tip)
+        three.create_line(
+            midx + m[0] * sf, midy + m[1] * sf,
+            midx + t[0] * sf, midy + t[1] * sf,
+            fill="#4dc7e5", width=3, dash=(3, 2),
+        )
+        three.create_text(
+            75, 84, text=f"T {section.thickness_mm:g} mm／局部剖面 CHECK",
+            fill="#4dc7e5", font=("Microsoft JhengHei", 8),
+        )
+    three.create_text(75, 98,
+                      text=f"接合長 {result.ideal.formed_contact_length_mm:g} mm",
+                      fill=host.COLOR_TEXT_MUTED, font=("Microsoft JhengHei", 8))
+
+
 def refresh_corner_type_panel(self):
     if self.corner_type_panel is None:
         return
@@ -265,10 +409,17 @@ def refresh_corner_type_panel(self):
     self.manual_bottom_same_var.set(same['bottom'])
     target_key = self._normalize_manual_corner_target(part_key)
     selection = self._manual_selection_for_target(part_key, target_key)
+    physical_key = manufacturing_api.project_operator_corner_selection_target(target_key)
+    v_choice = (
+        getattr(self, "v_miter_gui_check_corners", {})
+        .get(part_key, {}).get(physical_key) == "V_MITER_CHECK"
+    )
 
     self._manual_corner_param_guard = True
     try:
-        self.manual_corner_type_var.set(selection.type_id.value)
+        self.manual_corner_type_var.set(
+            "V_MITER_CHECK" if v_choice else selection.type_id.value
+        )
         if selection.cross_mode is not None:
             self.manual_corner_cross_mode_var.set(self._CORNER_MODE_LABELS[selection.cross_mode])
         if selection.direction is not None:
@@ -312,6 +463,9 @@ def refresh_corner_type_panel(self):
     )
     for rb in self.manual_corner_type_buttons.values():
         rb.configure(state=(tk.NORMAL if target_type_editable else tk.DISABLED))
+    self.v_miter_gui_check_radio.configure(
+        state=(tk.NORMAL if target_type_editable else tk.DISABLED)
+    )
 
     flip_y = _corner_preview_flip_y_for_target(target_key)
     for type_id, canvas in self.corner_type_small_canvases.items():
@@ -319,6 +473,279 @@ def refresh_corner_type_panel(self):
             canvas, CornerTypeSelection(type_id), large=False, flip_y=flip_y
         )
         canvas.configure(highlightbackground=self.COLOR_ACCENT if type_id is selection.type_id else '#34343a')
+    saved_first_axes = manufacturing_api.normalize_operator_v_miter_gui_first_bend_axes(
+        getattr(self, "v_miter_gui_first_bend_axes", {}),
+        getattr(self, "v_miter_gui_check_corners", {}),
+    )
+    first_axis = saved_first_axes.get(part_key, {}).get(physical_key, "") if v_choice else ""
+    self.v_miter_first_bend_axis_var.set(first_axis)
+    if v_choice:
+        if not self.v_miter_first_bend_axis_frame.winfo_ismapped():
+            self.v_miter_first_bend_axis_frame.pack(
+                fill=tk.X, padx=8, pady=(2, 2),
+                before=self.v_miter_relief_mode_frame,
+            )
+    else:
+        self.v_miter_first_bend_axis_frame.pack_forget()
+    for rb in self.v_miter_first_bend_axis_radios:
+        rb.configure(state=(tk.NORMAL if target_type_editable else tk.DISABLED))
+    if v_choice:
+        stored_relief_modes = manufacturing_api.normalize_operator_v_miter_gui_relief_modes(
+            getattr(self, "v_miter_gui_relief_modes", {}),
+            getattr(self, "v_miter_gui_check_corners", {}),
+        )
+        selected_relief_mode = stored_relief_modes.get(part_key, {}).get(
+            physical_key, "ROUND_R",
+        )
+        if self.v_miter_relief_mode_var.get() != selected_relief_mode:
+            self.v_miter_relief_mode_var.set(selected_relief_mode)
+        self.manual_corner_param_frame.pack_forget()
+        self.manual_corner_param_summary.pack(fill=tk.X, padx=8, pady=(3, 5))
+        three = self.v_miter_check_3d_preview_canvas
+        self.v_miter_export_check_button.pack(fill=tk.X, padx=8, pady=(0, 6))
+        self.v_miter_radius_ba_check_button.pack(fill=tk.X, padx=8, pady=(0, 6))
+        self.v_miter_export_check_button.configure(state=tk.DISABLED)
+        if not three.winfo_ismapped():
+            three.pack(padx=8, pady=(0, 7))
+        try:
+            live = self._project_v_miter_gui_check_for_corner(
+                part_key, target_key,
+                run_radius_ba_trial=(
+                    getattr(self, "_v_miter_radius_ba_trial_target", None)
+                    == (part_key, physical_key)
+                ),
+            )
+        except (TypeError, ValueError) as exc:
+            self.manual_corner_param_summary.configure(
+                text=f"V 型斜接 CHECK：{exc}\\n尚未取得真實折彎來源，禁止加工。"
+            )
+            for canvas in (self.corner_type_preview_canvas, three):
+                canvas.delete("all")
+                canvas.create_text(
+                    75, 50, text="真實折彎來源不足",
+                    fill=self.COLOR_TEXT_MUTED,
+                    font=("Microsoft JhengHei", 9),
+                )
+        else:
+            if live.material_check is None:
+                material_note = (
+                    f"無法用已截角的 CUTTING 推回原始板料："
+                    f"{live.material_check_failure}。"
+                    "目前只有理想 V 線，沒有可確認的實際扣料輪廓。"
+                )
+            else:
+                mother_source = (
+                    "由原 Engine Factory 母板只替換所選舊截角；"
+                    if live.factory_mother_check is not None else
+                    "直接使用現有原始 CUTTING；"
+                )
+                material_note = (
+                    f"{mother_source}V 扣料候選："
+                    f"{live.material_check.removed_material_area_mm2:g} mm²，"
+                    "已核對單片板料面積守恆。"
+                )
+            if live.sharp_t_witness is not None:
+                section_note = (
+                    f"T {live.sharp_t_witness.thickness_mm:g} mm 已帶入"
+                    f"理想尖角的局部厚度剖面，寬 "
+                    f"{live.sharp_t_witness.cross_section_width_mm:g} mm；"
+                    "這不是整片實體切面或干涉認證。"
+                )
+            else:
+                section_note = (
+                    f"現有板厚 T 的局部剖面來源不足："
+                    f"{live.sharp_t_failure}；不補不存在的 BEND。"
+                )
+            if live.source_bend_marking_check is not None:
+                marks = live.source_bend_marking_check
+                marking_note = (
+                    f"真 BEND 剩料打標：第一側 {marks.first_source_stroke_count} 段、"
+                    f"第二側 {marks.second_source_stroke_count} 段；"
+                    "兩端 20 mm，中段 20 mm／間隔 50 mm，"
+                    "僅畫現有 BEND 有料的區段，未認證 CHECK。"
+                )
+            else:
+                marking_note = "尚無可驗證的真 BEND 打標候選，不產生假打標。"
+            if live.factory_precut_fold_check is not None:
+                proposed_fold = live.factory_precut_fold_check
+                fold_note = (
+                    "紫線＝原 Factory 截角前 Fold 經 V 扣料裁切的候選段；"
+                    f"比舊 BEND 額外保留 "
+                    f"{proposed_fold.first_additional_factory_fold_mm:g} / "
+                    f"{proposed_fold.second_additional_factory_fold_mm:g} mm。"
+                    "綠色短實線依相同 20/50 Engine 規則落在新 Fold 候選，"
+                    f"第一側 {len(proposed_fold.first_proposed_alignment_marks)} 段、"
+                    f"第二側 {len(proposed_fold.second_proposed_alignment_marks)} 段；"
+                    "青色短實線是舊實體 BEND 對照。"
+                    "仍待確認實際 R/BA/避裂與現場製造，不是正式 BEND／MARKING。"
+                )
+            else:
+                fold_note = (
+                    "原 Factory 折線補段尚無獨立可確認來源："
+                    f"{live.factory_precut_fold_failure or '未取得 V 原料'}。"
+                )
+            if live.factory_true_t_check is not None:
+                physical = live.factory_true_t_check
+                first_faces = physical.first_source_tagged_cut_faces
+                second_faces = physical.second_source_tagged_cut_faces
+                faces = physical.source_cut_face_continuity
+                if faces is not None:
+                    gap_text = (
+                        "原 V 切邊的真 T 側面區間："
+                        f"雙面 {faces.both_face_interval_count} 段、"
+                        f"缺面 {faces.missing_face_interval_count} 段；"
+                        f"取樣最大側面間隙 "
+                        f"{faces.max_sampled_cut_face_gap_mm:g} mm"
+                        if faces.max_sampled_cut_face_gap_mm is not None
+                        else (
+                            "原 V 切邊尚無兩側同時可取樣的厚度側面；"
+                            f"缺面 {faces.missing_face_interval_count} 段"
+                        )
+                    )
+                    gap_text += (
+                        f"；全區間保守上界 "
+                        f"{faces.max_gap_upper_bound_mm:g} mm"
+                        if faces.max_gap_upper_bound_mm is not None
+                        else "；全區間間隙上界未知"
+                    )
+                else:
+                    gap_text = (
+                        "真實 V 厚度側面仍無連續間隙證據："
+                        f"{physical.source_cut_face_continuity_failure}。"
+                    )
+                surface_note = (
+                    f"實際 T={physical.thickness_mm:g} mm 的 Factory V 零R厚板網格："
+                    f"兩折面 {len(physical.first_formed_skin_triangles)} / "
+                    f"{len(physical.second_formed_skin_triangles)} 個三角形；"
+                    f"偵測到 {physical.surface_interference_pair_count} 組表面相交；"
+                    "理想 V 切端超出剩料真 Fold 範圍 "
+                    f"{physical.first_ideal_tip_outside_surviving_fold_mm:g} / "
+                    f"{physical.second_ideal_tip_outside_surviving_fold_mm:g} mm（不可補假折線）；"
+                    "來源標記 V 切面 "
+                    f"{len(first_faces.true_cut_face_triangles) if first_faces is not None else '未知'} / "
+                    f"{len(second_faces.true_cut_face_triangles) if second_faces is not None else '未知'}。"
+                    f"{gap_text}。"
+                    "未檢出相交或局部取樣零間隙仍非加工合格；"
+                    "實際 R/BA、完整干涉與避裂尚未認證。"
+                )
+            else:
+                surface_note = (
+                    "有限 T 真板料 3D 網格檢查尚不能成立："
+                    f"{live.factory_true_t_failure or '原 Factory 折線／V 剩料不足'}。"
+                )
+            relief_trial = live.factory_bottom_relief_check
+            if relief_trial is not None:
+                relief_note = (
+                    f"Factory 真料 V 底部試算 "
+                    f"{'圓形避裂孔 Ø' if relief_trial.relief_mode.value == 'RELIEF_HOLE' else '圓角 R'}"
+                    f"={relief_trial.relief_dimension_mm:g} mm；"
+                    f"單片剩料 {relief_trial.corrected_remaining_area_mm2:.3f} mm²。"
+                    "2D 紅線／CHECK DXF 使用這份真來源避裂輪廓；"
+                    "未執行 R/BA 試算前，3D 零R 仍是原尖 V 板料；"
+                    "按「計算預設 R/BA／T」後才以這份避裂剩料產生曲面 3D。"
+                    "完整接合面/修邊仍未驗收，禁止加工。"
+                )
+            else:
+                relief_note = (
+                    "Factory V 底部避裂遭 Engine 拒絕："
+                    f"{live.factory_bottom_relief_failure or '來源不完整'}。"
+                    "不能把尖 V 當成已完成避裂。"
+                )
+            preset = live.trial_defaults
+            # Engine owns all numerical assumptions; Tk only formats values.
+            trial_preset_note = (
+                "Engine 試算預設（非折床實測）："
+                f"內 R1/R2={preset.first_inner_radius_mm:g}/"
+                f"{preset.second_inner_radius_mm:g} mm、"
+                f"K={preset.neutral_axis_k:g}、"
+                f"BA1/BA2={preset.first_bend_allowance_mm:.3f}/"
+                f"{preset.second_bend_allowance_mm:.3f} mm、"
+                f"{'孔徑 Ø' if preset.relief_mode.value == 'RELIEF_HOLE' else '底部圓角 R'}"
+                f"={preset.relief_dimension_mm:g} mm。"
+                "只是幾何試算起點，不代表可以正式加工。"
+            )
+            radius_check = live.factory_radius_ba_check
+            if radius_check is not None:
+                faces = radius_check.source_cut_face_continuity
+                if faces is None:
+                    contact_note = (
+                        "R/BA 成形 V 斜接切面無法證明連續："
+                        f"{radius_check.source_cut_face_continuity_failure or '來源不足'}；"
+                        "接合間隙仍為未知，不得當作零間隙。"
+                    )
+                else:
+                    measured = (
+                        f"實際切面接合區間：雙側 {faces.both_face_interval_count} 段、"
+                        f"缺側 {faces.missing_face_interval_count} 段"
+                        f"（缺料長度 "
+                        f"{faces.first_missing_span_mm + faces.second_missing_span_mm + faces.both_missing_span_mm:.3f} mm）；"
+                    )
+                    bound = (
+                        f"全長連續間隙保守上界 "
+                        f"{faces.max_gap_upper_bound_mm:.3f} mm"
+                        if faces.max_gap_upper_bound_mm is not None
+                        else "全長連續間隙上界未知"
+                    )
+                    sample = (
+                        f"最大取樣間隙 {faces.max_sampled_cut_face_gap_mm:.3f} mm"
+                        if faces.max_sampled_cut_face_gap_mm is not None
+                        else "無兩側同時可取樣的真切面"
+                    )
+                    contact_note = (
+                        measured + sample + "；" + bound + "。"
+                        "這是 Engine 曲面網格的試算證據，不是工廠允差或可加工密合。"
+                    )
+                radius_note = (
+                    "預設 R/BA 已帶入 Engine 真 Factory 剩料的圓柱曲面："
+                    f"零 R 表面相交 {radius_check.sharp_t_surface_interference_pairs} 組、"
+                    f"實際預設 R/BA/T 表面相交 "
+                    f"{radius_check.curved_t_surface_interference_pairs} 組；"
+                    f"實體檢查 {radius_check.curved_t_volume_status}。"
+                    "3D 曲面有限 T 網格與 2D 紅色 R/孔避裂輪廓"
+                    "已使用同一份 Factory 真剩料；"
+                    "切面已使用同一 Engine 來源做連續間隙檢查，"
+                    "斜邊修切仍未完成，不能當正式加工圖。"
+                    f"{contact_note}"
+                )
+            elif live.factory_radius_ba_failure is not None:
+                radius_note = (
+                    "預設 R/BA 真實曲面試算遭 Engine 拒絕："
+                    f"{live.factory_radius_ba_failure}。"
+                    "不可把零 R 的 3D 圖當成已通過補償。"
+                )
+            else:
+                radius_note = "按「計算預設 R/BA／T」才執行實際曲面試算。"
+            self.manual_corner_param_summary.configure(
+                text=(
+                    f"V 型斜接（未認證 CHECK）｜另一側折彎 "
+                    f"{live.second_fold_angle_deg:g}°｜折邊 "
+                    f"{live.first_flange_height_mm:g} / "
+                    f"{live.second_flange_height_mm:g} mm\\n"
+                    "角度與折高取自目前 PartSpec/Fold，沒有新增折彎輸入；"
+                    f"{material_note}\\n"
+                    "2D 為 CHECK、3D 接合線及局部 T 剖面為未認證模型；"
+                    "實際 3D 切面及避裂未驗證，不可當加工圖。\\n"
+                    f"{trial_preset_note}\\n"
+                    f"{relief_note}\\n"
+                    f"{radius_note}\\n"
+                    f"{section_note}\\n"
+                    f"{marking_note}\\n"
+                    f"{fold_note}\\n"
+                    f"{surface_note}\\n"
+                    f"原 BEND 至理想交點缺段：{live.first_bend_source_gap_mm:g} / "
+                    f"{live.second_bend_source_gap_mm:g} mm（僅來源診斷，"
+                    "缺段不可視為已實際打標或可製造折線）。"
+                )
+            )
+            draw_v_miter_gui_live_check(self, live)
+            self.v_miter_export_check_button.configure(
+                state=(tk.NORMAL if live.full_sheet_check_scene is not None
+                       else tk.DISABLED),
+            )
+        return
+    self.v_miter_export_check_button.pack_forget()
+    self.v_miter_radius_ba_check_button.pack_forget()
+    self.v_miter_check_3d_preview_canvas.pack_forget()
     if params_unlocked:
         self.manual_corner_param_summary.pack_forget()
         if not self.manual_corner_param_frame.winfo_ismapped():
@@ -337,6 +764,43 @@ def refresh_corner_type_panel(self):
 from tkinter import ttk
 from ae_engine.corner_type_ui import CORNER_LABELS
 from ae_engine.sheetmetal_geometry import EDITABLE_CORNER_TYPE_IDS
+
+def v_miter_check_source_summary(source_snapshot):
+    """Read saved Engine CHECK evidence without changing any CornerType state.
+
+    The V trial source is independent of a particular GUI corner selection.
+    It cannot become CUTTING, MARKING or a manufacturing-ready fifth type.
+    """
+    measured = manufacturing_api.project_operator_v_miter_radius_ba_preview_source(
+        source_snapshot,
+    )
+    row = measured
+    if row is None:
+        row = manufacturing_api.project_operator_v_miter_relief_preview_source(
+            source_snapshot,
+        )
+    if row is None:
+        return (
+            "目前專案沒有已保存的 V 型斜接 CHECK 試算來源。\n"
+            "請先由既有板件折彎來源建立 Engine 試算；此入口不會代填角度或折邊高度。\n"
+            "第五種截角尚未認證，正式 CUTTING／BEND／MARKING／DXF 均不開放。"
+        )
+    params = row["parameters"]
+    relief = {
+        "ROUND_R": "R 圓角",
+        "RELIEF_HOLE": "圓形避裂孔",
+    }[params["relief_mode"]]
+    return (
+        "已保存的 V 型斜接 CHECK 來源（僅供核對，未綁定目前選取的角落）\n"
+        f"來源折彎角度：{params['second_fold_angle_deg']:g}°\n"
+        f"兩側折高：{params['first_flange_height_mm']:g} / "
+        f"{params['second_flange_height_mm']:g} mm\n"
+        f"避裂：{relief}，比率 {params['relief_t_factor']:g}T\n"
+        f"Engine 狀態：{row['manufacturing_status']}\n"
+        "這些是舊 CHECK 試算的已保存數值，不會覆寫板件目前折彎設定。\n"
+        "未認證，不能作正式截角或加工出圖。"
+    )
+
 
 def _build_corner_pair_controls(host, editor):
     # 預設以上方／下方成對編輯；只有取消「左右相同」才拆成左右兩個角。
@@ -417,6 +881,86 @@ def _build_corner_type_selector(host, editor):
         rb.pack(side=tk.LEFT, fill=tk.X, expand=True)
         host.manual_corner_type_buttons[type_id] = rb
 
+    # The fifth choice is selectable for a real local CHECK, but is kept
+    # outside the manufacturing CornerType radio catalog until certification.
+    trial_row = tk.Frame(type_frame, bg=host.COLOR_INPUT_BG)
+    trial_row.pack(fill=tk.X, pady=(4, 2))
+    host.v_miter_gui_check_radio = tk.Radiobutton(
+        trial_row, text="V 型斜接（試算）",
+        variable=host.manual_corner_type_var, value="V_MITER_CHECK",
+        command=host.set_v_miter_gui_check_choice,
+        bg=host.COLOR_INPUT_BG, fg=host.COLOR_TEXT,
+        activebackground=host.COLOR_INPUT_BG,
+        activeforeground=host.COLOR_TEXT,
+        selectcolor=host.COLOR_PANEL, anchor=tk.W,
+    )
+    host.v_miter_gui_check_radio.pack(side=tk.LEFT, fill=tk.X, expand=True)
+
+    # Physical X/Y BEND identity is selected by the operator. There is
+    # intentionally no first-fold default, even when both angles are 90.
+    host.v_miter_first_bend_axis_var = tk.StringVar(value="")
+    first_row = tk.Frame(type_frame, bg=host.COLOR_INPUT_BG)
+    host.v_miter_first_bend_axis_frame = first_row
+    host.v_miter_first_bend_axis_radios = []
+    for label, axis in (
+        ("第一折：X 折線（必須 90°）", "x"),
+        ("第一折：Y 折線（必須 90°）", "y"),
+    ):
+        rb = tk.Radiobutton(
+            first_row, text=label,
+            variable=host.v_miter_first_bend_axis_var, value=axis,
+            command=host.set_v_miter_gui_first_bend_axis,
+            bg=host.COLOR_INPUT_BG, fg=host.COLOR_TEXT,
+            activebackground=host.COLOR_INPUT_BG,
+            activeforeground=host.COLOR_TEXT,
+            selectcolor=host.COLOR_PANEL,
+        )
+        rb.pack(side=tk.LEFT, padx=(0, 8))
+        host.v_miter_first_bend_axis_radios.append(rb)
+
+    # The choice is only a live operator input, not a manufacturing
+    # CornerType or a second GUI geometry formula. Recomputed by Engine.
+    host.v_miter_relief_mode_var = tk.StringVar(value="ROUND_R")
+    relief_row = tk.Frame(type_frame, bg=host.COLOR_INPUT_BG)
+    host.v_miter_relief_mode_frame = relief_row
+    relief_row.pack(fill=tk.X, pady=(2, 2))
+    for label, choice in (
+        ("V 底部圓角 R", "ROUND_R"),
+        ("V 底部圓形避裂孔 Ø", "RELIEF_HOLE"),
+    ):
+        tk.Radiobutton(
+            relief_row, text=label,
+            variable=host.v_miter_relief_mode_var, value=choice,
+            command=host.set_v_miter_gui_relief_mode,
+            bg=host.COLOR_INPUT_BG, fg=host.COLOR_TEXT,
+            activebackground=host.COLOR_INPUT_BG,
+            activeforeground=host.COLOR_TEXT,
+            selectcolor=host.COLOR_PANEL,
+        ).pack(side=tk.LEFT, padx=(0, 8))
+
+    # A separate CHECK-only inspection action: never a fifth manufacturing
+    # CornerType radio button and never an alternate exporter.
+    v_row = tk.Frame(type_frame, bg=host.COLOR_INPUT_BG)
+    v_row.pack(fill=tk.X, pady=(6, 2))
+    host.v_miter_check_source_button = tk.Button(
+        v_row, text="V 型斜接｜查看試算來源",
+        command=host.show_v_miter_check_source,
+        bg=host.COLOR_PANEL, fg=host.COLOR_TEXT,
+        activebackground=host.COLOR_ACCENT_HOVER,
+        activeforeground="#ffffff", anchor=tk.W,
+    )
+    host.v_miter_check_source_button.pack(side=tk.LEFT, fill=tk.X, expand=True)
+    host.v_miter_capture_live_source_button = ttk.Button(
+        v_row, text="建立封頭／封尾 CHECK 來源",
+        command=host.capture_endcap_live_v_miter_check_source,
+    )
+    host.v_miter_capture_live_source_button.pack(side=tk.LEFT)
+    tk.Label(
+        type_frame, text="未認證 CHECK；不可選為正式截角或輸出加工 DXF",
+        bg=host.COLOR_INPUT_BG, fg=host.COLOR_TEXT_MUTED,
+        anchor=tk.W, justify=tk.LEFT, wraplength=500,
+    ).pack(fill=tk.X, pady=(0, 3))
+
 def _build_corner_parameter_controls(host, editor):
     host.manual_corner_param_summary = tk.Label(
         editor, text="", justify=tk.LEFT, anchor=tk.W,
@@ -491,6 +1035,24 @@ def _build_corner_parameter_controls(host, editor):
         highlightthickness=1, highlightbackground='#34343a'
     )
     host.corner_type_preview_canvas.pack(padx=8, pady=(4, 8))
+    host.v_miter_check_3d_preview_canvas = tk.Canvas(
+        editor, width=150, height=105, bg=host.COLOR_CANVAS_BG,
+        highlightthickness=1, highlightbackground="#34343a",
+    )
+    host.v_miter_export_check_button = tk.Button(
+        editor, text="另存 V／避裂 CHECK DXF（不含 R/BA，非加工）",
+        command=host.export_v_miter_whole_sheet_check_dxf,
+        bg=host.COLOR_PANEL, fg=host.COLOR_TEXT,
+        activebackground=host.COLOR_ACCENT_HOVER,
+        activeforeground="#ffffff",
+    )
+    host.v_miter_radius_ba_check_button = tk.Button(
+        editor, text="計算預設 R/BA／T（實體 CHECK）",
+        command=host.run_v_miter_default_radius_ba_check,
+        bg=host.COLOR_PANEL, fg=host.COLOR_TEXT,
+        activebackground=host.COLOR_ACCENT_HOVER,
+        activeforeground="#ffffff",
+    )
 
 def create_corner_type_panel(host, parent):
     panel = tk.Frame(parent, bg=host.COLOR_INPUT_BG, bd=1, relief=tk.SOLID)

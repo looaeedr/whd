@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
+import json
+import os
 from collections.abc import Mapping
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 from ae_engine.cabinet_types import policy
 from ae_engine.receiving_nfb_cutting_manufacturing import read_nfb_runtime_source_profiles_csv
@@ -326,3 +329,89 @@ def quantity_partial_live_manifests(selection, workspace_snapshot, selected_rows
             submitted, not submitted,
         ),)
     return result
+
+
+@dataclass(frozen=True)
+class QuantityOperatorStagedExport:
+    """Engine-authored output inventory and optional partial receipt."""
+    output_names: tuple[str, ...]
+    partial_report: dict | None = None
+
+
+def stage_quantity_operator_export(batch, workspace_snapshot, flags, staging_directory,
+                                   *, save_groups):
+    """Stage legacy Quantity DXF and physical receipt through the same Engine.
+
+    The consumer owns its private staging directory and the subsequent
+    confirmation/publication. Do not pass a final operator destination here.
+    """
+    from .quantity_manufacturing_groups import (
+        quantity_manufacturing_groups, quantity_nfb_checked_manufacturing_groups,
+    )
+
+    selection = plan_quantity_operator_export_selection(batch, workspace_snapshot, flags)
+    partial = selection.partial_selection
+    demands = selection.selected_demands
+    if not demands:
+        return QuantityOperatorStagedExport((), partial.report() if partial is not None else None)
+
+    if partial is not None:
+        live_manifests = quantity_partial_live_manifests(
+            selection.full_selection, workspace_snapshot, selection.selected_reports,
+        )
+        groups, gate = quantity_nfb_checked_manufacturing_groups(
+            selection.checked_batch,
+            live_manifest_provider=lambda vid, _request: live_manifests[vid],
+            partial=True,
+        )
+        if gate.permitted_total_pieces != partial.exported_piece_count:
+            raise ValueError("NFB live manifest and selected physical pieces disagree")
+    else:
+        groups = quantity_manufacturing_groups(batch, demands=demands)
+
+    if sum(group.quantity for group in groups) != sum(row.quantity for row in demands):
+        raise ValueError("NFB CHECK actual piece count not conserved")
+    outputs = save_groups(groups, staging_directory, overwrite=False)
+    names = tuple(Path(path).name for path in outputs.values())
+    if partial is None:
+        return QuantityOperatorStagedExport(names)
+
+    report = partial.report()
+    report["outputs"] = list(names)
+    from .receiving_nfb_export_manifest import NFB_PARTIAL_MANIFEST_FILENAME
+    report_name = NFB_PARTIAL_MANIFEST_FILENAME
+    with Path(staging_directory, report_name).open("x", encoding="utf-8") as handle:
+        json.dump(report, handle, ensure_ascii=False, indent=2)
+    return QuantityOperatorStagedExport((*names, report_name), report)
+
+
+def stage_quantity_with_existing_files(root, write_stage):
+    """Place a verified receipt beside unrelated files without overwriting.
+
+    This is the same-volume, no-overwrite compatibility transport for
+    existing directories, not a manufacturing authority or a substitute
+    for the normal GUI's final confirmation/publish transaction.
+    """
+    with TemporaryDirectory(prefix=".whd-quantity-stage-", dir=root) as directory:
+        child = Path(directory)
+        receipt = write_stage(child)
+        names = receipt.output_names
+        entries = tuple(child.iterdir())
+        if (len(names) != len(set(names)) or set(names) != {p.name for p in entries}
+                or any(p.is_symlink() or not p.is_file() for p in entries)):
+            raise ValueError("QUANTITY_OPERATOR_EXPORT_STAGED_INVENTORY_MISMATCH")
+
+        linked = []
+        try:
+            for name in names:
+                staged_path, destination = child / name, root / name
+                # Exclusive: no check-then-replace race, including dangling
+                # symlink destinations. Both paths are on the same volume.
+                os.link(staged_path, destination)
+                linked.append((staged_path, destination))
+        except OSError:
+            for staged_path, destination in reversed(linked):
+                if destination.exists() and destination.samefile(staged_path):
+                    destination.unlink()
+            raise
+        return receipt

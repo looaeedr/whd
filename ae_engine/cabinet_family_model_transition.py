@@ -170,6 +170,7 @@ def plan_cabinet_family_model_transition(
             # current Family dimensions, then seed the CSV-derived source.
             snapshot["receiving_layout"] = new_receiving_layout(
                 width=snapshot["w"], height=snapshot["h"], depth=snapshot["d"],
+                new_physical_board=True,
             )
             snapshot = seed_fresh_receiving_nfb_source(snapshot)
         if "ui_text_size" in settings_values:

@@ -313,6 +313,38 @@ def resolve(request):
             explicit_joint_state
         )
 
+    # #3317 single-source preview after existing manufacturing relief.
+    from .operator_tail_lower_v import (
+        TAIL_LOWER_V_SNAPSHOT_KEY, TAIL_LOWER_V_FIRST_BENDS_KEY,
+        normalize_operator_tail_lower_v_choice,
+        project_operator_tail_lower_v_preview_render,
+    )
+    choice=normalize_operator_tail_lower_v_choice(snapshot.get(TAIL_LOWER_V_SNAPSHOT_KEY))
+    # A saved Tail operation is dormant when Tail is not in this request's
+    # canonical active parts. Keep the persisted choice/first-bend identity
+    # intact; validate it against the real Tail source when Tail is restored.
+    if choice=="v90" and "tail" in available and _cabinet_family(request) == "金庫型":
+        if not any(part.part_key == "tail" for part in parts):
+            raise ValueError("下方左右 V 型缺少本次有效封尾來源；不支援")
+        projected=[]
+        for part in parts:
+            if part.part_key!="tail":
+                projected.append(part)
+                continue
+            source=_request_part(request,"tail")
+            if source is None or source.part_spec is None:
+                raise ValueError("下方左右 V 型缺少已確認封尾 PartSpec；不支援")
+            # At this point the canonical Tail already owns solved
+            # EndCap/USER_ADDED clearances. Their physical CUTTING delta
+            # must be replayed into BOTH the V scene and T shell; using
+            # only source.render_data silently discards resolved geometry.
+            preview=project_operator_tail_lower_v_preview_render(
+                source.part_spec,source.render_data,choice=choice,
+                resolved_render_data=part.render_data,
+                first_bends=snapshot.get(TAIL_LOWER_V_FIRST_BENDS_KEY),
+            )
+            projected.append(replace(part,render_data=preview))
+        parts=projected
     resolved_parts = materialize_resolved_manufacturing_parts(parts)
     traces, joint_registry_diagnostics = resolve_manufacturing_relief_evidence(
         resolved_parts, solutions, joints,

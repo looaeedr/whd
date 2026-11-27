@@ -33,10 +33,10 @@ Out of scope:
 
 <!-- WHD_REPOSITORY_MUTATION_GATE_V1 -->
 
-本 Skill **只擁有** deterministic mapping／idempotence／drift-audit 的語意，**不擁有** WHD repository 施工、DC 或 GitHub 發布權限。先依正式 X 的 `AGENTS.md` 判定本次變更類型與使用者當次授權，不能以「workspace-first」或此技能名稱自行擴權。
+本 Skill **只擁有** deterministic mapping／idempotence／drift-audit 的語意，**不擁有** WHD repository 施工、DC 或 GitHub 發布權限。先讀 GitHub `localX` exact HEAD 的 `AGENTS.md`、CURRENT domain/Skill 及本次授權；正式 X 的受信任 gate 只供 `/推推` 發布查核，不得成為日常施工來源。
 
-1. **純治理／非產品遷移**：全部路徑經受信任 X 的 `tools/change_lane_gate.py` 判定為 `GOVERNANCE_DIRECT_X`，才從最新 X 在 GitHub／雲端治理分支完成 deterministic migration、驗證、PR／CI、merge/readback；不需要 `localX` 或 `/推推`。
-2. **產品、未知或混合遷移**：依 `/派工` 在 GitHub／雲端完成施工、測試與 PR（base=`localX`）；僅 exact HEAD CI SUCCESS 後才可依 `LOCALX_INTEGRATION` 規定使用 DC 做本機 `localX` 最終整合。只有使用者當次明確 `/接手` 才能在 RC `whd-dev:/workspace/whd` 進行產品施工。產品從 `localX` 發布正式 X 仍需使用者當次 `/推推`。
+1. **純治理／非產品遷移**：從最新 GitHub `localX` 建治理工作分支，遵守受信任 `tools/change_lane_gate.py` 的白名單分類，執行適用治理測試／CI、PR、合併／readback **回 `localX`**；發布正式 X 仍需當次 `/推推`，不得以 `GOVERNANCE_DIRECT_X` 歷史名稱直合 X。
+2. **產品、未知或混合遷移**：依 `/派工` 在 GitHub／雲端完成施工、定向測試與 PR（base=`localX`）；exact HEAD 必要 CI GREEN 後使用 GitHub `expected_head_sha` 非強制 PR merge 遠端 `localX`，**`LOCALX_INTEGRATION` 不授權 DC**。只有使用者當次明確 `/接手` 才能在 RC `whd-dev:/workspace/whd` 進行已授權施工；正式 X 不論產品／治理均需當次 `/推推`。
 3. **DC 預設禁止**：沒有當次符合 `AGENTS.md` 的 DC 授權，不得探測或使用使用者本機；純治理能力不足不得改走 DC／local shell。
 4. 所有路線都要保留 authority SHA、source/target SHA、實際執行的測試、exact diff、idempotence、drift audit、CI 與合併後回讀；不能拿單一 validator PASS 冒充正式交付。
 5. 舊 `WORKSPACE_DELIVERY`、claim／lease／工作槽、已退役外部儲存/shared-zero 與 `MERGE/FINALIZE` 交易前置已退役；不得要求這些憑證，不得以此繞過現行平台安全審查。已核准相同工作範圍不應重複要求核准，但範圍變動及新 HEAD 仍須核對。

@@ -55,7 +55,10 @@ def project_operator_project_for_write(payload):
         raise ValueError("Receiving project v2/v3 requires Receiving family")
     else:
         materialized["schema"] = PROJECT_SCHEMA_V1
-    materialized["snapshot"] = normalize_quantity_snapshot(snapshot, for_save=True)
+    # The standard wire-pull source has no legacy quantity/door topology.
+    from .cabinet_types.wire_pull_project import is_wire_pull_project_snapshot
+    materialized["snapshot"] = (snapshot if is_wire_pull_project_snapshot(snapshot)
+                                else normalize_quantity_snapshot(snapshot, for_save=True))
     # FinalScene is derived from real physical sources after Reload, never saved truth.
     materialized["final_geometry"] = {}
     return materialized

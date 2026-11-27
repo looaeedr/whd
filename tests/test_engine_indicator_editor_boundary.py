@@ -25,7 +25,7 @@ def test_engine_resolves_shared_indicator_box_and_small_door_editor_geometry():
 
 def test_gui_only_forwards_indicator_inputs_and_formats_engine_result():
     source = inspect.getsource(manufacturing_adapter._indicator_component_editor_contexts)
-    assert "resolve_indicator_editor_components(" in source
+    assert "resolve_operator_indicator_editor_components(" in source
     for forbidden in (
         "get_stretched_indicator_box_data(",
         "get_stretched_door_data(",
@@ -50,10 +50,12 @@ def test_component_editor_contexts_preserve_exact_engine_groups(monkeypatch):
         baseline_status="valid",
     )
     monkeypatch.setattr(
-        manufacturing_api, "resolve_indicator_editor_components",
-        lambda groups, *, thickness, door_spec:
-            calls.append(("engine", groups, thickness, door_spec))
-            or {"indicator_box": data, "indicator_door": data},
+        manufacturing_api, "resolve_operator_indicator_editor_components",
+        lambda raw, val, *, door_features:
+            calls.append(("engine", raw, val, door_features))
+            or SimpleNamespace(groups=(3, 2), components={
+                "indicator_box": data, "indicator_door": data,
+            }),
     )
     host = SimpleNamespace(
         _normalize_door_indicator_state=lambda _:
@@ -65,10 +67,7 @@ def test_component_editor_contexts_preserve_exact_engine_groups(monkeypatch):
         host, source, {"t": 2.0}, box_features=["box"], door_features=["door"],
     )
     assert source == original
-    assert calls == [
-        ("door-spec", (3, 2), ["door"]),
-        ("engine", (3, 2), 2.0, "spec"),
-    ]
+    assert calls == [("engine", source, {"t": 2.0}, ["door"])]
     assert result["indicator_box"]["width"] == 210.0
     assert "排列 [3, 2]" in result["indicator_box"]["baseline_status_text"]
 
@@ -100,7 +99,7 @@ def test_component_editor_contexts_reject_invalid_source_before_spec(invalid):
 
 def test_component_context_source_does_not_contain_gui_group_coercion():
     source = inspect.getsource(manufacturing_adapter._indicator_component_editor_contexts)
-    assert "project_operator_door_cell_indicator_manufacturing_source(" in source
+    assert "resolve_operator_indicator_editor_components(" in source
     assert "_normalize_door_indicator_state(" not in source
     assert "max(1, min(6, int(" not in source
     assert "tuple(int(v)" not in source

@@ -167,6 +167,10 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
             materials = []
             box_body_piece_dimension_lines = []
             physical_dimension_lines = []
+            show_operator_marking = getattr(request, "show_operator_marking", True)
+            owner_views = (dict(getattr(render_data, "owner_marking_views", ()) or ())
+                           if show_operator_marking else {})
+            owner_warnings = []
             box_body_world = None
             box_body_collision_mesh = None
             interference_targets = []
@@ -203,6 +207,8 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                     )
                 diagnostic_relief_delta = None
                 physical_piece_world = ()
+                # Multipart BoxBody never owns a Tail pre-thick preview.
+                preview_t2 = None
                 if getattr(part_data, "pieces", None):
                     piece_meshes = _phase6_box_body_structure_meshes(part_data, thickness=request.thickness)
                     physical_piece_world = _phase6_box_body_true_world_piece_meshes(
@@ -222,16 +228,36 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                     ):
                         fold_material = manufacturing_api.restore_unrelieved_endcap_material(part_material)
                         diagnostic_relief_delta = manufacturing_api.restored_endcap_relief_delta(part_material)
-                    local = _phase6_folded_mesh_from_polygon(
-                        fold_material,
-                        tuple(dict(seg) for seg in part.x_profile),
-                        tuple(dict(seg) for seg in part.y_profile),
-                        fold_guides=tuple(getattr(part_data, "fold_guides", ()) or ()),
+                    preview_t2=(
+                        manufacturing_api.tail_lower_v_preview_mesh(part_data)
+                        if part_key=="tail" else None
+                    )
+                    local=(
+                        preview_t2 if preview_t2 is not None
+                        else _phase6_folded_mesh_from_polygon(
+                            fold_material,
+                            tuple(dict(seg) for seg in part.x_profile),
+                            tuple(dict(seg) for seg in part.y_profile),
+                            fold_guides=tuple(getattr(part_data, "fold_guides", ()) or ()),
+                        )
                     )
                 placement = str(getattr(part, "placement", "offset") or "offset")
                 offset = getattr(part, "offset", (0.0, 0.0, 0.0))
                 formed_surface_for_edges = None
-                if placement in {"top", "head", "bottom", "tail"} and box_body_world:
+                # Preview T2 is already thick: never thicken a second time.
+                if preview_t2 is not None and part_key=="tail":
+                    # The V CHECK is ALREADY a complete T shell. Use the
+                    # same native Box Body mating origin as normal Tail;
+                    # do not recenter Z, mirror local Y or thicken again.
+                    # The Engine also reverses winding once for the
+                    # odd-handed (x,y,z)->(x,z,y) world transform.
+                    placed=manufacturing_api.place_prethickened_endcap_world_skins(
+                        local,placement=placement,box_body_world=box_body_world,
+                        offset=offset,preserve_core_origin=bool(getattr(
+                            render_data,"preserve_endcap_core_origin",False
+                        )),
+                    )
+                elif placement in {"top", "head", "bottom", "tail"} and box_body_world:
                     # The Engine returns both the canonical formed surface used
                     # by visual edges and its true-T physical solid.
                     skins = manufacturing_api.resolve_assembled_endcap_world_skins(
@@ -249,6 +275,26 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                     )
                 if not placed:
                     continue
+                integral_body_physical=False
+                if (
+                    part_key=="box_body"
+                    and not getattr(part_data,"pieces",None)
+                    and manufacturing_api.project_integral_box_body_formed_skin_eligible(part)
+                ):
+                    # The original D-W-D Fold is the INSIDE material datum.
+                    # Render the exact Engine-owned formed true-T Body, not
+                    # a raw mid-surface subsequently thickened +/-T/2.
+                    # Neither FinalScene CUTTING nor mesh coordinates are
+                    # stretched or altered by this view adapter.
+                    physical=manufacturing_api.build_joint_world_geometry(
+                        (part,),request.finished_dimensions,request.thickness,
+                    )["world_triangles_by_part"].get("box_body",())
+                    if not physical:
+                        raise ValueError(
+                            "BOX_BODY_INTEGRAL_PHYSICAL_WORLD_REQUIRED"
+                        )
+                    placed=tuple(physical)
+                    integral_body_physical=True
                 if part_key.startswith("box_body:divider:"):
                     # The certified FW contact uses physical sheet skins.
                     # Display that same T-thick solid rather than the
@@ -292,6 +338,7 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                                 placed_piece_meshes=placed_piece_meshes,
                                 physical_piece_world=physical_piece_world,
                                 thickness=request.thickness,
+                                integral_world_is_physical=integral_body_physical,
                             )
                         )
                     if getattr(part_data, "pieces", None):
@@ -350,8 +397,12 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                         interference_segments.extend(diagnostic.intersection_segments)
                         interference_pairs += int(diagnostic.pair_count)
                 self._draw_joint_marking_world_rows(part_data)
+                marking_scene = (
+                    part_data.scene if show_operator_marking else
+                    manufacturing_api.project_scene_without_operator_marking(part_data.scene)
+                )
                 self._draw_assembly_scene_markings(
-                    part_data.scene,
+                    marking_scene,
                     tuple(dict(seg) for seg in part.x_profile),
                     tuple(dict(seg) for seg in part.y_profile),
                     tuple(getattr(part_data, "fold_guides", ()) or ()),
@@ -361,6 +412,13 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                     offset,
                     joint_marking_signatures=self._joint_marking_flat_signatures(part_data),
                 )
+                if part_key in owner_views:
+                    paths, warning = manufacturing_api.project_checked_owner_marking_assembly_paths(
+                        part, owner_views[part_key], local, placed, request.finished_dimensions,
+                    )
+                    self._paint_scene_marking_paths(paths)
+                    if warning:
+                        owner_warnings.append(f"{part_key} 已存打標無法顯示：{warning}")
                 face, edge = self._COLORS.get(str(part.part_key), ("#64748b", "#334155"))
                 opacity = float(request.alpha_bend)
                 # Outer Door is intentionally readable even when the shared
@@ -530,7 +588,7 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                 ax.set_box_aspect(spans)
             if request.finished_dimensions and callable(getattr(ax, "text2D", None)):
                 text = " × ".join(self._number_text(v) for v in request.finished_dimensions)
-                warnings = tuple(getattr(render_data, "warnings", ()) or ())
+                warnings = tuple(getattr(render_data, "warnings", ()) or ()) + tuple(owner_warnings)
                 warning_text = "\n警告：" + "；".join(str(getattr(w, "message", w)) for w in warnings) if warnings else ""
                 diagnostic = self.last_interference_diagnostic
                 collision_text = ""
@@ -679,7 +737,26 @@ class Phase6FinalSceneRenderer(Phase6FinalSceneRenderHelpersMixin):
                 )
         else:
             self._draw_scene_bends(scene, request.x_profile, request.y_profile, fold_guides=fold_guides)
-        self._draw_scene_markings(scene, x_profile, y_profile, fold_guides=fold_guides)
+        metadata = getattr(render_data, "metadata", None) or {}
+        if not getattr(request, "show_operator_marking", True):
+            self._draw_scene_markings(
+                manufacturing_api.project_scene_without_operator_marking(scene),
+                x_profile, y_profile, fold_guides=fold_guides,
+            )
+        elif metadata.get(manufacturing_api.OWNER_MARKING_VIEW_ONLY):
+            paths, warning = manufacturing_api.project_checked_owner_marking_standalone_paths(scene, mesh)
+            self._paint_scene_marking_paths(paths)
+            warning = metadata.get(manufacturing_api.OWNER_MARKING_VIEW_DIAGNOSTIC) or warning
+            if warning:
+                if warning == manufacturing_api.OWNER_MARKING_3D_PREVIEW_BUDGET:
+                    warning = "打標過密或過長，3D 暫不顯示；2D 與 DXF 不受影響"
+                self.renderer.ax3d.text2D(
+                    0.015, 0.91, "已存打標無法顯示：" + warning,
+                    transform=self.renderer.ax3d.transAxes, ha="left", va="top",
+                    color=WHD_SEMANTIC_COLORS["error"],
+                )
+        else:
+            self._draw_scene_markings(scene, x_profile, y_profile, fold_guides=fold_guides)
         self._draw_operator_dimensions(request, triangles)
         vertices = [point for tri in triangles for point in tri]
         xlim, ylim, zlim = _phase6_fitted_limits_from_vertices(vertices)

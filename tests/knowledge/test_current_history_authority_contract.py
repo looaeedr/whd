@@ -533,3 +533,149 @@ def test_issue2382_installed_worker_exe_authority_is_retired() -> None:
     assert "cadsplit-whd-worker-installed-custody role=CURRENT" not in authority_map
     assert "cadsplit-whd-worker-public-certification role=CURRENT" not in authority_map
     assert "沒有 CURRENT owner" in authority_map
+
+
+def test_legacy_v5_architecture_cannot_override_current_engine_api_or_test_gates() -> None:
+    agents = read("AGENTS.md")
+    archive_path = "handoff/AGENTS_V5_ARCHITECTURE_HISTORY.md"
+    legacy = read(archive_path)
+    assert archive_path in agents
+    assert "不是今天的任務順序" in agents
+    assert "WHD 公開 Engine `manufacturing_api`" in agents
+    assert "2D／3D 顯示投影與正式 DXF（同源）" in agents
+    assert "下一張工單" in agents
+    assert "只有當次 `/推推` 才能發布" in agents
+    assert "6. 跑完整 test suite" not in agents
+    assert "改為直接使用 `sheetmetal_geometry.py`" not in agents
+    assert "whd_doc_role: HISTORICAL" in legacy[:200]
+    assert "不參與 current routing" in legacy[:400]
+    assert "# 1. 專案核心精神" in legacy
+    assert "# 9. 歷史接手順序" in legacy
+    assert "# 10. 一句話核心" in legacy
+    assert "WHD 公開 Engine `manufacturing_api`" in legacy
+    authority = read(AUTHORITY_MAP_REL)
+    assert "WHD_AUTHORITY contract=agent-startup-process role=HISTORICAL path=" + archive_path in authority
+    assert len(agents.splitlines()) < 400
+
+
+def test_reference_skill_and_pitfall_guidance_cannot_reinstate_direct_x() -> None:
+    """Reference examples may retain old incidents, not stale present-day routing."""
+    refs = (
+        "個人AI檔案庫/第二層_專案與SOP/07_WHD技能發現與掃描深模組規則.md",
+        "個人AI檔案庫/踩坑庫/deterministic_repo_migration_pitfalls.md",
+        "個人AI檔案庫/踩坑庫/git_connector_target_write_pitfall.md",
+        "個人AI檔案庫/踩坑庫/root_local_first_entry_gate_pitfall.md",
+    )
+    for path in refs:
+        text = read(path)
+        assert "whd_doc_role: REFERENCE" in text[:200], path
+        assert "ref=localX" in text, path
+        assert "/推推" in text, path
+        for obsolete in (
+            "實際有效性、分類與路由仍以正式 X 的 `AGENTS.md`",
+            "治理直送 X 及 `localX`→X 發布分流",
+            "純治理白名單在 GitHub／雲端獨立工作分支 PR 直送 X",
+            "現行權威只看正式 X `AGENTS.md`",
+            "現行糾偏（不恢復歷史入口）**：若誤引用過時 外部儲存/shared-zero authority",
+        ):
+            assert obsolete not in text, (path, obsolete)
+
+    connector = read("個人AI檔案庫/踩坑庫/git_connector_target_write_pitfall.md")
+    assert "禁止指定 `localX`、`cleanup/2d-3d-sync`、`main`" in connector
+
+    # The discovery reference is not in the trusted governance-only whitelist.
+    # Keep existing product/mixed CI for this patch; never self-classify by .md.
+    from tools.change_lane_gate import classify_changes
+    assert classify_changes(list(refs)) == "PRODUCT_LOCALX_ONLY"
+    assert classify_changes(list(refs)[1:]) == "GOVERNANCE_DIRECT_X"
+
+
+def test_non_governance_ai_library_rules_trigger_product_regression() -> None:
+    """Product-lane SOP edits must launch canonical CI; 08/09 stay governance."""
+    import fnmatch
+
+    workflow = read(".github/workflows/whd-product-regression.yml")
+    trigger = workflow.split("    paths:\n", 1)[1].split("\n# Keep independent PRs", 1)[0]
+    patterns = [
+        line.strip().removeprefix("- '").removesuffix("'")
+        for line in trigger.splitlines() if line.strip().startswith("- '")
+    ]
+
+    def triggers(path: str) -> bool:
+        matched = False
+        for pattern in patterns:
+            negated = pattern.startswith("!")
+            if fnmatch.fnmatchcase(path, pattern.lstrip("!")):
+                matched = not negated
+        return matched
+
+    from tools.change_lane_gate import classify_changes
+    product = (
+        "個人AI檔案庫/第二層_專案與SOP/07_WHD技能發現與掃描深模組規則.md",
+        "個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md",
+    )
+    governance = (
+        "個人AI檔案庫/第二層_專案與SOP/08_WHD技能建立與修改規則.md",
+        "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
+    )
+    for path in product:
+        assert classify_changes([path]) == "PRODUCT_LOCALX_ONLY", path
+        assert triggers(path), path
+    for path in governance:
+        assert classify_changes([path]) == "GOVERNANCE_DIRECT_X", path
+        assert not triggers(path), path
+
+
+def test_ai04_current_manufacturing_rules_have_unique_headings() -> None:
+    """Prevent repeated CURRENT manufacturing clauses from becoming parallel owners.
+
+    Distinct Part/Family/Source and acceptance clauses must not be collapsed merely
+    because their wording is similar; this guard only rejects identical headings.
+    """
+    from collections import Counter
+
+    canonical = read(
+        "個人AI檔案庫/第二層_專案與SOP/04_WHD鈑金展開幾何引擎規範.md"
+    )
+    headings = [
+        line for line in canonical.splitlines()
+        if line.startswith("## [CURRENT] ")
+    ]
+    duplicates = sorted(
+        heading for heading, count in Counter(headings).items() if count > 1
+    )
+    assert not duplicates, duplicates
+
+    # Two previously byte-identical copies were folded into one without losing
+    # manufacturing source, error/rejection or Save→Reload acceptance evidence.
+    for title, source, evidence in (
+        (
+            "主 GUI 25 項製造數值輸入統一公開 Engine 實體／Fold 驗證",
+            "manufacturing_api.normalize_operator_source_dimensions",
+            "tests/test_issue2517_main_gui_numeric_source_public_engine.py",
+        ),
+        (
+            "封頭／封尾 FW、WRAP reserve、Joint 交易單一公開 Engine API",
+            "manufacturing_api.operator_endcap_fw_follow",
+            "OperatorBottomWrapTransition(state,resolved)",
+        ),
+    ):
+        assert sum(title in heading for heading in headings) == 1, title
+        assert source in canonical
+        assert evidence in canonical
+
+
+
+def test_pitfall_execution_history_uses_localx_source_not_retired_x_or_direct_governance() -> None:
+    """Historical incident notes must not reintroduce a current X instruction."""
+    history = read("個人AI檔案庫/第二層_專案與SOP/06_踩坑記錄與防錯經驗庫.md")
+    for legacy in (
+        "現已由正式 X `AGENTS.md`",
+        "現在依正式 X `AGENTS.md`",
+        "現行僅依正式 X `AGENTS.md`",
+        "治理白名單直送",
+    ):
+        assert legacy not in history, legacy
+    assert "現行僅依 GitHub `localX` exact HEAD 的 `AGENTS.md`" in history
+    assert "治理先整合 `localX`" in history
+    assert "正式 X 只有當次 `/推推`" in history

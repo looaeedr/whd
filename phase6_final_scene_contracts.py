@@ -54,6 +54,8 @@ class AssemblySceneRenderData:
     formed_nfb_pad_skins: tuple[object, ...] = ()
     # Append-only: keep the old positional DTO field order intact.
     show_fixing_plate_mesh: bool = True  # 3D-only visibility, not MARKING/MFG
+    owner_marking_views: tuple[tuple[str, object], ...] = ()
+
 
 
 @dataclass(frozen=True)
@@ -67,6 +69,12 @@ class FinalSceneViewRequest:
     thickness: float = 2.0
     corner_dimension_text: str | None = None
     unfolded_blank_text: str | None = None
+    # Original Receiving Set/Bay preview owns this *already resolved* Engine
+    # source. It is a display-only receipt for an on-demand cross-Bay audit,
+    # not an alternate GUI manufacturer or a saved project field.
+    receiving_collision_geometry: object | None = None
+    receiving_collision_identity: tuple[str, str] | None = None
+    show_operator_marking: bool = True  # session-only view effect
 
 
 @dataclass(frozen=True)

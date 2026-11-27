@@ -8,6 +8,7 @@ import inspect
 
 import pytest
 
+from ae_engine import receiving_nfb_pad_operator_parts as pad_source
 from ae_engine import manufacturing_api as api
 from ae_engine.receiving_layout import new_receiving_layout
 from gui_modules.project import export_actions as gui
@@ -44,19 +45,32 @@ def test_real_singleton_set_bay_source_id_is_selected_by_public_engine(family):
     assert source == before
 
 
-def test_explicit_set_bay_selection_survives_without_synthetic_identity():
+def test_explicit_set_bay_selection_binds_actual_persisted_identity():
     source = _one_bay()
+    saved = source["receiving_layout"]["sets"][0]
     source["_receiving_runtime_selection"] = {
-        "set_id": "actual-set", "bay_id": "actual-bay",
+        "set_id": saved["stable_id"],
+        "bay_id": saved["bays"][0]["stable_id"],
         "set_index": 0, "bay_index": 0,
     }
     before = deepcopy(source)
     result = api.resolve_receiving_pad_base_export_source(source)
-    assert result.version_id == "actual-set__actual-bay"
+    assert result.version_id == (
+        saved["stable_id"] + "__" + saved["bays"][0]["stable_id"]
+    )
     assert source == before
     with pytest.raises(ValueError, match="實際識別碼"):
         api.resolve_receiving_pad_base_export_source({
             **source, "_receiving_runtime_selection": {"set_id": "", "bay_id": "b"}
+        })
+    # A nonblank GUI alias never authorizes an unpersisted physical version.
+    with pytest.raises(ValueError, match="實體選取已失效"):
+        api.resolve_receiving_pad_base_export_source({
+            **source,
+            "_receiving_runtime_selection": {
+                **source["_receiving_runtime_selection"],
+                "bay_id": "not-a-physical-bay",
+            },
         })
 
 
@@ -125,7 +139,7 @@ def test_original_gui_pad_callback_only_consumes_engine_source_response(
     source = {"model": "受電箱", "nfb_config_submitted": True, "t": 2.}
     selected_source = {**source, "_receiving_runtime_selection": {"set_id": "a"}}
     hits = []
-    monkeypatch.setattr(api, "committed_nfb_pad_draft_parts",
+    monkeypatch.setattr(pad_source, "committed_nfb_pad_draft_parts",
                         lambda snapshot: ("verified-pad",))
     monkeypatch.setattr(
         bridge, "_phase6_final_scene_adapter",
@@ -216,3 +230,12 @@ def test_existing_named_dxf_for_registered_family_never_overwrites_without_confi
     assert calls and "DXF 檔名已存在" in str(calls[0][0])
     assert final.read_bytes() == b"EXISTING-PREVIOUS-DXF"
     assert not list(tmp_path.glob(".whd-export-stage-*"))
+
+
+def test_public_pad_base_preflight_rejects_missing_committed_config_after_submission():
+    # Submitted intent is not proof of a confirmed physical PAD / CSV owner.
+    source = {"model": " ReCeIvInG ", "nfb_config_submitted": True}
+    before = deepcopy(source)
+    with pytest.raises(ValueError, match="submitted NFBConfig missing from live Bay scope"):
+        api.require_receiving_pad_base_export_preflight(source)
+    assert source == before

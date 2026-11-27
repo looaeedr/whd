@@ -273,7 +273,7 @@ def project_receiving_bay_preview_fingerprint_snapshot(snapshot, *, set_index, b
     if not all(isinstance(row, dict) and row.get("stable_id")
                for row in bays):
         return fingerprint_snapshot
-    # Only the operator label and its monotonic allocator are non-geometric.
+    # Display labels and allocation high-water counters are not geometry.
     # Keep every physical ID, Fold/Joint/NFB setting and unknown extension in
     # the source key. Never mutate the canonical project or manufacturing input.
     # Do this before early returns so a label edit cannot rebuild a physical
@@ -284,7 +284,7 @@ def project_receiving_bay_preview_fingerprint_snapshot(snapshot, *, set_index, b
                for group in sets):
         return fingerprint_snapshot
     shallow_layout = {key: value for key, value in layout.items()
-                      if key != "next_panel_number"}
+                      if key not in {"next_panel_number", "next_base_plate_owner_generation"}}
     shallow_sets = []
     for group in sets:
         copy_group = dict(group)

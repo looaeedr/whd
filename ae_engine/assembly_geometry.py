@@ -17,6 +17,7 @@ from __future__ import annotations
 from .assembly_mesh_reuse import reuse_local_mesh
 
 from dataclasses import dataclass
+import math
 
 
 from .assembly_geometry_primitives import (
@@ -59,6 +60,7 @@ class MeshInterferenceDiagnostic:
     intersection_points: tuple[tuple[float, float, float], ...]
     pair_count: int = 0
     intersection_segments: tuple = ()
+    target_face_indices: tuple[int, ...] = ()
 
     @property
     def has_interference(self) -> bool:
@@ -163,7 +165,9 @@ def _segment_triangle_intersection(p0, p1, tri, *, tolerance=1e-7):
     return add(p0, mul(direction, t))
 
 
-def detect_world_mesh_surface_interference(source_triangles, target_triangles, *, tolerance=1e-6):
+def detect_world_mesh_surface_interference(
+    source_triangles, target_triangles, *, tolerance=1e-6, _pair_observer=None,
+):
     """Detect non-coplanar physical surface crossings in shared world space.
 
     This is a diagnostic overlay, not yet the production relief solver.  It
@@ -182,6 +186,7 @@ def detect_world_mesh_surface_interference(source_triangles, target_triangles, *
     src_min = src.min(axis=1)
     src_max = src.max(axis=1)
     target_hits = []
+    target_face_indices = []
     points = []
     pair_count = 0
     segments = []
@@ -194,7 +199,7 @@ def detect_world_mesh_surface_interference(source_triangles, target_triangles, *
             point_keys.add(key)
             points.append(tuple(float(v) for v in point))
 
-    for target_tri in target:
+    for face_index, target_tri in enumerate(target):
         arr = np.asarray(target_tri, dtype=float)
         tmin = arr.min(axis=0) - float(tolerance)
         tmax = arr.max(axis=0) + float(tolerance)
@@ -234,6 +239,9 @@ def detect_world_mesh_surface_interference(source_triangles, target_triangles, *
                             best = (a, b)
                 if best is not None and best_d2 > tolerance * tolerance:
                     pair_count += 1
+                    if _pair_observer is not None:
+                        _pair_observer(int(idx), face_index, source_tri, target_tri,
+                                       best, tolerance)
                     hit_target = True
                     skey = tuple(sorted((
                         tuple(round(v, 6) for v in best[0]),
@@ -246,10 +254,787 @@ def detect_world_mesh_surface_interference(source_triangles, target_triangles, *
                         record(point)
         if hit_target:
             target_hits.append(target_tri)
+            target_face_indices.append(face_index)
 
     return MeshInterferenceDiagnostic(
-        tuple(target_hits), tuple(points), pair_count, tuple(segments)
+        tuple(target_hits), tuple(points), pair_count, tuple(segments),
+        tuple(target_face_indices),
     )
+
+
+
+
+def probe_native_world_mesh_axis_faces(triangles, *, axis, fixed_xyz,
+                                      tolerance=1e-7):
+    """Read the exact mesh's physical faces on an axis-aligned world line.
+
+    Returned sorted coordinates are surface hits ONLY. A paired set of hits
+    is not assumed to be a watertight solid, or a licence to edit the mesh.
+    This exact-source diagnostic also works when the Box Body is open.
+    """
+    import math
+    if axis not in (0, 1, 2):
+        raise ValueError("NATIVE_WORLD_PROBE_AXIS_INVALID")
+    fixed = tuple(float(v) for v in fixed_xyz)
+    if len(fixed) != 3 or not all(math.isfinite(v) for v in fixed):
+        raise ValueError("NATIVE_WORLD_PROBE_POINT_INVALID")
+    mesh = tuple(triangles)
+    if not mesh:
+        raise ValueError("NATIVE_WORLD_PROBE_MESH_REQUIRED")
+    low = min(float(p[axis]) for tri in mesh for p in tri) - 1.
+    high = max(float(p[axis]) for tri in mesh for p in tri) + 1.
+    start = list(fixed)
+    end = list(fixed)
+    start[axis] = low
+    end[axis] = high
+    hits = set()
+    for triangle in mesh:
+        xyz = _segment_triangle_intersection(
+            start, end, triangle, tolerance=tolerance,
+        )
+        if xyz is not None:
+            hits.add(round(float(xyz[axis]), 6))
+    return tuple(sorted(hits))
+
+
+@dataclass(frozen=True)
+class NativeD4SurfacePair:
+    body_triangle_index: int
+    tail_triangle_index: int
+    kind: str
+    segment: tuple
+
+
+def _classify_native_d4_pair(body_tri, tail_tri, segment, tolerance):
+    """Classify only reported segments, not real mating or enclosed volume."""
+    import numpy as np
+
+    def triangle_geometry(triangle):
+        points = np.asarray(triangle, dtype=float)
+        edges = np.roll(points, -1, axis=0) - points
+        normal = np.cross(edges[0], edges[1])
+        size = np.linalg.norm(normal)
+        if size <= tolerance * max(np.linalg.norm(edges, axis=1)):
+            return points, edges, None
+        return points, edges, normal / size
+
+    a, ae, an = triangle_geometry(body_tri)
+    b, be, bn = triangle_geometry(tail_tri)
+    if an is None or bn is None:
+        return "DEGENERATE_UNRESOLVED"
+    if (max(abs((b - a[0]) @ an)) <= tolerance
+            and max(abs((a - b[0]) @ bn)) <= tolerance):
+        return "NEAR_COPLANAR_UNRESOLVED"
+
+    midpoint = (np.asarray(segment[0]) + segment[1]) / 2.0
+
+    def containment(points, edges, normal):
+        if abs((midpoint - points[0]) @ normal) > tolerance:
+            return None
+        # Signed in-plane edge distances in mm, with the same existing
+        # intersection tolerance (not a second machining clearance).
+        d = (np.cross(edges, midpoint - points) @ normal) / np.linalg.norm(edges, axis=1)
+        if min(d) < -tolerance:
+            return None
+        return min(d) > tolerance
+
+    ia = containment(a, ae, an)
+    ib = containment(b, be, bn)
+    if ia is None or ib is None:
+        return "PAIR_CLASSIFICATION_UNRESOLVED"
+    if ia and ib:
+        return "STRICT_TRIANGLE_INTERIOR"
+    if ia:
+        return "TAIL_TRIANGLE_EDGE"
+    if ib:
+        return "BODY_TRIANGLE_EDGE"
+    return "BOTH_TRIANGLE_EDGES"
+
+
+def _native_d4_surface_crossing_records(body, tail):
+    rows = []
+    def record(i, j, source, target, segment, tolerance):
+        rows.append(NativeD4SurfacePair(
+            i, j, _classify_native_d4_pair(source, target, segment, tolerance), segment,
+        ))
+    result = detect_world_mesh_surface_interference(body, tail, _pair_observer=record)
+    return result, tuple(rows)
+
+
+@dataclass(frozen=True)
+class NativeD4AssemblyCheck:
+    """CHECK-only result for the exact meshes displayed in the native window."""
+
+    body_triangle_count: int
+    tail_triangle_count: int
+    body_edges_manifold_closed: bool
+    crossing_pair_count: int
+    crossing_segments: tuple
+    crossing_points: tuple
+    volume_verdict: str
+    crossing_tail_uv_bounds: tuple | None = None
+    crossing_world_bounds: tuple | None = None
+    crossing_regions: tuple = ()
+    crossing_target_face_indices: tuple = ()
+    manufacturing_approved: bool = False
+    classified_surface_pairs: tuple[NativeD4SurfacePair, ...] = ()
+    original_classified_surface_pairs: tuple[NativeD4SurfacePair, ...] | None = None
+
+
+def inspect_native_d4_assembly_world(
+    body_world, placed_world, *, tail_faces=None, source_uv=None,
+    openings=None, original_tail_world=None,
+):
+    """Inspect *the displayed* Body and Ø4 Tail, without remesh or relocation.
+
+    Surface crossing is evidence, not an intersection volume or minimum
+    clearance. Coplanar contact is handled by the existing surface checker;
+    an open Body cannot support an enclosed-volume verdict.
+    """
+    body = tuple(body_world)
+    tail = tuple(placed_world)
+    if not body or not tail:
+        raise ValueError("TAIL_D4_ASSEMBLY_NATIVE_MESH_REQUIRED")
+    closure = diagnose_world_mesh_triangle_edge_incidence(body)
+    crossing, records = _native_d4_surface_crossing_records(body, tail)
+    original_records = None
+    if original_tail_world:
+        _, original_records = _native_d4_surface_crossing_records(body, original_tail_world)
+    # Map actual hit Tail triangles back to their ORIGINAL source UV.
+    # This is evidence, not material removal or a second fold model.
+    uv_bounds = None
+    regions = ()
+    if tail_faces is not None or source_uv is not None:
+        if tail_faces is None or source_uv is None:
+            raise ValueError("TAIL_D4_ASSEMBLY_UV_SOURCE_INCOMPLETE")
+        faces = tuple(tail_faces)
+        uv = tuple(source_uv)
+        if len(faces) != len(tail) or not uv:
+            raise ValueError("TAIL_D4_ASSEMBLY_UV_SOURCE_MISMATCH")
+        all_uv = []
+        hits_by_region = {"bottom_left": 0, "bottom_right": 0, "other": 0}
+        apexes = {str(item[0]): tuple(item[2]) for item in (openings or ())}
+        for index in crossing.target_face_indices:
+            coords = tuple(uv[int(i) % len(uv)] for i in faces[index])
+            all_uv.extend(coords)
+            region = "other"
+            for name, apex in apexes.items():
+                if name in hits_by_region and all(
+                    abs(float(p[0]) - float(apex[0])) <= 26.
+                    and abs(float(p[1]) - float(apex[1])) <= 26.
+                    for p in coords
+                ):
+                    region = name
+                    break
+            hits_by_region[region] += 1
+        if all_uv:
+            uv_bounds = tuple(
+                (min(float(p[k]) for p in all_uv),
+                 max(float(p[k]) for p in all_uv))
+                for k in (0, 1)
+            )
+        regions = tuple(hits_by_region.items())
+    world_bounds = None
+    if crossing.intersection_points:
+        world_bounds = tuple(
+            (min(p[k] for p in crossing.intersection_points),
+             max(p[k] for p in crossing.intersection_points))
+            for k in range(3)
+        )
+    return NativeD4AssemblyCheck(
+        body_triangle_count=len(body),
+        tail_triangle_count=len(tail),
+        body_edges_manifold_closed=closure.edges_manifold_closed,
+        crossing_pair_count=crossing.pair_count,
+        crossing_segments=crossing.intersection_segments,
+        crossing_points=crossing.intersection_points,
+        crossing_tail_uv_bounds=uv_bounds,
+        crossing_world_bounds=world_bounds,
+        crossing_regions=regions,
+        crossing_target_face_indices=crossing.target_face_indices,
+        classified_surface_pairs=records,
+        original_classified_surface_pairs=original_records,
+        volume_verdict=(
+            "VOLUME_INTERFERENCE_UNVERIFIABLE_BODY_OPEN"
+            if not closure.edges_manifold_closed
+            else "VOLUME_INTERFERENCE_NOT_ESTABLISHED_BY_SURFACE_CROSSINGS"
+        ),
+    )
+
+
+@dataclass(frozen=True)
+class MeshTriangleEdgeIncidenceDiagnostic:
+    """Physical 3D triangle shell edge evidence, CHECK-only, never a solid proof."""
+
+    triangle_count: int
+    boundary_edge_count: int
+    nonmanifold_edge_count: int
+    degenerate_triangle_count: int
+    boundary_edge_examples_xyz: tuple = ()
+    geometry_model: str = "WORLD_TRUE_T_TRIANGLE_EDGE_INCIDENCE_CHECK"
+    manufacturing_status: str = "TRUE_T_MESH_TOPOLOGY_UNCERTIFIED"
+    nonmanifold_vertex_count: int = 0
+    nonmanifold_vertex_examples_xyz: tuple = ()
+
+    @property
+    def edges_manifold_closed(self) -> bool:
+        # Edge pairing is necessary but insufficient: two closed shells
+        # touching at ONE vertex can still have every edge used twice.
+        # A valid local 2-manifold vertex link must be one closed cycle.
+        # Even this is not a full self-intersection-free solid certificate.
+        return (
+            self.triangle_count > 0
+            and not self.boundary_edge_count
+            and not self.nonmanifold_edge_count
+            and not self.nonmanifold_vertex_count
+            and not self.degenerate_triangle_count
+        )
+
+
+def diagnose_world_mesh_triangle_edge_incidence(triangles, *, tolerance=None):
+    """Report real physical missing/nonmanifold edges of the SAME 3D shell.
+
+    Reuse the numerical point-key contract of the existing strict parity
+    closure checker. Never repair via convex hull, welding tolerance,
+    fictitious triangles, or silent snapping: this is diagnostic evidence
+    for the one source-owned CHECK mesh, not a manufacturing correction.
+    """
+    from collections import Counter
+    import numpy as np
+
+    if tolerance is None:
+        from .contracts import PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES
+        tolerance = PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES.boundary_separation_tolerance
+    tol = float(tolerance)
+    if not np.isfinite(tol) or tol <= 0:
+        raise ValueError("true-T mesh edge numerical tolerance must be positive and finite")
+    try:
+        mesh = np.asarray(tuple(triangles if triangles is not None else ()), dtype=float)
+    except (TypeError, ValueError, OverflowError):
+        raise ValueError("true-T edge witness needs actual finite 3D triangles") from None
+    if mesh.ndim != 3 or mesh.shape[1:] != (3, 3) or not np.isfinite(mesh).all():
+        raise ValueError("true-T edge witness needs actual finite 3D triangles")
+
+    from collections import defaultdict
+
+    counts = Counter()
+    representatives = {}
+    vertex_links = defaultdict(list)
+    vertex_positions = {}
+    degenerate = 0
+    for tri in mesh:
+        u, v = tri[1] - tri[0], tri[2] - tri[0]
+        keys = [tuple(int(round(float(c) / tol)) for c in p) for p in tri]
+        if (
+            len(set(keys)) != 3
+            or np.linalg.norm(np.cross(u, v)) <= tol * tol
+        ):
+            degenerate += 1
+            continue
+        for i in range(3):
+            j = (i + 1) % 3
+            key = tuple(sorted((keys[i], keys[j])))
+            counts[key] += 1
+            if key not in representatives:
+                representatives[key] = (
+                    tuple(float(c) for c in tri[i]),
+                    tuple(float(c) for c in tri[j]),
+                )
+            # A triangle contributes the opposite-neighbor edge to each
+            # source vertex's local triangulated surface link.
+            vertex_links[keys[i]].append((keys[j], keys[(i + 2) % 3]))
+            vertex_positions.setdefault(keys[i], tuple(float(c) for c in tri[i]))
+
+    def one_closed_vertex_fan(links):
+        if len(links) < 3:
+            return False
+        neighbors = defaultdict(set)
+        link_edges = set()
+        for a, b in links:
+            pair = tuple(sorted((a, b)))
+            if a == b or pair in link_edges:
+                return False
+            link_edges.add(pair)
+            neighbors[a].add(b)
+            neighbors[b].add(a)
+        # A single 2-manifold vertex has exactly one connected degree-two
+        # cycle, not several fans that just happen to share its origin.
+        if len(neighbors) < 3 or any(len(row) != 2 for row in neighbors.values()):
+            return False
+        visited = set()
+        pending = [next(iter(neighbors))]
+        while pending:
+            node = pending.pop()
+            if node in visited:
+                continue
+            visited.add(node)
+            pending.extend(neighbors[node] - visited)
+        return len(visited) == len(neighbors) and len(link_edges) == len(neighbors)
+
+    invalid_vertices = tuple(
+        key for key, links in vertex_links.items()
+        if not one_closed_vertex_fan(links)
+    )
+    boundary = tuple(key for key, count in counts.items() if count == 1)
+    nonmanifold = sum(count > 2 for count in counts.values())
+    return MeshTriangleEdgeIncidenceDiagnostic(
+        triangle_count=len(mesh),
+        boundary_edge_count=len(boundary),
+        nonmanifold_edge_count=nonmanifold,
+        degenerate_triangle_count=degenerate,
+        boundary_edge_examples_xyz=tuple(
+            representatives[key] for key in boundary[:8]
+        ),
+        nonmanifold_vertex_count=len(invalid_vertices),
+        nonmanifold_vertex_examples_xyz=tuple(
+            vertex_positions[key] for key in invalid_vertices[:8]
+        ),
+    )
+
+
+@dataclass(frozen=True)
+class MeshSurfaceSelfIntersectionDiagnostic:
+    """Observed forbidden self-crossings of one *source* 3D shell, CHECK only.
+
+    Zero detected pairs is necessary, not a globally certified watertight
+    Boolean solid. An exhausted numerical work budget is explicitly UNKNOWN.
+    """
+
+    tested_nonadjacent_pairs: int
+    crossing_pair_count: int
+    coplanar_overlap_pair_count: int
+    numerical_budget_exhausted: bool
+    first_source_triangle_pair: tuple[int, int] | None = None
+    geometry_model: str = "WORLD_TRUE_T_SELF_SURFACE_INTERSECTION_CHECK"
+    manufacturing_status: str = "TRUE_T_SELF_INTERSECTION_UNCERTIFIED"
+
+    @property
+    def permits_strict_volume_sampling(self) -> bool:
+        return (
+            not self.numerical_budget_exhausted
+            and self.crossing_pair_count == 0
+            and self.coplanar_overlap_pair_count == 0
+        )
+
+
+def diagnose_world_mesh_self_intersections(
+    triangles, *, tolerance=None, max_nonadjacent_pairs=12000,
+):
+    """Find genuine non-neighbor triangle intersections in an actual T shell.
+
+    Bounds cull non-overlapping 3D triangle pairs. Faces sharing a complete
+    source edge are normal triangulation neighbors and are skipped; a pair
+    sharing zero/one vertices is checked for a nonzero crossing segment or
+    positive-area coplanar overlap. One-point contacts are not invented into
+    penetration. All comparisons use Engine NUMERICAL tolerance, not a
+    factory gap. Work exhaustion fails closed rather than claiming no hit.
+
+    This is a finite triangle-surface check. It is not a general-purpose
+    exact mesh Boolean, proof of global contact, or manufacturing approval.
+    """
+    import numpy as np
+
+    if tolerance is None:
+        from .contracts import PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES
+        tolerance = PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES.boundary_separation_tolerance
+    tol = float(tolerance)
+    if not np.isfinite(tol) or tol <= 0:
+        raise ValueError("true-T self-intersection tolerance must be finite and positive")
+    if isinstance(max_nonadjacent_pairs, bool) or not isinstance(max_nonadjacent_pairs, int) or max_nonadjacent_pairs < 1:
+        raise ValueError("true-T self-intersection work budget must be positive")
+    try:
+        mesh = np.asarray(tuple(triangles if triangles is not None else ()), dtype=float)
+    except (TypeError, ValueError, OverflowError):
+        raise ValueError("true-T self-intersection needs finite triangles") from None
+    if mesh.ndim != 3 or mesh.shape[1:] != (3, 3) or not np.isfinite(mesh).all():
+        raise ValueError("true-T self-intersection needs finite triangles")
+
+    mins = mesh.min(axis=1)
+    maxs = mesh.max(axis=1)
+    cross = np.cross(mesh[:, 1] - mesh[:, 0], mesh[:, 2] - mesh[:, 0])
+    magnitude = np.linalg.norm(cross, axis=1)
+    if np.any(magnitude <= tol * tol):
+        return MeshSurfaceSelfIntersectionDiagnostic(0, 0, 0, True)
+    unit = cross / magnitude[:, None]
+    lengths = np.maximum.reduce((
+        np.linalg.norm(mesh[:, 1] - mesh[:, 0], axis=1),
+        np.linalg.norm(mesh[:, 2] - mesh[:, 1], axis=1),
+        np.linalg.norm(mesh[:, 0] - mesh[:, 2], axis=1),
+    ))
+    keys = [
+        frozenset(tuple(int(round(float(v) / tol)) for v in p) for p in tri)
+        for tri in mesh
+    ]
+    checked = 0
+
+    def result(crossed=0, coplanar=0, exhausted=False, pair=None):
+        return MeshSurfaceSelfIntersectionDiagnostic(
+            checked, crossed, coplanar, exhausted, pair,
+        )
+
+    # The broad-phase is vectorized, but each real pair keeps its own
+    # physical triangle provenance; no surrogate convex hull is created.
+    for i in range(len(mesh)):
+        mask = np.all(maxs[i + 1:] + tol >= mins[i], axis=1) & np.all(
+            mins[i + 1:] - tol <= maxs[i], axis=1,
+        )
+        for j0 in np.flatnonzero(mask):
+            j = i + 1 + int(j0)
+            # Exactly two shared endpoints make a real triangulation
+            # hinge; identical three-vertex triangles instead duplicate a
+            # physical face and MUST be tested as coplanar overlap.
+            if len(keys[i].intersection(keys[j])) == 2:
+                continue
+            if checked >= max_nonadjacent_pairs:
+                return result(exhausted=True)
+            checked += 1
+            a, b = mesh[i], mesh[j]
+            parallel = abs(float(np.dot(unit[i], unit[j]))) >= 1.0 - 1e-10
+            if parallel:
+                # Parallel but distinct physical layers must not be treated
+                # as coplanar self-intersections.
+                plane_dist = np.abs((b - a[0]) @ unit[i])
+                if np.any(plane_dist > tol):
+                    continue
+                from shapely.geometry import Polygon
+                axes = [axis for axis in range(3) if axis != int(np.argmax(np.abs(unit[i])))]
+                pa = Polygon(a[:, axes])
+                pb = Polygon(b[:, axes])
+                if pa.intersection(pb).area > tol * max(float(lengths[i]), float(lengths[j])):
+                    return result(coplanar=1, pair=(i, j))
+                continue
+
+            hits = []
+            for source, target in ((a, b), (b, a)):
+                for k in range(3):
+                    hit = _segment_triangle_intersection(
+                        source[k], source[(k + 1) % 3], target, tolerance=tol,
+                    )
+                    if hit is None:
+                        continue
+                    p = np.asarray(hit, dtype=float)
+                    if all(np.linalg.norm(p - existing) > tol for existing in hits):
+                        hits.append(p)
+            # A genuine noncoplanar triangle crossing occupies a positive
+            # line segment. A single common endpoint is not evidence of it.
+            if len(hits) >= 2 and any(
+                np.linalg.norm(p - q) > 4 * tol
+                for ix, p in enumerate(hits) for q in hits[ix + 1:]
+            ):
+                return result(crossed=1, pair=(i, j))
+    return result()
+
+
+@dataclass(frozen=True)
+class MeshEnclosedVolumeDiagnostic:
+    """Conservative true-3D interior-overlap witness, not a clearance certificate.
+
+    Surface-crossing detectors miss both nested closed solids AND coincident
+    coplanar shells. A positive STRICT interior point proves real 3D shared
+    volume; a negative finite sample is NOT a no-penetration certification.
+    The historical attribute names remain for callers' compatibility.
+    """
+
+    meshes_closed: bool
+    sample_count: int
+    strictly_inside_points: tuple[tuple[float, float, float], ...]
+    geometry_model: str = "CLOSED_MESH_STRICT_CONTAINMENT_SAMPLE_UNCERTIFIED"
+
+    @property
+    def has_enclosed_overlap(self) -> bool:
+        return bool(self.strictly_inside_points)
+
+
+
+def _convex_closed_mesh_overlap_candidate(first_mesh, second_mesh, *, tolerance):
+    """Derive a *candidate* common interior from real 3D closed-mesh planes.
+
+    Each genuine triangle plane must support ALL vertices of its own mesh
+    on one side. Only then is that component convex for this limited proof.
+    For two convex meshes, all intersections of triples of face planes
+    determine their closed polyhedral intersection. A full-dimensional
+    intersection has a strictly interior vertex barycentre. The caller
+    MUST still validate this candidate with independent strict 3D ray
+    parity against BOTH original physical meshes; a bounding box, hull
+    approximation, candidate, or boundary-only contact proves nothing.
+
+    Non-convex, near-degenerate and overly complex solids return UNKNOWN
+    here and continue using the existing source-mesh witness checks.
+    Budget limits are numerical-work limits, NOT acceptable factory gaps.
+    """
+    from itertools import combinations
+    import numpy as np
+
+    tol = float(tolerance)
+    max_planes = 24
+
+    def supporting_planes(mesh):
+        points = mesh.reshape(-1, 3)
+        rows = []
+        for tri in mesh:
+            p, q, r = tri
+            normal = np.cross(q - p, r - p)
+            magnitude = float(np.linalg.norm(normal))
+            if not np.isfinite(magnitude) or magnitude <= tol * tol:
+                return None
+            normal /= magnitude
+            offset = float(np.dot(normal, p))
+            signed = points @ normal - offset
+            high, low = float(signed.max()), float(signed.min())
+            # A triangle cutting THROUGH the mesh's own vertices cannot
+            # serve as a supporting face of a convex *closed* volume.
+            if low < -tol and high > tol:
+                return None
+            if -tol <= low and high <= tol:
+                return None
+            # Determine outward-facing normals from actual source material,
+            # independent of imported triangle winding.
+            if high > tol:
+                normal = -normal
+                offset = -offset
+            if np.any(points @ normal - offset > tol):
+                return None
+            if not any(
+                float(np.linalg.norm(normal - prior_normal)) <= 1e-10
+                and abs(offset - prior_offset) <= tol
+                for prior_normal, prior_offset in rows
+            ):
+                rows.append((normal, offset))
+                if len(rows) > max_planes:
+                    return None
+        return rows if len(rows) >= 4 else None
+
+    first_planes = supporting_planes(first_mesh)
+    second_planes = supporting_planes(second_mesh)
+    if first_planes is None or second_planes is None:
+        return None
+    rows = first_planes + second_planes
+    if len(rows) > max_planes:
+        return None
+    normals = np.stack([row[0] for row in rows], axis=0)
+    offsets = np.asarray([row[1] for row in rows], dtype=float)
+    lower = np.maximum(
+        first_mesh.min(axis=(0, 1)), second_mesh.min(axis=(0, 1))
+    )
+    upper = np.minimum(
+        first_mesh.max(axis=(0, 1)), second_mesh.max(axis=(0, 1))
+    )
+    if np.any(upper - lower <= 2 * tol):
+        return None
+
+    feasible_vertices = []
+    # A physical full-dimensional polyhedral intersection has vertices
+    # defined by three independent actual supporting planes. Enumerate
+    # these, not any guessed sampling grid or synthetic mating surface.
+    for ids in combinations(range(len(rows)), 3):
+        mat = normals[list(ids)]
+        if abs(float(np.linalg.det(mat))) <= 1e-10:
+            continue
+        try:
+            candidate = np.linalg.solve(mat, offsets[list(ids)])
+        except np.linalg.LinAlgError:
+            continue
+        if not np.isfinite(candidate).all():
+            continue
+        if np.any(candidate < lower - tol) or np.any(candidate > upper + tol):
+            continue
+        if np.all(normals @ candidate - offsets <= tol):
+            feasible_vertices.append(candidate)
+    if len(feasible_vertices) < 4:
+        return None
+    vertices = np.stack(feasible_vertices, axis=0)
+    centre = vertices.mean(axis=0)
+    # A surface-only contact polygon / common edge has zero volume. Check
+    # the 3D affine rank rather than treating an overlapping 2D face as
+    # a forbidden volume intersection.
+    singular = np.linalg.svd(vertices - centre, compute_uv=False)
+    if len(singular) != 3 or singular[-1] <= tol:
+        return None
+    if not np.isfinite(centre).all():
+        return None
+    return tuple(float(value) for value in centre)
+
+
+def detect_world_mesh_enclosed_volume_witness(
+    source_triangles, target_triangles, *, tolerance=None,
+):
+    """Find proven positive overlap of already-meshed closed T-thick solids.
+
+    Requires finite, nondegenerate, edge- and vertex-manifold closed triangles,
+    and no detected forbidden non-neighbor source-surface self-crossing.
+    Original two-direction checks see nested solids when a *surface* point
+    lies strictly inside the other. For coincident coplanar shells ALL source
+    surface vertices and face centroids lie ON the other shell and that
+    sampling alone returns false: also sample independent shared interior
+    candidates within the intersection of the two real mesh AABBs and
+    require strict parity *inside both solids*. Touching faces have no 3D
+    AABB interior, so contact alone cannot be treated as positive overlap.
+
+    Ambiguous boundary/ray hits never become positive evidence. For closed,
+    genuinely convex polyhedral meshes, a final exact supporting-plane
+    intersection candidate can expose thin shared regions missed by ALL
+    finite surface and AABB samples; it must also pass strict parity inside
+    both actual meshes. General nonconvex meshes remain finite-sample
+    diagnostics, NOT complete collision-free proof or factory fit acceptance.
+    """
+    import numpy as np
+
+    if tolerance is None:
+        from .contracts import PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES
+        tolerance = PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES.boundary_separation_tolerance
+    tol = float(tolerance)
+    if not np.isfinite(tol) or tol <= 0:
+        raise ValueError("mesh containment numerical tolerance must be finite and positive")
+
+    def prepared(rows):
+        try:
+            mesh = np.asarray(tuple(rows if rows is not None else ()), dtype=float)
+        except (TypeError, ValueError, OverflowError):
+            return None
+        if mesh.ndim != 3 or mesh.shape[1:] != (3, 3) or not np.isfinite(mesh).all():
+            return None
+        # Use the SAME physical edge + vertex manifold test as source
+        # topology diagnostics. Two edge-closed shells pinched at a vertex
+        # are NOT one closed solid with reliable strict interior parity.
+        topology = diagnose_world_mesh_triangle_edge_incidence(
+            mesh, tolerance=tol,
+        )
+        if not topology.edges_manifold_closed:
+            return None
+        # Pairwise edge/vertex closure does not rule out two individually
+        # closed source shells occupying each other's interior. An actual
+        # non-neighbor surface crossing or unresolved search is UNKNOWN for
+        # strict volume parity; never accept it as a closed physical part.
+        own_surface = diagnose_world_mesh_self_intersections(
+            mesh, tolerance=tol,
+        )
+        if not own_surface.permits_strict_volume_sampling:
+            return None
+        return mesh
+
+    src = prepared(source_triangles)
+    dst = prepared(target_triangles)
+    if src is None or dst is None:
+        return MeshEnclosedVolumeDiagnostic(False, 0, ())
+
+    directions = np.asarray((
+        (1.0, .373, .619),
+        (.227, 1.0, .461),
+        (.583, .291, 1.0),
+    ))
+    unit = directions / np.linalg.norm(directions, axis=1)[:, None]
+
+    def is_strictly_inside(point, mesh):
+        # Consistent odd parity along at least two independent rays. A point
+        # on a face or an edge-aligned hit is numerically indeterminate.
+        v0 = mesh[:, 0, :]
+        e1 = mesh[:, 1, :] - v0
+        e2 = mesh[:, 2, :] - v0
+        votes = []
+        for ray in unit:
+            pvec = np.cross(ray, e2)
+            det = np.einsum("ij,ij->i", e1, pvec)
+            valid = np.abs(det) > 1e-12
+            inv = np.zeros_like(det)
+            inv[valid] = 1.0 / det[valid]
+            tv = point - v0
+            u = np.einsum("ij,ij->i", tv, pvec) * inv
+            qvec = np.cross(tv, e1)
+            v = qvec @ ray * inv
+            t = np.einsum("ij,ij->i", e2, qvec) * inv
+            inside_face = valid & (u >= -1e-9) & (v >= -1e-9) & (u + v <= 1 + 1e-9)
+            if np.any(inside_face & (np.abs(t) <= tol)):
+                continue
+            forward = inside_face & (t > tol)
+            if np.any(forward & ((u <= 1e-9) | (v <= 1e-9) | (u + v >= 1 - 1e-9))):
+                continue
+            distances = sorted(float(value) for value in t[forward])
+            unique = []
+            for distance in distances:
+                if not unique or distance - unique[-1] > max(tol, abs(distance) * 1e-9):
+                    unique.append(distance)
+            votes.append(bool(len(unique) % 2))
+        return len(votes) >= 2 and all(votes)
+
+    points_checked = 0
+    def check_samples(candidate, enclosure):
+        nonlocal points_checked
+        lower = enclosure.min(axis=(0, 1)) + tol
+        upper = enclosure.max(axis=(0, 1)) - tol
+        # vertices plus face-centres: a nested small shell may have its
+        # vertices strictly inside even when no surfaces intersect.
+        pts = np.vstack((candidate.reshape(-1, 3), candidate.mean(axis=1)))
+        viable = pts[np.all((pts > lower) & (pts < upper), axis=1)]
+        if len(viable) == 0:
+            return None
+        # Fixed diagnostic work cap, not a factory length/clearance value.
+        ids = np.linspace(0, len(viable) - 1, min(48, len(viable)), dtype=int)
+        seen = set()
+        for i in ids:
+            p = viable[i]
+            key = tuple(float(v) for v in p)
+            if key in seen:
+                continue
+            seen.add(key)
+            points_checked += 1
+            if is_strictly_inside(p, enclosure):
+                return key
+        return None
+
+    # Both shells must be checked; one may be completely enclosed by the
+    # other and the surface-segment detector would report zero crossings.
+    for a, b in ((src, dst), (dst, src)):
+        witness = check_samples(a, b)
+        if witness is not None:
+            return MeshEnclosedVolumeDiagnostic(True, points_checked, (witness,))
+
+    # #3317 TRUE-T: coincident / matched coplanar shells have no source
+    # *surface* point strictly inside the other. Their SHARED INTERIOR,
+    # however, is real physical volume interference. Derive deterministic
+    # candidates solely from the two existing world 3D closed meshes.
+    # The AABB intersection is a permissive search *domain*, not proof:
+    # each candidate MUST be strictly inside BOTH triangle meshes.
+    # No threshold here is a permitted factory gap or kerf allowance.
+    lower = np.maximum(src.min(axis=(0, 1)), dst.min(axis=(0, 1))) + tol
+    upper = np.minimum(src.max(axis=(0, 1)), dst.max(axis=(0, 1))) - tol
+    if np.all(lower < upper):
+        extent = upper - lower
+        # Centre first catches exactly coincident solids; the eight
+        # octants discover positive regions displaced from the AABB centre.
+        # Finite fixed sample budget (nine), never a no-overlap certificate.
+        fractions = ((.5, .5, .5),) + tuple(
+            (x, y, z)
+            for x in (.25, .75)
+            for y in (.25, .75)
+            for z in (.25, .75)
+        )
+        for frac in fractions:
+            point = lower + extent * np.asarray(frac)
+            points_checked += 1
+            if is_strictly_inside(point, src) and is_strictly_inside(point, dst):
+                witness = tuple(float(v) for v in point)
+                return MeshEnclosedVolumeDiagnostic(
+                    True, points_checked, (witness,),
+                )
+
+    # Positive common-volume witness for simple CLOSED CONVEX true-T
+    # polyhedra with a narrow overlap missed by all nine AABB candidates.
+    # The plane intersection is ONLY a candidate: ray parity against
+    # BOTH original world meshes remains mandatory. For arbitrary curved
+    # non-convex V folds no convex assumption is made, and a negative
+    # answer stays an uncertified finite diagnostic.
+    candidate = _convex_closed_mesh_overlap_candidate(
+        src, dst, tolerance=tol,
+    )
+    if candidate is not None:
+        points_checked += 1
+        if is_strictly_inside(np.asarray(candidate), src) and is_strictly_inside(
+            np.asarray(candidate), dst
+        ):
+            return MeshEnclosedVolumeDiagnostic(
+                True, points_checked, (candidate,),
+            )
+    return MeshEnclosedVolumeDiagnostic(True, points_checked, ())
 
 
 
@@ -278,6 +1063,8 @@ def folded_mesh_with_flat_uv_from_polygon(
     *,
     fold_exemptions=(),
     fold_guides=(),
+    fold_tip_continuity=(),
+    exact_material=False,
 ):
     """Fold material exactly like :func:`folded_mesh_from_polygon`, preserving 2D UV.
 
@@ -291,10 +1078,27 @@ def folded_mesh_with_flat_uv_from_polygon(
 
     xb, xf = _profile_geometry(x_profile)
     yb, yf = _profile_geometry(y_profile)
-    x_mapper = _prepare_profile_mapper(x_profile, axis="x", fold_guides=fold_guides, geometry=(xb, xf))
-    y_mapper = _prepare_profile_mapper(y_profile, axis="y", fold_guides=fold_guides, geometry=(yb, yf))
+    tip_kwargs = (
+        {"fold_tip_continuity": fold_tip_continuity}
+        if fold_tip_continuity else {}
+    )
+    x_mapper = _prepare_profile_mapper(
+        x_profile,axis="x",fold_guides=fold_guides,
+        geometry=(xb,xf),**tip_kwargs,
+    )
+    y_mapper = _prepare_profile_mapper(
+        y_profile,axis="y",fold_guides=fold_guides,
+        geometry=(yb,yf),**tip_kwargs,
+    )
     total_x, total_y = float(xb[-1]), float(yb[-1])
-    display_material = material.simplify(0.05, preserve_topology=True)
+    # Physical hole projection needs the actual CUTTING contour, not the
+    # legacy display simplification. Opt in; other callers stay unchanged.
+    display_material = material if exact_material else material.simplify(0.05, preserve_topology=True)
+    if exact_material:
+        try:
+            from shapely import constrained_delaunay_triangles
+        except ImportError as exc:
+            raise ValueError("WHD_EXACT_MATERIAL_TRIANGULATION_UNAVAILABLE") from exc
     clipped_material = display_material.intersection(box(0.0, 0.0, total_x, total_y))
     mapped_triangles = []
 
@@ -319,6 +1123,24 @@ def folded_mesh_with_flat_uv_from_polygon(
             for value in (float(guide.span_start), float(guide.span_end)):
                 if 0.0 < value < total_y:
                     y_cuts.add(value)
+    # Mirror the existing folded_mesh_from_polygon finite-tip
+    # tessellation EXACTLY. This only subdivides connected V stock; it
+    # neither extends nor edits the operator's real source BEND.
+    for axis, station, outer_min, outer_max in tuple(fold_tip_continuity or ()):
+        dest = x_cuts if str(axis) == "y" else y_cuts
+        matched = [guide for guide in tuple(fold_guides or ())
+                   if str(guide.axis) == str(axis)
+                   and abs(float(guide.position)-float(station))<=1e-6]
+        if len(matched)!=1:
+            raise ValueError("WHD_FOLD_TIP_TESSELLATION_BEND_MISSING")
+        for start,stop in (
+            (float(outer_min),float(matched[0].span_start)),
+            (float(matched[0].span_end),float(outer_max)),
+        ):
+            for step in range(1,8):
+                point=start+(stop-start)*step/8.
+                if 0.<point<(total_x if str(axis)=="y" else total_y):
+                    dest.add(point)
     x_cuts = sorted(x_cuts)
     y_cuts = sorted(y_cuts)
 
@@ -339,7 +1161,14 @@ def folded_mesh_with_flat_uv_from_polygon(
                 regions = next_regions
 
             for piece, flags in regions:
-                for tri in triangulate(piece):
+                if exact_material:
+                    triangles = tuple(constrained_delaunay_triangles(piece).geoms)
+                    if (not triangles or any(not piece.covers(tri) for tri in triangles)
+                            or abs(sum(tri.area for tri in triangles)-piece.area)>max(1e-6,piece.area*1e-10)):
+                        raise ValueError("WHD_EXACT_MATERIAL_TRIANGULATION_INCOMPLETE")
+                else:
+                    triangles = triangulate(piece)
+                for tri in triangles:
                     if not piece.covers(tri):
                         continue
                     flat = tuple(
@@ -805,6 +1634,74 @@ def derive_side_back_split_endcap_bottom_relief(
     }
 
 
+def _has_integral_dwd_fold_owner(part):
+    """Only an authored, source-keyed one-piece D-W-D BoxBody owns this skin."""
+    render=getattr(part,"render_data",None)
+    topology=getattr(render,"unfolded_topology",None)
+    if (str(getattr(part,"part_key",""))!="box_body"
+            or str(getattr(part,"placement","")) not in {"box_body","body","cabinet"}
+            or getattr(render,"pieces",None)
+            or getattr(topology,"source",None)!="BOX_BODY_FOLD_PROFILE"):
+        return False
+    profile=tuple(getattr(part,"x_profile",()) or ())
+    keys=tuple(str(_segment_value(row,"phase6_key","") or "") for row in profile)
+    core=tuple((i,str(_segment_value(row,"core","") or ""))
+               for i,row in enumerate(profile) if _segment_value(row,"core"))
+    if (len(profile)!=9 or keys!=(
+            "zl1","zl2","fw_left","d_left","w","d_right",
+            "fw_right","zr2","zr1")
+            or core!=((3,"D"),(4,"W"),(5,"D"))):
+        return False
+    angles=tuple(_segment_value(row,"angle",None) for row in profile)
+    return all(
+        angle is not None and abs(abs(float(angle))-90.)<=1e-7
+        for angle in angles[:-1]
+    ) and angles[-1] is None
+
+
+def _integral_body_formed_outside_skins(mapped, placed, *, thickness):
+    """Physical integral D-W-D Box Body skins from its Fold INSIDE datum.
+
+    The source Fold chain is material-length geometry; a real adjacent
+    90-degree BEND owns the operator outside +T, so this is NOT a mid-surface
+    with a symmetric +/-T/2. Keep source vertices/triangles unchanged, with
+    one skin at the Fold datum and the other exactly T toward the cabinet
+    exterior. No XY scaling, changed CUTTING, BA or synthetic bend.
+    """
+    # The placed mesh is world-space; its own X/Z folded envelope is the
+    # translation-equivariant cabinet datum. A GLOBAL origin test turns
+    # left/rear skins inside-out when the cabinet receives an offset.
+    triangles=tuple(placed)
+    items=tuple(mapped)
+    if len(triangles)!=len(items):
+        raise ValueError("BOX_BODY_INTEGRAL_FOLD_SKIN_SOURCE_MISMATCH")
+    t=float(thickness)
+    if not math.isfinite(t) or t<=0:
+        raise ValueError("BOX_BODY_INTEGRAL_SHEET_THICKNESS_INVALID")
+    bounds=triangle_bounds(triangles)
+    center_x=(bounds[0][0]+bounds[0][1])/2.
+    center_z=(bounds[2][0]+bounds[2][1])/2.
+    result=[]
+    for item,mid in zip(items,triangles):
+        n=_triangle_unit_normal(mid)
+        if n is None:
+            raise ValueError("BOX_BODY_INTEGRAL_DEGENERATE_PHYSICAL_FACE")
+        centroid=tuple(sum(float(p[k]) for p in mid)/3. for k in range(3))
+        radial=n[0]*(centroid[0]-center_x)+n[2]*(centroid[2]-center_z)
+        if abs(radial)<=1e-8:
+            raise ValueError("BOX_BODY_INTEGRAL_OUTSIDE_FACE_DIRECTION_AMBIGUOUS")
+        outward=1. if radial>0. else -1.
+        outer=tuple(
+            tuple(float(p[k])+outward*t*n[k] for k in range(3))
+            for p in mid
+        )
+        result.extend((
+            MappedSkinTriangle(flat=item.flat,world=mid,side=-1),
+            MappedSkinTriangle(flat=item.flat,world=outer,side=1),
+        ))
+    return tuple(result)
+
+
 def build_joint_world_geometry(parts, finished_dimensions, sheet_thickness):
     """Build Joint Solver v2 world/UV maps from canonical AssemblyScenePart objects.
 
@@ -882,18 +1779,24 @@ def build_joint_world_geometry(parts, finished_dimensions, sheet_thickness):
                 world_mid_piece = fit_receiving_left_zl1_world_mid(
                     piece, mapped, world_mid_piece, sheet_thickness=sheet_thickness,
                 )
-                skins = []
-                for item, world_mid in zip(mapped, world_mid_piece):
-                    normal = _triangle_unit_normal(world_mid)
-                    if normal is None:
-                        continue
-                    for side in (-1, 1):
-                        delta = tuple(float(side) * half * value for value in normal)
-                        world = tuple(
-                            tuple(float(point[i]) + delta[i] for i in range(3))
-                            for point in world_mid
-                        )
-                        skins.append(MappedSkinTriangle(flat=item.flat, world=world, side=side))
+                if (str(getattr(piece,"role","") or "").lower()=="integral"
+                        and _has_integral_dwd_fold_owner(body)):
+                    skins=list(_integral_body_formed_outside_skins(
+                        mapped,world_mid_piece,thickness=sheet_thickness,
+                    ))
+                else:
+                    skins = []
+                    for item, world_mid in zip(mapped, world_mid_piece):
+                        normal = _triangle_unit_normal(world_mid)
+                        if normal is None:
+                            continue
+                        for side in (-1, 1):
+                            delta = tuple(float(side) * half * value for value in normal)
+                            world = tuple(
+                                tuple(float(point[i]) + delta[i] for i in range(3))
+                                for point in world_mid
+                            )
+                            skins.append(MappedSkinTriangle(flat=item.flat, world=world, side=side))
                 piece_key = f"box_body:{str(getattr(piece, 'role', '') or '').strip().lower()}"
                 flat_material_by_part[piece_key] = piece.render_data.material
                 mapped_skin_triangles_by_part[piece_key] = tuple(skins)
@@ -908,10 +1811,17 @@ def build_joint_world_geometry(parts, finished_dimensions, sheet_thickness):
             body_world_mid = place_assembly_triangles(
                 tuple(item.local for item in mapped), body.placement, finished_dimensions, body.offset
             )
-            skins = world_skin_with_flat_uv(
-                mapped, body.placement, finished_dimensions, offset=body.offset,
-                sheet_thickness=sheet_thickness,
-            )
+            # The operator's true D-W-D BoxBody Fold is an inside skin;
+            # other plain parts keep their original symmetric mid-surface.
+            if _has_integral_dwd_fold_owner(body):
+                skins = _integral_body_formed_outside_skins(
+                    mapped,body_world_mid,thickness=sheet_thickness,
+                )
+            else:
+                skins = world_skin_with_flat_uv(
+                    mapped,body.placement,finished_dimensions,
+                    offset=body.offset,sheet_thickness=sheet_thickness,
+                )
             flat_material_by_part["box_body"] = body.render_data.material
             mapped_skin_triangles_by_part["box_body"] = tuple(skins)
             world_triangles_by_part["box_body"] = tuple(item.world for item in skins)

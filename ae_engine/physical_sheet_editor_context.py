@@ -90,10 +90,47 @@ def propose_operator_physical_sheet_hole_features(
             normalized.append(feature)
         else:
             raise ValueError("實體孔位不是有效的 Feature")
+    from .operator_manual_marking import is_manual_round_mark, validate_physical_manual_markings
+    validate_physical_manual_markings(
+        part_key, context.render_data, tuple(normalized),
+        surface=context.feature_surface, width=context.width, height=context.height,
+    )
     resolve_surface_features(
-        context.feature_surface, tuple(normalized),
+        context.feature_surface, tuple(f for f in normalized if not is_manual_round_mark(f)),
         context.width, context.height,
     )
     return detached
 
 
+def resolve_box_body_piece_manufacturing_witness(geometry, part_key: str):
+    """Project the selected physical role to exactly one ordinary export row.
+
+    This returns an identity/source witness only, not a durable owner or
+    marking/export authorization. The original structured body owns the
+    roles; the ordinary inventory owns the manufactured IDs.
+    """
+    from .manufacturing_render_data import BoxBodyPieceRenderData, BoxBodyStructureRenderData
+    from .manufacturing_export import resolved_physical_render_parts
+
+    error = "BOX_BODY_MARKING_PHYSICAL_IDENTITY_UNPROVEN"
+    if not is_box_body_physical_piece_key(part_key):
+        raise ValueError(error)
+    bodies = [p.render_data for p in geometry.parts if p.part_key == "box_body"]
+    if len(bodies) != 1 or not isinstance(bodies[0], BoxBodyStructureRenderData):
+        raise ValueError(error)
+    matches = [
+        p for p in bodies[0].pieces
+        if isinstance(p, BoxBodyPieceRenderData) and f"box_body:{p.role}" == part_key
+    ]
+    if len(matches) != 1:
+        raise ValueError(error)
+    piece = matches[0]
+    topology = piece.render_data.unfolded_topology
+    if topology is None or not piece.key or topology.piece_id != piece.key:
+        raise ValueError(error)
+    wanted = f"box_body:{topology.piece_id}"
+    rows = resolved_physical_render_parts(geometry)
+    hits = [(k, row) for k, row in rows if k == wanted or row is piece.render_data]
+    if len(hits) != 1 or hits[0][0] != wanted or hits[0][1] is not piece.render_data:
+        raise ValueError(error)
+    return hits[0]

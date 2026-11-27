@@ -221,6 +221,145 @@ def _build_sidebar_workspace_state(s):
         disabled_state=d.tk.DISABLED,
     )
     s.validate_current_indicator_fit = indicator_fit_validation.validate
+    s.manual_mark_mode = [False]
+    s.manual_mark_length = None
+    s.manual_mark_angle = None
+    s.manual_mark_pattern = None
+    s.manual_mark_dash = None
+    s.manual_mark_gap = None
+    s.manual_mark_status = None
+    if getattr(s, "manual_marking_draft", None) is not None:
+        mark_bar = d.tk.Frame(s.center, bg=host.COLOR_PANEL)
+        mark_bar.pack(before=s.canvas, fill=d.tk.X, padx=4, pady=3)
+        s.manual_mark_length = d.tk.StringVar(master=s.editor, value="60")
+        s.manual_mark_angle = d.tk.StringVar(master=s.editor, value="0")
+        s.manual_mark_pattern = d.tk.StringVar(master=s.editor, value="solid")
+        s.manual_mark_dash = d.tk.StringVar(master=s.editor, value="10")
+        s.manual_mark_gap = d.tk.StringVar(master=s.editor, value="5")
+        mark_fields = (("長度 mm", s.manual_mark_length, 6), ("角度 °", s.manual_mark_angle, 5))
+        if not s.solid_marking_only:
+            mark_fields += (("實段 mm", s.manual_mark_dash, 5), ("留白 mm", s.manual_mark_gap, 5))
+        for name, var, width in mark_fields:
+            d.tk.Label(mark_bar, text=name, fg=host.COLOR_TEXT,
+                       bg=host.COLOR_PANEL).pack(side=d.tk.LEFT, padx=(6, 1))
+            d.tk.Entry(mark_bar, textvariable=var, width=width).pack(side=d.tk.LEFT)
+        for label, value in (() if s.solid_marking_only else (("實線", "solid"), ("虛線", "dashed"))):
+            d.tk.Radiobutton(
+                mark_bar, text=label, value=value,
+                variable=s.manual_mark_pattern, bg=host.COLOR_PANEL,
+                fg=host.COLOR_TEXT, selectcolor=host.COLOR_INPUT_BG,
+            ).pack(side=d.tk.LEFT, padx=2)
+        s.manual_mark_draw_button = d.tk.Button(
+            mark_bar, text="打標：中點放置", bg="#0a84ff", fg="white",
+        )
+        s.manual_mark_draw_button.pack(side=d.tk.LEFT, padx=5)
+        s.manual_mark_select_button = d.tk.Button(
+            mark_bar, text="選取", bg="#636366", fg="white",
+        )
+        s.manual_mark_select_button.pack(side=d.tk.LEFT, padx=2)
+        if "circle" in s.manual_marking_draft.allowed_tools:
+            s.manual_round_diameter = d.tk.StringVar(master=s.editor, value="")
+            d.tk.Label(mark_bar, text="直徑 mm", fg=host.COLOR_TEXT,
+                       bg=host.COLOR_PANEL).pack(side=d.tk.LEFT, padx=(6, 1))
+            d.tk.Entry(mark_bar, textvariable=s.manual_round_diameter,
+                       width=6).pack(side=d.tk.LEFT)
+            s.manual_round_button = d.tk.Button(
+                mark_bar, text="實線圓打標：選圓心", bg="#0a84ff", fg="white",
+            )
+            s.manual_round_button.pack(side=d.tk.LEFT, padx=3)
+            s.editor._manual_round_marking_controls = (
+                s.manual_round_button, s.manual_round_diameter,
+            )
+        s.manual_mark_status = d.tk.Label(
+            s.center, text="", fg="#ff453a", bg=host.COLOR_PANEL,
+            anchor="w",
+        )
+        s.manual_mark_status.pack(before=s.canvas, fill=d.tk.X, padx=10)
+        s.editor._manual_marking_controls = (
+            s.manual_mark_draw_button, s.manual_mark_select_button,
+            s.manual_mark_status,
+        )
+        # Second-stage group tools. Only operator dimensions are gathered
+        # here; all corner/arm geometry belongs to the Engine public API.
+        s.manual_group_tool = ["select"]
+        s.manual_group_arm_x = d.tk.StringVar(master=s.editor, value="20")
+        s.manual_group_arm_y = d.tk.StringVar(master=s.editor, value="20")
+        s.manual_group_spacing_x = d.tk.StringVar(master=s.editor, value="")
+        s.manual_group_spacing_y = d.tk.StringVar(master=s.editor, value="")
+        s.manual_group_angle = d.tk.StringVar(master=s.editor, value="0")
+        s.manual_group_member = d.tk.StringVar(master=s.editor, value="")
+        s.manual_group_offset_x = d.tk.StringVar(master=s.editor, value="0")
+        s.manual_group_offset_y = d.tk.StringVar(master=s.editor, value="0")
+        s.manual_group_tools = {}
+        group_bar = d.tk.Frame(s.center, bg=host.COLOR_PANEL)
+        if _has_group_mark_tools(s):
+            group_bar.pack(before=s.canvas, fill=d.tk.X, padx=4, pady=(0, 2))
+        for kind, label in (
+            ("cross", "十字：交點"), ("l", "L：轉角"),
+            ("pair_l", "一對L：群組中心"), ("quad_l", "四角L：群組中心"),
+        ):
+            if kind not in s.manual_marking_draft.allowed_tools:
+                continue
+            button = d.tk.Button(group_bar, text=label, bg="#3a3a44", fg="white")
+            button.pack(side=d.tk.LEFT, padx=2)
+            s.manual_group_tools[kind] = button
+        for label, var in (
+            ("水平臂 mm", s.manual_group_arm_x),
+            ("垂直臂 mm", s.manual_group_arm_y),
+            ("角間距 X", s.manual_group_spacing_x),
+            ("角間距 Y", s.manual_group_spacing_y),
+            ("角度 °", s.manual_group_angle),
+        ):
+            d.tk.Label(group_bar, text=label, bg=host.COLOR_PANEL,
+                       fg=host.COLOR_TEXT).pack(side=d.tk.LEFT, padx=(5, 1))
+            d.tk.Entry(group_bar, textvariable=var, width=5).pack(side=d.tk.LEFT)
+        edit_bar = d.tk.Frame(s.center, bg=host.COLOR_PANEL)
+        if _has_group_mark_tools(s):
+            edit_bar.pack(before=s.canvas, fill=d.tk.X, padx=4, pady=(0, 2))
+        d.tk.Label(edit_bar, text="雙擊角點選成員：", bg=host.COLOR_PANEL,
+                   fg=host.COLOR_TEXT).pack(side=d.tk.LEFT)
+        d.tk.Label(edit_bar, textvariable=s.manual_group_member,
+                   bg=host.COLOR_PANEL, fg="#ff9f0a").pack(side=d.tk.LEFT, padx=3)
+        for label, var in (("局部 ΔX mm", s.manual_group_offset_x),
+                           ("局部 ΔY mm", s.manual_group_offset_y)):
+            d.tk.Label(edit_bar, text=label, bg=host.COLOR_PANEL,
+                       fg=host.COLOR_TEXT).pack(side=d.tk.LEFT, padx=(4, 1))
+            d.tk.Entry(edit_bar, textvariable=var, width=6).pack(side=d.tk.LEFT)
+        s.manual_group_apply_offset = d.tk.Button(
+            edit_bar, text="套用單角偏移", bg="#0a84ff", fg="white",
+        )
+        s.manual_group_apply_offset.pack(side=d.tk.LEFT, padx=2)
+        s.manual_group_apply_size = d.tk.Button(
+            edit_bar, text="套用 X/Y・雙臂", bg="#3a3a44", fg="white",
+        )
+        s.manual_group_apply_size.pack(side=d.tk.LEFT, padx=2)
+        s.manual_group_rotate = d.tk.Button(
+            edit_bar, text="群組旋轉", bg="#3a3a44", fg="white",
+        )
+        s.manual_group_rotate.pack(side=d.tk.LEFT, padx=2)
+        s.manual_group_mirror = d.tk.Button(
+            edit_bar, text="鏡射（群組中心垂直軸）", bg="#3a3a44", fg="white",
+        )
+        s.manual_group_mirror.pack(side=d.tk.LEFT, padx=2)
+        copy_bar = edit_bar
+        if d.manufacturing_api.supports_scoped_marking_copy(s.manual_marking_draft):
+            # Keep the scoped copy action reachable when the Windows font
+            # and circle controls use the entire first toolbar row.
+            copy_bar = d.tk.Frame(s.center, bg=host.COLOR_PANEL)
+            copy_bar.pack(before=s.canvas, fill=d.tk.X, padx=4, pady=(0, 2))
+        s.manual_mark_copy_button = d.tk.Button(
+            copy_bar,
+            text=("從本專案其他連複製打標"
+                  if d.manufacturing_api.supports_scoped_marking_copy(s.manual_marking_draft)
+                  else "從另存專案複製群組"), bg="#3a3a44", fg="white",
+        )
+        s.manual_mark_copy_button.pack(side=d.tk.LEFT, padx=3)
+        s.editor._manual_group_controls = (
+            *s.manual_group_tools.values(), s.manual_group_apply_offset,
+            s.manual_group_apply_size, s.manual_group_rotate,
+            s.manual_group_mirror,
+            *((s.manual_mark_copy_button,) if _has_group_mark_tools(s) else ()),
+        )
     s.dragging = [False]
     s.editor_closed = [False]
     s.suppress_entry_events = [False]
@@ -302,7 +441,9 @@ def _build_reference_stack(s):
         overlay_widgets={"x_group": x_group, "y_group": y_group, "panel": ref_panel},
     )
     sync_coordinator = d._HoleEditorSyncCoordinator(
-        sync_callback=s.sync_callback, draw_preview=s.host.draw_preview,
+        sync_callback=(None if getattr(s, "defer_workspace_sync", False)
+                       else s.sync_callback),
+        draw_preview=s.host.draw_preview,
     )
     s.sync_all = sync_coordinator.sync_all
     created_list_presentation = d._HoleEditorCreatedListPresentation(
@@ -680,6 +821,7 @@ def _build_navigation_and_lifecycle(s):
         insert_mode=s.insert_mode,
         set_insert_mode=s.set_insert_mode,
         cancel_active_edit=s.cancel_active_edit,
+        sync_on_cancel=not getattr(s, "skip_cancel_sync", False),
     )
     if str(s.part_key).startswith("inner_door:"):
         def accept_verified_openings(verified):
@@ -735,6 +877,1009 @@ def _build_navigation_and_lifecycle(s):
     s.confirm_all_btn.configure(command=s.confirm_all)
     s.cancel_all_btn.configure(command=s.cancel_all)
 
+
+
+def _has_group_mark_tools(s):
+    return bool({"cross", "l", "pair_l", "quad_l"}.intersection(
+        s.manual_marking_draft.allowed_tools,
+    ))
+
+
+def _guard_manual_marking_sync(s):
+    """Keep stale mark and conflicting new hole in the editor for correction.
+
+    The physical Engine still REJECTS publication.  Only the explicitly
+    detected mark/material collision is presented as a live red warning; all
+    unrelated legacy hole sync failures preserve their original exception.
+    Called before pointer actions capture the session sync callback.
+    """
+    if getattr(s, "manual_marking_draft", None) is None:
+        return
+    authoritative_sync = s.sync_all
+
+    def sync_with_mark_warning():
+        try:
+            return authoritative_sync()
+        except (ValueError, TypeError, RuntimeError):
+            current = tuple(s.live_context.feature_list)
+            if not any(s.d.manufacturing_api.is_manual_mark(row) for row in current):
+                raise
+            try:
+                s.d.manufacturing_api.validate_physical_sheet_marking_draft(
+                    s.manual_marking_draft, current,
+                )
+            except (ValueError, TypeError, RuntimeError) as mark_error:
+                s.manual_mark_status.configure(
+                    text="打標／孔位無法確認：" + str(mark_error),
+                    fg="#ff453a",
+                )
+                s.confirm_all_btn.configure(state=s.d.tk.DISABLED)
+                # The original complete features remain in the editing session.
+                # No invalid data is copied into the physical Workspace.
+                return
+            raise  # Not a mark collision: preserve existing hole failure.
+
+    s.sync_all = sync_with_mark_warning
+
+
+def _install_manual_marking_actions(s):
+    """Engine-owned physical MARKING; one ProfileFeature per group.
+
+    Single click selects the whole group, double click chooses a stable
+    member for its local offset, and dragging moves the group center only.
+    No member-level deletion or GUI-owned geometry.
+    """
+    if getattr(s, "manual_marking_draft", None) is None:
+        return
+    from phase6_hole_editor_session import HoleEditorAction
+    from math import hypot
+    d = s.d
+    api = d.manufacturing_api
+    real_redraw = s.redraw
+    # Rejected marking placement never enters Features, so replaying the
+    # valid current draft on a passive redraw cannot dismiss its warning.
+    marking_rejection = None
+    # A source selection is not a Feature or an Undo record. The pending
+    # receipt lives only in this editor until the operator clicks a target.
+    pending_copy = None
+    copy_rejection = None
+    placed_copy_receipts = {}
+
+    def checked_redraw():
+        try:
+            api.validate_physical_sheet_marking_draft(
+                s.manual_marking_draft,
+                tuple(s.live_context.feature_list),
+            )
+        except (ValueError, TypeError, RuntimeError) as exc:
+            s.manual_mark_status.configure(
+                text="打標／孔位無法確認：" + str(exc), fg="#ff453a",
+            )
+            s.confirm_all_btn.configure(state=d.tk.DISABLED)
+        else:
+            s.manual_mark_status.configure(text=marking_rejection or "", fg="#ff453a")
+            s.confirm_all_btn.configure(state=d.tk.NORMAL)
+        result = real_redraw()
+        if copy_rejection is not None:
+            s.manual_mark_status.configure(text=copy_rejection, fg="#ff453a")
+        elif pending_copy is not None:
+            s.manual_mark_status.configure(text=pending_copy["prompt"], fg="#007aff")
+        if pending_copy is not None:
+            s.confirm_all_btn.configure(state=d.tk.DISABLED)
+        if marking_rejection:
+            # The canvas renderer updates generic confirmation controls.
+            # This rejected tool attempt still owns its own disabled state.
+            s.confirm_all_btn.configure(state=d.tk.DISABLED)
+        return result
+
+    def dismiss_marking_rejection():
+        nonlocal marking_rejection
+        if marking_rejection is not None:
+            marking_rejection = None
+            checked_redraw()
+
+    s.redraw = checked_redraw
+    s.indicator_redraw[0] = checked_redraw
+
+    # The editable corner belongs to the exact group *and* editor context
+    # hit by the latest valid double-click, never to a reused member name.
+    s.manual_group_edit_identity = [None]  # (stable group_id, member_id)
+    s.manual_group_edit_context = [None]   # (Session context, list identity)
+    # The grab is scoped to the exact editor context, feature list and source.
+    drag_origin = [None]
+    corner_arm = [None]   # (group_id, member_id, Session context, list)
+
+    def clear_member_edit():
+        s.manual_group_edit_identity[0] = None
+        s.manual_group_edit_context[0] = None
+        s.manual_group_member.set("")
+        s.manual_group_offset_x.set("")
+        s.manual_group_offset_y.set("")
+
+    def select_mode():
+        nonlocal pending_copy, copy_rejection
+        was_pending = pending_copy is not None or copy_rejection is not None
+        pending_copy = None
+        copy_rejection = None
+        clear_member_edit()
+        drag_origin[0] = None
+        corner_arm[0] = None
+        s.manual_mark_mode[0] = False
+        s.manual_group_tool[0] = "select"
+        s.manual_mark_draw_button.configure(relief=d.tk.RAISED)
+        s.manual_mark_select_button.configure(relief=d.tk.SUNKEN)
+        if hasattr(s, "manual_round_button"):
+            s.manual_round_button.configure(relief=d.tk.RAISED)
+        for button in s.manual_group_tools.values():
+            button.configure(relief=d.tk.RAISED)
+        dismiss_marking_rejection()
+        if was_pending:
+            checked_redraw()
+
+    def draw_mode(kind="line"):
+        nonlocal pending_copy
+        if kind not in s.manual_marking_draft.allowed_tools:
+            return
+        if pending_copy is not None or copy_rejection is not None:
+            select_mode()
+        clear_member_edit()
+        drag_origin[0] = None
+        corner_arm[0] = None
+        s.set_insert_mode(False)
+        s.manual_mark_mode[0] = True
+        s.manual_group_tool[0] = kind
+        s.manual_mark_draw_button.configure(
+            relief=d.tk.SUNKEN if kind == "line" else d.tk.RAISED)
+        s.manual_mark_select_button.configure(relief=d.tk.RAISED)
+        if hasattr(s, "manual_round_button"):
+            s.manual_round_button.configure(relief=d.tk.SUNKEN if kind == "circle" else d.tk.RAISED)
+        for key, button in s.manual_group_tools.items():
+            button.configure(relief=d.tk.SUNKEN if kind == key else d.tk.RAISED)
+        if kind != "circle":
+            dismiss_marking_rejection()
+
+    def selected_group():
+        idx = s.hole_session.selected_index
+        items = s.live_context.feature_list
+        if 0 <= idx < len(items) and api.is_manual_group(items[idx]):
+            return items[idx]
+        return None
+
+    def publish_group_change(**values):
+        if "member_id" not in values:
+            clear_member_edit()  # geometry/pose edits invalidate the corner hot spot
+        old = selected_group()
+        if old is None:
+            return False
+        try:
+            changed = api.edit_physical_manual_group(
+                old, part_key=s.part_key, context=s.manual_marking_draft.context,
+                marking_draft=s.manual_marking_draft,
+                existing_features=tuple(s.live_context.feature_list), **values,
+            )
+        except (ValueError, TypeError, RuntimeError) as exc:
+            s.manual_mark_status.configure(
+                text="群組編輯被拒絕：" + str(exc), fg="#ff453a")
+            return False
+        s.hole_session.execute(HoleEditorAction.replace_selected_committed(changed))
+        s.refresh_created()
+        s.sync_all()
+        s.redraw()
+        return True
+
+    def edit_selected_member():
+        group = selected_group()
+        member_id = s.manual_group_member.get()
+        binding = s.manual_group_edit_identity[0]
+        scope = s.manual_group_edit_context[0]
+        if (group is None or binding is None or not member_id
+                or binding != (api.group_parameters(group)["group_id"], member_id)
+                or scope != (s.hole_session.active_context_key,
+                             id(s.live_context.feature_list))):
+            clear_member_edit()
+            s.manual_mark_status.configure(
+                text="請重新雙擊要修改的群組角點", fg="#ff453a",
+            )
+            return False
+        return publish_group_change(
+            member_id=member_id,
+            offset_x=s.manual_group_offset_x.get(),
+            offset_y=s.manual_group_offset_y.get(),
+        )
+
+    def edit_group_size():
+        group = selected_group()
+        if group is None:
+            return False
+        p = api.group_parameters(group)
+        values = {
+            "arm_x": s.manual_group_arm_x.get(),
+            "arm_y": s.manual_group_arm_y.get(),
+        }
+        if p["kind"] in ("pair_l", "quad_l"):
+            values["spacing_x"] = s.manual_group_spacing_x.get()
+        if p["kind"] == "quad_l":
+            values["spacing_y"] = s.manual_group_spacing_y.get()
+        return publish_group_change(**values)
+
+    def rotate_group():
+        group = selected_group()
+        if group is None:
+            return False
+        return publish_group_change(angle=s.manual_group_angle.get())
+
+    def mirror_group():
+        group = selected_group()
+        if group is None:
+            return False
+        return publish_group_change(
+            mirror_vertical=not api.group_parameters(group)["mirror_vertical"])
+
+    def mark_down(event):
+        nonlocal marking_rejection
+        # Also clear when the legacy pointer handler leaves its old selection
+        # active on empty canvas; a subsequent double must hit a real corner.
+        clear_member_edit()
+        drag_origin[0] = None
+        corner_arm[0] = None
+        point = s.canvas_view.canvas_to_world(event.x, event.y)
+        if point is None:
+            return
+        # The ordinary hole insertion route always wins when armed,
+        # including shortcuts that reach the original catalog controller.
+        if s.insert_mode[0]:
+            if s.manual_mark_mode[0] or pending_copy is not None or copy_rejection is not None:
+                select_mode()
+            return original_down(event)
+        if pending_copy is not None:
+            return place_pending_copy(point)
+        if not s.manual_mark_mode[0]:
+            # Whole group selection also works at its nominal center or a
+            # member corner, not only on an ink stroke. No single L identity.
+            for idx, item in enumerate(s.live_context.feature_list):
+                if not api.is_manual_group(item):
+                    continue
+                corners = api.group_member_world_points(item)
+                if (hypot(point.x-item.offset.x, point.y-item.offset.y) <= 5
+                    or any(hypot(point.x-p.x, point.y-p.y) <= 5 for _, p in corners)):
+                    group_id = api.group_parameters(item)["group_id"]
+                    drag_origin[0] = (
+                        id(s.live_context.feature_list),
+                        s.hole_session.active_context_key,
+                        ("group", idx, item), point, item.offset, item,
+                    )
+                    nearest = min(
+                        ((hypot(point.x-corner.x, point.y-corner.y), member_id)
+                         for member_id, corner in corners),
+                        default=None,
+                    )
+                    if nearest is not None and nearest[0] <= 5.0:
+                        corner_arm[0] = (
+                            group_id, nearest[1],
+                            s.hole_session.active_context_key,
+                            id(s.live_context.feature_list),
+                        )
+                    s.hole_session.execute(HoleEditorAction.select(idx))
+                    s.dragging[0] = True
+                    s.refresh_created()
+                    s.redraw()
+                    return "break"
+            hit = s.canvas_view.hit_test(event.x, event.y)
+            result = original_down(event)
+            idx = s.hole_session.selected_index
+            rows = s.live_context.feature_list
+            if s.dragging[0] and hit == idx and 0 <= idx < len(rows):
+                item = rows[idx]
+                kind = ("round" if api.is_manual_round_mark(item) else
+                        "straight" if api.is_manual_straight_mark(item) else None)
+                if kind is not None:
+                    drag_origin[0] = (
+                        id(rows), s.hole_session.active_context_key,
+                        (kind, idx, item), point, item.offset, item,
+                    )
+            return result
+        try:
+            if s.manual_group_tool[0] == "circle":
+                mark = api.create_physical_sheet_mark(
+                    s.manual_marking_draft, tuple(s.live_context.feature_list), tool="circle",
+                    centre=point, diameter=s.manual_round_diameter.get(),
+                )
+            elif s.manual_group_tool[0] == "line":
+                mark = api.create_physical_sheet_mark(
+                    s.manual_marking_draft, tuple(s.live_context.feature_list), tool="line",
+                    midpoint=point, length=s.manual_mark_length.get(),
+                    angle_deg=s.manual_mark_angle.get(),
+                    pattern=s.manual_mark_pattern.get(),
+                    dash=s.manual_mark_dash.get(), gap=s.manual_mark_gap.get(),
+                )
+            else:
+                kind = s.manual_group_tool[0]
+                # Group X/Y have NO default: an operator explicitly enters
+                # their corner spacing before pair/four-corner placement.
+                sx = s.manual_group_spacing_x.get() if kind in ("pair_l", "quad_l") else 0
+                sy = s.manual_group_spacing_y.get() if kind == "quad_l" else 0
+                mark = api.create_physical_sheet_mark(
+                    s.manual_marking_draft, tuple(s.live_context.feature_list),
+                    tool=kind, center=point,
+                    arm_x=s.manual_group_arm_x.get(), arm_y=s.manual_group_arm_y.get(),
+                    spacing_x=sx, spacing_y=sy,
+                    angle=s.manual_group_angle.get(),
+                    pattern=s.manual_mark_pattern.get(),
+                    dash=s.manual_mark_dash.get(), gap=s.manual_mark_gap.get(),
+                )
+        except (ValueError, TypeError, RuntimeError) as exc:
+            warning = "打標位置不合法：" + str(exc)
+            if s.manual_group_tool[0] == "circle":
+                marking_rejection = warning
+            s.manual_mark_status.configure(text=warning, fg="#ff453a")
+            s.confirm_all_btn.configure(state=d.tk.DISABLED)
+            return "break"
+        marking_rejection = None
+        s.hole_session.execute(HoleEditorAction.insert(mark))
+        s.hole_session.execute(HoleEditorAction.commit_active())
+        s.refresh_created()
+        try:
+            s.sync_all()
+        except (ValueError, TypeError, RuntimeError) as exc:
+            s.manual_mark_status.configure(
+                text="打標提交被拒絕：" + str(exc), fg="#ff453a",
+            )
+            s.confirm_all_btn.configure(state=d.tk.DISABLED)
+        s.redraw()
+        return "break"
+
+    original_down = s.on_canvas_down
+    original_drag = s.on_canvas_drag
+    original_up = s.on_canvas_up
+
+    def safe_up(event):
+        grab = drag_origin[0]
+        try:
+            if grab is not None:
+                kind, _, source = grab[2]
+                if (kind == "group" and grab[-1] is source
+                        and s.canvas_view.canvas_to_world(event.x, event.y) == grab[3]):
+                    # A pure click arms a corner for double-click editing.
+                    return original_up(event)
+                # The release position is authoritative even if Tk
+                # coalesces away a final motion event.
+                safe_drag(event)
+                # One authored stroke drag is one Undo transaction. An
+                # invalid release restores the original exact stroke.
+                action = (HoleEditorAction.cancel_active() if marking_rejection else
+                          HoleEditorAction.commit_active(keep_selected=True))
+                s.hole_session.execute(action)
+                s.refresh_created()
+            return original_up(event)
+        finally:
+            drag_origin[0] = None
+
+    def safe_drag(event):
+        nonlocal marking_rejection
+        idx = s.hole_session.selected_index
+        items = s.live_context.feature_list
+        if (0 <= idx < len(items)
+                and getattr(items[idx], "layer", None) == "MARKING"):
+            if not s.dragging[0]:
+                return "break"
+            point = s.canvas_view.canvas_to_world(event.x, event.y)
+            grab = drag_origin[0]
+            if grab is None:
+                return "break"
+            list_id, context_key, (kind, selection, source), cursor_down, center_down, previous = grab
+            if (id(items) != list_id or s.hole_session.active_context_key != context_key
+                    or selection != idx or items[idx] is not previous):
+                return "break"
+            label = {"round": "圓打標", "straight": "線打標", "group": "群組打標"}[kind]
+            if point is None:
+                marking_rejection = label + "移動被拒絕：請在圖面內放置"
+                s.redraw()
+                return "break"
+            # Tk forwards only the actual cursor displacement.
+            dx, dy = point.x - cursor_down.x, point.y - cursor_down.y
+            try:
+                if kind == "round":
+                    moved = api.move_physical_sheet_round_mark(
+                        s.manual_marking_draft, items, selected_index=idx,
+                        centre=type(center_down)(center_down.x + dx, center_down.y + dy),
+                    )
+                elif kind == "group":
+                    moved = api.edit_physical_manual_group(
+                        previous, center=type(center_down)(center_down.x + dx, center_down.y + dy),
+                        part_key=s.part_key, context=s.manual_marking_draft.context,
+                        marking_draft=s.manual_marking_draft, existing_features=tuple(items),
+                    )
+                else:
+                    # Every preview is relative to the press, not to the
+                    # last replaced row; release must not accumulate motion.
+                    original = (*items[:idx], source, *items[idx + 1:])
+                    moved = api.move_physical_sheet_straight_mark(
+                        s.manual_marking_draft, original, selected_index=idx,
+                        displacement=type(cursor_down)(dx, dy),
+                    )
+            except (ValueError, TypeError, RuntimeError) as exc:
+                marking_rejection = label + "移動被拒絕：" + str(exc)
+                s.redraw()
+                return "break"
+            marking_rejection = None
+            if kind == "group":
+                clear_member_edit()
+                corner_arm[0] = None
+            s.hole_session.execute(HoleEditorAction.replace_selected(moved))
+            drag_origin[0] = (*grab[:-1], moved)
+            s.redraw()
+            return "break"
+        return original_drag(event)
+
+    def mark_double(event):
+        # A native multi-click must obey the active insertion/copy tool.
+        # Selecting group members is meaningful only in selection mode.
+        if pending_copy is not None or s.manual_mark_mode[0] or s.insert_mode[0]:
+            return mark_down(event)
+        clear_member_edit()
+        drag_origin[0] = None
+        point = s.canvas_view.canvas_to_world(event.x, event.y)
+        if point is None:
+            return "break"
+
+        # Resolve the *current* pointer hot spot, not the old Session
+        # selection. A and B can both have a "top_right" member.
+        hits = []
+        for idx, item in enumerate(s.live_context.feature_list):
+            if not api.is_manual_group(item):
+                continue
+            for member_id, corner in api.group_member_world_points(item):
+                distance = hypot(point.x-corner.x, point.y-corner.y)
+                if distance <= 5.0:
+                    hits.append((distance, idx, member_id))
+        if not hits:
+            corner_arm[0] = None
+            return "break"
+        hits.sort()
+        distance, target_idx, member = hits[0]
+        if (any(idx != target_idx for _, idx, _ in hits)
+                or (len(hits) > 1 and abs(hits[1][0]-distance) < 1e-9)):
+            # Two coincident group corners are not an implicit selection.
+            corner_arm[0] = None
+            return "break"
+        if s.hole_session.selected_index != target_idx:
+            s.hole_session.execute(HoleEditorAction.select(target_idx))
+            s.refresh_created()
+        group = selected_group()
+        if group is None:
+            return "break"
+        p = api.group_parameters(group)
+        target = (
+            p["group_id"], member, s.hole_session.active_context_key,
+            id(s.live_context.feature_list),
+        )
+        if corner_arm[0] != target:
+            # A first click just after Undo/delete may be classified by Tk
+            # as Double/Triple from an earlier click sequence. It may arm
+            # the *new* real corner, never authorize Apply on its own.
+            corner_arm[0] = target
+            return "break"
+        dx, dy = next((x, y) for mid, x, y in p["members"] if mid == member)
+        s.manual_group_edit_identity[0] = (p["group_id"], member)
+        s.manual_group_edit_context[0] = (
+            s.hole_session.active_context_key, id(s.live_context.feature_list),
+        )
+        s.manual_group_member.set(member)
+        s.manual_group_offset_x.set(str(dx))
+        s.manual_group_offset_y.set(str(dy))
+        s.manual_group_arm_x.set(str(p["arm_x"]))
+        s.manual_group_arm_y.set(str(p["arm_y"]))
+        s.manual_group_spacing_x.set(str(p["spacing_x"]))
+        s.manual_group_spacing_y.set(str(p["spacing_y"]))
+        s.manual_group_angle.set(str(p["angle"]))
+        return "break"
+
+    def mark_escape(event=None):
+        if pending_copy is not None or s.manual_mark_mode[0]:
+            select_mode()
+            return "break"
+        if original_escape is not None:
+            return original_escape(event)
+
+    original_escape = s.on_escape if hasattr(s, "on_escape") else None
+    original_toggle = s.toggle_created_process
+    original_right = s.on_canvas_right
+    original_rotate = s.rotate_selected
+
+    def safe_toggle(event=None):
+        clear_member_edit()
+        # Both automatic MARKING and manual group features are non-process
+        # contours; double-click must not turn them into CUTTING/BLIND_HOLE.
+        chosen_index = s.created_list.curselection()
+        idx = chosen_index[0] if chosen_index else s.hole_session.selected_index
+        features = s.live_context.feature_list
+        if (0 <= idx < len(features)
+                and getattr(features[idx], "layer", None) == "MARKING"):
+            return "break"
+        return original_toggle(event)
+
+    def selected_feature():
+        idx = s.hole_session.selected_index
+        rows = s.live_context.feature_list
+        return rows[idx] if 0 <= idx < len(rows) else None
+
+    def safe_right(event):
+        clear_member_edit()
+        chosen = selected_feature()
+        if chosen is not None and getattr(chosen, "layer", None) == "MARKING":
+            return "break"  # legacy rotation may corrupt authored MARKING
+        return original_right(event)
+
+    original_delete = s.delete_selected
+
+    def safe_delete():
+        clear_member_edit()
+        drag_origin[0] = None
+        corner_arm[0] = None
+        chosen = selected_feature()
+        if (chosen is not None and getattr(chosen, "layer", None) == "MARKING"
+                and not api.is_manual_mark(chosen)):
+            return "break"  # source-owned automatic marking is readonly
+        return original_delete()
+
+    def rotate_selected(angle):
+        clear_member_edit()
+        group = selected_group()
+        if group is not None:
+            return publish_group_change(
+                angle=api.group_parameters(group)["angle"] + angle)
+        chosen = selected_feature()
+        if chosen is not None and getattr(chosen, "layer", None) == "MARKING":
+            return "break"
+        return original_rotate(angle)
+
+    # Other existing Tk routes may mutate selection without a Canvas press.
+    # Keep the original Session and insertion handlers, only invalidate the
+    # pending group-member edit at their public GUI boundaries.
+    original_created_select = s.on_created_select
+    original_undo = s.undo_last_action
+    original_activate_context = s.hole_session.activate_context
+
+    def safe_created_select(event=None):
+        # A ListboxSelect event may be generated by refresh_created() for
+        # the *same* group after its valid Canvas double-click. Do not
+        # invalidate that authorization unless the selected identity changes.
+        chosen = s.created_list.curselection()
+        binding = s.manual_group_edit_identity[0]
+        if binding is not None or corner_arm[0] is not None:
+            idx = chosen[0] if chosen else -1
+            rows = s.live_context.feature_list
+            expected_group_id = (binding[0] if binding is not None
+                                 else corner_arm[0][0])
+            if (not 0 <= idx < len(rows) or not api.is_manual_group(rows[idx])
+                    or api.group_parameters(rows[idx])["group_id"] != expected_group_id):
+                clear_member_edit()
+                corner_arm[0] = None
+        return original_created_select(event)
+
+    def safe_undo(event=None):
+        if pending_copy is not None:
+            select_mode()
+            return "break"
+        clear_member_edit()
+        drag_origin[0] = None
+        corner_arm[0] = None
+        return original_undo(event)
+
+    def safe_activate_context(*args, **kwargs):
+        if pending_copy is not None:
+            select_mode()
+        clear_member_edit()
+        drag_origin[0] = None
+        corner_arm[0] = None
+        return original_activate_context(*args, **kwargs)
+
+    s.on_created_select = safe_created_select
+    s.undo_last_action = safe_undo
+    s.undo_btn.configure(command=safe_undo)
+    s.hole_session.activate_context = safe_activate_context
+    s.toggle_created_process = safe_toggle
+    s.on_canvas_right = safe_right
+    s.delete_selected = safe_delete
+    s.delete_btn.configure(command=safe_delete)
+    s.rotate_selected = rotate_selected
+    s.manual_mark_select_button.configure(command=select_mode)
+    s.manual_mark_draw_button.configure(command=lambda: draw_mode("line"))
+    if hasattr(s, "manual_round_button"):
+        s.manual_round_button.configure(command=lambda: draw_mode("circle"))
+    for kind, button in s.manual_group_tools.items():
+        button.configure(command=lambda key=kind: draw_mode(key))
+    s.manual_group_apply_offset.configure(command=edit_selected_member)
+    s.manual_group_apply_size.configure(command=edit_group_size)
+    s.manual_group_rotate.configure(command=rotate_group)
+    s.manual_group_mirror.configure(command=mirror_group)
+
+    # Capture the actual target session at editor creation, not after a
+    # file selector returns (which may run another Tk event loop).
+    copy_host = s.host
+    copy_app = getattr(copy_host, "fold_designer_app", None)
+    copy_workspace = getattr(copy_app, "designer_workspace", None)
+    copy_controller = getattr(copy_host, "project_controller", None)
+    copy_epoch = getattr(copy_controller, "project_load_epoch", None)
+    from gui_modules.application.physical_part_hole_editor import current_workspace_marking_source
+    try:
+        copy_target_state = api.project_live_manual_marking_copy_target_state(
+            current_workspace_marking_source(copy_app), s.part_key,
+            editor_features=tuple(s.feature_list),
+        )
+    except (ValueError, TypeError):
+        copy_target_state = None  # Independent/scoped editors do not gain Copy authority.
+
+    scoped_copy = api.supports_scoped_marking_copy(s.manual_marking_draft)
+    copy_opening_snapshot = current_workspace_marking_source(copy_app)
+    copy_versions = api.list_ordinary_marking_copy_versions(copy_opening_snapshot, s.part_key)
+    copy_version = (api.project_operator_quantity_version_controls(copy_opening_snapshot["quantity"])["selected_version_id"]
+                    if copy_versions else None)
+    ordinary_endcap_copy = (
+        api.supports_saved_ordinary_copy_part(copy_opening_snapshot, s.part_key)
+        and getattr(s.manual_marking_draft, "output_capability", None) == "verified_normal"
+    )
+
+    def live_copy_target(path):
+        from pathlib import Path
+        from phase6_manufacturing_adapter import build_scene_payload_for_app
+
+        current_path = getattr(copy_controller, "project_path", None)
+        if (copy_app is None or copy_workspace is None or copy_epoch is None
+                or getattr(copy_host, "fold_designer_app", None) is not copy_app
+                or copy_app.designer_workspace is not copy_workspace
+                or getattr(copy_host, "project_controller", None) is not copy_controller
+                or copy_controller.project_load_epoch != copy_epoch
+                or not current_path or Path(current_path).resolve(strict=True) != path
+                or (not ordinary_endcap_copy and s.part_key != "base_plate")
+                or s.part_key not in copy_workspace.available_parts
+                or (not ordinary_endcap_copy and not scoped_copy and copy_target_state is None)):
+            raise ValueError("MANUAL_COPY_TARGET_EDITOR_SESSION_STALE")
+        if scoped_copy:
+            return None, copy_app._phase6_input_snapshot
+        live = current_workspace_marking_source(copy_app)
+        if ordinary_endcap_copy:
+            payload = build_scene_payload_for_app(copy_app, s.part_key)
+            render = copy_host._query_fold_designer_render_data(s.part_key, payload)
+            geometry = api.selected_normal_marking_inventory(s.part_key, render)
+            if copy_version is not None:
+                version_receipt = api.open_quantity_physical_marking(live, geometry, s.part_key)
+                if version_receipt.owner.version_id != copy_version:
+                    raise ValueError("MANUAL_COPY_TARGET_EDITOR_SESSION_STALE")
+                current = version_receipt.stock
+            else:
+                current = api.open_selected_ordinary_marking_modal_source(live, geometry, s.part_key)
+            opened = s.manual_marking_draft
+            if (current.owner_id != opened.owner_id
+                    or current.source_sha256 != opened.source_sha256):
+                raise ValueError("MANUAL_COPY_TARGET_EDITOR_SESSION_STALE")
+            return geometry, live
+        if api.project_live_manual_marking_copy_target_state(live, s.part_key) != copy_target_state:
+            raise ValueError("MANUAL_COPY_TARGET_EDITOR_SESSION_STALE")
+        # Same original physical editor pipeline, including its ordinary
+        # baseline hole handling. No second coordinate or material builder.
+        payload = build_scene_payload_for_app(copy_app, s.part_key)
+        payload["features"] = ()
+        render = copy_host._query_fold_designer_render_data(s.part_key, payload)
+        context = api.resolve_physical_sheet_editor_context(s.part_key, render)
+        return context, live
+
+    def verified_copy_args(receipt):
+        if scoped_copy:
+            _, live = live_copy_target(receipt["project_path"])
+            return {**receipt, "live_snapshot": live, "opened_target": s.manual_marking_draft}
+        if ordinary_endcap_copy:
+            geometry, live = live_copy_target(receipt["target"]["target_project_path"])
+            source = receipt["source"]
+            if (source.get("source_version_id") is not None
+                    and source["source_part_key"] in ("head", "tail")
+                    and source["source_project_path"].samefile(receipt["target"]["target_project_path"])):
+                from fold_designer_bridge import _phase6_collect_workspace_state
+                workspace = _phase6_collect_workspace_state(copy_app)
+                live = {**live, **workspace, "workspace": workspace}
+            return {**receipt, "target": {**receipt["target"], "target_live_snapshot": live,
+                                          "target_live_geometry": geometry}}
+        context, live_snapshot = live_copy_target(receipt["target_project_path"])
+        return {**receipt, "target_context": context, "target_live_snapshot": live_snapshot}
+
+    def place_pending_copy(point):
+        nonlocal pending_copy, copy_rejection
+        if pending_copy is None:
+            return "break"
+        pending = pending_copy
+        try:
+            if (pending["context"] != s.hole_session.active_context_key
+                    or pending["list_id"] != id(s.live_context.feature_list)
+                    or pending["features"] != tuple(s.live_context.feature_list)
+                    or s.insert_mode[0]):
+                raise ValueError("MANUAL_COPY_TARGET_EDITOR_SESSION_STALE")
+            args = verified_copy_args(pending["receipt"])
+            # Recheck both the opened and current physical target before
+            # any retryable placement error can retain the source receipt.
+            if scoped_copy:
+                clone = api.place_saved_scoped_marking_copy(
+                    **args, target_features=tuple(s.live_context.feature_list), target_position=point,
+                )
+            elif ordinary_endcap_copy:
+                clone = api.place_saved_endcap_marking_copy(
+                    **args, target_features=tuple(s.live_context.feature_list), target_position=point,
+                )
+            else:
+                api.verify_saved_manual_marking_copy_sources(
+                    **{**args, "target_context": s.manual_marking_draft.context},
+                )
+                clone = api.copy_saved_manual_marking_group_to_selected_sheet(
+                    **args, target_features=tuple(s.live_context.feature_list),
+                    target_position=point,
+                )
+        except api.ManualCopyPlacementRejected as exc:
+            copy_rejection = "跨板定位被拒絕：" + str(exc) + "；請重新選點（Esc 取消）"
+            s.redraw()
+            return "break"
+        except (ValueError, TypeError, KeyError, OSError, RuntimeError) as exc:
+            select_mode()
+            copy_rejection = "跨板定位被拒絕：" + str(exc)
+            s.redraw()
+            return "break"
+        select_mode()
+        s.hole_session.execute(HoleEditorAction.commit_active())
+        s.hole_session.execute(HoleEditorAction.insert(clone))
+        s.hole_session.execute(HoleEditorAction.commit_active())
+        try:
+            s.refresh_created()
+            s.sync_all()
+            s.redraw()
+        except (ValueError, TypeError, KeyError, OSError, RuntimeError) as exc:
+            s.hole_session.execute(HoleEditorAction.undo())
+            s.refresh_created()
+            s.redraw()
+            copy_rejection = "跨板定位被拒絕：" + str(exc)
+            s.redraw()
+            return "break"
+        if api.is_manual_group(clone):
+            placed_copy_receipts[api.group_parameters(clone)["group_id"]] = pending["receipt"]
+        else:
+            s.hole_session.bind_copy_source(clone, pending["receipt"])
+        return "break"
+
+    # Standalone marks intentionally have no persisted group ID; recheck
+    # their sources at Confirm even when the operator edits the placed mark.
+    original_confirm_features = s.on_confirm_features
+
+    def confirm_with_copy_sources(features):
+        if pending_copy is not None:
+            raise ValueError("MANUAL_COPY_TARGET_POSITION_REQUIRED")
+        for feature in features:
+            receipt = s.hole_session.copy_source(feature)
+            if receipt is None:
+                continue
+            verify = api.verify_saved_scoped_marking_copy if scoped_copy else api.verify_saved_endcap_marking_copy
+            _, verified = verify(**verified_copy_args(receipt))
+            api.validate_physical_sheet_marking_draft(verified, tuple(features))
+        for feature in features:
+            if not api.is_manual_group(feature):
+                continue
+            receipt = placed_copy_receipts.get(api.group_parameters(feature)["group_id"])
+            if receipt is not None:
+                args = verified_copy_args(receipt)
+                if ordinary_endcap_copy:
+                    _, verified = api.verify_saved_endcap_marking_copy(**args)
+                    api.validate_physical_sheet_marking_draft(verified, tuple(features))
+                else:
+                    api.verify_saved_manual_marking_copy_sources(**args)
+                    api.propose_operator_physical_sheet_hole_features(
+                        s.part_key, args["target_context"], tuple(features),
+                    )
+        return original_confirm_features(features)
+
+    if original_confirm_features is not None:
+        s.on_confirm_features = confirm_with_copy_sources
+
+    def pick_scoped_source(target_project, sha256, Path, simpledialog, read_project):
+        if original_confirm_features is None:
+            raise ValueError("MANUAL_COPY_TARGET_EDITOR_CONFIRM_REQUIRED")
+        path = Path(target_project).resolve(strict=True)
+        binding = dict(project_path=path, project_sha256=sha256(path.read_bytes()).hexdigest(),
+                       saved_snapshot=read_project(path)["snapshot"])
+        options = api.list_saved_scoped_marking_copy_candidates(
+            **binding, target_owner_id=s.manual_marking_draft.owner_id,
+        )
+        if not options:
+            raise ValueError("MANUAL_COPY_SOURCE_GROUP_MISSING")
+        labels = [
+            f"{i}. 第{si + 1}套／第{bi + 1}連："
+            f"{'圓形 Ø' if key.startswith('circle:') else '直線 '}{size:.2f} mm，X={x:.2f}, Y={y:.2f}"
+            for i, (_, si, bi, key, x, y, size) in enumerate(options, 1)
+        ]
+        picked = simpledialog.askinteger(
+            "選擇來源連與打標", "\n".join(labels), minvalue=1, maxvalue=len(options), parent=s.editor,
+        )
+        if picked is None:
+            return None
+        owner, _, _, group_id, *_ = options[picked - 1]
+        receipt = dict(**binding, source_owner_id=owner, source_group_id=group_id)
+        mark, _ = api.verify_saved_scoped_marking_copy(**verified_copy_args(receipt))
+        anchor = "圓心" if api.is_manual_round_mark(mark) else "中點"
+        return receipt, f"跨板複製：點選目標{anchor}（Esc 取消）"
+
+    def copy_from_other_saved_project():
+        """Select one saved group; wait for the operator's target anchor."""
+        nonlocal pending_copy, copy_rejection
+        from hashlib import sha256
+        from pathlib import Path
+        from tkinter import filedialog, simpledialog
+        from phase6_project_file import read_project
+
+        select_mode()
+        target_project = getattr(
+            getattr(s.host, "project_controller", None), "project_path", None,
+        )
+        if not target_project:
+            copy_rejection = "跨板複製：請先儲存目標專案，再選擇已存來源"
+            checked_redraw()
+            return False
+        try:
+            if scoped_copy:
+                picked = pick_scoped_source(target_project, sha256, Path, simpledialog, read_project)
+                if picked is None:
+                    return False
+                return stage_copy(*picked)
+            source_project = filedialog.askopenfilename(
+                parent=s.editor, title="選擇有手動打標的來源專案 .p6fold",
+                filetypes=(("WHD 專案", "*.p6fold"),),
+            )
+            if not source_project:
+                return False
+            source_path = Path(source_project).resolve(strict=True)
+            target_path = Path(target_project).resolve(strict=True)
+            source_sha = sha256(source_path.read_bytes()).hexdigest()
+            target_sha = sha256(target_path.read_bytes()).hexdigest()
+            source_data = read_project(source_path)["snapshot"]
+            target_data = read_project(target_path)["snapshot"]
+            if ordinary_endcap_copy:
+                source_label = simpledialog.askstring(
+                    "選擇來源板件", "輸入封頭、封尾、門板或底板：", parent=s.editor,
+                )
+                if source_label is None:
+                    return False
+                source_role = {"封頭": "head", "封尾": "tail", "\u9580\u677f": "door", "\u5e95\u677f": "base_plate"}.get(source_label.strip())
+                if source_role is None:
+                    raise ValueError("MANUAL_COPY_EXPLICIT_ORDINARY_SOURCE_REQUIRED")
+                source = dict(
+                    source_snapshot=source_data, source_project_path=source_path,
+                    source_project_sha256=source_sha, source_part_key=source_role,
+                    resolve_saved_geometry=api.resolve_saved_ordinary_copy_geometry,
+                )
+                source_versions = api.list_ordinary_marking_copy_versions(source_data, source_role)
+                if source_versions:
+                    choice = simpledialog.askinteger(
+                        "選擇來源孔型版本",
+                        "選擇來源板件所在的版本：\n" + "\n".join(
+                            f"{i}. {identity}（{pieces} 件）"
+                            for i, (identity, pieces) in enumerate(source_versions, 1)
+                        ), minvalue=1, maxvalue=len(source_versions), parent=s.editor,
+                    )
+                    if choice is None:
+                        return False
+                    source["source_version_id"] = source_versions[choice - 1][0]
+                options = api.list_saved_endcap_marking_copy_candidates(source)
+                candidates = tuple(row[0] for row in options)
+            else:
+                candidates = api.list_saved_manual_marking_copy_groups(
+                    source_snapshot=source_data,
+                    source_project_path=source_path,
+                    source_project_sha256=source_sha,
+                )
+            if not candidates:
+                raise ValueError("MANUAL_COPY_SOURCE_GROUP_MISSING")
+            if len(candidates) == 1:
+                selected_id = candidates[0]
+            elif ordinary_endcap_copy:
+                labels = {"line": "直線", "circle": "圓", "l": "L",
+                          "cross": "十字", "pair_l": "雙 L", "quad_l": "四角 L"}
+                lines = []
+                for number, (_, kind, x, y, size) in enumerate(options, 1):
+                    detail = f" / {size:.2f} mm" if size is not None else ""
+                    lines.append(f"{number}. {labels.get(kind, kind)}  X={x:.2f}, Y={y:.2f} mm{detail}")
+                choice = simpledialog.askinteger(
+                    "選擇要複製的打標",
+                    "輸入打標編號，位置以來源板展開座標為準：\n"
+                    + "\n".join(lines), minvalue=1, maxvalue=len(options), parent=s.editor,
+                )
+                if choice is None:
+                    return False
+                selected_id = candidates[choice - 1]
+            else:
+                selected_id = simpledialog.askstring(
+                    "選擇打標群組", "來源有多個群組，請輸入要複製的群組 ID：\n"
+                    + "\n".join(candidates), parent=s.editor,
+                )
+                if selected_id is None:
+                    return False
+            if original_confirm_features is None:
+                raise ValueError("MANUAL_COPY_TARGET_EDITOR_CONFIRM_REQUIRED")
+            if ordinary_endcap_copy:
+                receipt = dict(source=source, source_group_id=selected_id, target=dict(
+                    target_snapshot=target_data, target_project_path=target_path,
+                    target_project_sha256=target_sha, target_part_key=s.part_key,
+                    target_version_id=copy_version,
+                    resolve_saved_geometry=api.resolve_saved_ordinary_copy_geometry,
+                ))
+                group, _ = api.verify_saved_endcap_marking_copy(**verified_copy_args(receipt))
+            else:
+                receipt = dict(
+                    source_snapshot=source_data, source_project_path=source_path,
+                    source_project_sha256=source_sha,
+                    target_snapshot=target_data, target_project_path=target_path,
+                    target_project_sha256=target_sha, source_group_id=selected_id,
+                )
+                args = verified_copy_args(receipt)
+                group = api.verify_saved_manual_marking_copy_sources(**args)
+                api.verify_saved_manual_marking_copy_sources(
+                    **{**args, "target_context": s.manual_marking_draft.context},
+                )
+            kind = (api.group_parameters(group)["kind"] if api.is_manual_group(group)
+                    else "line" if api.is_manual_straight_mark(group) else "circle")
+            prompt = ("跨板複製：點選目標轉角" if kind == "l" else
+                      "跨板複製：點選目標交點" if kind == "cross" else
+                      "跨板複製：點選目標中點" if kind == "line" else
+                      "跨板複製：點選目標圓心" if kind == "circle" else
+                      "跨板複製：點選目標群組中心") + "（Esc 取消）"
+        except (ValueError, TypeError, KeyError, OSError, RuntimeError) as exc:
+            # No copy is pending yet. Preserve the warning on passive
+            # redraw without disabling Confirm for unrelated valid edits.
+            copy_rejection = "跨板複製被拒絕：" + str(exc)
+            checked_redraw()
+            return False
+        return stage_copy(receipt, prompt)
+
+    def stage_copy(receipt, prompt):
+        nonlocal pending_copy
+        draw_mode("copy")
+        pending_copy = {
+            "receipt": receipt, "prompt": prompt,
+            "context": s.hole_session.active_context_key,
+            "list_id": id(s.live_context.feature_list),
+            "features": tuple(s.live_context.feature_list),
+        }
+        s.redraw()
+        return True
+
+    original_insert_mode = s.set_insert_mode
+    original_catalog_double = s.on_catalog_double_click
+
+    def hole_insert_mode(force=None):
+        entering = not s.insert_mode[0] if force is None else bool(force)
+        if entering and (s.manual_mark_mode[0] or pending_copy is not None or copy_rejection is not None):
+            select_mode()
+        return original_insert_mode(force)
+
+    def hole_catalog_double(event=None, source_list=None):
+        result = original_catalog_double(event, source_list)
+        if s.insert_mode[0] and (s.manual_mark_mode[0] or pending_copy is not None or copy_rejection is not None):
+            select_mode()
+        return result
+
+    s.set_insert_mode = hole_insert_mode
+    s.insert_btn.configure(command=hole_insert_mode)
+    s.on_catalog_double_click = hole_catalog_double
+
+    if _has_group_mark_tools(s) or scoped_copy:
+        s.manual_mark_copy_button.configure(command=copy_from_other_saved_project)
+    if _has_group_mark_tools(s):
+        s.editor._manual_group_copy_from_saved = copy_from_other_saved_project
+    select_mode()
+    s.on_canvas_down = mark_down
+    s.on_canvas_drag = safe_drag
+    s.on_canvas_up = safe_up
+    s.manual_mark_escape = mark_escape
+    s.editor._manual_marking_place = mark_down
+    s.editor._manual_marking_select = select_mode
+    if _has_group_mark_tools(s):
+        s.editor._manual_group_double = mark_double
+        s.canvas.bind("<Double-Button-1>", mark_double)
+        s.canvas.bind("<Triple-Button-1>", mark_double)
+        s.canvas.bind("<Quadruple-Button-1>", mark_double)
 
 def _bind_editor_events(s):
     # CADCraft is an opt-in external inspection only. Re-resolve the active
@@ -1045,7 +2190,9 @@ def _bind_editor_events(s):
     s.editor.bind("<F11>", s.toggle_fullscreen)
     s.editor.bind("<Control-z>", s.undo_last_action)
     s.editor.bind("<Control-Z>", s.undo_last_action)
-    s.editor.bind("<Escape>", s.on_escape)
+    s.editor.bind("<Escape>", (
+        s.manual_mark_escape if getattr(s, "manual_marking_draft", None) is not None else s.on_escape
+    ))
     s.editor.protocol("WM_DELETE_WINDOW", s.cancel_all)
     s.catalog_list.bind(
         "<<ListboxSelect>>", lambda event: s.on_catalog_select(event, s.catalog_list)
@@ -1081,7 +2228,8 @@ def open_unified_hole_editor(
     on_close=None, on_confirm=None, on_confirm_features=None,
     baseline_scene=None, baseline_status_text=None,
     indicator_component_context_provider=None, cabinet_reference_guide=None,
-    local_reference_guide=None, *, dependencies,
+    local_reference_guide=None, manual_marking_draft=None,
+    defer_workspace_sync=False, skip_cancel_sync=False, solid_marking_only=False, *, dependencies,
 ):
     s = SimpleNamespace(
         host=host, d=dependencies, part_key=part_key, title=title, surface=surface,
@@ -1098,13 +2246,18 @@ def open_unified_hole_editor(
         on_confirm_features=on_confirm_features, baseline_scene=baseline_scene,
         baseline_status_text=baseline_status_text,
         indicator_component_context_provider=indicator_component_context_provider,
+        manual_marking_draft=manual_marking_draft, solid_marking_only=solid_marking_only,
+        defer_workspace_sync=defer_workspace_sync,
+        skip_cancel_sync=skip_cancel_sync,
     )
     _prepare_model(s)
     _build_shell_and_indicator(s)
     _build_sidebar_workspace_state(s)
     _build_reference_stack(s)
     _build_renderer_and_catalog_actions(s)
+    _guard_manual_marking_sync(s)
     _build_pointer_and_created_actions(s)
     _build_reference_selection_actions(s)
     _build_navigation_and_lifecycle(s)
+    _install_manual_marking_actions(s)
     _bind_editor_events(s)

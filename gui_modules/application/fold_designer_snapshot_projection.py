@@ -155,6 +155,25 @@ def _snapshot_base_state(self):
         if key in settings
     })
     snapshot["settings"] = dict(settings)
+    snapshot["v_miter_gui_check_corners"] = (
+        manufacturing_api.normalize_operator_v_miter_gui_choices(
+            getattr(self, "v_miter_gui_check_corners", {})
+        )
+    )
+    # Uncertified per-corner operator input only, not computed CUTTING.
+    # Old projects without this optional map keep the ROUND_R default.
+    snapshot["v_miter_gui_relief_modes"] = (
+        manufacturing_api.normalize_operator_v_miter_gui_relief_modes(
+            getattr(self, "v_miter_gui_relief_modes", {}),
+            snapshot["v_miter_gui_check_corners"],
+        )
+    )
+    snapshot["v_miter_gui_first_bend_axes"] = (
+        manufacturing_api.normalize_operator_v_miter_gui_first_bend_axes(
+            getattr(self, "v_miter_gui_first_bend_axes", {}),
+            snapshot["v_miter_gui_check_corners"],
+        )
+    )
     snapshot["corner_state"] = self._serialize_manual_corner_state()
     snapshot["corner_pair_same"] = deepcopy(self.manual_corner_pair_same)
     baseline_models = self._baseline_model_choices()
@@ -172,6 +191,25 @@ def _snapshot_base_state(self):
         or getattr(self, "_phase6_input_snapshot", None)
         or {}
     )
+    # Optional #3317 selection survives the host GUI Save -> Reload route.
+    # Legacy projects contain no key; never add an "original" default.
+    TAIL_LOWER_V_SNAPSHOT_KEY = manufacturing_api.TAIL_LOWER_V_SNAPSHOT_KEY
+    if TAIL_LOWER_V_SNAPSHOT_KEY in stored:
+        choice=manufacturing_api.normalize_operator_tail_lower_v_choice(
+            stored[TAIL_LOWER_V_SNAPSHOT_KEY]
+        )
+        if choice=="v90":
+            snapshot[TAIL_LOWER_V_SNAPSHOT_KEY]=choice
+            # #3317 real physical first-fold BENDs are owned by the SAME
+            # Designer snapshot as the V choice. Main GUI Save As must
+            # preserve both corner identities; the old CHECK-only axis map
+            # is unrelated and is never used to reconstruct them.
+            first_key=manufacturing_api.TAIL_LOWER_V_FIRST_BENDS_KEY
+            if first_key in stored:
+                manufacturing_api.project_operator_tail_lower_v_first_bend_status(
+                    stored,
+                )
+                snapshot[first_key]=deepcopy(stored[first_key])
     # Engine alone decides whether this Family owns a physical BasePlate.
     # Only carry a detached *committed* source; never derive a pattern here.
     snapshot.update(manufacturing_api.project_operator_receiving_base_plate_snapshot_source(
@@ -202,6 +240,11 @@ def _snapshot_workspace_state(self, snapshot, *, defer_joint_commit=False):
     bay_layout = manufacturing_api.project_receiving_single_bay_door_controls(snapshot)
     if bay_layout is not None:
         snapshot["receiving_layout"] = bay_layout
+    for root_key in (manufacturing_api.ROOT_PHYSICAL_OCCUPANCY_KEY, manufacturing_api.ROOT_MARKING_STORE_KEY):
+        if workspace_state.get(root_key):
+            snapshot[root_key] = deepcopy(workspace_state[root_key])
+        else:
+            snapshot.pop(root_key, None)
     custom = workspace_state.get("custom_parts")
     if custom is not None:
         snapshot["custom_parts"] = deepcopy(custom)

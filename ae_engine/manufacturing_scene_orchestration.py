@@ -132,6 +132,7 @@ def build_part_scene(
     3D).  All manufacturing semantics stay in AE/PartSpec; callers must not
     rebuild baseline geometry, CornerType, holes, or operation ownership.
     """
+    cabinet_family_policy.require_legacy_part_family_source(getattr(spec, "model_name", None))
     from .contracts import CustomFoldPartSpec
     if isinstance(spec, CustomFoldPartSpec):
         from .custom_fold_manufacturing import build_custom_fold_render_data
@@ -254,6 +255,33 @@ def build_part_scene(
                 baseline is not None and abs(float(resolved.depth_comp_t) - 3.0) <= 1e-9
             )
             if used_stretched_baseline:
+                # #3317: this baseline override is only for a deliberately
+                # changed Vault Tail lower Fold. The shared stretched EndCap
+                # builder must continue using its existing source folds for
+                # Vault Head, untouched Tail and Receiving EndCap. Do not
+                # forward all four resolved folds across that boundary.
+                # An authored Fold is authoritative regardless of the
+                # mutable GUI/INI default. The real baseline has its own
+                # CUTTING/BEND stations; only a non-authored legacy Tail uses
+                # those stations without an override. Passing an authored
+                # 15-mm bottom is geometry-identical to the original baseline.
+                authored_tail_lower_fold = (
+                    bool(resolved.is_tail)
+                    and cabinet_family_policy.canonical_family_name(
+                        resolved.model_name
+                    ) == "金庫型"
+                    and (
+                        spec.fold_bottom is not None
+                        or any(
+                            row.phase6_key == "ybottom1"
+                            for row in tuple(spec.fold_profile_y or ())
+                        )
+                    )
+                )
+                tail_lower_override = (
+                    {"target_fold_bottom": resolved.fold_bottom}
+                    if authored_tail_lower_fold else {}
+                )
                 data = _call(
                     ae._build_stretched_end_cap_scene,
                     resolved.model_name, resolved.width, resolved.height or resolved.depth, resolved.depth,
@@ -263,12 +291,20 @@ def build_part_scene(
                     box_body_formed_fw_right=resolved.box_body_formed_fw_right,
                     draw_stock=ctx.draw_stock, is_tail=resolved.is_tail, holes=common["holes"],
                     corner_policy=resolved.corner_policy,
+                    **tail_lower_override,
                 )
                 scene = data.scene
             elif resolved.corner_policy is not None:
+                # Certified Receiving EndCap relief may restore stock as well
+                # as trim it. Identify the producer-owned shell explicitly;
+                # coverage of the restored polygon cannot identify old ink.
+                receiving_endcap = (
+                    cabinet_family_policy.canonical_family_name(resolved.model_name) == "受電箱"
+                )
                 scene = _call(
                     ae._build_unknown_end_cap_scene,
                     corner_policy=resolved.corner_policy,
+                    **({"outline_semantic_id": "OUTER_BOUNDARY"} if receiving_endcap else {}),
                     **common,
                 )
             else:
@@ -690,6 +726,7 @@ def build_box_body_structure_render_data(
     This is the multi-piece manufacturing boundary. The legacy integral path is
     intentionally still available through ``build_part_render_data``.
     """
+    cabinet_family_policy.require_legacy_part_family_source(spec.model_name)
     from .box_body_structure import (
         resolve_box_body_structure,
         resolve_box_body_piece_face_features,
@@ -1123,6 +1160,7 @@ def build_part_render_data(
     spec: PartSpec, context: ManufacturingContext | None = None
 ) -> PartRenderData:
     """Return final manufacturing material + scene through the bounded render owner."""
+    cabinet_family_policy.require_legacy_part_family_source(getattr(spec, "model_name", None))
     from .contracts import CustomFoldPartSpec
     if isinstance(spec, CustomFoldPartSpec):
         from .custom_fold_manufacturing import build_custom_fold_render_data

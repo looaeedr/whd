@@ -35,11 +35,30 @@ def test_saved_dxf_acceptance_passes_exact_roundtrip(tmp_path):
     render = _render_data()
     path = tmp_path / "part.dxf"
     api.save_part_render_data_dxf(render, path, overwrite=True)
+    reopened = ezdxf.readfile(path)
+    assert reopened.header["$INSUNITS"] == ezdxf.units.MM
+    assert reopened.units == ezdxf.units.MM
 
     result = _verifier()(render, path)
 
     assert result.ok is True
     assert result.issues == ()
+
+
+def test_saved_dxf_acceptance_rejects_meters_and_unitless_even_if_shape_is_identical(tmp_path):
+    render = _render_data()
+    for invalid_units in (ezdxf.units.M, 0):
+        path = tmp_path / f"units-{invalid_units}.dxf"
+        api.save_part_render_data_dxf(render, path, overwrite=True)
+        doc = ezdxf.readfile(path)
+        doc.units = invalid_units
+        doc.saveas(path)
+        result = _verifier()(render, path)
+        assert result.ok is False
+        assert any(issue.category == "UNIT_MISMATCH"
+                   and issue.expected == ezdxf.units.MM
+                   and issue.actual == invalid_units
+                   for issue in result.issues)
 
 
 def test_saved_dxf_acceptance_detects_removed_bend(tmp_path):

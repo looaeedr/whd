@@ -1,0 +1,1290 @@
+# -*- coding: utf-8 -*-
+"""#3317 actual WHD Tk Ø4 CHECK window: Factory body/real Tail/true world.
+
+This is a CHECK view from WHD Engine, never a fabrication drawing or a
+substitute for unperformed AutoCAD/physical-BoxBody acceptance.
+"""
+import base64
+from io import BytesIO
+import os
+import tkinter as tk
+from tkinter import ttk
+
+import ezdxf
+import pytest
+
+import gui
+from ae_engine import manufacturing_api as api
+from ae_engine.assembly_geometry import triangle_bounds
+
+
+def _d4_forensic_face_provenance(flat, check, body, tail, *, first_axis):
+    """CHECK-only face IDs, actual original UV ownership and entire V walls.
+
+    This does not modify the mesh or infer solid volume from surface hits.
+    The two V legs are assessed as oriented planar polygon SETS: different
+    triangulation diagonals must not count as a gap.
+    """
+    import math
+    from shapely.geometry import LineString, Point, Polygon
+    from shapely.ops import unary_union
+    from ae_engine.assembly_geometry import _segment_triangle_intersection
+    from ae_engine.v_miter_tail_no_ba_sequential import (
+        _stages,stations_from_real_flat,
+    )
+
+    origin=flat.original_factory_material
+    k=len(check.source_uv)
+    nface=len(check.source_triangle_faces)
+    verts=check.inner_xyz+check.outer_xyz
+    st=stations_from_real_flat(flat)
+
+    def vminus(a,b):return tuple(a[i]-b[i] for i in range(3))
+    def dot(a,b):return sum(a[i]*b[i] for i in range(3))
+    def cross(a,b):return (
+        a[1]*b[2]-a[2]*b[1],
+        a[2]*b[0]-a[0]*b[2],
+        a[0]*b[1]-a[1]*b[0],
+    )
+    def unit(v):
+        d=math.sqrt(dot(v,v))
+        return tuple(x/d for x in v) if d>1e-12 else (0.,0.,0.)
+    def normal(tri):
+        return unit(cross(vminus(tri[1],tri[0]),
+                          vminus(tri[2],tri[0])))
+    def ray_faces(mesh,point,axis):
+        low=min(q[axis] for tri in mesh for q in tri)-1.
+        high=max(q[axis] for tri in mesh for q in tri)+1.
+        start=list(point);end=list(point)
+        start[axis]=low;end[axis]=high
+        rows=[]
+        for fid,tri in enumerate(mesh):
+            hit=_segment_triangle_intersection(
+                start,end,tri,tolerance=1e-7,
+            )
+            if hit is not None:
+                rows.append((fid,tuple(round(float(v),7) for v in hit)))
+        return tuple(rows)
+
+    def tail_record(fid,hit,mesh):
+        face=check.shell_faces[fid]
+        indices=tuple(v%k for v in face)
+        source=tuple(check.source_uv[i] for i in indices)
+        poly=Polygon(source)
+        src_area=poly.area
+        old_area=poly.intersection(origin).area if src_area>1e-10 else 0.
+        new_area=src_area-old_area
+        domain=("old" if src_area>1e-10 and new_area<1e-7
+                else "restored" if src_area>1e-10 and old_area<1e-7
+                else "mixed" if src_area>1e-10 else "boundary_wall")
+        if fid<2*nface:
+            skin="inner" if fid%2==0 else "outer"
+        else:skin="cut_wall"
+        inner=tuple(check.inner_xyz[i] for i in indices)
+        outer=tuple(check.outer_xyz[i] for i in indices)
+        ctr=tuple(sum(uv[j] for uv in source)/3. for j in range(2))
+        first,final,n_first,n_final,_=_stages(
+            ctr,first_axis,st,
+        )
+        return dict(
+            face=fid,hit=hit,uv=tuple(tuple(round(v,5) for v in q)
+                                      for q in source),
+            domain=domain,old_uv_area=round(old_area,6),
+            restored_uv_area=round(new_area,6),skin=skin,
+            world_normal=tuple(round(v,6) for v in normal(mesh[fid])),
+            first_xyz=tuple(round(v,5) for v in first),
+            final_xyz=tuple(round(v,5) for v in final),
+            staged_normal=tuple(round(v,5) for v in n_final),
+            local_inner=tuple(tuple(round(v,5) for v in p)
+                              for p in inner),
+            local_outer=tuple(tuple(round(v,5) for v in p)
+                              for p in outer),
+        )
+
+    rays={}
+    for name,point in (
+        ("real_front_corner",(-294.,-297.,0.)),
+        ("rear_sheet",(100.,-275.,0.)),
+    ):
+        ours=ray_faces(tail,point,2)
+        theirs=ray_faces(body,point,2)
+        rays[name]={
+            "body":tuple({"face":fid,"hit":hit,
+                          "normal":tuple(round(v,5) for v in normal(body[fid]))}
+                         for fid,hit in theirs),
+            "tail":tuple(tail_record(fid,hit,tail) for fid,hit in ours),
+        }
+
+    # The exact 3D wall face pair IDs derive from the same UV boundary edge
+    # and original (lower,apex,upper) pairs. There are four leg groups.
+    groups={}
+    for j,(a,b,_) in enumerate(check.source_boundary_edges):
+        edge=LineString((check.source_uv[a],check.source_uv[b]))
+        if edge.length<=1e-9:continue
+        for name,lower,apex,upper in flat.opening_source_points_xy:
+            for label,tip in (("lower",lower),("upper",upper)):
+                straight=LineString((apex,tip))
+                if edge.difference(straight.buffer(3e-7)).length>1e-7:
+                    continue
+                ids=(2*nface+2*j,2*nface+2*j+1)
+                groups.setdefault((name,label),[]).extend(ids)
+
+    seams={}
+    for name,_,_,_ in flat.opening_source_points_xy:
+        lo=tuple(dict.fromkeys(groups.get((name,"lower"),())))
+        up=tuple(dict.fromkeys(groups.get((name,"upper"),())))
+        assert lo and up,("SOURCE_STRAIGHT_V_WALLS_REQUIRED",name,lo,up)
+        a=tail[lo[0]]
+        e0=unit(vminus(a[1],a[0]))
+        n=normal(a)
+        e1=cross(n,e0)
+        anchor=a[0]
+        def project(tri):
+            return Polygon(tuple(
+                (dot(vminus(p,anchor),e0),dot(vminus(p,anchor),e1))
+                for p in tri
+            ))
+        def set_polygon(ids):
+            return unary_union([project(tail[i]) for i in ids])
+        lower=set_polygon(lo)
+        upper=set_polygon(up)
+        all_up=tuple(p for i in up for p in tail[i])
+        plane_distance=max(abs(dot(vminus(p,anchor),n)) for p in all_up)
+        avg_up=unit(tuple(sum(normal(tail[i])[k] for i in up)
+                          for k in range(3)))
+        seams[name]={
+            "lower_face_ids":lo,"upper_face_ids":up,
+            "lower_area":round(lower.area,9),
+            "upper_area":round(upper.area,9),
+            "intersection_area":round(lower.intersection(upper).area,9),
+            "symmetric_difference_area":round(
+                lower.symmetric_difference(upper).area,9,
+            ),
+            "max_out_of_plane":round(plane_distance,9),
+            "opposed_normal_dot":round(dot(n,avg_up),7),
+        }
+    return {"first_axis":first_axis,"rays":rays,"straight_v_wall_sets":seams}
+
+
+def test_actual_whd_gui_d4_check_window_four_factory_holes_and_native_world(
+    record_property, tmp_path, monkeypatch,
+):
+    if os.name!="nt" and not os.environ.get("DISPLAY"):
+        pytest.skip("requires real Tk/Xvfb GUI")
+    # Preserve the historical native CHECK projection as a fallback
+    # regression independently of the new exact-W620 opt-in adapter.
+    monkeypatch.setattr(
+        api,"project_operator_tail_d4_check_native_world",
+        lambda *_args,**_kwargs: None,
+    )
+    root=tk.Tk()
+    root.withdraw()
+    designer=None
+    win=None
+    try:
+        main=gui.BoxCalculatorGUI(root)
+        main.baseline_var.set("金庫型")
+        main.w_var.set("620")
+        main.h_var.set("600")
+        main.d_var.set("185")
+        if hasattr(main,"t_var"):
+            main.t_var.set("2")
+        main._apply_existing_parts_from_fold_workspace(
+            ["box_body","head","tail"],
+        )
+        designer=main.open_original_fold_designer()
+        root.update_idletasks()
+        root.update()
+        designer.activate_part("tail")
+        # REAL native Fold Editor; do not alter a test-created FinalScene.
+        editor=designer.bend_ui
+        editor.nb.select(editor.tabs.index("Y"))
+        root.update_idletasks()
+        root.update()
+        editor.on_tab(None)
+        editor.render()
+        rows=editor.get_active_dict()["Y"]
+        bottom_idx=next(i for i,seg in enumerate(rows)
+                        if seg.get("phase6_key")=="ybottom1")
+        candidate=[dict(seg) for seg in rows]
+        candidate[bottom_idx]["len"]=48.
+        displayed=api.project_operator_fold_editor_display_rows(
+            candidate,getattr(designer.state,"phase6_thickness",2.),
+        )
+        editor.controls[bottom_idx]["len"].set(
+            str(displayed[bottom_idx]["len"])
+        )
+        editor.save()
+        designer._save_current_part(notify=False)
+        root.update_idletasks()
+        root.update()
+        page=designer.settings_panel.render_context("tail")
+        state=page["extension_state"]
+        assert state["tail_lower_v_choice_widget"].winfo_exists()
+        button=state.get("tail_d4_check_widget")
+        assert button is not None and button.winfo_exists()
+        # The preceding native Y Fold Editor Save queued an ordinary
+        # assembly_relief source reconciliation (old 15 -> new 48).
+        # Complete THAT prior edit before measuring a CHECK-only click.
+        # Otherwise Tk after jobs would falsely attribute its legitimate
+        # writeback to the read-only Ø4 window.
+        designer._phase6_update_scheduler.flush_now()
+        root.update_idletasks()
+        root.update()
+        from copy import deepcopy
+        before=deepcopy(designer._phase6_input_snapshot)
+        assert before["assembly_relief"]["source"]["ybottom1"] == pytest.approx(48.)
+        button.invoke()
+        root.update_idletasks()
+        root.update()
+        matches=[
+            w for w in designer.root.winfo_children()
+            if isinstance(w,tk.Toplevel) and "CHECK_NOT_CNC" in w.title()
+        ]
+        assert len(matches)==1, (
+            "D4_NATIVE_GUI_CHECK_VIEW_NOT_SHOWN",
+            designer.settings_status_var.get(),
+        )
+        win=matches[0]
+        flat=win._tail_d4_check_flat
+        check=win._tail_d4_check_shell
+        body=win._tail_d4_check_body_world
+        placed=win._tail_d4_check_placed_world
+        assert flat.source_spec.width==620
+        assert flat.source_spec.depth==185
+        assert flat.source_spec.thickness==2
+        assert len([p for p in flat.result_scene.primitives
+                    if p.layer=="CUTTING"])==5  # outer+four real Factory
+        assert len([p for p in flat.result_scene.primitives
+                    if p.layer=="BEND"])==5
+        assert not any(getattr(p,"semantic_id",None)==
+                       "USER_ADDED_CHECK_CUTTING"
+                       for p in flat.result_scene.primitives)
+        assert len(placed)==len(check.shell_faces)
+        body_bounds=triangle_bounds(body)
+        assert body_bounds[0]==pytest.approx((-310.,310.),abs=1e-7)
+        assert body_bounds[2]==pytest.approx((-92.5,92.5),abs=1e-7)
+        assert body_bounds[1]==pytest.approx((-298.,298.),abs=1e-7)
+        tail_bounds=triangle_bounds(placed)
+        assert tail_bounds[0]==pytest.approx((-308.,308.),abs=1e-7)
+        assert tail_bounds[2]==pytest.approx((-91.5,91.5),abs=1e-7)
+        assert tail_bounds[1][0]==pytest.approx(-300.,abs=1e-7)
+        assert designer._phase6_input_snapshot==before
+        actual=win._tail_d4_assembly_check
+        assert actual.body_triangle_count==len(body)==308
+        assert actual.tail_triangle_count==len(placed)==2860
+        assert actual.crossing_pair_count>=0
+        assert len(actual.crossing_segments)>=0
+        assert actual.crossing_tail_uv_bounds is not None
+        assert actual.crossing_world_bounds is not None
+        assert len(actual.crossing_target_face_indices)>0
+        assert max(actual.crossing_target_face_indices)<len(placed)
+        assert sum(count for _,count in actual.crossing_regions)==len(
+            actual.crossing_target_face_indices
+        )
+        assert not actual.manufacturing_approved
+        # Exact surface face locations at genuine interior material probes.
+        # These are NOT derived from the orange surface-crossing count.
+        from ae_engine.assembly_geometry import probe_native_world_mesh_axis_faces
+        for fixed_xyz, body_expected, tail_expected in (
+            ((0.,-290.,-20.),(-310.,-308.),(-308.,-306.)),
+            ((0.,-290.,-20.),(308.,310.),(306.,308.)),
+        ):
+            body_hits=probe_native_world_mesh_axis_faces(
+                body,axis=0,fixed_xyz=fixed_xyz,
+            )
+            tail_hits=probe_native_world_mesh_axis_faces(
+                placed,axis=0,fixed_xyz=fixed_xyz,
+            )
+            for value in body_expected:
+                assert any(abs(x-value)<1e-4 for x in body_hits),(
+                    "BODY_SIDE_PROBE",value,body_hits,
+                )
+            for value in tail_expected:
+                assert any(abs(x-value)<1e-4 for x in tail_hits),(
+                    "TAIL_SIDE_PROBE",value,tail_hits,
+                )
+        rear_body=probe_native_world_mesh_axis_faces(
+            body,axis=2,fixed_xyz=(100.,-275.,0.),
+        )
+        rear_tail=probe_native_world_mesh_axis_faces(
+            placed,axis=2,fixed_xyz=(100.,-275.,0.),
+        )
+        for value in (-92.5,-90.5):
+            assert any(abs(z-value)<1e-4 for z in rear_body),(
+                "BODY_REAR_PROBE",value,rear_body,
+            )
+        # Front is an OPENING: x=100 crosses no front sheet. Do not
+        # invent an entire front wall. Check its actual surviving source
+        # flange triangle vertices alongside the full formed D bounds.
+        front_skin_z={
+            round(float(point[2]),6)
+            for triangle in body for point in triangle
+            if float(point[2])>90.
+        }
+        assert 90.5 in front_skin_z and 92.5 in front_skin_z
+        front_body=probe_native_world_mesh_axis_faces(
+            body,axis=2,fixed_xyz=(290.,-275.,0.),
+        )
+        for value in (-92.5,-90.5,90.5,92.5):
+            assert any(abs(z-value)<1e-4 for z in front_body),(
+                "BODY_ACTUAL_FRONT_FRAME_PROBE",value,front_body,
+            )
+        # The real lower left front-frame corner is not the empty x100
+        # opening. Use this exact local ray instead of a made-up front wall.
+        front_corner_body=probe_native_world_mesh_axis_faces(
+            body,axis=2,fixed_xyz=(-294.,-297.,0.),
+        )
+        front_corner_tail=probe_native_world_mesh_axis_faces(
+            placed,axis=2,fixed_xyz=(-294.,-297.,0.),
+        )
+        assert len(front_corner_body)>=2 and len(front_corner_tail)>=2,(
+            "D4_REAL_FRONT_FRAME_SOURCE_MISSING",
+            front_corner_body,front_corner_tail,
+        )
+        body_front=tuple(sorted(front_corner_body)[-2:])
+        tail_front=tuple(sorted(front_corner_tail)[-2:])
+        front_overlap=min(body_front[1],tail_front[1])-max(
+            body_front[0],tail_front[0],
+        )
+        assert front_overlap==pytest.approx(1.,abs=1e-5),(
+            "D4_FRONT_FRAME_PHYSICAL_INTERIOR_OVERLAP",
+            body_front,tail_front,front_overlap,
+        )
+        for value in (-91.5,-89.5):
+            assert any(abs(z-value)<1e-4 for z in rear_tail),(
+                "TAIL_REAR_PROBE",value,rear_tail,
+            )
+        # Repaired integral Body thickness removes the left/right 1-mm
+        # overlap; the independent rear Tail/Body overlap is still 1 mm.
+        assert min(-90.5,-89.5)-max(-92.5,-91.5)==pytest.approx(1.)
+        # Compare an UNMODIFIED Factory Tail folded by the original WHD
+        # Fold/FinalScene owner, not an alternate Ø4 surrogate. A raw
+        # straight Tail rear can mate the corrected Body rear inside face
+        # while the Ø4 root still overlaps: these claims are independent.
+        from ae_engine.endcap_factory_fold import build_endcap_xy_fold_profiles
+        from ae_engine.v_miter_tail_no_ba_sequential import (
+            exact_tail_y_fold_profile_from_original_bends,
+        )
+        from ae_engine.assembly_geometry_folded_mesh import folded_mesh_from_polygon
+        from ae_engine.manufacturing_render_data import (
+            material_polygon_from_final_scene,fold_guides_from_final_scene,
+        )
+        spec=flat.source_spec
+        original_profiles=build_endcap_xy_fold_profiles({
+            "model":spec.model_name,"w":spec.width,"d":spec.depth,
+            "t":spec.thickness,"fw":spec.frame_width,
+            "yl1":spec.fold_left,"yr1":spec.fold_right,
+            "ytop1":spec.fold_top,"ybottom1":spec.fold_bottom,
+        },part_key="tail")
+        original_surface=folded_mesh_from_polygon(
+            material_polygon_from_final_scene(flat.original_scene),
+            original_profiles["X"],
+            exact_tail_y_fold_profile_from_original_bends(flat),
+            fold_guides=fold_guides_from_final_scene(flat.original_scene),
+        )
+        original_world=api.resolve_assembled_endcap_world_skins(
+            original_surface,placement="bottom",
+            box_body_world=body,thickness=spec.thickness,
+            preserve_core_origin=False,
+        ).solid_triangles
+        original_rear_hits=probe_native_world_mesh_axis_faces(
+            original_world,axis=2,fixed_xyz=(100.,-275.,0.),
+        )
+        record_property("ISSUE3317_UNMODIFIED_FACTORY_REAR_Z",repr(original_rear_hits))
+        assert all(any(abs(z-v)<1e-4 for z in original_rear_hits)
+                   for v in (-90.5,-88.5)),(
+            "ORIGINAL_TAIL_REAR_DATUM_DIFFERS",original_rear_hits,
+        )
+        # Reuse the SAME actual GUI Body and native approved 2D for Y-first;
+        # do not substitute a 36/312-face separate Body mesh.
+        from ae_engine.v_miter_tail_d4_check import (
+            project_tail_d4_source_keyed_t_check,
+        )
+        second=project_tail_d4_source_keyed_t_check(flat,first_axis="y")
+        vertices=second.inner_xyz+second.outer_xyz
+        second_local=tuple(
+            tuple(vertices[i] for i in face) for face in second.shell_faces
+        )
+        second_world=api.place_prethickened_endcap_world_skins(
+            second_local,placement="bottom",box_body_world=body,
+        )
+        second_assembly=api.inspect_operator_tail_d4_assembly_world(
+            body,second_world,
+        )
+        assert second_assembly.body_triangle_count==len(body)==308
+        assert second_assembly.tail_triangle_count==len(second_world)==2860
+        assert second_assembly.crossing_pair_count>=0
+        assert len(second_assembly.crossing_segments)>=0
+        assert not second_assembly.manufacturing_approved
+        # Confirm BOTH fold orders now have side face contact, while the rear
+        # overlap remains an independent 1-mm unresolved witness.
+        # Interval widths come from distinct physical face hits, not from
+        # crossing lines or a nominal spec copied into a new solid.
+        for shell_mesh in (placed,second_world):
+            for body_limits,tail_limits in (
+                ((-310.,-308.),(-308.,-306.)),
+                ((308.,310.),(306.,308.)),
+            ):
+                shell_hits=probe_native_world_mesh_axis_faces(
+                    shell_mesh,axis=0,fixed_xyz=(0.,-290.,-20.),
+                )
+                assert all(any(abs(x-v)<1e-4 for x in shell_hits)
+                           for v in tail_limits)
+                assert min(body_limits[1],tail_limits[1])-max(
+                    body_limits[0],tail_limits[0]
+                )==pytest.approx(0.)
+            rear_hits=probe_native_world_mesh_axis_faces(
+                shell_mesh,axis=2,fixed_xyz=(100.,-275.,0.),
+            )
+            assert all(any(abs(z-v)<1e-4 for z in rear_hits)
+                       for v in (-91.5,-89.5))
+            rear_interval=(-91.5,-89.5)
+            body_rear_interval=(-92.5,-90.5)
+            rear_overlap=min(rear_interval[1],body_rear_interval[1])-max(
+                rear_interval[0],body_rear_interval[0],
+            )
+            assert rear_overlap==pytest.approx(1.,abs=1e-6)
+            corner_hits=probe_native_world_mesh_axis_faces(
+                shell_mesh,axis=2,fixed_xyz=(-294.,-297.,0.),
+            )
+            assert len(corner_hits)>=2,("D4_FRONT_CORNER_MISSING",corner_hits)
+            front_tail=tuple(sorted(corner_hits)[-2:])
+            front_body=tuple(sorted(front_corner_body)[-2:])
+            assert min(front_tail[1],front_body[1])-max(
+                front_tail[0],front_body[0],
+            )==pytest.approx(1.,abs=1e-5)
+            # A hypothetical rigid +1 Z shift fixes rear but doubles
+            # the real front-frame overlap: quantify without moving a mesh.
+            shifted_rear=(rear_interval[0]+1.,rear_interval[1]+1.)
+            shifted_front=(front_tail[0]+1.,front_tail[1]+1.)
+            assert min(shifted_rear[1],body_rear_interval[1])-max(
+                shifted_rear[0],body_rear_interval[0],
+            )==pytest.approx(0.,abs=1e-6)
+            assert min(shifted_front[1],front_body[1])-max(
+                shifted_front[0],front_body[0],
+            )==pytest.approx(2.,abs=1e-5)
+        # This is material/face provenance, not another overlap assertion:
+        # print the exact face IDs, UV/old-vs-restored origin, normals and
+        # full left/right V opposing-wall polygon set differences.
+        import warnings
+        for axis,solid,shell in (
+            ("x",placed,check),("y",second_world,second),
+        ):
+            proof=_d4_forensic_face_provenance(
+                flat,shell,body,solid,first_axis=axis,
+            )
+            import json
+            warnings.warn(
+                "ISSUE3317_SOURCE_FACE_AUDIT="+json.dumps(
+                    proof,ensure_ascii=True,separators=(",",":"),
+                ),
+                RuntimeWarning,stacklevel=1,
+            )
+        # Candidate is isolated from production and CHECK rendering:
+        # the EXACT original EndCap Engine folds the changed CUTTING.
+        # Non-V factory source must retain unchanged physical front/rear
+        # skins, not be moved globally by 1 mm or thickened from a new datum.
+        from ae_engine.v_miter_tail_d4_delivery import (
+            project_tail_d4_shared_original_fold_candidate,
+        )
+        ordered_by_axis={}
+        for axis in ("x","y"):
+            trial=project_tail_d4_shared_original_fold_candidate(
+                flat,first_axis=axis,box_body_world=body,
+            )
+            assert not trial["manufacturing_approved"]
+            # Source-UV identity separates truly adjacent T faces from mere
+            # XYZ contact across the two mated V walls. Every two-incidence
+            # directed edge must cancel, including CUTTING walls and hinge
+            # bridges. Keep four-way contact and 56 residual root edges
+            # visible: winding repair must not weld/cap the unresolved root.
+            from collections import defaultdict
+            directed = defaultdict(list)
+            for tri, ids in zip(
+                trial["v_solid"], trial["v_solid_source_ids"],
+                strict=True,
+            ):
+                for j in range(3):
+                    p, q = tri[j], tri[(j + 1) % 3]
+                    a, b = ids[j], ids[(j + 1) % 3]
+                    start = (tuple(round(float(t), 7) for t in p), a)
+                    end = (tuple(round(float(t), 7) for t in q), b)
+                    edge = tuple(sorted((start, end)))
+                    directed[edge].append((start, end))
+            paired = tuple(rows for rows in directed.values()
+                           if len(rows) == 2)
+            assert len(paired) == 4328, (
+                "D4_SOURCE_UV_T_SHELL_PAIRED_EDGE_COUNT_CHANGED",
+                axis, len(paired),
+            )
+            bad_winding = tuple(rows for rows in paired
+                                if rows[0] != tuple(reversed(rows[1])))
+            assert not bad_winding, (
+                "D4_SOURCE_UV_T_SHELL_WINDING_INCONSISTENT",
+                axis, len(bad_winding), bad_winding[:3],
+            )
+
+            ordered=trial["ordered_corner_motion"]
+            assert ordered and {r["corner"] for r in ordered}=={
+                "left","right",
+            }
+            ordered_by_axis[axis]={r["source_face_id"]:r for r in ordered}
+            assert all(r["first_face_normal"] is not None
+                       and r["second_face_normal"] is not None
+                       for r in ordered)
+            walls=trial["straight_v_wall_sets"]
+            assert len(walls)==2 and all(
+                r["full_face_contact_proven"]
+                and r["lower_triangles"]==2
+                and r["upper_triangles"]==2
+                and r["opposed_normal_dot"]==pytest.approx(-1.,abs=1e-6)
+                and r["projected_symmetric_difference_area"]<=1e-6
+                for r in walls
+            ),("D4_SHARED_UV_REAL_V_WALLS_NOT_MATING",axis,walls)
+            assert trial["v_seam_uv_positions"] and all(
+                gap<=1e-6 for _,gap in trial["v_seam_uv_positions"]
+            ),("D4_SOURCE_CONNECTED_SEAM_MISMATCH",axis)
+            assert trial["v_world_open_seam_edges"]==0,(
+                "D4_SOURCE_SEAM_PHYSICAL_OPEN_EDGE",
+                axis,trial["v_world_open_seam_edges"],
+            )
+            assert trial["original_world_open_edges"]==(
+                trial["shared_original_world_open_edges"]
+                +trial["original_removed_world_open_edges"]
+            ),("D4_SOURCE_BASELINE_EDGE_IDENTITY_MISMATCH",axis)
+            assert len(trial["v_extra_world_open_edge_uv"])==(
+                trial["v_extra_world_open_edges"]
+            ),("D4_NEW_ROOT_WORLD_EDGE_UV_IDENTITY_LOST",axis)
+            from collections import Counter
+            actual_apex=tuple(
+                (name,apex) for name,_,apex,_
+                in flat.opening_source_points_xy
+            )
+            left_x=min(apex[0] for _,apex in actual_apex)
+            right_x=max(apex[0] for _,apex in actual_apex)
+            seam_y=min(upper[1] for _,_,_,upper
+                       in flat.opening_source_points_xy)
+            region_counts=Counter()
+            for edge_uv in trial["v_extra_world_open_edge_uv"]:
+                cx=sum(p[0] for p in edge_uv)/2.
+                ymax=max(p[1] for p in edge_uv)
+                if ymax<=seam_y+1e-7 and cx<left_x+25.:
+                    region_counts["left_v_root"]+=1
+                elif ymax<=seam_y+1e-7 and cx>right_x-25.:
+                    region_counts["right_v_root"]+=1
+                else:
+                    region_counts["other_or_above_v"]+=1
+            import warnings
+            warnings.warn(
+                "ISSUE3317_SHARED_UV_OPEN_ROOT_SOURCE_REGIONS="
+                +repr((axis,dict(region_counts),
+                       trial["v_extra_world_open_edge_uv"][:4])),
+                RuntimeWarning,stacklevel=1,
+            )
+            assert trial["v_world_open_edges"]==(
+                trial["shared_original_world_open_edges"]
+                +trial["v_extra_world_open_edges"]
+            ),("D4_SOURCE_V_EDGE_IDENTITY_MISMATCH",axis)
+            assert (
+                trial["v_world_open_edges"],
+                trial["v_world_four_edges"],
+                trial["v_world_open_seam_edges"],
+            )==(56,8,0),(
+                "D4_UV_ROOT_RESIDUAL_PHYSICAL_EDGES_CHANGED",axis,
+                trial["v_world_open_edges"],
+                trial["v_world_four_edges"],
+                trial["v_world_open_seam_edges"],
+            )
+            import warnings
+            warnings.warn(
+                "ISSUE3317_SHARED_UV_PHYSICAL_EDGE_COUNTS="+repr((
+                    axis,trial["original_world_open_edges"],
+                    trial["shared_original_world_open_edges"],
+                    trial["original_removed_world_open_edges"],
+                    trial["v_world_open_edges"],
+                    trial["v_extra_world_open_edges"],
+                    trial["v_world_open_seam_edges"],
+                    trial["v_world_four_edges"],
+                    trial["v_world_multi_edges"],
+                    len(trial["v_source_uv"]),
+                    len(trial["v_source_faces"]),
+                    max(gap for _,gap in trial["v_seam_uv_positions"]),
+                )),RuntimeWarning,stacklevel=1,
+            )
+            warnings.warn(
+                "ISSUE3317_SHARED_ORIGINAL_FOLD_V_WALLS="
+                +repr((axis,walls)),
+                RuntimeWarning,stacklevel=1,
+            )
+            for label,pos in (
+                ("rear",(100.,-275.,0.)),
+                ("front_frame",(-294.,-297.,0.)),
+            ):
+                original_hits=probe_native_world_mesh_axis_faces(
+                    trial["original_solid"],axis=2,fixed_xyz=pos,
+                )
+                candidate_hits=probe_native_world_mesh_axis_faces(
+                    trial["v_solid"],axis=2,fixed_xyz=pos,
+                )
+                assert original_hits==candidate_hits,(
+                    "D4_CANDIDATE_UNCHANGED_FACTORY_FACE_DRIFT",
+                    axis,label,original_hits,candidate_hits,
+                )
+            # Compare baseline source and V change in the same physical
+            # owner before any costly global collision solver. This phase
+            # is NOT a pass for root continuity or full V walls.
+            import warnings
+            warnings.warn(
+                "ISSUE3317_SHARED_ORIGINAL_FOLD_CANDIDATE="
+                +repr((axis,len(trial["v_surface"]),
+                       len(trial["v_solid"]),
+                       "ROOT_SELF_CONTACT_UNVERIFIED")),
+                RuntimeWarning,stacklevel=1,
+            )
+        common=sorted(
+            set(ordered_by_axis["x"]) & set(ordered_by_axis["y"])
+        )
+        assert common, "TAIL_D4_NO_COMMON_SOURCE_UV_FOR_ORDER_COMPARISON"
+        changed_first=tuple(fid for fid in common if any(
+            sum((a-b)**2 for a,b in zip(p,q))>1e-10
+            for p,q in zip(
+                ordered_by_axis["x"][fid]["first_xyz"],
+                ordered_by_axis["y"][fid]["first_xyz"],
+            )
+        ))
+        assert changed_first, "TAIL_D4_FIRST_ORDER_ONLY_A_LABEL"
+        import warnings
+        warnings.warn(
+            "ISSUE3317_ORDERED_V_CORNER_MOTION="+repr({
+                "common_source_faces":len(common),
+                "different_first_stage_faces":len(changed_first),
+                "first_different_id":changed_first[0],
+                "x":ordered_by_axis["x"][changed_first[0]],
+                "y":ordered_by_axis["y"][changed_first[0]],
+            }),RuntimeWarning,stacklevel=1,
+        )
+        # Integral Body's corrected outside datum now has no side
+        # interior overlap at either stationary material sample, for both
+        # fold orders. Existing rear overlap is NOT thereby certified clear.
+
+        assert actual.volume_verdict.startswith("VOLUME_INTERFERENCE_")
+        figure=win._tail_d4_check_figure
+        assert len(figure.axes)==5
+        # WHD world Y is vertical; changing only the camera must leave the
+        # original world triangles and all 2D primitives untouched.
+        assembly_ax,left_ax,right_ax=figure.axes[1],figure.axes[3],figure.axes[4]
+        assert assembly_ax._vertical_axis==1
+        assert (assembly_ax.elev,assembly_ax.azim)==(18,-32)
+        assert left_ax._vertical_axis==right_ax._vertical_axis==1
+        assert (left_ax.elev,left_ax.azim)==(20,54)
+        assert (right_ax.elev,right_ax.azim)==(20,-54)
+        assert any("Tail UV" in text.get_text() for text in figure.texts)
+        section=figure.axes[2]
+        assert section.lines, "native upper two folds source section missing"
+        assert figure.axes[3].collections and figure.axes[4].collections
+        assert any(
+            "CHECK_NOT_CNC" in str(t.get_text())
+            for t in figure.texts
+        )
+        root.update_idletasks()
+        root.update()
+
+        # Click the REAL window toolbar action, not the exporter directly.
+        # Timestamp/handle differences between DXF files are not geometry.
+        file_path=tmp_path / "native_tail_d4_x_CHECK_NOT_CNC.dxf"
+        monkeypatch.setattr(
+            "gui_modules.application.tail_d4_check_view.filedialog.asksaveasfilename",
+            lambda **_kw: str(file_path),
+        )
+        messages=[]
+        monkeypatch.setattr(
+            "gui_modules.application.tail_d4_check_view.messagebox.showinfo",
+            lambda *args, **kwargs: messages.append(("info",args)),
+        )
+        monkeypatch.setattr(
+            "gui_modules.application.tail_d4_check_view.messagebox.showerror",
+            lambda *args, **kwargs: messages.append(("error",args)),
+        )
+        toolbar=next(w for w in win.winfo_children() if isinstance(w,ttk.Frame))
+        save_button=next(
+            w for w in toolbar.winfo_children()
+            if isinstance(w,ttk.Button) and "另存看圖 DXF" in w.cget("text")
+        )
+        save_button.invoke()
+        assert messages and messages[-1][0]=="info",messages
+        assert file_path.exists()
+        reopened=ezdxf.readfile(file_path)
+        assert reopened.dxfversion=="AC1015"  # R2000
+        assert reopened.header["$INSUNITS"]==4  # actual millimeters
+        assert not reopened.audit().has_errors
+        entities=tuple(reopened.modelspace())
+        assert len(entities)==11  # outer + four circles + five datum + warning
+        # The source has three original CIRCLEs and a fourth real CUTTING
+        # hole represented by a closed polyline. Preserve both source types.
+        circles=[e for e in entities if e.dxf.layer=="CHECK"
+                 and e.dxftype()=="CIRCLE"]
+        closed=[e for e in entities if e.dxf.layer=="CHECK"
+                and e.dxftype()=="LWPOLYLINE" and e.closed]
+        assert len(circles)==3
+        assert len(closed)==2  # source exterior + fourth original hole
+        assert len(circles)+len(closed)-1==4
+        assert len([e for e in entities if e.dxf.layer=="DATUM"
+                    and e.dxftype()=="LINE"])==5
+        assert not any(e.dxf.layer in ("CUTTING","BEND","MARKING")
+                       for e in entities)
+        assert designer._phase6_input_snapshot==before
+        # The screenshot is captured from the real live Tk window. On a
+        # runner without ImageGrab support use the same Figure embedded in
+        # the Tk canvas and label that fallback precisely.
+        raw=BytesIO()
+        capture_type="REAL_TK_WINDOW"
+        try:
+            from PIL import ImageGrab
+            x=win.winfo_rootx();y=win.winfo_rooty()
+            w=win.winfo_width();h=win.winfo_height()
+            if w<600 or h<350:
+                raise RuntimeError("Tk CHECK window was not fully mapped")
+            ImageGrab.grab(bbox=(x,y,x+w,y+h)).save(raw,format="PNG")
+        except (ImportError,RuntimeError,OSError):
+            capture_type="TK_CANVAS_FIGURE_ONLY"
+            figure.savefig(raw,format="png",dpi=85)
+        record_property(
+            "ISSUE3317_REAL_D4_NATIVE_TK_CAPTURE",
+            capture_type+":"+base64.b64encode(raw.getvalue()).decode("ascii"),
+        )
+        assert len(raw.getvalue())>3000
+        win.destroy()
+        win=None
+        root.update_idletasks()
+        root.update()
+        assert designer._phase6_input_snapshot==before
+    finally:
+        if win is not None:
+            try:win.destroy()
+            except tk.TclError:pass
+        if designer is not None:
+            try:designer.root.destroy()
+            except tk.TclError:pass
+        root.destroy()
+
+
+@pytest.mark.parametrize("first_axis,record_selection,width,height,depth,bottom",(
+    ("x",False,620.,600.,185.,48.),  # legacy display-only
+    ("x",True,620.,600.,185.,48.),   # genuine saved X/X identity
+    ("y",True,620.,600.,185.,48.),   # genuine saved Y/Y identity
+    ("x",True,620.,600.,185.,35.),   # real non-default lower-fold source
+    ("y",True,620.,600.,185.,35.),
+    ("x",True,620.,600.,185.,55.),
+    ("y",True,620.,600.,185.,55.),
+    ("x",True,670.,640.,205.,55.),
+    ("y",True,670.,640.,205.,55.),
+))
+def test_real_tk_w620_d4_check_button_uses_exact_preplaced_lower_v_solid(
+    first_axis,record_selection,width,height,depth,bottom,
+    record_property,monkeypatch,tmp_path,
+):
+    """Real GUI click; world mesh & source triplets are Engine-owned.
+
+    No second placement, no production renderer metadata, no project writes.
+    """
+    if os.name!="nt" and not os.environ.get("DISPLAY"):
+        pytest.skip("requires real Tk/Xvfb GUI")
+    from copy import deepcopy
+    from ae_engine.assembly_geometry import triangle_bounds
+    root=tk.Tk()
+    root.withdraw()
+    designer=None
+    win=None
+    try:
+        main=gui.BoxCalculatorGUI(root)
+        main.baseline_var.set("金庫型")
+        main.w_var.set(str(width))
+        main.h_var.set(str(height))
+        main.d_var.set(str(depth))
+        if hasattr(main,"t_var"):
+            main.t_var.set("2")
+        main._apply_existing_parts_from_fold_workspace(
+            ["box_body","head","tail"],
+        )
+        designer=main.open_original_fold_designer()
+        root.update_idletasks();root.update()
+        designer.activate_part("tail")
+        editor=designer.bend_ui
+        editor.nb.select(editor.tabs.index("Y"))
+        root.update_idletasks();root.update()
+        editor.on_tab(None);editor.render()
+        rows=editor.get_active_dict()["Y"]
+        index=next(i for i,seg in enumerate(rows)
+                   if seg.get("phase6_key")=="ybottom1")
+        candidate=[dict(seg) for seg in rows]
+        candidate[index]["len"]=bottom
+        displayed=api.project_operator_fold_editor_display_rows(
+            candidate,getattr(designer.state,"phase6_thickness",2.),
+        )
+        editor.controls[index]["len"].set(str(displayed[index]["len"]))
+        editor.save()
+        designer._save_current_part(notify=False)
+        root.update_idletasks();root.update()
+        page=designer.settings_panel.render_context("tail")
+        state=page["extension_state"]
+        button=state["tail_d4_check_widget"]
+        assert button.winfo_exists()
+        designer._phase6_update_scheduler.flush_now()
+        root.update_idletasks();root.update()
+        before=deepcopy(designer._phase6_input_snapshot)
+        assert before["assembly_relief"]["source"]["ybottom1"]==pytest.approx(bottom)
+        # Real native selection, not a test-supplied fold label. Both X/X
+        # and Y/Y must invoke the native Settings button with its true state.
+        if record_selection:
+            from phase6_manufacturing_adapter import build_scene_payload_for_app
+            payload=dict(build_scene_payload_for_app(designer,"tail"))
+            payload["_use_committed_relief"]=False
+            spec_ctx=designer._part_spec_query_callback("tail",dict(payload))
+            raw=designer._scene_query_callback("tail",dict(payload))
+            # Engine-generated genuine finite-source fold identity, never
+            # fabricated "bottom_left": "y" labels. CHECK itself remains
+            # detached and read-only: no V/geometry writes to the project.
+            ephemeral={
+                **deepcopy(designer._phase6_input_snapshot),
+                api.TAIL_LOWER_V_SNAPSHOT_KEY:"v90",
+            }
+            selected=api.commit_operator_tail_lower_v_first_bends(
+                ephemeral,{"bottom_left":first_axis,
+                           "bottom_right":first_axis},
+                spec=spec_ctx[0],render_data=raw,
+            )
+            designer._phase6_input_snapshot[
+                api.TAIL_LOWER_V_FIRST_BENDS_KEY
+            ]=selected[api.TAIL_LOWER_V_FIRST_BENDS_KEY]
+            before=deepcopy(designer._phase6_input_snapshot)
+        button.invoke()
+        root.update_idletasks();root.update()
+        windows=[
+            w for w in designer.root.winfo_children()
+            if isinstance(w,tk.Toplevel) and "CHECK_NOT_CNC" in w.title()
+        ]
+        assert len(windows)==1,designer.settings_status_var.get()
+        win=windows[0]
+        flat=win._tail_d4_check_flat
+        original_check=win._tail_d4_check_shell
+        actual=win._tail_d4_check_world_candidate
+        body=win._tail_d4_check_body_world
+        placed=win._tail_d4_check_placed_world
+        source_faces=win._tail_d4_check_world_source_faces
+        source_uv=win._tail_d4_check_world_source_uv
+        assert actual is not None,(
+            "D4_REAL_TK_EXACT_W620_ADAPTER_DID_NOT_ACTIVATE",
+            designer.settings_status_var.get(),
+        )
+        assert not actual["manufacturing_approved"]
+        assert actual["nominal_lower_v_taper"] is True
+        assert actual["first_axis"]==first_axis
+        assert placed==actual["v_solid"]
+        assert source_faces==actual["v_solid_source_ids"]
+        assert source_uv==actual["v_source_uv"]
+        assert len(source_faces)==len(placed)
+        assert len(source_faces)>len(actual["v_source_faces"])
+        assert len(original_check.shell_faces)!=len(placed)
+        assert actual["v_world_four_edges"]==8
+        assert actual["v_world_open_seam_edges"]==0
+        assert actual["v_world_open_edges"]==actual[
+            "shared_original_world_open_edges"
+        ]
+        assert actual["v_extra_world_open_edges"]==0
+        assert len(actual["straight_v_wall_sets"])==2
+        assert all(x["full_face_contact_proven"]
+                   for x in actual["straight_v_wall_sets"])
+        assert len([p for p in flat.result_scene.primitives
+                    if p.layer=="CUTTING"])==5
+        assert len([p for p in flat.result_scene.primitives
+                    if p.layer=="BEND"])==5
+        assembly=win._tail_d4_assembly_check
+        assert assembly.body_triangle_count==len(body)
+        assert assembly.tail_triangle_count==len(placed)
+        assert assembly.crossing_pair_count>=0
+        assert max(assembly.crossing_target_face_indices)<len(placed)
+        assert not assembly.manufacturing_approved
+        # Collision UV is indexed into the very same displayed triangle
+        # mesh. Never classify thick skins by v_source_faces.
+        from ae_engine.assembly_geometry import inspect_native_d4_assembly_world
+        expected=inspect_native_d4_assembly_world(
+            body,placed,tail_faces=source_faces,source_uv=source_uv,
+            openings=flat.opening_source_points_xy,
+        )
+        assert assembly.crossing_tail_uv_bounds==expected.crossing_tail_uv_bounds
+        assert assembly.crossing_target_face_indices==expected.crossing_target_face_indices
+        assert assembly.crossing_regions==expected.crossing_regions
+        fig=win._tail_d4_check_figure
+        assert fig.axes[3].collections and fig.axes[4].collections
+        if record_selection and (width, height, depth, bottom) == (620., 600., 185., 48.):
+            # Only the pinned native X/X and Y/Y specimen has this known
+            # mating datum. Compare geometric support, not tessellation count.
+            from collections import defaultdict
+            from shapely.geometry import LineString
+            from shapely.ops import unary_union
+            classified = assembly.classified_surface_pairs
+            original = assembly.original_classified_surface_pairs
+            assert len(classified) == assembly.crossing_pair_count == 318
+            assert len(original) == 131
+            rear = tuple(
+                row for row in classified
+                if all(abs(p[2] + 90.5) <= 1e-6
+                       for p in body[row.body_triangle_index])
+            )
+            assert len(rear) == 267
+            assert {row.kind for row in rear} == {"TAIL_TRIANGLE_EDGE"}
+
+            def strict_support(rows):
+                groups = defaultdict(list)
+                for row in rows:
+                    if row.kind != "STRICT_TRIANGLE_INTERIOR":
+                        continue
+                    x = body[row.body_triangle_index][0][0]
+                    assert all(abs(p[0] - x) <= 1e-6
+                               for p in body[row.body_triangle_index] + row.segment)
+                    groups[round(x, 6)].append(LineString([p[1:] for p in row.segment]))
+                return {x: unary_union(segments) for x, segments in groups.items()}
+
+            old, new = strict_support(original), strict_support(classified)
+            assert set(old) == set(new) == {-285., -283., 283., 285.}
+            for x in old:
+                assert old[x].length == pytest.approx(3., abs=1e-6)
+                assert new[x].length == pytest.approx(3., abs=1e-6)
+                assert new[x].bounds == pytest.approx((-298., 88.5, -297., 90.5))
+                assert old[x].hausdorff_distance(new[x]) <= 1e-6
+                assert new[x].difference(old[x].buffer(1e-6)).is_empty
+                assert old[x].difference(new[x].buffer(1e-6)).is_empty
+            assert any(
+                "灰：原偵測交線；橘：兩三角片內部穿越" in text.get_text()
+                for text in fig.texts
+            )
+        # World dimensions come from the SAME already-assembled Engine
+        # source, not the old CHECK's independently placed local skin.
+        # In exact W620 this physically measures X=-307..+307.
+        assert triangle_bounds(placed)[0]==pytest.approx(
+            (-(width/2.-3.),width/2.-3.),abs=1e-6,
+        )
+        assert triangle_bounds(placed)[0]==pytest.approx(
+            triangle_bounds(actual["v_solid"])[0],abs=1e-7,
+        )
+        # Same detached application snapshot before and after the CHECK
+        # click; no DXF save unless the separate CHECK-only toolbar is used.
+        assert designer._phase6_input_snapshot==before
+        record_property("ISSUE3317_NATIVE_D4_LOWER_V_TK_WORLD",repr((
+            first_axis,width,height,depth,bottom,
+            len(placed),len(source_faces),len(source_uv),
+            actual["v_world_open_edges"],actual["v_extra_world_open_edges"],
+            assembly.crossing_pair_count,
+        )))
+        # Capture the actual mapped Tk check window when the runner
+        # permits ImageGrab. Fallback is exactly the Figure painted by
+        # this Tk canvas, labelled distinctly (not a fabricated mock).
+        root.update_idletasks();root.update()
+        raw=BytesIO()
+        evidence_kind="REAL_TK_WINDOW"
+        try:
+            from PIL import ImageGrab
+            x=win.winfo_rootx();y=win.winfo_rooty()
+            w=win.winfo_width();h=win.winfo_height()
+            if w<600 or h<350:
+                raise RuntimeError("native Tk D4 window not fully mapped")
+            ImageGrab.grab(bbox=(x,y,x+w,y+h)).save(raw,format="PNG")
+        except (ImportError,RuntimeError,OSError):
+            evidence_kind="TK_CANVAS_FIGURE_ONLY"
+            fig.savefig(raw,format="png",dpi=85)
+        record_property(
+            "ISSUE3317_NATIVE_D4_LOWER_V_TK_CAPTURE",
+            first_axis+":"+evidence_kind+":"+
+            base64.b64encode(raw.getvalue()).decode("ascii"),
+        )
+        assert len(raw.getvalue())>3000
+        if record_selection:
+            # Opening a correct CHECK does not authorize exporting after
+            # its saved finite-BEND identity has gone stale. The toolbar
+            # rebuilds the same detached source before writing any DXF.
+            stale=deepcopy(designer._phase6_input_snapshot[
+                api.TAIL_LOWER_V_FIRST_BENDS_KEY
+            ])
+            stale["bottom_left"]["x"][0][1]+=0.5
+            designer._phase6_input_snapshot[
+                api.TAIL_LOWER_V_FIRST_BENDS_KEY
+            ]=stale
+            unchanged=deepcopy(designer._phase6_input_snapshot)
+            filename=tmp_path/("stale_"+first_axis+"_must_not_save.dxf")
+            monkeypatch.setattr(
+                "gui_modules.application.tail_d4_check_view.filedialog.asksaveasfilename",
+                lambda **_kw:str(filename),
+            )
+            errors=[]
+            monkeypatch.setattr(
+                "gui_modules.application.tail_d4_check_view.messagebox.showerror",
+                lambda *args,**kwargs:errors.append(args),
+            )
+            toolbar=next(w for w in win.winfo_children()
+                         if isinstance(w,ttk.Frame))
+            save=next(w for w in toolbar.winfo_children()
+                      if isinstance(w,ttk.Button)
+                      and "另存看圖 DXF" in w.cget("text"))
+            save.invoke()
+            assert errors and "V_MITER_FIRST_BEND_SOURCE_CHANGED_RESELECT_REQUIRED" in str(
+                errors[-1]
+            )
+            assert not filename.exists()
+            assert designer._phase6_input_snapshot==unchanged
+    finally:
+        if win is not None:
+            try:win.destroy()
+            except tk.TclError:pass
+        if designer is not None:
+            try:designer.root.destroy()
+            except tk.TclError:pass
+        root.destroy()
+
+
+@pytest.mark.parametrize("first_axis",("x","y"))
+def test_native_tk_d4_check_refuses_stale_saved_bend_identity_same_axis(
+    first_axis,monkeypatch,
+):
+    """Real Settings button: changed physical X BEND endpoint, same X/Y labels.
+
+    The Engine must reject the stale *stored identity* before creating a
+    CHECK Toplevel, writing a snapshot, or enabling the CHECK DXF button.
+    """
+    if os.name!="nt" and not os.environ.get("DISPLAY"):
+        pytest.skip("requires real Tk/Xvfb GUI")
+    from copy import deepcopy
+    from phase6_manufacturing_adapter import build_scene_payload_for_app
+    root=tk.Tk()
+    root.withdraw()
+    designer=None
+    try:
+        main=gui.BoxCalculatorGUI(root)
+        main.baseline_var.set("金庫型")
+        main.w_var.set("620")
+        main.h_var.set("600")
+        main.d_var.set("185")
+        if hasattr(main,"t_var"):
+            main.t_var.set("2")
+        main._apply_existing_parts_from_fold_workspace(
+            ["box_body","head","tail"],
+        )
+        designer=main.open_original_fold_designer()
+        root.update_idletasks();root.update()
+        designer.activate_part("tail")
+        editor=designer.bend_ui
+        editor.nb.select(editor.tabs.index("Y"))
+        root.update_idletasks();root.update()
+        editor.on_tab(None);editor.render()
+        rows=editor.get_active_dict()["Y"]
+        index=next(i for i,seg in enumerate(rows)
+                   if seg.get("phase6_key")=="ybottom1")
+        changed=[dict(seg) for seg in rows]
+        changed[index]["len"]=48.
+        displayed=api.project_operator_fold_editor_display_rows(
+            changed,getattr(designer.state,"phase6_thickness",2.),
+        )
+        editor.controls[index]["len"].set(str(displayed[index]["len"]))
+        editor.save()
+        designer._save_current_part(notify=False)
+        designer._phase6_update_scheduler.flush_now()
+        root.update_idletasks();root.update()
+        page=designer.settings_panel.render_context("tail")
+        button=page["extension_state"]["tail_d4_check_widget"]
+        assert button.winfo_exists()
+        payload=dict(build_scene_payload_for_app(designer,"tail"))
+        payload["_use_committed_relief"]=False
+        spec_context=designer._part_spec_query_callback("tail",dict(payload))
+        spec=spec_context[0]
+        raw=designer._scene_query_callback("tail",dict(payload))
+        selected=api.commit_operator_tail_lower_v_first_bends(
+            {
+                **deepcopy(designer._phase6_input_snapshot),
+                api.TAIL_LOWER_V_SNAPSHOT_KEY:"v90",
+            },
+            {"bottom_left":first_axis,"bottom_right":first_axis},
+            spec=spec,render_data=raw,
+        )[api.TAIL_LOWER_V_FIRST_BENDS_KEY]
+        assert api.validate_operator_tail_lower_v_first_bends(
+            selected,spec=spec,render_data=raw,
+        )==first_axis
+        # Modify only the serialized stored X identity: no physical
+        # Factory BEND, CUTTING or actual project geometry is changed.
+        stale=deepcopy(selected)
+        original=deepcopy(stale["bottom_left"]["x"])
+        assert original==[[15.0,49.0],[15.0,225.0]]
+        stale["bottom_left"]["x"][0][1]+=0.5
+        assert stale["bottom_left"]["first"]==first_axis
+        assert stale["bottom_right"]["first"]==first_axis
+        with pytest.raises(ValueError,match=(
+            "V_MITER_FIRST_BEND_SOURCE_CHANGED_RESELECT_REQUIRED"
+        )):
+            api.validate_operator_tail_lower_v_first_bends(
+                stale,spec=spec,render_data=raw,
+            )
+        designer._phase6_input_snapshot[
+            api.TAIL_LOWER_V_FIRST_BENDS_KEY
+        ]=stale
+        before=deepcopy(designer._phase6_input_snapshot)
+        existing=tuple(
+            w for w in designer.root.winfo_children()
+            if isinstance(w,tk.Toplevel) and "CHECK_NOT_CNC" in w.title()
+        )
+        button.invoke()
+        root.update_idletasks();root.update()
+        after=tuple(
+            w for w in designer.root.winfo_children()
+            if isinstance(w,tk.Toplevel) and "CHECK_NOT_CNC" in w.title()
+        )
+        assert after==existing,(
+            "D4_CHECK_STALE_FINITE_BEND_SHOWED_WINDOW",first_axis,
+        )
+        assert "V_MITER_FIRST_BEND_SOURCE_CHANGED_RESELECT_REQUIRED" in (
+            designer.settings_status_var.get()
+        )
+        assert designer._phase6_input_snapshot==before
+        # No new CHECK button/dialog exists, and the Factory source is
+        # unchanged even though the stored selection is stale.
+        refreshed=designer._scene_query_callback("tail",dict(payload))
+        assert refreshed.scene.primitives==raw.scene.primitives
+    finally:
+        if designer is not None:
+            try:designer.root.destroy()
+            except tk.TclError:pass
+        root.destroy()
+
+
+@pytest.mark.parametrize("first_axis",("x","y"))
+@pytest.mark.parametrize("bottom",(31.,34.))
+def test_real_tk_d4_check_original_square_hole_collision_refuses(
+    first_axis,bottom,
+):
+    """Real 31/34 mm colliding lower folds cannot move the square or fall back."""
+    if os.name!="nt" and not os.environ.get("DISPLAY"):
+        pytest.skip("requires real Tk/Xvfb GUI")
+    from copy import deepcopy
+    root=tk.Tk()
+    root.withdraw()
+    designer=None
+    try:
+        main=gui.BoxCalculatorGUI(root)
+        main.baseline_var.set("金庫型")
+        main.w_var.set("620")
+        main.h_var.set("600")
+        main.d_var.set("185")
+        if hasattr(main,"t_var"):
+            main.t_var.set("2")
+        main._apply_existing_parts_from_fold_workspace(
+            ["box_body","head","tail"],
+        )
+        designer=main.open_original_fold_designer()
+        root.update_idletasks();root.update()
+        designer.activate_part("tail")
+        editor=designer.bend_ui
+        editor.nb.select(editor.tabs.index("Y"))
+        root.update_idletasks();root.update()
+        editor.on_tab(None);editor.render()
+        rows=editor.get_active_dict()["Y"]
+        index=next(i for i,row in enumerate(rows)
+                   if row.get("phase6_key")=="ybottom1")
+        revised=[dict(row) for row in rows]
+        revised[index]["len"]=bottom
+        displayed=api.project_operator_fold_editor_display_rows(
+            revised,getattr(designer.state,"phase6_thickness",2.),
+        )
+        editor.controls[index]["len"].set(str(displayed[index]["len"]))
+        editor.save()
+        designer._save_current_part(notify=False)
+        designer._phase6_update_scheduler.flush_now()
+        root.update_idletasks();root.update()
+        assert designer._phase6_input_snapshot[
+            "assembly_relief"
+        ]["source"]["ybottom1"]==pytest.approx(bottom)
+        page=designer.settings_panel.render_context("tail")
+        button=page["extension_state"]["tail_d4_check_widget"]
+        before=deepcopy(designer._phase6_input_snapshot)
+        button.invoke()
+        root.update_idletasks();root.update()
+        assert not [
+            w for w in designer.root.winfo_children()
+            if isinstance(w,tk.Toplevel) and "CHECK_NOT_CNC" in w.title()
+        ],("D4_CHECK_MOVED_ORIGINAL_SQUARE_HOLE",first_axis)
+        assert "V_MITER_LOWER_CUTTING_CONFLICTS_WITH_ORIGINAL_HOLE" in (
+            designer.settings_status_var.get()
+        )
+        assert designer._phase6_input_snapshot==before
+    finally:
+        if designer is not None:
+            try:designer.root.destroy()
+            except tk.TclError:pass
+        root.destroy()
+
+
+def test_real_tk_d4_check_top_fold_raw_factory_mismatch_rejected():
+    """Real GUI top17: reject changed raw/Factory exterior, never fake CHECK."""
+    if os.name!="nt" and not os.environ.get("DISPLAY"):
+        pytest.skip("requires real Tk/Xvfb GUI")
+    from copy import deepcopy
+    root=tk.Tk()
+    root.withdraw()
+    designer=None
+    win=None
+    try:
+        main=gui.BoxCalculatorGUI(root)
+        main.baseline_var.set("金庫型")
+        main.w_var.set("620")
+        main.h_var.set("600")
+        main.d_var.set("185")
+        if hasattr(main,"t_var"):
+            main.t_var.set("2")
+        main._apply_existing_parts_from_fold_workspace(
+            ["box_body","head","tail"],
+        )
+        designer=main.open_original_fold_designer()
+        root.update_idletasks();root.update()
+        designer.activate_part("tail")
+        editor=designer.bend_ui
+        editor.nb.select(editor.tabs.index("Y"))
+        root.update_idletasks();root.update()
+        editor.on_tab(None);editor.render()
+        rows=editor.get_active_dict()["Y"]
+        updates=[dict(row) for row in rows]
+        for key,value in (("ybottom1",48.),("ytop1",17.)):
+            index=next(i for i,row in enumerate(updates)
+                       if row.get("phase6_key")==key)
+            updates[index]["len"]=value
+        displayed=api.project_operator_fold_editor_display_rows(
+            updates,getattr(designer.state,"phase6_thickness",2.),
+        )
+        for key in ("ybottom1","ytop1"):
+            index=next(i for i,row in enumerate(updates)
+                       if row.get("phase6_key")==key)
+            editor.controls[index]["len"].set(str(displayed[index]["len"]))
+        editor.save()
+        designer._save_current_part(notify=False)
+        designer._phase6_update_scheduler.flush_now()
+        root.update_idletasks();root.update()
+        page=designer.settings_panel.render_context("tail")
+        button=page["extension_state"]["tail_d4_check_widget"]
+        before=deepcopy(designer._phase6_input_snapshot)
+        assert before["assembly_relief"]["source"]["ytop1"]==pytest.approx(17.)
+        button.invoke()
+        root.update_idletasks();root.update()
+        windows=[
+            w for w in designer.root.winfo_children()
+            if isinstance(w,tk.Toplevel) and "CHECK_NOT_CNC" in w.title()
+        ]
+        assert not windows,("D4_CHECK_ACCEPTED_DIFFERENT_FACTORY_SOURCE",
+                            designer.settings_status_var.get())
+        assert "TAIL_IMAGE_V90_FACTORY_SOURCE_DIFFERENT" in (
+            designer.settings_status_var.get()
+        )
+        assert designer._phase6_input_snapshot==before
+    finally:
+        if win is not None:
+            try:win.destroy()
+            except tk.TclError:pass
+        if designer is not None:
+            try:designer.root.destroy()
+            except tk.TclError:pass
+        root.destroy()

@@ -25,9 +25,10 @@ def test_headless_quantity_result_reports_actual_inventory_without_gui():
 
 def test_gui_only_submits_quantity_snapshot_to_engine():
     source = inspect.getsource(export_actions._export_selected_resolved_parts)
-    assert "manufacturing_api.select_quantity_nfb_partial(" in source
-    assert "manufacturing_api.QuantityNfbPartialSelection(" in source
-    assert "manufacturing_api.quantity_partial_live_manifests(" in source
+    assert "manufacturing_api.stage_quantity_operator_export(" in source
+    assert "nfb_partial_manifest.json" not in source
+    assert "gate.permitted_total_pieces" not in source
+    assert "quantity_partial_live_manifests(" not in source
     assert "from gui_modules.application.receiving_nfb_quantity_partial" not in source
     assert old_gui.select_quantity_nfb_partial is engine.select_quantity_nfb_partial
     assert old_gui.QuantityNfbPartialSelection is engine.QuantityNfbPartialSelection

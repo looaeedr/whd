@@ -263,3 +263,71 @@ class DispatchRemoteOnlyContract(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+    def test_current_skills_cannot_revive_direct_x_or_dc_or_windows_uat_gate(self):
+        """CURRENT routing must agree with the trusted X gate, not just YAML roles."""
+        from tools.change_lane_gate import ChangeLaneDenied, evaluate_pr
+
+        skills = (
+            ".agents/skills/engineering/ask-matt/SKILL.md",
+            ".agents/skills/engineering/新增功能/SKILL.md",
+            ".agents/skills/engineering/寫技能/SKILL.md",
+            ".agents/skills/engineering/deterministic-repo-migration/SKILL.md",
+            ".agents/skills/engineering/刪除/SKILL.md",
+            ".agents/skills/engineering/寫排程/SKILL.md",
+            ".agents/skills/engineering/截角資料入口收斂/SKILL.md",
+            ".agents/skills/engineering/拷問邊建立文件/SKILL.md",
+            ".agents/skills/productivity/MCP工具操作/SKILL.md",
+            ".agents/skills/productivity/找技能/SKILL.md",
+            ".agents/skills/misc/git-remote-sync-fallback/SKILL.md",
+            ".agents/skills/engineering/root-local-first/SKILL.md",
+            ".agents/skills/engineering/diagnosing-bugs/SKILL.md",
+            ".agents/skills/engineering/monitoring-remote-qa/SKILL.md",
+            ".agents/skills/engineering/派工/SKILL.md",
+            ".agents/skills/engineering/執行開發任務/SKILL.md",
+            "個人AI檔案庫/第二層_專案與SOP/09_WHD_Canonical_Authority_Map.md",
+        )
+        obsolete = (
+            "不經 localX，也不需要 `/推推`",
+            "由 GitHub／雲端治理分支直送 X",
+            "CURRENT 規則須明確由 `ref=cleanup/2d-3d-sync` 讀取",
+            "正式 X `AGENTS.md`",
+            "正式 X 的 `AGENTS.md`",
+            "正式 X 只在 Windows 人工驗收",
+            "所有 CURRENT 規則必須由明確 `ref=cleanup/2d-3d-sync` 讀取",
+            "純治理可由 GitHub／雲端治理分支經白名單與 PR／CI 直送 X",
+            "正式 X 只能依 Windows 人工驗收",
+            "純治理走受信任 `tools/change_lane_gate.py` 白名單的 GitHub／雲端治理分支直送 X",
+        )
+        for path in skills:
+            with self.subTest(path=path):
+                content = (ROOT / path).read_text(encoding="utf-8")
+                self.assertIn("localX", content)
+                self.assertIn("/推推", content)
+                for marker in obsolete:
+                    self.assertNotIn(marker, content)
+
+        repo = {"full_name": "looaeedr/whd"}
+        event = {"repository": repo, "pull_request": {
+            "number": 42,
+            "base": {"ref": "cleanup/2d-3d-sync", "sha": "a" * 40, "repo": repo},
+            "head": {"ref": "governance/prompt-fix", "sha": "b" * 40, "repo": repo},
+        }}
+        with self.assertRaisesRegex(ChangeLaneDenied, "ALL_X_CHANGES_REQUIRE_LOCALX"):
+            evaluate_pr(event=event, changed_paths=["AGENTS.md"], comments=[])
+        event["pull_request"]["head"]["ref"] = "localX"
+        with self.assertRaisesRegex(ChangeLaneDenied, "EXPLICIT_USER_SLASH_PUSH"):
+            evaluate_pr(event=event, changed_paths=["AGENTS.md"], comments=[])
+
+        comment = {"id": 91, "user": {"login": "looaeedr", "type": "User"},
+                   "body": "\n".join((
+                       "/推推", "WHD_LOCALX_PUBLISH_AUTH_V1",
+                       "repo=looaeedr/whd", "pr=42", "source=localX",
+                       "head=" + "b" * 40, "target=cleanup/2d-3d-sync",
+                       "base=" + "a" * 40,
+                   ))}
+        result = evaluate_pr(event=event, changed_paths=["AGENTS.md"],
+                             comments=[comment])
+        self.assertEqual(result["lane"], "GOVERNANCE_DIRECT_X")
+        self.assertEqual(result["reason"], "EXACT_OWNER_SLASH_PUSH_ACCEPTANCE_VERIFIED")

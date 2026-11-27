@@ -283,7 +283,7 @@ def _apply_cabinet_family_for_current_model(self):
         # Known-Family selection is a new cabinet. Do not inherit an old
         # edited Bay from a previous Receiving session through workspace.
         snap["receiving_layout"] = manufacturing_api.operator_new_receiving_layout(
-            width=snap["w"], height=snap["h"], depth=snap["d"],
+            width=snap["w"], height=snap["h"], depth=snap["d"], new_physical_board=True,
         )
         snap["active_mode"] = "set_bay"
         initial = manufacturing_api.operator_seed_fresh_receiving_nfb_source(snap)

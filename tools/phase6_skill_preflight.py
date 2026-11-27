@@ -3,10 +3,10 @@
 
 Skills 決定 AI 怎麼改；required references 用於可選的技能／域權威查找。
 保留既有路由、evidence 輸出與非零診斷 exit status 供測試／舊呼叫者相容；
-但正式 X `AGENTS.md` 已退役強制 Phase6 Preflight receipt。
+但 GitHub `localX` exact HEAD 的 `AGENTS.md` 已退役強制 Phase6 Preflight receipt。
 **本工具的查找結果、missing evidence 或 CLI exit code 不得作為現行
 Git／DC／施工／提交／PR／CI 的授權或阻擋門檻。**
-實際權限、產品／治理通道與驗收以 X `AGENTS.md` 和適用 gate 為準。
+實際權限、產品／治理通道與驗收以 GitHub `localX` 同一 HEAD 的 `AGENTS.md`、CURRENT Skill／AI Library 和適用 gate 為準；本診斷器不會授權讀寫、執行或發布。
 本工具不參與 runtime 製造公式。
 """
 from __future__ import annotations
@@ -19,7 +19,10 @@ import sys
 from pathlib import Path
 from typing import Iterable, Mapping, Sequence
 
-from tools.interactive_command_no_stop_gate import ordered_command_skills
+from tools.interactive_command_no_stop_gate import (
+    ordered_command_skills,
+    without_non_action_command_mentions,
+)
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -45,7 +48,9 @@ def _norm(value: str | Path) -> str:
     return text[2:] if text.startswith("./") else text
 
 
-def _keyword_matches_task(keyword: str, task_text: str) -> bool:
+def _keyword_matches_task(
+    keyword: str, task_text: str, *, force_ascii_word_boundary: bool = False
+) -> bool:
     keyword_text = keyword.lower()
     is_short_ascii_acronym = (
         len(keyword) <= 3
@@ -53,7 +58,7 @@ def _keyword_matches_task(keyword: str, task_text: str) -> bool:
         and keyword.isalnum()
         and any(char.isupper() or char.isdigit() for char in keyword)
     )
-    if is_short_ascii_acronym:
+    if is_short_ascii_acronym or force_ascii_word_boundary:
         pattern = rf"(?<![A-Za-z0-9_]){re.escape(keyword_text)}(?![A-Za-z0-9_])"
         return re.search(pattern, task_text) is not None
     return keyword_text in task_text
@@ -120,7 +125,9 @@ def required_skills_for(
     registry: Mapping[str, object] | None = None,
 ) -> tuple[str, ...]:
     data = registry or load_skill_registry()
-    task_text = str(task or "").lower()
+    # Exclude explicit negative, explanatory and quoted command mentions
+    # from actionable Registry discovery; changed-file review still routes.
+    task_text = without_non_action_command_mentions(str(task or "")).lower()
     files = tuple(_norm(path) for path in changed_files)
     required: list[str] = []
 
@@ -129,7 +136,13 @@ def required_skills_for(
             raise ValueError("skill_registry route must be an object")
         keywords = tuple(str(item) for item in route.get("keywords", ()) or ())
         globs = tuple(_norm(str(item)) for item in route.get("file_globs", ()) or ())
-        matched_keyword = any(_keyword_matches_task(keyword, task_text) for keyword in keywords)
+        boundary_keywords = set(map(str, route.get("boundary_keywords", ()) or ()))
+        matched_keyword = any(
+            _keyword_matches_task(
+                keyword, task_text, force_ascii_word_boundary=keyword in boundary_keywords
+            )
+            for keyword in keywords
+        )
         matched_file = any(fnmatch.fnmatch(path, pattern) for path in files for pattern in globs)
         if not (matched_keyword or matched_file):
             continue
@@ -151,7 +164,7 @@ def required_references_for(
     registry: Mapping[str, object] | None = None,
 ) -> tuple[str, ...]:
     data = registry or load_skill_registry()
-    task_text = str(task or "").lower()
+    task_text = without_non_action_command_mentions(str(task or "")).lower()
     files = tuple(_norm(path) for path in changed_files)
     required: list[str] = list(GLOBAL_REQUIRED_REFERENCES)
 
@@ -160,7 +173,13 @@ def required_references_for(
             raise ValueError("skill_registry route must be an object")
         keywords = tuple(str(item) for item in route.get("keywords", ()) or ())
         globs = tuple(_norm(str(item)) for item in route.get("file_globs", ()) or ())
-        matched_keyword = any(_keyword_matches_task(keyword, task_text) for keyword in keywords)
+        boundary_keywords = set(map(str, route.get("boundary_keywords", ()) or ()))
+        matched_keyword = any(
+            _keyword_matches_task(
+                keyword, task_text, force_ascii_word_boundary=keyword in boundary_keywords
+            )
+            for keyword in keywords
+        )
         matched_file = any(fnmatch.fnmatch(path, pattern) for path in files for pattern in globs)
         if not (matched_keyword or matched_file):
             continue

@@ -181,6 +181,8 @@ def export_verified_pad_base_part_only(
     rename or arbitrary Scene file can authorize the output. The generic
     full-cabinet MFG-2 and all separately pending EAR/welding gates remain.
     """
+    from .operator_scoped_base_plate_marks import require_scoped_base_plate_export_held
+    require_scoped_base_plate_export_held(snapshot, {"base_plate": True})
     if (not isinstance(version_id,str) or not version_id.strip()
             or type(box_count) is not int or box_count<=0
             or not isinstance(parameters,ManufacturingParameters)):

@@ -10,6 +10,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 
 from .cabinet_types.policy import derive_inner_door_panels
+from .inner_door_panels import inner_door_panel_part_profiles
 from .contracts import BasePlatePartSpec
 from .manufacturing_contracts import (
     ManufacturingPartInput, ManufacturingResolveRequest,
@@ -70,6 +71,12 @@ def receiving_committed_nfb_pair_request_for_bay(
         build_inner_door_panel_render_data, build_part_render_data,
     )
     panel = inner[0]
+    # Original canonical Door topology already owns material lengths, fold
+    # directions and finished-to-flat conversion. Keep the same source-owned
+    # X/Y profiles on the immutable NFB pair Request so folded 3D and collision
+    # auditing cannot silently turn this approved physical sheet into an empty
+    # mesh while the 2D/DXF path still manufactures it.
+    door_profiles = inner_door_panel_part_profiles(inner)[panel.stable_id]
     values = receiving_base_plate_values(snapshot)
     if values is None:
         raise ValueError("NFB_PAIR_REQUEST_PHYSICAL_BASE_SOURCE_MISSING")
@@ -94,6 +101,8 @@ def receiving_committed_nfb_pair_request_for_bay(
             ManufacturingPartInput(
                 part_key=panel.stable_id,
                 render_data=build_inner_door_panel_render_data(panel),
+                x_profile=tuple(door_profiles["X"]),
+                y_profile=tuple(door_profiles["Y"]),
             ),
             ManufacturingPartInput(
                 part_key="base_plate",

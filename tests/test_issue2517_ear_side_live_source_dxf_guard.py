@@ -178,3 +178,189 @@ def test_ear_gui_workspace_change_while_resolving_geometry_cannot_publish(
                and "DXF 工作區來源已變更" in e[1] for e in events)
     assert not any(isinstance(e, tuple) and e[0] == "success" for e in events)
     assert not list(tmp_path.glob("*.dxf"))
+
+
+@pytest.mark.parametrize("mode", ("mfg", "check"))
+@pytest.mark.parametrize("changed", ("w", "t"))
+def test_main_gui_unsaved_numeric_edit_in_side_dxf_dialog_fails_closed(
+    tmp_path, monkeypatch, mode, changed,
+):
+    # Actual W800/T2 committed EAR contact + 2D side sheet source. Only the
+    # main-GUI numeric reader is simulated; no Engine manufacturing API is
+    # patched. A Tk edit can precede the next Fold Designer snapshot sync.
+    snapshot, geometry = _actual(_assembled)
+    saved = deepcopy(snapshot)
+    host, events = _host(snapshot, geometry)
+    live = {name: snapshot[name] for name in ("w", "h", "d", "t", "fw")}
+    host.get_float_values = lambda: deepcopy(live)
+
+    def choose_folder(**_kwargs):
+        events.append("folder")
+        live[changed] += 1.
+        return str(tmp_path)
+
+    monkeypatch.setattr(gui.filedialog, "askdirectory", choose_folder)
+    monkeypatch.setattr(
+        gui.messagebox, "showerror",
+        lambda title, detail: events.append(("error", detail)),
+    )
+    monkeypatch.setattr(
+        gui.messagebox, "showinfo",
+        lambda title, detail: events.append(("success", detail)),
+    )
+    action = (gui.export_receiving_ear_side_manufacturing_dxf
+              if mode == "mfg" else gui.export_receiving_ear_side_check_dxf)
+    assert action(host) is None
+    assert events[:3] == ["flush", "resolved", "folder"]
+    assert any(isinstance(e, tuple) and e[0] == "error"
+               and "DXF 即時操作來源已變更" in e[1] for e in events)
+    assert not any(isinstance(e, tuple) and e[0] == "success" for e in events)
+    assert not list(tmp_path.glob("*.dxf"))
+    assert snapshot == saved
+
+
+@pytest.mark.parametrize("mode", ("mfg", "check"))
+def test_main_gui_unchanged_numeric_source_still_makes_actual_side_2d_3d_dxf(
+    tmp_path, monkeypatch, mode,
+):
+    from ae_engine.assembly_geometry import build_joint_world_geometry
+    from ae_engine.manufacturing_scene_access import owner_render_data
+
+    snapshot, geometry = _actual(_assembled)
+    host, events = _host(snapshot, geometry)
+    live = {name: snapshot[name] for name in ("w", "h", "d", "t", "fw")}
+    host.get_float_values = lambda: deepcopy(live)
+    # Same 2D source handed into real Engine side manufacturing and actual
+    # 3D world placement (source signed skin, not a GUI approximation).
+    left = owner_render_data(geometry, "box_body:left_side")
+    right = owner_render_data(geometry, "box_body:right_side")
+    assert left is not None and right is not None
+    world = build_joint_world_geometry(
+        geometry.parts, (snapshot["w"], snapshot["h"], snapshot["d"]),
+        snapshot["t"],
+    )
+    assert world["mapped_skin_triangles_by_part"]["box_body:left_side"]
+    assert world["mapped_skin_triangles_by_part"]["box_body:right_side"]
+    monkeypatch.setattr(gui.filedialog, "askdirectory",
+                        lambda **_kwargs: str(tmp_path))
+    monkeypatch.setattr(gui.messagebox, "showerror",
+                        lambda title, detail: events.append(("error", detail)))
+    monkeypatch.setattr(gui.messagebox, "showinfo",
+                        lambda title, detail: events.append(("success", detail)))
+    action = (gui.export_receiving_ear_side_manufacturing_dxf
+              if mode == "mfg" else gui.export_receiving_ear_side_check_dxf)
+    result = action(host)
+    assert result is not None, events
+    assert len(result.output_paths) == 2
+    assert not any(isinstance(e, tuple) and e[0] == "error" for e in events)
+    assert [e[0] for e in events if isinstance(e, tuple)] == ["success"]
+    for physical_side, filename in result.output_paths:
+        assert physical_side in ("box_body:left_side", "box_body:right_side")
+        reopened = ezdxf.readfile(filename)
+        assert not reopened.audit().errors
+        layers = {e.dxf.layer for e in reopened.modelspace()}
+        assert {"CUTTING", "BEND", "MARKING"} <= layers
+    if mode == "mfg":
+        assert result.whole_cabinet_manufacturing_ready is False
+    else:
+        assert result.manufacturing_ready is False
+
+
+def test_independent_ear_side_guard_notices_live_reader_attachment_after_dialog(
+    tmp_path, monkeypatch,
+):
+    snapshot, geometry = _actual(_assembled)
+    host, events = _host(snapshot, geometry)
+    assert not hasattr(host, "get_float_values")
+
+    def directory(**_kwargs):
+        host.get_float_values = lambda: {
+            k: snapshot[k] for k in ("w", "h", "d", "t")
+        }
+        return str(tmp_path)
+
+    monkeypatch.setattr(gui.filedialog, "askdirectory", directory)
+    monkeypatch.setattr(gui.messagebox, "showerror",
+                        lambda title, detail: events.append(("error", detail)))
+    monkeypatch.setattr(gui.messagebox, "showinfo",
+                        lambda title, detail: events.append(("success", detail)))
+    assert gui.export_receiving_ear_side_check_dxf(host) is None
+    assert any(isinstance(e, tuple) and e[0] == "error"
+               and "DXF 即時操作來源已變更" in e[1] for e in events)
+    assert not list(tmp_path.glob("*.dxf"))
+
+
+@pytest.mark.parametrize("mode", ("mfg", "check"))
+def test_live_cabinet_family_switch_in_ear_side_folder_dialog_rejects_old_dxf(
+    tmp_path, monkeypatch, mode,
+):
+    # Genuine Receiving W800/T2 physical EAR contact, side 2D FinalScenes
+    # and 3D skin world are resolved before a main-GUI Family change.
+    snapshot, geometry = _actual(_assembled)
+    before = deepcopy(snapshot)
+    host, events = _host(snapshot, geometry)
+    model = {"raw": "受電箱"}
+    host.baseline_var = type("ModelVar", (), {
+        "get": lambda self: model["raw"],
+    })()
+    host.get_float_values = lambda: deepcopy({
+        name: snapshot[name] for name in ("w", "h", "d", "t", "fw")
+    })
+
+    def directory(**_kwargs):
+        events.append("folder")
+        # Not yet synchronized into the Fold Designer snapshot or Workspace.
+        model["raw"] = "金庫型"
+        return str(tmp_path)
+
+    monkeypatch.setattr(gui.filedialog, "askdirectory", directory)
+    monkeypatch.setattr(gui.messagebox, "showerror",
+                        lambda title, detail: events.append(("error", detail)))
+    monkeypatch.setattr(gui.messagebox, "showinfo",
+                        lambda title, detail: events.append(("success", detail)))
+    action = (gui.export_receiving_ear_side_manufacturing_dxf
+              if mode == "mfg" else gui.export_receiving_ear_side_check_dxf)
+    assert action(host) is None
+    assert events[:3] == ["flush", "resolved", "folder"]
+    assert any(isinstance(e, tuple) and e[0] == "error"
+               and "DXF 即時操作來源已變更" in e[1] for e in events)
+    assert not any(isinstance(e, tuple) and e[0] == "success" for e in events)
+    assert snapshot == before
+    assert not list(tmp_path.glob("*.dxf"))
+
+
+@pytest.mark.parametrize("mode", ("mfg", "check"))
+def test_unchanged_receiving_family_selection_still_reopens_real_ear_side_dxf(
+    tmp_path, monkeypatch, mode,
+):
+    snapshot, geometry = _actual(_assembled)
+    host, events = _host(snapshot, geometry)
+    model = {"raw": "受電箱"}
+    host.baseline_var = type("ModelVar", (), {
+        "get": lambda self: model["raw"],
+    })()
+    host.get_float_values = lambda: deepcopy({
+        name: snapshot[name] for name in ("w", "h", "d", "t", "fw")
+    })
+    monkeypatch.setattr(gui.filedialog, "askdirectory",
+                        lambda **_kwargs: str(tmp_path))
+    monkeypatch.setattr(gui.messagebox, "showerror",
+                        lambda title, detail: events.append(("error", detail)))
+    monkeypatch.setattr(gui.messagebox, "showinfo",
+                        lambda title, detail: events.append(("success", detail)))
+    action = (gui.export_receiving_ear_side_manufacturing_dxf
+              if mode == "mfg" else gui.export_receiving_ear_side_check_dxf)
+    receipt = action(host)
+    assert receipt is not None, events
+    assert [e[0] for e in events if isinstance(e, tuple)] == ["success"]
+    assert len(receipt.output_paths) == 2
+    for owner, path in receipt.output_paths:
+        assert owner in ("box_body:left_side", "box_body:right_side")
+        dxf = ezdxf.readfile(path)
+        assert not dxf.audit().errors
+        assert {"CUTTING", "BEND", "MARKING"} <= {
+            e.dxf.layer for e in dxf.modelspace()
+        }
+    assert (receipt.whole_cabinet_manufacturing_ready is False) if mode == "mfg" else (
+        receipt.manufacturing_ready is False
+    )

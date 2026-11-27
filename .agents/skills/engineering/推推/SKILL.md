@@ -9,7 +9,9 @@ whd_schema: WHD_DOC_META_V1
 
 # /推推 — 以 GitHub localX 為來源的正式發布
 
-**唯一預設路線：GitHub-only。** 使用者當次發出 `/推推`，即表示對當下 GitHub `localX` 發布候選版本的驗收決定和正式 X 發布授權。不得另要求「GitHub-only」、`/驗收通過`、Windows 本機 SHA／UAT、CoreELEC 或 DC 授權。Windows 同步／實測是獨立待辦，沒做不得謊稱已完成，但**不阻擋遠端發布**。
+**唯一預設路線：GitHub-only。** 使用者當次**肯定、明確地下達** `/推推`，即表示對當下 GitHub `localX` 發布候選版本的驗收決定和正式 X 發布授權。不得另要求「GitHub-only」、`/驗收通過`、Windows 本機 SHA／UAT、CoreELEC 或 DC 授權。Windows 同步／實測是獨立待辦，沒做不得謊稱已完成，但**不阻擋遠端發布**。
+
+**路由選中 ≠ 正式發布授權**：Registry 的診斷路由須排除明確否定的 `/推推` 與不帶斜線的「推推」（如「不要 `/推推`」、「這次不推推」），並保留肯定的發布命令與對本 Skill 檔案的查改路由。即使 Registry 因其他上下文選中本 Skill，也只表示須讀取其規則；例如「`/推推` 有什麼條件？」、「請說明 `/推推` 規則」或引用文件中的 `/推推`，均**不是當次肯定的發布指令**；即使詢問文字包含完整命令也不授權 owner 留言、X PR、tag 或 Release。沒有當次肯定發布決定，就只能唯讀查核，不得留言發布授權、建立正式 X PR、更新正式 X、tag 或 Release；不得用上輪的 `/推推` 或 Skill keyword 代替當次指令。
 
 1. **來源與範圍**：fresh-read GitHub `localX` HEAD、正式 `X=cleanup/2d-3d-sync` HEAD、已整合 PR、實際差異與必要測試。日常產品、治理／技能先分別經適用 CI 和 PR 整合 GitHub `localX`；不從 `main` 或本機工作目錄默認取版本。
 2. **X-only 歷史**：只讀確認正式 X 獨有的每個 commit（含 merge 第一父差異）是否全部符合受信任治理白名單；產品／未知／混合或證據不完整 → `X_AHEAD_NON_GOVERNANCE_BLOCKED`，不能先將 X 倒灌 `localX`，也不能 force/reset。

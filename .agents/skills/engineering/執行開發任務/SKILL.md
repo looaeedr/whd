@@ -11,12 +11,12 @@ whd_schema: WHD_DOC_META_V1
 
 ## 不得停止程序 `INTERACTIVE_COMMAND_NO_STOP_HARD_GATE_V1`
 
-使用者明確下達施工、`/功能`、`/DEBUG`、`/派工` 或 `/接手` 後，在原有授權範圍內直接施工，不得預先設停止程序；能讀真實來源就讀、能修改就提交、能查 CI 就查、GREEN 就依現行授權合併 `localX` 並接下一張。單一操作遭拒只處理該操作，改做其他合法可行工作；不得以狀態報告、建立工單、PR 或單一 blocker 宣稱完成。維持 `SOURCE_READ_BEFORE_MUTATION_V1`、DC/RC 明確授權及正式 X `/推推` 閘門。
+使用者明確下達施工、`/功能`、`/DEBUG`、`/派工` 或 `/接手` 後，在原授權 Issue／scope 內直接施工，不預先設停止程序；能讀原始來源、修程式、查 CI 就繼續，GREEN 即核對與合併 `localX`。合併後可只讀發現下一單，但**跨 Issue 需有獨立當次或可回讀的授權證據**才可施工；若未授權回報 `NEXT_ISSUE_AUTHORIZATION_REQUIRED`，不可把原任務核准擴大。單一操作受阻改做其他合法部分，真正 runtime 不可用可回報未完成，不冒稱背景有人續作；保留 `SOURCE_READ_BEFORE_MUTATION_V1`、DC/RC 授權與正式 X `/推推`。
 
 
 **改程式前的必做條件**：執行 `AGENTS.md` 的 `SOURCE_READ_BEFORE_MUTATION_V1`；先實際讀受影響程式完整函式／呼叫鏈、CURRENT 規格與資料檔及既有測試，交代 `SOURCE_READ_EVIDENCE` 後才可寫產品程式或測試。若來源或正確判準缺失，回報 `SOURCE_READ_PRECONDITION_FAILED`，繼續只讀查證，**不可看檔名就直接改、不得憑測試輸出猜幾何公式**。此條不擴大 RC/DC 權限。
 
-使用使用者指定的 Issue 或明確開發任務，先讀 GitHub `localX` 精確 HEAD 的 `AGENTS.md`，再依入口分流：一般修復、`/派工` 與治理修改從最新 `localX` 建工作分支，在 GitHub／排程／雲端施工並通過 CI 後 PR 合回遠端 `localX`。僅使用者當次明確 `/接手` 選用 RC 的任務可以使用 CoreELEC；不因 `LOCALX_INTEGRATION` 或 CI GREEN 自動啟動 DC。正式 X 只在 Windows 人工驗收及當次 `/推推` 後發布。
+使用使用者指定的 Issue 或明確開發任務，先讀 GitHub `localX` exact HEAD 的 `AGENTS.md`；一般修復、`/派工`、純治理均從 `localX` HEAD 建工作分支，在 GitHub／雲端完成必要測試、PR 與 CI 後安全合併遠端 `localX`。只有使用者當次明確 `/接手` 才可選用 RC；不因 `LOCALX_INTEGRATION` 或 CI GREEN 自動啟動 DC。正式 X 的產品與治理都需要使用者當次 `/推推`（即驗收與發布決定）、exact SHA 與受信任 gate，Windows 人工 UAT 不另作發版前置。
 
 使用者下達 `/接手` 時，優先透過 Remote Desktop Commander → CoreELEC `whd-dev` → `/workspace/whd` 執行。不因缺少另一個 Agent、工作槽、狀態交易或工單接取紀錄而停止。
 
@@ -34,7 +34,7 @@ whd_schema: WHD_DOC_META_V1
 
 `/接手` 對已明確指定、或當輪已確認接手的 **同一張 Issue／工作分支**，包含從施工到 `localX` 的完整交付授權：本機修改、測試、`git commit` → 推送本次工作分支提交到使用者的 `looaeedr/whd` GitHub → 建立／更新 **base=`localX`** 的產品 PR → 驗收該 PR exact HEAD 的 CI → 合併至 `localX` → 回讀實際 PR、Git HEAD 與 Issue，留言、結案，並依前置及衝突檢查續作下一張可執行工單。
 
-**這些遠端推送及 PR／localX 合併不是「發布正式 X」**；已存在有效 `/接手` 指令及明確 Issue 時，不得只因沒有另外一句「授權遠端推送」便自行中斷或重問。只有目標是 `cleanup/2d-3d-sync`（正式 X）的**產品**發布才必須取得使用者當次 `/推推`。
+**這些遠端推送及 PR／localX 合併不是「發布正式 X」**；同一已授權 Issue 的 `/接手` 不必因缺第二次遠端推送口令而停工。**任何**目標為 `cleanup/2d-3d-sync` 的正式 X 發布（包含治理／Skill／文件與產品），均須使用者當次 `/推推`，不能用治理白名單豁免。
 
 授權嚴格限於 `looaeedr/whd`、指定工作分支及 `localX`；禁止變更正式 X、跨專案推送、擴大變更範圍或對未驗證提交宣稱 CI GREEN。不得捏造已核准的工具操作：若 GitHub／Remote Desktop／自動批准系統在工具層拒絕實際 push／merge，必須回報**哪個實際工具操作**被拒及具體阻塞，不能用技能文字繞過平台權限，亦不得將本地 commit 說成已遠端交付。
 
@@ -48,9 +48,9 @@ whd_schema: WHD_DOC_META_V1
 
 保留必要的產品測試、程式碼 review、現場 DXF 驗收，實際交付狀態以 Git HEAD 與 Issue/PR 反讀為準。
 
-產品或混合檔案仍須 localX 與使用者當次 /推推 才可正式發布 X。純非產品文檔、治理、技能及其專用測試，由現行治理專項 CI 判定後先走 GitHub／雲端工作分支 → `localX` PR/merge，不走一般產品 QA；正式 X 仍需人工驗收與 `/推推`；未明確授權不得使用 DC／本機。
+產品或混合修改須先整合 `localX`，正式發布 X 須使用者當次 `/推推`。純非產品文檔、治理、技能及治理專用測試可使用獨立治理 CI，仍由 GitHub／雲端工作分支 → `localX` PR／merge；正式 X 同樣須當次 `/推推`、精確授權與受信任 gate，Windows UAT 不是發布前置。未明確授權不得使用 DC／本機。
 
 ## 工作結束前的交付驗證
 
 產品 PR 建立後不表示任務完成。尚在 queued/in_progress/pending 的 CI 只能續查，不可最終回報「已派工」就離開；成功時在同一可執行回合繼續合併 localX、驗證 HEAD、工單留言、結案回讀，失敗時主動查 log 修復並重測。單一工具受阻時立即處理其他合法可行動作，不得將 blocker 當整體停止程序；`/推推` 仍是正式 X 發布唯一授權。
-`localX` 成功合併並完成 GitHub SHA 回讀之後立刻 `NEXT_ISSUE_DISCOVERY_REQUIRED`：在原 Issue 結案前／同時查下一張符合依賴、無重複施工、目前 OPEN 的工單，直接切入派工與實作；不能把原 Issue close 當下一張搜尋的先決條件。沒有可執行工單則記錄真實 `NO_ELIGIBLE_ISSUE`。
+`localX` 成功合併且 GitHub SHA readback 後立刻 `NEXT_ISSUE_DISCOVERY_REQUIRED`：在原 Issue close/readback 前或同時只讀查 OPEN Issue、前置／owner／PR；**只有另有該 Issue 的獨立授權**才能接取並執行首筆實質施工。找到但未授權回報 `NEXT_ISSUE_AUTHORIZATION_REQUIRED` 並完成原工單收尾，不可開分支／推送或捏造已接取；無可執行者保留真實 `NO_ELIGIBLE_ISSUE`。

@@ -171,3 +171,92 @@ def test_real_gui_indicator_door_filename_comes_from_engine_before_export(
         host, "/unused", {"t": 2}, export_box=False, export_door=True,
     ) == ["indicator_door_c1_r2.dxf"]
     assert seen == [(("small-door", (2,)), "indicator_door_c1_r2.dxf")]
+
+
+def test_later_corrupt_saved_indicator_cell_never_writes_earlier_dxf(tmp_path):
+    """Direct GUI route must preflight every raw cell before first Engine write."""
+    cells = _cells()[:2]
+    valid = {"mode": "indicator_box", "layers": 1, "groups": [2],
+             "offset_x": 0, "offset_y": 0, "is_box_dist": False}
+    invalid = {**valid, "groups": ["bad"]}
+    written = []
+    source = {"0:0": deepcopy(valid), "0:1": deepcopy(invalid)}
+    before = deepcopy(source)
+    host = SimpleNamespace(
+        get_door_layout_cells=lambda: cells,
+        _door_layout_cell_key=lambda c: f"{c.column_index}:{c.row_index}",
+        door_layout_indicator_states=source,
+        _validate_door_layout_indicator_fit=lambda *_: None,
+        door_layout_indicator_box_features={"0:0": [], "0:1": []},
+        door_layout_indicator_door_features={"0:0": [], "0:1": []},
+        _manufacturing_context=lambda *, draw_stock: None,
+        _indicator_box_part_spec=lambda *_args, **_kwargs: object(),
+        _export_authoritative_part=lambda *args: written.append(args),
+    )
+    with pytest.raises((ValueError, TypeError)):
+        gui.export_multi_door_indicator_box_parts(
+            host, str(tmp_path), {"model": "金庫型", "t": 2.0},
+            export_box=True, export_door=False,
+        )
+    assert written == []
+    assert list(tmp_path.iterdir()) == []
+    assert source == before
+
+
+def test_later_indicator_partspec_failure_is_rejected_before_earlier_dxf(tmp_path):
+    cells = _cells()[:2]
+    valid = {"mode": "indicator_box", "layers": 1, "groups": [2],
+             "offset_x": 0, "offset_y": 0, "is_box_dist": False}
+    writes = []
+    def spec(_val, _groups, *, features):
+        if features == ["invalid"]:
+            raise ValueError("LATER_PHYSICAL_PARTSPEC_INVALID")
+        return ("valid-spec",)
+    host = SimpleNamespace(
+        get_door_layout_cells=lambda: cells,
+        _door_layout_cell_key=lambda c: f"{c.column_index}:{c.row_index}",
+        door_layout_indicator_states={"0:0": valid, "0:1": deepcopy(valid)},
+        _validate_door_layout_indicator_fit=lambda *_: None,
+        door_layout_indicator_box_features={"0:0": [], "0:1": ["invalid"]},
+        door_layout_indicator_door_features={"0:0": [], "0:1": []},
+        _manufacturing_context=lambda *, draw_stock: None,
+        _indicator_box_part_spec=spec,
+        _export_authoritative_part=lambda *args: writes.append(args),
+    )
+    with pytest.raises(ValueError, match="LATER_PHYSICAL_PARTSPEC_INVALID"):
+        gui.export_multi_door_indicator_box_parts(
+            host, str(tmp_path), {"t": 2.0},
+            export_box=True, export_door=False,
+        )
+    assert writes == [] and list(tmp_path.iterdir()) == []
+
+
+def test_later_invalid_door_cell_identity_preflights_all_before_dxf(tmp_path):
+    cells = (_cells()[0], DoorLayoutCell(True, 1, 200.0, 500.0, DoorFrameEdges()))
+    writes = []
+    host = SimpleNamespace(
+        get_door_layout_cells=lambda: cells,
+        _manufacturing_context=lambda *, draw_stock: None,
+        _door_layout_part_spec=lambda c, values: (c, values),
+        _export_authoritative_part=lambda *args: writes.append(args),
+    )
+    with pytest.raises(ValueError, match="DOOR_LAYOUT_PHYSICAL_CELL_INDEX_INVALID"):
+        gui.export_multi_door_layout_dxfs(host, str(tmp_path), {"t": 2.0})
+    assert writes == [] and list(tmp_path.iterdir()) == []
+
+
+def test_later_door_partspec_failure_precedes_first_dxf(tmp_path):
+    writes = []
+    def spec(cell, _val):
+        if cell.row_index:
+            raise ValueError("LATER_DOOR_PARTSPEC_INVALID")
+        return ("valid",)
+    host = SimpleNamespace(
+        get_door_layout_cells=lambda: _cells()[:2],
+        _manufacturing_context=lambda *, draw_stock: None,
+        _door_layout_part_spec=spec,
+        _export_authoritative_part=lambda *args: writes.append(args),
+    )
+    with pytest.raises(ValueError, match="LATER_DOOR_PARTSPEC_INVALID"):
+        gui.export_multi_door_layout_dxfs(host, str(tmp_path), {"t": 2.0})
+    assert writes == [] and list(tmp_path.iterdir()) == []

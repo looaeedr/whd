@@ -286,8 +286,14 @@ def test_linked_endcap_dxf_export_uses_same_authoritative_bends_as_2d(tmp_path):
 def test_asymmetric_fold_edit_still_saves_and_updates_authoritative_chain():
     ui = object.__new__(bridge.Phase6BendingUI)
     ui._phase6_refreshing_controls = False
-    ui.state = SimpleNamespace(symmetric=False)
-    ui.controls = []
+    rows = _box_profile()
+    ui.state = SimpleNamespace(symmetric=False, active_bend="X",
+                               phase6_fold_ui_profiles={"X": rows},
+                               phase6_fold_ui_vault_key="箱身")
+    ui.controls = ([{"len": SimpleNamespace(get=lambda: "31")}]
+                   + [{} for _ in rows[1:-1]]
+                   + [{"len": SimpleNamespace(get=lambda: "25",
+                                              set=lambda _: pytest.fail("symmetry is disabled"))}])
     calls = []
     ui.save = lambda: calls.append('save')
     ui.update_cb = lambda: calls.append('update')

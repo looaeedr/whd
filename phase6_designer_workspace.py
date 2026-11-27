@@ -6,6 +6,10 @@ from copy import deepcopy
 from typing import Any, Mapping
 
 from phase6_box_body_structure import normalize_box_body_structure_state, legacy_box_body_structure_locked
+from ae_engine.manufacturing_api import (
+    ROOT_PHYSICAL_OCCUPANCY_KEY, normalize_workspace_root_occupancy,
+    ROOT_MARKING_STORE_KEY, normalize_workspace_root_marking_store,
+)
 from phase6_workspace_state import MANDATORY_PART, SharedWorkspaceState
 from phase6_quantity_model import QuantityModel, normalize_quantity_snapshot
 
@@ -56,8 +60,14 @@ class Phase6DesignerWorkspace:
             legacy_locked=legacy_box_body_structure_locked(source.get("model")),
         )
         ws_source = source.get("workspace") if isinstance(source.get("workspace"), Mapping) else {}
+        existing = source.get("existing_parts") or ws_source.get("existing_parts") or (MANDATORY_PART,)
         shared = SharedWorkspaceState(
-            existing_parts=source.get("existing_parts") or ws_source.get("existing_parts") or (MANDATORY_PART,),
+            existing_parts=existing,
+            root_marking_store=source.get(ROOT_MARKING_STORE_KEY, ws_source.get(ROOT_MARKING_STORE_KEY)),
+            root_occupancy=normalize_workspace_root_occupancy(
+                source.get(ROOT_PHYSICAL_OCCUPANCY_KEY, ws_source.get(ROOT_PHYSICAL_OCCUPANCY_KEY)),
+                existing_parts=existing, model=source.get("model"),
+            ),
             active_part=source.get("active_part") or ws_source.get("active_part"),
             part_profiles=source.get("part_profiles") or ws_source.get("part_profiles"),
             box_body_structure=structure,
@@ -84,6 +94,58 @@ class Phase6DesignerWorkspace:
         if self._quantity_model is not None:
             self._quantity_model._on_change = self.mark_dirty
         self.mark_dirty()
+
+    def commit_owner_marking_update(
+        self, update, *, model, read_current_receipt, read_proposed_receipt=None, pending_role_features=None,
+    ):
+        # Prepare all ordinary feature transport before the final Engine CAS.
+        # The assignment after CAS has no modal callback or event re-entry.
+        next_role = None if pending_role_features is None else deepcopy(list(pending_role_features))
+        changed = self._shared_state.commit_owner_marking_update(
+            update, model=model, read_current_receipt=read_current_receipt,
+            read_proposed_receipt=read_proposed_receipt,
+        )
+        if next_role is not None and self._part_features.get(update.part_key) != next_role:
+            self._part_features[update.part_key] = next_role
+            changed = True
+        if changed:
+            self.mark_dirty()
+        return changed
+
+    def commit_box_body_piece_marking(self, opened, marks, *, read_current):
+        changed = self._shared_state.commit_box_body_piece_marking(
+            opened, marks, read_current=read_current,
+        )
+        if changed:
+            self.mark_dirty()
+        return changed
+
+    def commit_quantity_owner_marking(self, snapshot, receipt, marks, *, version_id, geometry):
+        changed = self._shared_state.commit_quantity_owner_marking(
+            {**snapshot, **self.snapshot()}, receipt, marks, version_id=version_id, geometry=geometry,
+        )
+        if changed:
+            self.mark_dirty()
+        return changed
+
+    def commit_quantity_marking_and_common_holes(self, snapshot, opened, context, holes, marks,
+                                                 *, build_batch, read_current):
+        accepted = self._shared_state.commit_quantity_marking_and_common_holes(
+            snapshot, opened, context, holes, marks, build_batch=build_batch, read_current=read_current,
+        )
+        self._part_features[opened.owner.physical_id] = list(accepted)
+        self.mark_dirty()
+
+    def commit_transferred_quantity_marking(self, snapshot, geometry, part_key, opened, *, version_id):
+        result = self._shared_state.commit_transferred_quantity_marking(
+            {**snapshot, **self.snapshot()}, geometry, part_key, opened, version_id=version_id,
+        )
+        if result:
+            self.mark_dirty()
+        return result
+
+    def reconcile_root_occupancy_family(self, model):
+        self._shared_state.reconcile_root_occupancy_family(model)
 
     def set_receiving_common_box(self, box):
         if self._quantity_model is None:
@@ -204,13 +266,16 @@ class Phase6DesignerWorkspace:
         default_profiles: Mapping[str, object] | None = None,
         default_features=(),
         default_face_features: Mapping[str, object] | None = None,
+        explicit_root_source=None,
     ) -> bool:
         key = str(key or "").strip()
         if not key:
             raise ValueError("板件名稱不得為空")
         if key in self.available_parts:
             return False
-        self._shared_state.set_part_presence(key, True, active_repair="none")
+        self._shared_state.set_part_presence(
+            key, True, active_repair="none", explicit_root_source=explicit_root_source,
+        )
         if not self._shared_state.has_profile(key) and default_profiles is not None:
             self._shared_state.stash_profiles(key, default_profiles)
         if key not in self._part_features:
@@ -455,6 +520,10 @@ class Phase6DesignerWorkspace:
     def export_shared_snapshot(self, *, live_active_profiles: Mapping[str, object] | None = None) -> dict[str, object]:
         """Project the shared owner once, with an optional live editor overlay."""
         result = self._shared_state.snapshot()
+        # Complete live publication distinguishes clearing a retired owner map
+        # from an unrelated partial Main workspace patch.
+        result.setdefault(ROOT_PHYSICAL_OCCUPANCY_KEY, {})
+        result.setdefault(ROOT_MARKING_STORE_KEY, normalize_workspace_root_marking_store(None))
         active = result.get("active_part")
         if active and active != MANDATORY_PART and live_active_profiles is not None:
             profiles = deepcopy(result["part_profiles"])

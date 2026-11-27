@@ -19,7 +19,60 @@ def triangle_bounds(triangles):
     )
 
 
-def thicken_triangle_surface(triangles, thickness, *, tolerance=None):
+def smoothed_surface_vertex_offsets(triangles, thickness, *, tolerance):
+    """Return a single T/2 offset per *shared* formed-surface vertex.
+
+    Curved strips are triangulated into adjacent facets. Offsetting every
+    facet by its own face normal duplicates their common vertices and opens
+    the physical T shell. Summed area normals instead give one deterministic
+    displacement at each real source vertex; the two skins and the boundary
+    sidewalls then share exactly the same coordinates. This is a mesh
+    discretization operation, NOT a bend allowance or factory certification.
+    """
+    import math
+    from collections import defaultdict
+
+    t = float(thickness)
+    tol = float(tolerance)
+    if not math.isfinite(t) or t <= 0 or not math.isfinite(tol) or tol <= 0:
+        raise ValueError("smooth T-shell requires positive finite thickness/tolerance")
+    inv_tol = 1.0 / max(tol, 1e-12)
+
+    def key(point):
+        return tuple(int(round(float(v) * inv_tol)) for v in point)
+
+    sums = defaultdict(lambda: [0.0, 0.0, 0.0])
+    for tri in triangles:
+        if len(tri) != 3:
+            raise ValueError("smooth T-shell requires triangles")
+        a, b, c = tri
+        u = tuple(float(b[i]) - float(a[i]) for i in range(3))
+        v = tuple(float(c[i]) - float(a[i]) for i in range(3))
+        n = (u[1] * v[2] - u[2] * v[1],
+             u[2] * v[0] - u[0] * v[2],
+             u[0] * v[1] - u[1] * v[0])
+        mag = math.sqrt(sum(q * q for q in n))
+        if not math.isfinite(mag) or mag <= 1e-12:
+            raise ValueError("smooth T-shell has degenerate formed triangle")
+        for point in tri:
+            row = sums[key(point)]
+            for i in range(3):
+                row[i] += n[i]
+    if not sums:
+        raise ValueError("smooth T-shell has no surface vertices")
+    offsets = {}
+    for k, normal in sums.items():
+        mag = math.sqrt(sum(q * q for q in normal))
+        if not math.isfinite(mag) or mag <= 1e-12:
+            raise ValueError("smooth T-shell has ambiguous vertex orientation")
+        offsets[k] = tuple(q * t / (2.0 * mag) for q in normal)
+    return offsets
+
+
+def thicken_triangle_surface(
+    triangles, thickness, *, tolerance=None,
+    smooth_vertex_normals=False, physical_vertex_offsets=None,
+):
     """Turn a zero-thickness folded triangle surface into a sharp-bend sheet solid.
 
     The folded surface remains the geometric mid-surface.  Two skins are offset by
@@ -27,8 +80,12 @@ def thicken_triangle_surface(triangles, thickness, *, tolerance=None):
     side walls, while non-coplanar shared edges receive miter bridge faces so the
     formed sheet has visible inside/outside faces instead of a mathematical skin.
 
-    This is intentionally a sharp-bend solid (no bend-radius tessellation yet).
-    It is renderer-independent and can be reused by assembly collision later.
+    The default remains the historical sharp-bend model. Opt-in smooth
+    vertex offsets apply only to source-meshed R/BA cylindrical trials, so
+    adjacent curved facets do not each create a different physical vertex.
+    Measured cylindrical R/BA callers may supply per-source-vertex exact
+    radial T/2 offsets instead of triangle-area-averaged facet normals.
+    This is renderer-independent and not a manufacturing certification.
     """
     import math
     from collections import defaultdict
@@ -44,6 +101,28 @@ def thicken_triangle_surface(triangles, thickness, *, tolerance=None):
     if not source or t <= float(tolerance):
         return tuple(source)
     half = t / 2.0
+    if physical_vertex_offsets is not None and not smooth_vertex_normals:
+        raise ValueError("physical radial T offsets require smooth source topology")
+    if physical_vertex_offsets is not None:
+        try:
+            smooth_offsets = {
+                tuple(int(k) for k in key): tuple(float(v) for v in offset)
+                for key, offset in physical_vertex_offsets.items()
+            }
+        except (AttributeError, ValueError, TypeError, OverflowError):
+            raise ValueError("physical radial T offsets must be finite source vertex vectors") from None
+        if not smooth_offsets or any(
+            len(key) != 3 or len(offset) != 3
+            or not all(math.isfinite(v) for v in offset)
+            or abs(math.sqrt(sum(v * v for v in offset)) - half) > max(10 * float(tolerance), 1e-8)
+            for key, offset in smooth_offsets.items()
+        ):
+            raise ValueError("physical radial T/2 offsets violate measured thickness")
+    else:
+        smooth_offsets = (
+            smoothed_surface_vertex_offsets(source, t, tolerance=tolerance)
+            if smooth_vertex_normals else None
+        )
 
     def add(a, b):
         return tuple(a[i] + b[i] for i in range(3))
@@ -84,8 +163,8 @@ def thicken_triangle_surface(triangles, thickness, *, tolerance=None):
         if n is None:
             continue
         off = scale(n, half)
-        plus = tuple(add(point, off) for point in tri)
-        minus = tuple(sub(point, off) for point in tri)
+        plus = tuple(add(point, smooth_offsets[point_key(point)] if smooth_offsets is not None else off) for point in tri)
+        minus = tuple(sub(point, smooth_offsets[point_key(point)] if smooth_offsets is not None else off) for point in tri)
         solid.append(plus)
         solid.append((minus[0], minus[2], minus[1]))
         for index in range(3):
@@ -100,8 +179,17 @@ def thicken_triangle_surface(triangles, thickness, *, tolerance=None):
     for adjacent in edges.values():
         if len(adjacent) == 1:
             a, b, n = adjacent[0]
-            off = scale(n, half)
-            add_quad(add(a, off), add(b, off), sub(b, off), sub(a, off))
+            off_a = smooth_offsets[point_key(a)] if smooth_offsets is not None else scale(n, half)
+            off_b = smooth_offsets[point_key(b)] if smooth_offsets is not None else scale(n, half)
+            add_quad(add(a, off_a), add(b, off_b), sub(b, off_b), sub(a, off_a))
+            continue
+
+        # Smoothed source vertices already share both physical skin edges;
+        # introducing sharp hinge bridges would instead create overlapping
+        # internal walls. The default sharp-bend code below is unchanged.
+        if smooth_offsets is not None:
+            if len(adjacent) != 2:
+                raise ValueError("smooth T-shell source edge is nonmanifold")
             continue
 
         # Triangulation edges on one planar panel need no wall.  At a real fold
@@ -265,3 +353,74 @@ def place_endcap_against_box_body(
         raise ValueError(f"Unsupported EndCap assembly placement: {placement!r}")
 
     return tuple(tuple(world(point) for point in tri[:3]) for tri in (triangles or ()))
+
+
+def thicken_orthogonal_inside_surface(triangles, outward_normals, thickness):
+    """Close a connected, right-angle sheet whose Fold source is its inside skin.
+
+    Each source triangle has an explicit physical outward face normal. The
+    shared outside hinge is the intersection of the adjacent offset planes,
+    rather than independent facet offsets (which leave an open seam).
+    This is the sharp-bend geometry model, not an R/BA or factory certificate.
+    """
+    from collections import defaultdict
+    import math
+    from .contracts import PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES
+    tol = PRODUCTION_ASSEMBLY_GEOMETRY_TOLERANCES.boundary_separation_tolerance
+    if isinstance(thickness, bool):
+        raise ValueError("ORTHOGONAL_SHEET_THICKNESS_INVALID")
+    t = float(thickness)
+    tris, normals = tuple(triangles), tuple(outward_normals)
+    if not math.isfinite(t) or t <= tol or not tris or len(tris) != len(normals):
+        raise ValueError("ORTHOGONAL_SHEET_SOURCE_INVALID")
+    points, faces, edges = {}, defaultdict(set), defaultdict(list)
+    oriented = []
+
+    def key(point):
+        return tuple(round(float(v) / tol) for v in point)
+
+    for tri, n in zip(tris, normals):
+        n = tuple(n)
+        if len(n) != 3 or sum(abs(v) for v in n) != 1 or any(v not in (-1, 0, 1) for v in n):
+            raise ValueError("ORTHOGONAL_SHEET_FACE_NORMAL_INVALID")
+        tri = tuple(tuple(float(v) for v in p) for p in tri)
+        if len(tri) != 3 or any(len(p) != 3 or not all(math.isfinite(v) for v in p) for p in tri):
+            raise ValueError("ORTHOGONAL_SHEET_TRIANGLE_INVALID")
+        a, b, c = tri
+        u, v = tuple(b[i]-a[i] for i in range(3)), tuple(c[i]-a[i] for i in range(3))
+        cross = (u[1]*v[2]-u[2]*v[1], u[2]*v[0]-u[0]*v[2], u[0]*v[1]-u[1]*v[0])
+        mag = math.sqrt(sum(q*q for q in cross))
+        dot = sum(q*r for q,r in zip(cross,n))
+        if mag <= tol*tol or abs(abs(dot)/mag-1) > 1e-7:
+            raise ValueError("ORTHOGONAL_SHEET_FACE_SOURCE_MISMATCH")
+        ids = tuple(key(p) for p in tri)
+        if len(set(ids)) != 3:
+            raise ValueError("ORTHOGONAL_SHEET_DEGENERATE")
+        if dot < 0:
+            ids = (ids[0], ids[2], ids[1])
+        for p in tri:
+            k = key(p)
+            points.setdefault(k, p)
+            faces[k].add(n)
+        oriented.append(ids)
+        for i in range(3):
+            a, b = ids[i], ids[(i+1)%3]
+            edges[tuple(sorted((a,b)))].append((a,b))
+
+    outer = {}
+    for k, p in points.items():
+        ns = tuple(faces[k])
+        if len(ns) > 2 or (len(ns) == 2 and sum(a*b for a,b in zip(*ns)) != 0):
+            raise ValueError("ORTHOGONAL_SHEET_HINGE_UNSUPPORTED")
+        outer[k] = tuple(p[i]+t*sum(n[i] for n in ns) for i in range(3))
+    solid = []
+    for a,b,c in oriented:
+        solid.extend(((outer[a],outer[b],outer[c]), (points[a],points[c],points[b])))
+    for adjacent in edges.values():
+        if len(adjacent) == 2 and adjacent[0] == adjacent[1][::-1]:
+            continue
+        if len(adjacent) != 1:
+            raise ValueError("ORTHOGONAL_SHEET_NONMANIFOLD_SOURCE")
+        a,b = adjacent[0]
+        solid.extend(((outer[b],outer[a],points[a]), (outer[b],points[a],points[b])))
+    return tuple(solid)
