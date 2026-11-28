@@ -1161,7 +1161,7 @@ def _current_mode_snapshot(self, namespace):
     return source
 
 
-def _apply_mode_snapshot(self, namespace, source, *, require_committed=False):
+def _apply_mode_snapshot(self, namespace, source, *, require_committed=False, project_settings=None):
     """Apply validated inputs through the existing workspace/profile owners."""
     from phase6_fold_profiles import build_box_body_profile, clone_profile
     app = self.app
@@ -1184,6 +1184,16 @@ def _apply_mode_snapshot(self, namespace, source, *, require_committed=False):
             key: (value if key in ("w", "h", "d") else source.get(key, value))
             for key, value in app._settings_values.items()
         }
+        if project_settings is not None:
+            # Project Open has already restored canonical Settings through
+            # the host service. Do not echo the previous workspace defaults.
+            settings.update(project_settings)
+            # As on fresh Designer construction, explicit physical dimensions
+            # stay authoritative. Receiving W/H/D remain project-local Bay
+            # values rather than overwriting the saved default seeds.
+            settings.update(manufacturing_api.project_operator_part_dimension_settings_overlay(
+                source, {key: source[key] for key in manufacturing_api.PHYSICAL_SNAPSHOT_SOURCE_KEYS if key in source},
+            ))
         app._settings_values.clear()
         app._settings_values.update(settings)
         app._phase6_box_whd.clear()
@@ -1192,7 +1202,12 @@ def _apply_mode_snapshot(self, namespace, source, *, require_committed=False):
         app.active_part_key = None
         self.receiving_adapter(namespace, reset=True)
         self.sync_receiving_current_bay(namespace, refresh_controls=False)
-        self.refresh_profiles_from_settings(namespace, render=False)
+        # A saved ordinary Fold is already authoritative. Settings profile
+        # projection is an edit operation and may change its material lengths;
+        # on project Open let the existing part activation consume the saved
+        # profiles instead (including any physical marking source seals).
+        if project_settings is None or manufacturing_api.receiving_family_supports_back_panel_mode(source):
+            self.refresh_profiles_from_settings(namespace, render=False)
         app.activate_part(source.get("active_part") or "box_body", initial=True)
         self.refresh_receiving_set_bay_control(namespace)
         app.submit_update_intent("geometry", commit=True)

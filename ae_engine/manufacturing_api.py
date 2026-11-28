@@ -198,6 +198,7 @@ from .corner_type_ui import (
     apply_box_assembly_type as operator_apply_box_assembly_type,
     propose_operator_known_model_corner_draft,
     propose_operator_saved_manual_corner_snapshot,
+    project_operator_saved_project_corner_source,
     build_corner_type_preview_geometry as project_operator_corner_type_preview_geometry,
 )
 from .corner_state_transactions import (
@@ -324,6 +325,7 @@ from .manufacturing_cache_source_plan import (
 from .operator_quantity_validation import validate_operator_manufacturing_quantity_context
 from .manufacturing_request_parts import (
     canonical_manufacturing_request_part_keys,
+    selected_endcap_marking_request_part_keys,
     OperatorManufacturingPartSourcePlan, plan_operator_manufacturing_part_source,
 )
 from .assembly_collision_display_api import project_assembly_collision_display_audit
@@ -354,6 +356,7 @@ from .corner_dimension_projection import (
 )
 from .physical_sheet_editor_context import (
     PhysicalSheetEditorContext, resolve_physical_sheet_editor_context,
+    resolve_selected_physical_sheet_editor_context,
     propose_operator_physical_sheet_hole_features,
 )
 from .operator_manual_marking import (

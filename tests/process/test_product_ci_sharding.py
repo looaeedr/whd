@@ -197,6 +197,9 @@ def test_issue2517_new_real_acceptance_suites_are_collected_and_run_exactly_once
         assert (root / filename).is_file()
     seen = Counter(path for i in range(18) for path in shard_paths(i, 18))
     assert all(seen[filename] == 1 for filename in expected)
+    pure_insert = "tests/test_endcap_insert_world_height_native.py"
+    assert regression._ADDITIONAL_ACCEPTANCE_OWNERS[pure_insert] == 12
+    assert seen[pure_insert] == 1 and pure_insert in shard_paths(12, 18)
     # Preserve immutable, measured October assignments and measured 304 count.
     manifest = json.loads(regression._EIGHTEEN_SHARD_MANIFEST.read_text(encoding="utf-8"))
     assert set(manifest["file_owners"]).isdisjoint(expected)

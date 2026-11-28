@@ -77,6 +77,27 @@ def test_multiple_bays_or_sets_never_borrow_root_gui_door_state():
         )
 
 
+def test_passive_single_bay_projection_retains_actual_resized_bay_grid():
+    snap = _source()
+    snap.update(w=800., h=1600.)
+    snap["receiving_layout"]["sets"][0]["bays"][0]["horizontal_divider_occupancy"] = None
+    layout = update_receiving_bay(
+        snap["receiving_layout"], set_index=0, bay_index=0,
+        width=820., height=1400.,
+        door_state={"multi_door_enabled": True,
+                    "door_layout_columns": [[820., [1100., 300.]]],
+                    "inner_doors": [{"offset_mm": 80}]},
+    )
+    snap["receiving_layout"] = layout
+    saved = deepcopy(layout)
+    assert manufacturing_api.project_receiving_single_bay_door_controls(snap) is None
+    assert snap["receiving_layout"] == saved
+    # Keep rejecting bad authored data for a grid that does own the Bay.
+    snap.update(w=820., h=1400.)
+    with pytest.raises(ValueError):
+        manufacturing_api.project_receiving_single_bay_door_controls(snap)
+
+
 def test_broken_single_set_or_layout_does_not_fabricate_physical_bay():
     snap = _source()
     snap["receiving_layout"] = {"sets": ["invalid"], "schema": "receiving-layout-v1"}

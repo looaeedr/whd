@@ -734,6 +734,7 @@ def _project_probe_mid_surface(
     endcap_fold_guides,
     endcap_placement,
     sheet_thickness,
+    endcap_offset=(0.0, 0.0, 0.0),
     preserve_core_origin=False,
 ):
     """Backproject the semantic EndCap mid-surface for contact-only verification.
@@ -761,6 +762,7 @@ def _project_probe_mid_surface(
         tuple(item.local for item in mapped),
         endcap_placement,
         box_body_world_surface,
+        offset=endcap_offset,
         sheet_thickness=sheet_thickness,
         reference_triangles=endcap_reference_local,
         preserve_core_origin=preserve_core_origin,
@@ -783,6 +785,7 @@ def _project_probe_material(
     endcap_fold_guides,
     endcap_placement,
     sheet_thickness,
+    endcap_offset=(0.0, 0.0, 0.0),
     preserve_core_origin=False,
 ):
     from .assembly_geometry import (
@@ -802,6 +805,7 @@ def _project_probe_material(
         mapped,
         endcap_placement,
         box_body_world_surface,
+        offset=endcap_offset,
         sheet_thickness=sheet_thickness,
         reference_triangles=endcap_reference_local,
         preserve_core_origin=preserve_core_origin,

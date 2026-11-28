@@ -10,6 +10,7 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Mapping
 
+from .operator_settings_transactions import normalize_operator_source_dimension
 from .receiving_layout import RECEIVING_DOOR_STATE_KEYS, update_receiving_bay, HORIZONTAL_DIVIDER_OCCUPANCY
 
 
@@ -53,6 +54,18 @@ def _project_single_bay_door_controls(snapshot, *, allocate_divider_owner):
             isinstance(bay, Mapping) and HORIZONTAL_DIVIDER_OCCUPANCY in bay
             and "multi_door_enabled" in snapshot and "door_layout_columns" in snapshot):
         return None
+    # The global Door grid and a Bay edited in Receiving may have different
+    # finished dimensions even after that Bay becomes the only remaining one.
+    # A passive snapshot must not replace the saved Bay's own partition with
+    # a valid grid for a different physical box.
+    if (not allocate_divider_owner and isinstance(bay, Mapping)
+            and "w" in snapshot and "h" in snapshot):
+        root_wh = tuple(normalize_operator_source_dimension(snapshot[key], field=key)
+                        for key in ("w", "h"))
+        bay_wh = tuple(normalize_operator_source_dimension(bay.get(name), field=key)
+                       for name, key in (("width", "w"), ("height", "h")))
+        if root_wh != bay_wh:
+            return None
     source_door = {
         key: deepcopy(snapshot[key]) for key in RECEIVING_DOOR_STATE_KEYS
         if key in snapshot

@@ -105,17 +105,27 @@ def load_phase6_project(self, path, *, open_designer=True):
         # project. Only clear after the new canonical load succeeds.
         _discard_previous_project_designer_caches(previous_designer)
         if not open_designer:
-            return payload
-        designer = self.open_original_fold_designer()
+            # When the existing Main-host helper is used with Primary's root
+            # Designer already open, hydrate that live workspace in place.
+            # Legacy callers with a separate/no Designer retain the historical
+            # main-GUI-only behavior.
+            if not (
+                getattr(self, "_phase6_primary_workspace", False)
+                and previous_designer is not None
+                and getattr(previous_designer, "root", None) is self.root
+            ):
+                return payload
+            designer = previous_designer
+        else:
+            designer = self.open_original_fold_designer()
         from ae_engine import manufacturing_api
+        workspace = getattr(designer, "designer_workspace", None)
         if (designer is previous_designer
-                and manufacturing_api.receiving_family_supports_back_panel_mode(snapshot)):
-            # An already-open Designer must replace its previous project's
-            # receiving mode; a NEW Designer has already consumed the
-            # committed main-GUI snapshot. Forcing _apply_mode_snapshot on
-            # fresh legacy projects recalculates invalid old NFB depth source
-            # too early and incorrectly BLOCKS opening an editable project.
-            # Keep invalid manufacturing source unapproved, but loadable.
+                and callable(getattr(workspace, "replace_receiving_snapshot", None))):
+            # Reuse the existing workspace owner for every saved project, not
+            # just Receiving or Quantity with physical markings. The host has
+            # already restored the validated project Settings, so seed that
+            # same state before the Designer can publish its old settings.
             import fold_designer_bridge as bridge
             from gui_modules.application.fold_designer_composition_receiving import _apply_mode_snapshot
             previous_guard = designer._phase6_baseline_guard
@@ -125,30 +135,21 @@ def load_phase6_project(self, path, *, open_designer=True):
                 designer._phase6_baseline_last_model = snapshot["model"]
             finally:
                 designer._phase6_baseline_guard = previous_guard
-            _apply_mode_snapshot(bridge._phase6_composition(designer), vars(bridge), snapshot)
+            project_settings = self.settings_service.snapshot().as_dict()
+            # Transport the same legacy Settings fallbacks used by the host
+            # load. Explicit saved root values still take precedence.
+            snapshot = {**project_settings, **snapshot}
+            # The host's existing legacy migration has already resolved the
+            # Box Fold. Reuse that canonical profile rather than rebuilding a
+            # partial legacy payload with missing scalar Fold inputs.
+            if snapshot.get("box_body_profile") is None:
+                snapshot = {**snapshot, "box_body_profile": self.workspace_controller.box_body_profile()}
+            _apply_mode_snapshot(
+                bridge._phase6_composition(designer), vars(bridge), snapshot,
+                project_settings=project_settings,
+            )
             designer._refresh_part_buttons()
             designer._phase6_current_project_path = str(Path(path))
-        elif designer is previous_designer and designer is not None:
-            workspace = getattr(designer, "designer_workspace", None)
-            read_workspace = getattr(workspace, "snapshot", None)
-            has_version_marks = callable(read_workspace) and any(
-                manufacturing_api.workspace_contains_quantity_physical_markings(state)
-                for state in (snapshot, read_workspace())
-            )
-            has_custom_catalog = callable(read_workspace) and any(
-                manufacturing_api.resolve_custom_part_catalog(state).has_history
-                for state in (snapshot, read_workspace())
-            )
-            if has_version_marks or has_custom_catalog:
-                # A complete Open replaces the previous file's quantity or
-                # custom workspace, including a new file with an empty catalog.
-                # Reuse the existing owner and its Engine-normalized hydration.
-                from copy import deepcopy
-                designer.designer_workspace.replace_receiving_snapshot(snapshot)
-                designer._phase6_input_snapshot.clear()
-                designer._phase6_input_snapshot.update(deepcopy(snapshot))
-                designer._refresh_part_buttons()
-                designer._phase6_current_project_path = str(Path(path))
 
         # #1503 real Windows saved v3: the authoritative project's original
         # Receiving BasePlate mapping is persisted in .p6fold but the newly

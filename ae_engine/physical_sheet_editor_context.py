@@ -56,6 +56,14 @@ def resolve_physical_sheet_editor_context(
     return PhysicalSheetEditorContext(render, surface, width, height, guide, part_key)
 
 
+def resolve_selected_physical_sheet_editor_context(geometry, part_key):
+    """Read the existing resolved physical inventory for an editor baseline."""
+    from .operator_physical_sheet_marking_preview import open_selected_physical_marking_preview
+
+    selected = open_selected_physical_marking_preview(geometry, part_key)
+    return resolve_physical_sheet_editor_context(part_key, selected._render)
+
+
 def propose_operator_physical_sheet_hole_features(
     part_key: str, context: PhysicalSheetEditorContext, features,
 ):

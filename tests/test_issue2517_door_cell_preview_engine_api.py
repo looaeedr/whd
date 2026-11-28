@@ -384,9 +384,74 @@ def test_door_cell_preview_rejects_missing_or_competing_fw_owner():
         )
 
 
-def test_gui_cell_preview_source_has_no_material_fw_manufacturing_derivation():
+def test_custom_cell_preview_uses_engine_familyless_fw_policy():
+    request = values()
+    result = manufacturing_api.project_operator_door_cell_result(
+        request, cell_width=420.0, cell_height=600.0,
+        frame_edges=DoorFrameEdges(), custom_source_model="自訂",
+    )
+    material_fw = family_policy.door_material_frame_width(
+        None,
+        frame_width=request["fw"], thickness=request["t"],
+    )
+    expected = build_door_result(
+        w=420.0, h=600.0, t=request["t"], fw=material_fw,
+        gap_w=request["door_gap_w"], gap_h=request["door_gap_h"],
+        fold_left=request["door_fold_l"], fold_right=request["door_fold_r"],
+        fold_top=request["door_fold_t"], fold_bottom=request["door_fold_b"],
+        frame_edges=DoorFrameEdges(),
+    )
+    assert result.outline == expected.outline
+    assert result.bends == expected.bends
+
+
+@pytest.mark.parametrize("invalid_source", (
+    {"fw": 0}, {"fw": ""}, {"t": 0}, {"t": ""},
+))
+def test_custom_cell_preview_keeps_engine_gate_for_invalid_fw_t(invalid_source):
+    request = {**values(), **invalid_source}
+    with pytest.raises(ValueError):
+        manufacturing_api.project_operator_door_cell_result(
+            request, cell_width=420.0, cell_height=600.0,
+            frame_edges=DoorFrameEdges(), custom_source_model="自訂",
+        )
+
+
+def test_gui_cell_preview_source_uses_explicit_custom_identity_only():
     import inspect
     text = inspect.getsource(gui_adapter._door_layout_cell_result)
-    assert "family_model=self._baseline_source_model()" in text
+    assert "custom_source_model" in text
+    assert "operator_default_custom_model_name" in text
     assert "material_frame_width=" not in text
     assert "self._door_material_frame_width(" not in text
+
+
+def test_gui_cell_preview_keeps_missing_source_gate_for_unknown_baseline(monkeypatch):
+    seen = []
+    original = manufacturing_api.project_operator_door_cell_result
+
+    def capture(*args, **kwargs):
+        seen.append(kwargs)
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(manufacturing_api, "project_operator_door_cell_result", capture)
+
+    class Var:
+        def get(self):
+            return "未註冊型號"
+
+    host = SimpleNamespace(
+        get_float_values=values,
+        _baseline_source_model=lambda: None,
+        baseline_var=Var(),
+    )
+    cell = SimpleNamespace(start_width=420.0, start_height=600.0,
+                           edges=DoorFrameEdges())
+    with pytest.raises(ValueError, match="DOOR_CELL_PREVIEW_FRAME_WIDTH_SOURCE_REQUIRED"):
+        gui_adapter._door_layout_cell_result(host, cell)
+    assert seen == [{
+        "cell_width": cell.start_width,
+        "cell_height": cell.start_height,
+        "frame_edges": cell.edges,
+        "family_model": None,
+    }]

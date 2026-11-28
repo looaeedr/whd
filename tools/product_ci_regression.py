@@ -539,10 +539,19 @@ _ISSUE2517_ACCEPTANCE_PATHS = (
 )
 # Fixed, measured-manifest-independent acceptance lanes; no fabricated times.
 # Keep original 304 historical files in their existing measured 18 lanes.
+_ISSUE2517_EXPLICIT_FOLLOWUP_OWNERS = {
+    "tests/test_issue2517_primary_endcap_marking_relief_source.py": 3,
+    "tests/test_issue2517_primary_quantity_project_reopen.py": 4,
+    "tests/test_issue2517_primary_saved_corner_source.py": 6,
+}
+# Assign the three new files without rotating existing issue2517 selectors.
 _ISSUE2517_ACCEPTANCE_OWNERS = {
     path: 2 + (index % 16)
-    for index, path in enumerate(_ISSUE2517_ACCEPTANCE_PATHS)
-}
+    for index, path in enumerate(
+        item for item in _ISSUE2517_ACCEPTANCE_PATHS
+        if item not in _ISSUE2517_EXPLICIT_FOLLOWUP_OWNERS
+    )
+} | _ISSUE2517_EXPLICIT_FOLLOWUP_OWNERS
 # New acceptance files do not have timings in the historical manifest.
 # Keep its measured lanes intact and assign these whole files explicitly.
 _ADDITIONAL_ACCEPTANCE_OWNERS = {
@@ -555,6 +564,7 @@ _ADDITIONAL_ACCEPTANCE_OWNERS = {
     "tests/test_issue3414_saved_c_copy_target.py": 7,
     "tests/test_issue3414_saved_c_divider_marking.py": 9,
     "tests/test_issue3414_saved_c_divider_source.py": 11,
+    "tests/test_endcap_insert_world_height_native.py": 12,
 }
 _ACCEPTANCE_OWNERS = _ISSUE2517_ACCEPTANCE_OWNERS | _ADDITIONAL_ACCEPTANCE_OWNERS
 PYTEST_PATHS += _ISSUE2517_ACCEPTANCE_PATHS + tuple(_ADDITIONAL_ACCEPTANCE_OWNERS)

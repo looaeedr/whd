@@ -17,6 +17,8 @@ def solve_endcap_assembly_relief(
     """
     from .assembly_collision import solve_world_backprojected_endcap_relief
 
+    offset = tuple(getattr(endcap_part, "offset", (0.0, 0.0, 0.0)))
+    pose = {"endcap_offset": offset} if any(offset) else {}
     return solve_world_backprojected_endcap_relief(
         box_body_render_data=body_part.render_data,
         endcap_render_data=endcap_part.render_data,
@@ -33,6 +35,7 @@ def solve_endcap_assembly_relief(
         cabinet_family=cabinet_family,
         allow_3d_fallback=allow_3d_fallback,
         assembly_joint=None,
+        **pose,
     )
 
 
