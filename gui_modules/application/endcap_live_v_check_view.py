@@ -345,12 +345,30 @@ def show_saved_endcap_live_bottom_pair_window(
             )
             canvases[key] = canvas
 
+        # Engine owns the geometry verdict; Tk only formats its evidence.
+        rejected = (
+            one_sheet_check.formed_3d_rejection
+            if one_sheet_check is not None
+            else "V_MITER_TAIL_PAIR_3D_SOURCE_UNAVAILABLE"
+        )
+        witness = (
+            "｜原外緣→現行折後映射（mm）：" +
+            "；".join(
+                f"{name} {before:.6f}→{after:.6f}"
+                for name, before, after
+                in one_sheet_check.finite_tip_edge_lengths_mm
+            )
+            if one_sheet_check is not None
+            and one_sheet_check.finite_tip_edge_lengths_mm else ""
+        )
         warning = ttk.Label(
             win, text=(
                 "折後 3D：不提供雙角合成 3D（同片 2D 不等於完整折後厚板"
                 "／R／BA／兩折及接面驗收）。"
                 "禁止把兩個單角 3D mesh 疊成同一片。"
+                f" Engine 拒絕：{rejected}{witness}"
             ),
+            wraplength=1400,
         )
         warning.pack(anchor="w", padx=16, pady=(2, 10))
         win._saved_endcap_pair_source_envelope = source_envelope
