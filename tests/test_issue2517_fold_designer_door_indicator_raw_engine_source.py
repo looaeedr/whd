@@ -313,3 +313,28 @@ def test_reloaded_empty_door_inventory_keeps_headless_scene_and_real_dxf(
     assert reopened["door_layout_indicator_states"] == {}
 
 
+
+
+@pytest.mark.parametrize('family', ['金庫型', '分電箱', '自由箱型'])
+def test_legacy_quantity_door_hole_source_does_not_admit_saved_marking(family):
+    source = {'model': family, 'active_mode': 'quantity', 'existing_parts': ['door']}
+    legacy = {'door_indicator_box_enabled': True}
+    select = manufacturing_api.select_legacy_quantity_door_hole_source
+    assert select(source, legacy, 'door', features=())
+    assert not select(source, legacy, 'indicator_box', features=())
+    assert not select({**source, 'active_mode': 'set_bay'}, legacy, 'door', features=())
+    for groups in (None, [], [0], [2]):
+        raw = {**legacy, 'indicator_layer_groups': groups}
+        assert not select(source, raw, 'door', features=())
+        if groups != [2]:
+            with pytest.raises(ValueError):
+                _build(fold_designer_indicator_source=raw)
+        else:
+            assert _build(fold_designer_indicator_source=raw).indicator_hole is not None
+    # The selected ordinary live control source must still pass its own gate.
+    live = {'mode': 'indicator_box', 'layers': 1, 'groups': [0],
+            'offset_x': 0, 'offset_y': 0, 'is_box_dist': False}
+    with pytest.raises(ValueError):
+        manufacturing_api.normalize_operator_hole_editor_indicator_state(live)
+    live['groups'] = [2]
+    assert manufacturing_api.normalize_operator_hole_editor_indicator_state(live)['groups'][0] == 2

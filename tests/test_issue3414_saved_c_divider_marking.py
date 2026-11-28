@@ -161,6 +161,11 @@ def test_c_native_select_draw_confirm_save_open_and_replacement(actual_sources,t
             root.update()
             assert not errors,errors
             window=host.last_unified_hole_editor
+            hole_window=window
+            hole_window._saved_c_marking_open_button.invoke();root.update()
+            window=host.last_unified_hole_editor
+            assert not errors, errors
+            assert window is not hole_window and not hole_window.winfo_exists()
             assert window.winfo_exists()
             place=window._manual_marking_place
             state=dict(zip(place.__code__.co_freevars,(c.cell_contents for c in place.__closure__)))['s']
@@ -261,5 +266,47 @@ def test_c_native_select_draw_confirm_save_open_and_replacement(actual_sources,t
         assert api.read_workspace_marking_owner_record(s,old.owner_id)['features']==marks
         assert api.project_operator_detached_root_marking_count(s)==1
         print('native canvas line + Confirm + Save/Open/SaveAs; C original 7/3/2 -> 7/3/3; same stock new owner',old.owner_id,fresh.owner_id,'old record preserved but draft/receipt/update reject')
+    finally:
+        root.destroy()
+
+
+def test_c_hole_editor_does_not_grant_saved_marking_receipt(tmp_path, monkeypatch):
+    """Opening a regular C hole editor must not acquire a saved stock receipt."""
+    import tkinter as tk
+    import gui
+    from ae_engine import manufacturing_api as api
+    from tkinter import messagebox
+    from phase6_project_file import PROJECT_SCHEMA_V2, write_project
+    from phase6_receiving_modes import fresh_receiving_mode
+    from tests.test_issue3414_saved_c_divider_source import KEY
+
+    snapshot = fresh_receiving_mode('set_bay', {'w': 800, 'h': 1600, 'd': 350, 't': 2})
+    path = write_project(tmp_path / 'ordinary-c.p6fold',
+                         {'schema': PROJECT_SCHEMA_V2, 'snapshot': snapshot})
+    errors = []
+    monkeypatch.setattr(messagebox, 'showerror', lambda *args, **kw: errors.append(args))
+    try:
+        root = tk.Tk()
+    except tk.TclError as exc:
+        pytest.skip(str(exc))
+    host = gui.Phase6PrimaryApplication(root)
+    try:
+        designer = host.load_phase6_project(path)
+        before = path.read_bytes()
+        before_workspace = designer.designer_workspace.snapshot()
+        host.open_part_hole_editor(KEY)
+        root.update()
+        window = host.last_unified_hole_editor
+        assert window.winfo_exists() and not errors
+        assert not hasattr(window, '_manual_marking_place')
+        window._saved_c_marking_open_button.invoke()
+        root.update()
+        assert errors and 'C_DIVIDER_SAVED_CORNER_SOURCE_REQUIRED' in str(errors)
+        assert window.winfo_exists() and host.last_unified_hole_editor is window
+        assert designer.designer_workspace.snapshot() == before_workspace
+        assert path.read_bytes() == before
+        assert not api.normalize_workspace_root_marking_store(
+            before_workspace.get(api.ROOT_MARKING_STORE_KEY))['records']
+        print('ordinary C opened; explicit saved MARKING rejected; unchanged project and ledger')
     finally:
         root.destroy()

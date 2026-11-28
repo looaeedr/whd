@@ -235,3 +235,37 @@ def project_operator_hole_editor_base_plate(
         baseline_scene=None,
         baseline_status=("自訂 / 手動截角" if is_custom else "未使用基準檔（程式計算生成）"),
     )
+
+
+def select_legacy_quantity_door_hole_source(snapshot, selected_source, part_key, *, features):
+    """Choose the existing live ordinary Hole Editor, not a marking receipt.
+
+    Legacy Quantity files may name the separate Indicator Box but omit its
+    saved group source.  The ordinary Door editor validates its own current
+    Indicator controls.  An explicit saved group source (including malformed
+    data), any persisted marking claim, and all other part/scope selections
+    retain the existing strict physical marking/manufacturing route.
+    """
+    from .cabinet_types.policy import canonical_family_name
+    from .physical_part_identity import project_operator_hole_editor_route
+    from .operator_settings_transactions import normalize_operator_settings_boolean
+    from .operator_manual_marking import is_manual_mark
+    from .operator_root_marking_store import read_workspace_marking_owner_record
+    from .operator_quantity_marking_owner import workspace_contains_quantity_physical_markings
+    from .workspace_state import resolve_workspace_physical_root_owner
+
+    if (not isinstance(snapshot, Mapping) or not isinstance(selected_source, Mapping)
+            or part_key != "door" or snapshot.get("active_mode") != "quantity"
+            or canonical_family_name(snapshot.get("model")) not in ("金庫型", "分電箱", "自由箱型")
+            or project_operator_hole_editor_route(
+                part_key, model=snapshot.get("model"),
+                multi_door_enabled=snapshot.get("multi_door_enabled", False),
+            ).kind != "simple_part"
+            or "indicator_layer_groups" in selected_source
+            or not normalize_operator_settings_boolean(selected_source.get("door_indicator_box_enabled", False))
+            or selected_source.get("door_indicator_groups")
+            or any(is_manual_mark(row) for row in features)):
+        return False
+    owner = resolve_workspace_physical_root_owner(snapshot, part_key)
+    return (not (owner is not None and read_workspace_marking_owner_record(snapshot, owner))
+            and not workspace_contains_quantity_physical_markings(snapshot))

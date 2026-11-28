@@ -2239,6 +2239,7 @@ def open_unified_hole_editor(
     indicator_component_context_provider=None, cabinet_reference_guide=None,
     local_reference_guide=None, manual_marking_draft=None,
     defer_workspace_sync=False, skip_cancel_sync=False, solid_marking_only=False, *, dependencies,
+    open_marking_editor=None,
 ):
     s = SimpleNamespace(
         host=host, d=dependencies, part_key=part_key, title=title, surface=surface,
@@ -2268,5 +2269,22 @@ def open_unified_hole_editor(
     _build_pointer_and_created_actions(s)
     _build_reference_selection_actions(s)
     _build_navigation_and_lifecycle(s)
+    if open_marking_editor is not None:
+        initial_features = tuple(s.live_context.feature_list)
+
+        def open_marking():
+            if (s.hole_session.has_active_edit or s.insert_mode[0]
+                    or tuple(s.live_context.feature_list) != initial_features):
+                s.d.messagebox.showerror("打標失敗", "請先完成或取消孔位編輯，再開啟打標。")
+                return
+            try:
+                open_marking_editor(s.cancel_all)
+            except (ValueError, TypeError, RuntimeError) as exc:
+                s.d.messagebox.showerror("打標失敗", str(exc))
+
+        button = s.d.tk.Button(s.editor._hole_header_fullscreen.master,
+                               text="打標／複製打標", command=open_marking)
+        button.pack(side=s.d.tk.LEFT)
+        s.editor._saved_c_marking_open_button = button
     _install_manual_marking_actions(s)
     _bind_editor_events(s)

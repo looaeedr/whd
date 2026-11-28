@@ -11,10 +11,11 @@ def open_workspace_sheet_editor(host, key, *, verified_only=False):
     if key not in workspace.available_parts:
         raise ValueError(f'板件已不存在：{key}')
 
-    def current_context():
+    def current_context(payload=None):
         piece = manufacturing_api.is_box_body_physical_piece_key(key)
         query_key = 'box_body' if piece else key
-        payload = build_scene_payload_for_app(app, query_key)
+        if payload is None:
+            payload = build_scene_payload_for_app(app, query_key)
         payload['features'] = ()  # baseline must not duplicate editable holes
         if piece:
             payload['physical_piece_features'] = {}
@@ -27,16 +28,33 @@ def open_workspace_sheet_editor(host, key, *, verified_only=False):
         )
 
     features = workspace.features_for(key)
-    snapshot = current_workspace_marking_source(app)
-    if snapshot and manufacturing_api.resolve_saved_c_marking_owner(snapshot, key) is not None:
-        return _open_saved_c_divider_marking_editor(host, key)
+    snapshot = current_workspace_marking_source(app, include_saved_c=False)
+    saved_c_owner = manufacturing_api.resolve_saved_c_marking_owner(snapshot, key)
+    marking_entry = None
+    if saved_c_owner is not None:
+        epoch = host.project_controller.project_load_epoch
+
+        def marking_entry(close_hole_editor):
+            _require_current_project(host, app, workspace, epoch)
+            return _open_saved_c_divider_marking_editor(
+                host, key, before_present=close_hole_editor, expected_owner=saved_c_owner,
+            )
     owner = manufacturing_api.resolve_workspace_physical_root_owner(snapshot, key)
     claim = owner is not None and manufacturing_api.read_workspace_marking_owner_record(snapshot, owner)
     legacy_marks = any(manufacturing_api.is_manual_mark(row) for row in features)
     if claim and legacy_marks:
         raise ValueError("ROOT_MARKING_SOURCE_STALE")
+    selected_payload = None
+    if verified_only and key == "door":
+        selected_payload = build_scene_payload_for_app(app, key)
+        if manufacturing_api.select_legacy_quantity_door_hole_source(
+            snapshot, selected_payload, key, features=features,
+        ):
+            # The ordinary Door editor reads its actual live Indicator controls.
+            # This route never supplies a saved marking or manufacturing receipt.
+            return None
     try:
-        payload, context = current_context()
+        payload, context = current_context(selected_payload)
     except manufacturing_api.PhysicalSheetGeometryError:
         # An old ordinary BasePlate may still have a hole-only editor without
         # a resolvable stock scene. Preserve access, never mask a saved mark.
@@ -106,10 +124,11 @@ def open_workspace_sheet_editor(host, key, *, verified_only=False):
     return _present_physical_sheet_editor(
         host, key, operator_part_label(key, snapshot=payload), context, features,
         opened, validate_before_confirm, sync_callback=commit,
+        open_marking_editor=marking_entry,
     )
 
 
-def current_workspace_marking_source(app, *, host=None):
+def current_workspace_marking_source(app, *, host=None, include_saved_c=True):
     """Transport selected workspace authority; GUI does not classify records."""
     from collections.abc import Mapping
     from ae_engine import manufacturing_api as api
@@ -139,7 +158,7 @@ def current_workspace_marking_source(app, *, host=None):
     if isinstance(workspace, dict):
         snapshot["workspace"] = {k: v for k, v in workspace.items()
                                  if k not in (api.ROOT_PHYSICAL_OCCUPANCY_KEY, api.ROOT_MARKING_STORE_KEY)}
-    if api.needs_current_saved_c_marking_source(snapshot):
+    if include_saved_c and api.needs_current_saved_c_marking_source(snapshot):
         # Existing complete live-sync transport, not a fabricated saved cache.
         # The Engine C source proof still compares both representations.
         from fold_designer_bridge import _phase6_corner_transaction_payload
@@ -198,7 +217,7 @@ def _open_structural_sheet_marking_editor(host, key, payload, context, features)
     )
 
 
-def _open_saved_c_divider_marking_editor(host, key):
+def _open_saved_c_divider_marking_editor(host, key, *, before_present, expected_owner):
     from ae_engine import manufacturing_api as api
     from phase6_part_navigation import operator_part_label
 
@@ -212,6 +231,8 @@ def _open_saved_c_divider_marking_editor(host, key):
             raise ValueError("ROOT_MARKING_SELECTION_STALE")
         geometry = app._phase6_resolve_manufacturing_geometry()
         snapshot = current_workspace_marking_source(app, host=host)
+        if api.resolve_saved_c_marking_owner(snapshot, key) != expected_owner:
+            raise ValueError("ROOT_MARKING_OWNER_STALE")
         return snapshot, api.open_selected_ordinary_marking_modal_source(snapshot, geometry, key)
 
     snapshot, receipt = read_current()
@@ -226,6 +247,7 @@ def _open_saved_c_divider_marking_editor(host, key):
             from fold_designer_bridge import _phase6_refresh_corner_data_unfold_view
             app.root.after_idle(lambda: _phase6_refresh_corner_data_unfold_view(app))
 
+    before_present()
     return _present_physical_sheet_editor(
         host, key, operator_part_label(key, snapshot=snapshot), receipt.context,
         draft.saved_marks, receipt, confirm,
@@ -440,7 +462,7 @@ def _open_version_bound_workspace_marking_editor(host, key, editing_context, rol
 
 def _present_physical_sheet_editor(
     host, key, title, context, features, draft, confirm, *, sync_callback=None, on_close=None,
-    solid_marking_only=False,
+    solid_marking_only=False, open_marking_editor=None,
 ):
     editor_features = list(features)
 
@@ -457,6 +479,7 @@ def _present_physical_sheet_editor(
         baseline_scene=context.render_data.scene, manual_marking_draft=draft,
         defer_workspace_sync=True, skip_cancel_sync=True,
         **({"solid_marking_only": True} if solid_marking_only else {}),
+        **({"open_marking_editor": open_marking_editor} if open_marking_editor is not None else {}),
     ) or getattr(host, "last_unified_hole_editor", None)
 
 

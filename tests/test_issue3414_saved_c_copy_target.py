@@ -127,6 +127,11 @@ def test_native_ordinary_to_c(actual_sources,ordinary_donors,source_key,label,tm
             canvas.event_generate('<ButtonRelease-1>',x=80,y=100,time=tick)
         root.update();assert not failures,failures
         modal=host.last_unified_hole_editor
+        hole_window=modal
+        hole_window._saved_c_marking_open_button.invoke();root.update()
+        modal=host.last_unified_hole_editor
+        assert not failures, failures
+        assert modal is not hole_window and not hole_window.winfo_exists()
         callback=modal._manual_marking_place
         state=dict(zip(callback.__code__.co_freevars,(c.cell_contents for c in callback.__closure__)))['s']
         opened=state.manual_marking_draft

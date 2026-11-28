@@ -548,6 +548,7 @@ from .sheetmetal_feature_reference import (
 from .operator_hole_editor_projection import (
     OperatorHoleEditorGeometry,
     project_operator_hole_editor_door,
+    select_legacy_quantity_door_hole_source,
     project_operator_hole_editor_door_cell,
     project_operator_hole_editor_box_body_face,
     project_operator_hole_editor_endcap,
