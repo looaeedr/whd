@@ -530,9 +530,15 @@ def _apply_phase6_project_snapshot(self, snapshot):
     # Restore the same Registry-backed source as the manufacturing payload
     # before either existing workspace can publish or save manual corners.
     # An explicit saved part selection is not a missing legacy source.
-    snapshot["corner_state"] = manufacturing_api.project_operator_saved_project_corner_source(
-        snapshot, self.manual_corner_state.keys(),
-    )
+    manual_corners = getattr(self, "manual_corner_state", None)
+    if (manual_corners is not None
+            and not manufacturing_api.receiving_family_supports_back_panel_mode(snapshot)):
+        # Receiving saved-Bay marking requires the file's explicit endcap
+        # corner source. Registry defaults may render legacy previews, but
+        # must not become a saved-source receipt just by opening the file.
+        snapshot["corner_state"] = manufacturing_api.project_operator_saved_project_corner_source(
+            snapshot, manual_corners.keys(),
+        )
     # Existing Phase6 snapshot restoration owns global dimensions/settings,
     # CornerType and fold profiles. Project-specific state below adds every
     # part's features and indicator workspace that the old snapshot omitted.

@@ -110,3 +110,13 @@ def canonical_manufacturing_request_part_keys(snapshot, available_parts):
         and not str(key).startswith("base_plate:nfb_layer:")
         and not str(key).startswith("nfb_pad:")
     )
+
+
+def selected_endcap_marking_request_part_keys(snapshot, available_parts, selected_part):
+    """Select the body and committed endcaps needed for one marking stock."""
+    if selected_part not in ("head", "tail"):
+        raise ValueError("selected endcap source requires head or tail")
+    canonical = canonical_manufacturing_request_part_keys(snapshot, available_parts)
+    if selected_part not in canonical or "box_body" not in canonical:
+        raise ValueError("selected endcap and box body sources are required")
+    return tuple(key for key in canonical if key in ("box_body", "head", "tail"))

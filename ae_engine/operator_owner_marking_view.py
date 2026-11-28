@@ -12,7 +12,7 @@ from .operator_quantity_marking_owner import (
 from .operator_root_marking_store import read_workspace_marking_owner_record
 from .operator_selected_marking_receipt import open_selected_owner_receipt, selected_normal_marking_inventory
 from .sheetmetal_drawing import DrawingScene
-from .workspace_state import resolve_workspace_physical_root_owner
+from .operator_root_marking_store import resolve_workspace_marking_owner
 
 OWNER_MARKING_VIEW_DIAGNOSTIC = "owner_marking_view_diagnostic"
 
@@ -49,7 +49,7 @@ def project_workspace_owner_marking_display(snapshot, part_key, render, *, stand
         if not standalone_3d and supports_box_body_piece_marking_editor(snapshot, part_key):
             ink = _structural_piece_display_ink(snapshot, part_key, render, resolve_geometry)
         else:
-            owner = resolve_workspace_physical_root_owner(snapshot, part_key)
+            owner = resolve_workspace_marking_owner(snapshot, part_key)
             record = None if owner is None else read_workspace_marking_owner_record(snapshot, owner)
             scoped = record is None and owner is not None and uses_quantity_physical_marking_editor(snapshot, part_key)
             if scoped:

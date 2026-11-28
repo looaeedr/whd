@@ -55,7 +55,17 @@ def _resolve_bound_saved_marking_geometry(saved, key, resolve_saved_geometry, ve
     implement this port by substituting its current live target or cached DXF.
     """
     from copy import deepcopy
+    from .receiving_saved_c_divider_source import (
+        is_c_divider_source_guard_key, resolve_saved_receiving_c_divider_source,
+    )
 
+    if is_c_divider_source_guard_key(key):
+        if version_id is not None:
+            raise ValueError("MANUAL_COPY_QUANTITY_VERSION_UNAVAILABLE")
+        # Saved C stock is replayed by its own canonical four-input owner.
+        # A caller-supplied render callback cannot substitute another Bay.
+        _, geometry = resolve_saved_receiving_c_divider_source(saved, key)
+        return geometry
     if not callable(resolve_saved_geometry):
         raise TypeError("MANUAL_COPY_CANONICAL_SAVED_RENDER_REQUIRED")
     if version_id is not None and key in ("head", "tail"):
@@ -120,7 +130,9 @@ def _open_ordinary_saved_copy_source(
     Its source seal then has to equal the persisted physical owner's mark
     record. This helper grants no publication or placement capability.
     """
-    if source_part_key not in ("head", "tail", "door", "base_plate"):
+    from .receiving_saved_c_divider_source import is_c_divider_source_guard_key
+    if (not is_c_divider_source_guard_key(source_part_key)
+            and source_part_key not in ("head", "tail", "door", "base_plate")):
         raise ValueError("MANUAL_COPY_EXPLICIT_ORDINARY_SOURCE_REQUIRED")
     path, raw = _file_identity(source_project_path, source_project_sha256, "SOURCE")
     saved = _bound_project_snapshot(raw, source_snapshot, "SOURCE")
@@ -398,10 +410,14 @@ def _clone_copy_group(group, source_group_id, target_position):
 def _open_ordinary_saved_copy_target(
     *, target_snapshot, target_project_path, target_project_sha256,
     target_part_key, resolve_saved_geometry, target_live_snapshot, target_live_geometry,
-    target_version_id=None,
+    target_version_id=None, target_opened_receipt=None,
 ):
     """Match an explicitly selected live ordinary sheet to its saved stock."""
-    if target_part_key not in ("head", "tail", "door", "base_plate"):
+    from .receiving_saved_c_divider_source import is_c_divider_source_guard_key
+    from .operator_selected_marking_receipt import SelectedPhysicalMarkingReceipt
+
+    c_target = is_c_divider_source_guard_key(target_part_key)
+    if not c_target and target_part_key not in ("head", "tail", "door", "base_plate"):
         raise ValueError("MANUAL_COPY_EXPLICIT_ORDINARY_TARGET_REQUIRED")
     path, raw = _file_identity(target_project_path, target_project_sha256, "TARGET")
     saved = _bound_project_snapshot(raw, target_snapshot, "TARGET")
@@ -409,11 +425,11 @@ def _open_ordinary_saved_copy_target(
         saved, target_part_key, resolve_saved_geometry, target_version_id,
     )
     saved_receipt, saved_marks = _read_ordinary_copy_owner(
-        saved, target_saved_geometry, target_part_key, target_version_id, allow_unowned=True,
+        saved, target_saved_geometry, target_part_key, target_version_id, allow_unowned=not c_target,
     )
     live_receipt, live_marks = _read_ordinary_copy_owner(
         target_live_snapshot, target_live_geometry, target_part_key, target_version_id,
-        require_selected=True, allow_unowned=True,
+        require_selected=True, allow_unowned=not c_target,
     )
     if saved_receipt.owner_id != live_receipt.owner_id:
         raise ValueError("MANUAL_COPY_TARGET_LIVE_OWNER_CHANGED")
@@ -421,6 +437,17 @@ def _open_ordinary_saved_copy_target(
         raise ValueError("MANUAL_COPY_TARGET_SAVED_PHYSICAL_SOURCE_CHANGED")
     if saved_marks != live_marks:
         raise ValueError("MANUAL_COPY_TARGET_EDITOR_SESSION_STALE")
+    if c_target:
+        # A rebound file/snapshot must not revive an editor for a retired C
+        # occupant, even if its replacement has exactly the same stock seal.
+        opened = target_opened_receipt
+        if (not isinstance(opened, SelectedPhysicalMarkingReceipt)
+                or opened.part_key != target_part_key or not opened.owner_id
+                or opened.output_capability != "verified_normal"
+                or not opened.marking_only
+                or opened.owner_id != live_receipt.owner_id
+                or opened.source_sha256 != live_receipt.source_sha256):
+            raise ValueError("MANUAL_COPY_TARGET_EDITOR_SESSION_STALE")
     return path, live_receipt
 
 
@@ -436,8 +463,81 @@ def _ordinary_saved_copy_key(mark):
     return f"{kind}:{sha256(repr(mark).encode('utf-8')).hexdigest()}" if kind else None
 
 
+def select_saved_c_marking_copy_part(snapshot):
+    """Resolve the explicitly selected C donor from its current saved occupant.
+
+    This is a picker projection only. The ordinary copy API still verifies
+    file bytes, canonical stock and the owner's saved manual ledger.
+    """
+    from .receiving_saved_c_divider_source import (
+        resolve_saved_c_marking_owner, saved_c_marking_occupants,
+    )
+    from .operator_root_marking_store import read_workspace_marking_owner_record
+
+    matches = [key for key, owner in saved_c_marking_occupants(snapshot)
+               if resolve_saved_c_marking_owner(snapshot, key) == owner
+               and read_workspace_marking_owner_record(snapshot, owner) is not None]
+    if len(matches) != 1:
+        raise ValueError("MANUAL_COPY_C_SOURCE_OWNER_UNRESOLVED")
+    return matches[0]
+
+
+def _saved_copy_selection_key(mark, source_file, receipt, digest):
+    """Bind C's selection to the exact file revision, occupant and stock.
+
+    Equal geometry or re-authored identical ink on a replacement occupant
+    must never make the old selection valid. Ordinary donors retain their
+    existing selection contract.
+    """
+    key = _ordinary_saved_copy_key(mark)
+    from .receiving_saved_c_divider_source import is_c_divider_source_guard_key
+    if key is None or not is_c_divider_source_guard_key(receipt.part_key):
+        return key
+    payload = json.dumps((source_file, digest, receipt.part_key, receipt.owner_id,
+                          receipt.source_sha256, key), separators=(",", ":"))
+    return "c-copy:" + sha256(payload.encode("utf-8")).hexdigest()
+
+
+def _require_c_copy_ordinary_part(key, version_id, snapshots, error):
+    """Only one existing ordinary door/baseplate, not a quantity projection."""
+    from .receiving_layout import normalize_receiving_layout
+    from .receiving_quantity_versions import QuantityModel
+
+    if key not in ("door", "base_plate") or version_id is not None:
+        raise ValueError(error)
+    for snapshot in snapshots:
+        if not isinstance(snapshot, Mapping) or snapshot.get("receiving_quantity_box"):
+            raise ValueError(error)
+        if snapshot.get("receiving_layout") is not None:
+            layout = normalize_receiving_layout(snapshot["receiving_layout"])
+            if (len(layout["sets"]) != 1 or len(layout["sets"][0]["bays"]) != 1):
+                raise ValueError(error)
+        if snapshot.get("quantity") is not None:
+            rows = QuantityModel.from_payload(snapshot["quantity"]).snapshot()["versions"]
+            if len(rows) != 1 or rows[0]["piece_count"] != 1:
+                raise ValueError(error)
+        if list_ordinary_marking_copy_versions(snapshot, key):
+            raise ValueError(error)
+
+
+def _require_c_copy_ordinary_target(target):
+    _require_c_copy_ordinary_part(
+        target["target_part_key"], target.get("target_version_id"),
+        (target["target_snapshot"], target["target_live_snapshot"]),
+        "MANUAL_COPY_C_ORDINARY_TARGET_REQUIRED",
+    )
+
+
 def _verify_ordinary_saved_copy_sources(*, source_group_id, source, target):
 
+    from .receiving_saved_c_divider_source import is_c_divider_source_guard_key
+    if is_c_divider_source_guard_key(source["source_part_key"]):
+        _require_c_copy_ordinary_target(target)
+    if is_c_divider_source_guard_key(target["target_part_key"]):
+        _require_c_copy_ordinary_part(
+            source["source_part_key"], source.get("source_version_id"),
+            (source["source_snapshot"],), "MANUAL_COPY_C_ORDINARY_SOURCE_REQUIRED",
+        )
     source_file, source_receipt, source_marks = _open_ordinary_saved_copy_source(**source)
     target_file, target_receipt = _open_ordinary_saved_copy_target(**target)
     same_file = Path(source_file).samefile(target_file)
@@ -471,7 +571,9 @@ def _verify_ordinary_saved_copy_sources(*, source_group_id, source, target):
             raise ValueError("MANUAL_COPY_LIVE_DONOR_MARKS_CHANGED")
     if not isinstance(source_group_id, str) or not source_group_id:
         raise ValueError("MANUAL_COPY_EXPLICIT_GROUP_ID_REQUIRED")
-    matches = [mark for mark in source_marks if _ordinary_saved_copy_key(mark) == source_group_id]
+    matches = [mark for mark in source_marks
+               if _saved_copy_selection_key(mark, source_file, source_receipt,
+                                            source["source_project_sha256"]) == source_group_id]
     if len(matches) != 1:
         raise ValueError("MANUAL_COPY_SOURCE_GROUP_AMBIGUOUS")
     return matches[0], target_receipt
@@ -509,7 +611,8 @@ def _copy_ordinary_saved_group(
                 raise ValueError("PHYSICAL_SHEET_MARKING_TOOL_UNSUPPORTED")
             clone = _build_manual_round_feature(target_position, group.diameter)
         else:
-            clone = _clone_copy_group(group, source_group_id, target_position)
+            from .operator_manual_marking_groups import group_parameters
+            clone = _clone_copy_group(group, group_parameters(group)["group_id"], target_position)
         validate_physical_sheet_marking_draft(receipt, (*existing, clone))
     except ValueError as exc:
         raise ManualCopyPlacementRejected(str(exc)) from exc
@@ -557,10 +660,10 @@ def list_saved_endcap_marking_copy_candidates(source):
     from .operator_manual_marking import is_manual_round_mark
     from .operator_manual_marking_groups import group_member_world_points, group_parameters, is_manual_group
     from .operator_physical_sheet_marking import is_manual_straight_mark
-    _, _, marks = _open_ordinary_saved_copy_source(**source)
+    path, receipt, marks = _open_ordinary_saved_copy_source(**source)
     candidates = []
     for mark in marks:
-        key = _ordinary_saved_copy_key(mark)
+        key = _saved_copy_selection_key(mark, path, receipt, source["source_project_sha256"])
         if key is None:
             continue
         if is_manual_straight_mark(mark):

@@ -50,7 +50,8 @@ def seed_fresh_receiving_nfb_source(snapshot):
     from .cabinet_types import policy as cabinet_policy
     from .receiving_layout import (
         ensure_receiving_layout, project_receiving_bay_legacy_aliases,
-        update_receiving_bay,
+        update_receiving_bay, RECEIVING_DOOR_STATE_KEYS,
+        HORIZONTAL_DIVIDER_OCCUPANCY,
     )
     from .receiving_shared_settings import edit_setting
     from .receiving_nfb_csv_editor_features import editor_nfb_features_from_csv
@@ -61,6 +62,20 @@ def seed_fresh_receiving_nfb_source(snapshot):
         return value
     if value.get("active_mode", "set_bay") != "set_bay":
         raise ValueError("RECEIVING_FRESH_NFB_EXPECTS_SET_BAY")
+    # Explicit fresh Family creation may still have its original Door source
+    # at root, before the read-only legacy projection copies it to Bay1.
+    source_layout = value.get("receiving_layout")
+    if source_layout is not None:
+        from .receiving_layout import normalize_receiving_layout
+        layout = normalize_receiving_layout(source_layout)
+        if len(layout["sets"]) == 1 and len(layout["sets"][0]["bays"]) == 1:
+            bay = layout["sets"][0]["bays"][0]
+            if HORIZONTAL_DIVIDER_OCCUPANCY in bay and "door_state" not in bay:
+                value["receiving_layout"] = update_receiving_bay(
+                    layout, set_index=0, bay_index=0, door_state={
+                        key: deepcopy(value[key]) for key in RECEIVING_DOOR_STATE_KEYS if key in value
+                    },
+                )
     value = ensure_receiving_layout(value)
     layout = value["receiving_layout"]
     if len(layout["sets"]) != 1 or len(layout["sets"][0]["bays"]) != 1:

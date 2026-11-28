@@ -463,6 +463,7 @@ def build_manufacturing_request(
     part_spec_provider=None,
     finished_dimensions_provider=None,
     cache_key_fingerprint="",
+    selected_endcap_part_key=None,
 ) -> ManufacturingResolveRequest:
     """Build one immutable manufacturing request from current app/workspace state.
 
@@ -500,6 +501,10 @@ def build_manufacturing_request(
     # live Workspace after building the part DTOs could publish a self-
     # contradictory immutable Request if selection changes during callbacks.
     canonical_part_keys = _canonical_part_keys(app)
+    if selected_endcap_part_key is not None:
+        canonical_part_keys = manufacturing_api.selected_endcap_marking_request_part_keys(
+            snapshot, canonical_part_keys, selected_endcap_part_key,
+        )
     part_inputs: list[ManufacturingPartInput] = []
     scene_values_by_part = {}
     for key in canonical_part_keys:

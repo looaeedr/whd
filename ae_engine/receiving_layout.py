@@ -13,6 +13,10 @@ from ae_engine.receiving_shared_settings import normalize_set_settings, setting_
 from typing import Mapping
 import re
 from uuid import uuid4
+from .receiving_horizontal_divider_owner import (
+    OCCUPANCY as HORIZONTAL_DIVIDER_OCCUPANCY, initialize_horizontal_divider_occupancy,
+    normalize_horizontal_divider_occupancy, transition_horizontal_divider_occupancy,
+)
 
 RECEIVING_LAYOUT_SCHEMA = "receiving-layout-v1"
 RECEIVING_RUNTIME_SELECTION_KEY = "_receiving_runtime_selection"
@@ -95,10 +99,11 @@ def _back_panel_mode(value: object) -> str:
 
 def new_receiving_layout(*, width: object, height: object, depth: object,
                          back_panel_mode: object = "FULL",
-                         new_physical_board: bool = False) -> dict[str, object]:
+                         new_physical_board: bool = False,
+                         door_state: Mapping[str, object] | None = None) -> dict[str, object]:
     """Build a one-Bay layout; only explicit cabinet creation allocates an owner."""
     namespace = uuid4().hex if new_physical_board else None
-    return {
+    result = {
         "schema": RECEIVING_LAYOUT_SCHEMA,
         "next_panel_number": 2,
         **({_BASE_PLATE_NAMESPACE: namespace, _NEXT_BASE_PLATE_GENERATION: 2}
@@ -122,6 +127,15 @@ def new_receiving_layout(*, width: object, height: object, depth: object,
             }
         ],
     }
+
+    bay = result["sets"][0]["bays"][0]
+    if door_state is not None:
+        if not isinstance(door_state, Mapping):
+            raise ValueError("每連門分割必須為物件")
+        bay["door_state"] = {key: deepcopy(door_state[key]) for key in RECEIVING_DOOR_STATE_KEYS if key in door_state}
+    if new_physical_board:
+        initialize_horizontal_divider_occupancy(bay)
+    return result
 
 
 def normalize_receiving_operator_topology_integer(value: object, *, name: str) -> int:
@@ -269,6 +283,7 @@ def normalize_receiving_layout(layout: Mapping[str, object] | None) -> dict[str,
 
     seen_ids: set[str] = set()
     seen_base_plate_owners: set[str] = set()
+    seen_divider_owners: set[str] = set()
     sets: list[dict[str, object]] = []
     for set_index, raw_set in enumerate(raw_sets, start=1):
         if not isinstance(raw_set, Mapping):
@@ -322,6 +337,7 @@ def normalize_receiving_layout(layout: Mapping[str, object] | None) -> dict[str,
                 if not isinstance(raw_bay["door_state"], Mapping):
                     raise ValueError("每連門分割必須為物件")
                 bay["door_state"] = {key: deepcopy(raw_bay["door_state"][key]) for key in RECEIVING_DOOR_STATE_KEYS if key in raw_bay["door_state"]}
+            normalize_horizontal_divider_occupancy(raw_bay, bay, seen_divider_owners)
             from .receiving_nfb_persistence import normalize_nfb_saved_fields
             bay.update(normalize_nfb_saved_fields(raw_bay))
             bays.append(bay)
@@ -627,6 +643,8 @@ def resize_receiving_bays(layout: Mapping[str, object], *, set_index: int, bay_c
             stable_id=f"receiving:set:{set_number}:bay:{bay_number}",
         )
         _assign_new_base_plate_owner(normalized, new_bay)
+        if HORIZONTAL_DIVIDER_OCCUPANCY in previous_bay:
+            initialize_horizontal_divider_occupancy(new_bay)
         previous_joint = joints[-1] if joints else None
         joints.append(
             _new_joint(
@@ -665,6 +683,8 @@ def append_receiving_set(layout: Mapping[str, object]) -> dict[str, object]:
     set_number = len(normalized["sets"]) + 1
     new_bay = _copy_bay_fields(template, stable_id=f"receiving:set:{set_number}:bay:1")
     _assign_new_base_plate_owner(normalized, new_bay)
+    if HORIZONTAL_DIVIDER_OCCUPANCY in template:
+        initialize_horizontal_divider_occupancy(new_bay)
     normalized["sets"].append({
         "stable_id": f"receiving:set:{set_number}", "bays": [new_bay], "joints": [],
     })
@@ -689,7 +709,8 @@ def resize_receiving_sets(layout: Mapping[str, object], *, set_count: int) -> di
     return normalize_receiving_layout(normalized)
 
 
-def update_receiving_bay(layout: Mapping[str, object], *, set_index: int, bay_index: int, **changes: object) -> dict[str, object]:
+def update_receiving_bay(layout: Mapping[str, object], *, set_index: int, bay_index: int,
+                         _allocate_divider_owner: bool = True, **changes: object) -> dict[str, object]:
     """Update persisted per-Bay fields without touching sibling Bay objects."""
     normalized, selected = _layout_set(layout, set_index)
     bays = selected["bays"]
@@ -786,6 +807,9 @@ def update_receiving_bay(layout: Mapping[str, object], *, set_index: int, bay_in
         # The derived manufacturing gate must still re-check each hole.
         from .receiving_nfb_persistence import reconfirm_copied_nfb_config
         bay["nfb_config"] = reconfirm_copied_nfb_config(bay["nfb_config"])
+    transition_horizontal_divider_occupancy(
+        bays[bay_index], bay, allocate=_allocate_divider_owner,
+    )
     bays[bay_index] = bay
     normalized["sets"][set_index] = {
         **selected,
@@ -1337,6 +1361,7 @@ def apply_receiving_bay_dimensions(layout, set_index, bay_indices, *, width, hei
             updated_bay["nfb_config"] = reconfirm_copied_nfb_config(
                 updated_bay["nfb_config"]
             )
+        transition_horizontal_divider_occupancy(current, updated_bay)
         candidate["sets"][index]["bays"][bay_index] = updated_bay
         dirty.append(str(current["stable_id"]))
     if not dirty:

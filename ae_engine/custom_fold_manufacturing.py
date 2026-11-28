@@ -102,4 +102,5 @@ def build_custom_fold_render_data(spec):
             x_segments=folded if spec.fold_axis=="X" else flat,
             y_segments=folded if spec.fold_axis=="Y" else flat,source="CUSTOM_FOLD_PROFILE"),
         metadata={"stable_id":spec.physical_id,"fold_axis":spec.fold_axis,"assembly_placement":"unassigned",
+                  **({"physical_owner_id": spec.physical_owner_id} if spec.physical_owner_id is not None else {}),
                   "outside_lengths":tuple(row.formed_length if row.formed_length is not None else row.length for row in spec.fold_profile)})

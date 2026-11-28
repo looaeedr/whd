@@ -293,6 +293,28 @@ def toggle_multi_door_layout(self):
 def _reject_door_layout_dimension(self, var, previous_value, message):
     return _reject_door_layout_dimension_impl(self, var, previous_value, message)
 
+def _commit_main_door_grid_edit(self):
+    """Publish an accepted edit before a later grid edit can hide a removal."""
+    controller = getattr(self, "workspace_controller", None)
+    if controller is None:
+        return
+    current = controller.workspace_snapshot()
+    if not current.get("receiving_layout"):
+        return
+    layout = manufacturing_api.commit_receiving_single_bay_door_controls({
+        **current,
+        "model": self.baseline_var.get(),
+        "multi_door_enabled": self.multi_door_enabled_var.get(),
+        "door_layout_columns": self.get_door_layout_columns(),
+        "door_layout_scope": getattr(self, "door_layout_scope", "main") or "main",
+        "door_handle_edges": getattr(self, "door_layout_handle_edges", {}) or {},
+        "door_nameplate_center_datum_top": getattr(self, "door_nameplate_center_datum_top", None),
+        "inner_doors": getattr(self, "receiving_inner_doors", []) or [],
+    })
+    if layout is not None and layout != current["receiving_layout"]:
+        controller.commit_workspace({**current, "receiving_layout": layout})
+
+
 def commit_door_layout_width(self, column_index):
     # A stale or aliased callback must not even read another physical Door.
     column_index = manufacturing_api.validate_operator_door_grid_edit_index(
@@ -323,6 +345,7 @@ def commit_door_layout_width(self, column_index):
     column["width_auto"] = validation.keep_auto
     column["width_committed"] = current
     self._recompute_door_layout_remainders(rebuild=True)
+    _commit_main_door_grid_edit(self)
     self._on_door_layout_value_changed(recompute=False)
     return True
 
@@ -369,6 +392,7 @@ def commit_door_layout_height(self, column_index, row_index):
     else:
         column["height_committed"][row_index] = current
     self._recompute_door_layout_remainders(rebuild=True)
+    _commit_main_door_grid_edit(self)
     self._on_door_layout_value_changed(recompute=False)
     return True
 
@@ -481,6 +505,7 @@ def remove_door_layout_column(self, column_index):
             0.0, [replacement_height], width_auto=True, height_auto=[True],
         )]
     self._recompute_door_layout_remainders(rebuild=True)
+    _commit_main_door_grid_edit(self)
     self._on_door_layout_value_changed(recompute=False)
 
 def add_door_layout_height(self, column_index):
@@ -510,6 +535,7 @@ def remove_door_layout_height(self, column_index, row_index):
     del column["height_auto"][row_index]
     self.door_layout_selected_var.set(f"{column_index}:0")
     self._recompute_door_layout_remainders(rebuild=True)
+    _commit_main_door_grid_edit(self)
     self._on_door_layout_value_changed(recompute=False)
 
 def _on_door_layout_value_changed(self, *, recompute=True):

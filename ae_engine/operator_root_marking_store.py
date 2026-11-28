@@ -10,6 +10,7 @@ from .workspace_state import resolve_workspace_physical_root_owner
 ROOT_MARKING_STORE_KEY = "physical_root_manual_markings"
 _SCHEMA = 1
 _QUANTITY_SCHEMA = 2
+_DIVIDER_OWNER_PATTERN = r"divider-owner:[a-f0-9]{12}4[a-f0-9]{3}[89ab][a-f0-9]{15}"
 _QUANTITY_OWNER_PATTERN = r"quantity-owner:quantity-v[1-9][0-9]*:root-owner:[a-f0-9]{32}"
 
 
@@ -23,6 +24,7 @@ def normalize_workspace_root_marking_store(raw):
     records = {}
     for owner, record in raw["records"].items():
         if (not isinstance(owner, str) or not (fullmatch(r"root-owner:[a-f0-9]{32}", owner)
+                    or fullmatch(_DIVIDER_OWNER_PATTERN, owner)
                     or (raw["schema_version"] == _QUANTITY_SCHEMA and fullmatch(_QUANTITY_OWNER_PATTERN, owner)))
                 or not isinstance(record, Mapping) or set(record) != {"source_sha256", "features"}):
             raise ValueError("ROOT_MARKING_STORE_RECORD_INVALID")
@@ -37,6 +39,13 @@ def normalize_workspace_root_marking_store(raw):
     ):
         raise ValueError("ROOT_MARKING_STORE_SCHEMA_INVALID")
     return {"schema_version": raw["schema_version"], "records": records}
+
+
+def resolve_workspace_marking_owner(snapshot, part_key):
+    """Resolve existing explicit roots or the saved C occupant, not a role alias."""
+    from .receiving_saved_c_divider_source import resolve_saved_c_marking_owner
+    return (resolve_workspace_physical_root_owner(snapshot, part_key)
+            or resolve_saved_c_marking_owner(snapshot, part_key))
 
 
 def _root_store(snapshot):
@@ -63,6 +72,8 @@ def project_operator_detached_root_marking_count(snapshot):
         structure = snapshot.get("box_body_structure", nested.get("box_body_structure"))
         piece_owners = {read_box_body_piece_marking_owner(structure, key) for key in _SIDE_BACK_PIECES}
         bound |= records.keys() & (piece_owners - owners.keys())
+    from .receiving_saved_c_divider_source import saved_c_marking_occupants
+    bound |= {owner for _, owner in saved_c_marking_occupants(snapshot)} & records.keys()
     if any(key.startswith("quantity-owner:") for key in records):
         from .operator_quantity_marking_owner import resolve_quantity_physical_marking_owner
         for record_key in records.keys() - bound:
@@ -82,7 +93,7 @@ def project_operator_detached_root_marking_count(snapshot):
 
 def read_workspace_marking_owner_record(snapshot, owner_id):
     """Read prior records without reattaching legacy role features or migrating scoped marks."""
-    if isinstance(owner_id, str) and owner_id.startswith("root-owner:"):
+    if isinstance(owner_id, str) and owner_id.startswith(("root-owner:", "divider-owner:")):
         return _root_store(snapshot)["records"].get(owner_id)
     from .operator_scoped_base_plate_marks import normalize_scoped_base_plate_marks
     return deepcopy(normalize_scoped_base_plate_marks(snapshot).get(owner_id))
@@ -112,11 +123,13 @@ def open_workspace_owner_marking_draft(snapshot, receipt):
     if not isinstance(receipt, SelectedPhysicalMarkingReceipt):
         raise ValueError("ROOT_MARKING_STOCK_RECEIPT_REQUIRED")
     if (receipt.owner_id is None
-            or resolve_workspace_physical_root_owner(snapshot, receipt.part_key) != receipt.owner_id):
+            or resolve_workspace_marking_owner(snapshot, receipt.part_key) != receipt.owner_id):
         raise ValueError("ROOT_MARKING_OWNER_STALE")
     seal = receipt.source_sha256
     if not isinstance(seal, str) or not fullmatch(r"[a-f0-9]{64}", seal):
         raise ValueError("ROOT_MARKING_SOURCE_INVALID")
+    from .operator_selected_marking_receipt import require_custom_owner_receipt_stock
+    require_custom_owner_receipt_stock(snapshot, receipt)
     record = read_workspace_marking_owner_record(snapshot, receipt.owner_id)
     if record is not None and record["source_sha256"] != seal:
         raise ValueError("ROOT_MARKING_SOURCE_STALE")
@@ -142,7 +155,7 @@ def prepare_workspace_owner_marking_commit(snapshot, opened, current_receipt, ma
     if not isinstance(opened, WorkspaceOwnerMarkingDraft):
         raise ValueError("ROOT_MARKING_DRAFT_REQUIRED")
     # Owner drift takes precedence over a replaced board's unreadable stock.
-    if resolve_workspace_physical_root_owner(snapshot, opened.part_key) != opened.owner_id:
+    if resolve_workspace_marking_owner(snapshot, opened.part_key) != opened.owner_id:
         raise ValueError("ROOT_MARKING_OWNER_STALE")
     from .operator_selected_marking_receipt import SelectedPhysicalMarkingReceipt
     if not isinstance(current_receipt, SelectedPhysicalMarkingReceipt):
@@ -156,6 +169,8 @@ def prepare_workspace_owner_marking_commit(snapshot, opened, current_receipt, ma
     if current._saved_record != opened._saved_record:
         raise ValueError("ROOT_MARKING_DRAFT_STALE")
     target = _target_receipt(current_receipt, proposed_receipt)
+    from .operator_selected_marking_receipt import require_custom_owner_receipt_stock
+    require_custom_owner_receipt_stock(snapshot, target)
     accepted = tuple(target.validate(marks))
     previous = _root_store(snapshot)
     return WorkspaceOwnerMarkingUpdate(
@@ -167,7 +182,7 @@ def apply_workspace_owner_marking_commit(snapshot, update, current_receipt, prop
     """Recompare authoritative owner and full ledger before one owner-state assignment."""
     if not isinstance(update, WorkspaceOwnerMarkingUpdate):
         raise ValueError("ROOT_MARKING_UPDATE_REQUIRED")
-    if resolve_workspace_physical_root_owner(snapshot, update.part_key) != update.owner_id:
+    if resolve_workspace_marking_owner(snapshot, update.part_key) != update.owner_id:
         raise ValueError("ROOT_MARKING_OWNER_STALE")
     current = open_workspace_owner_marking_draft(snapshot, current_receipt)
     if current.owner_id != update.owner_id or current.part_key != update.part_key:
@@ -180,6 +195,8 @@ def apply_workspace_owner_marking_commit(snapshot, update, current_receipt, prop
     # Apply only the one validated owner's record, never a caller-provided
     # replacement ledger that could alter other physical parts.
     target = _target_receipt(current_receipt, proposed_receipt, update._target_source_sha256)
+    from .operator_selected_marking_receipt import require_custom_owner_receipt_stock
+    require_custom_owner_receipt_stock(snapshot, target)
     accepted = tuple(target.validate(update._accepted_marks))
     if accepted:
         previous["records"][update.owner_id] = {
@@ -273,6 +290,19 @@ def selected_workspace_owner_marking_keys(snapshot, flags):
     ordinary = tuple(key for key in (parts or ()) if receiving_export_part_selected(key, flags)
                      and (resolve_workspace_physical_root_owner(snapshot, key) in store
                           or resolve_workspace_physical_root_owner(snapshot, key) in scoped_roots))
+    # C is a shared BoxBody/Door physical intent; it is not in root presence.
+    from .receiving_saved_c_divider_source import saved_c_marking_occupants
+    divider_records = {owner for owner in store if fullmatch(_DIVIDER_OWNER_PATTERN, owner)}
+    if divider_records and (flags.get("box_body") or flags.get("door")):
+        from .cabinet_types.policy import canonical_family_name
+        if canonical_family_name(snapshot) == "受電箱":
+            if snapshot.get("active_mode", "set_bay") != "set_bay" or not snapshot.get("receiving_layout"):
+                raise ValueError("C_DIVIDER_MARKING_SCOPE_UNSUPPORTED")
+            for key, owner in saved_c_marking_occupants(snapshot):
+                if owner in divider_records:
+                    if resolve_workspace_marking_owner(snapshot, key) != owner:
+                        raise ValueError("C_DIVIDER_MARKING_SCOPE_UNSUPPORTED")
+                    ordinary += (key,)
     if not flags.get("box_body"):
         return ordinary
     from .box_body_structure_state import _SIDE_BACK_PIECES

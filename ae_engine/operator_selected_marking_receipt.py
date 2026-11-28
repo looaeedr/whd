@@ -39,6 +39,7 @@ class SelectedPhysicalMarkingReceipt:
     source_sha256: str
     _normal_draft: object = field(default=None, repr=False)
     _editor_context: object = field(default=None, repr=False)
+    marking_only: bool = False
 
     @property
     def allowed_tools(self):
@@ -98,12 +99,13 @@ def _ordinary_normal_source(snapshot, key, render):
     return True
 
 
-def _source_sha256(snapshot, selected):
+def _source_sha256(snapshot, selected, *, include_original_ink=False):
     render = selected._render
     # Store only physical stock/hole/bend authority, no UI annotations,
     # preview ink, output eligibility flag or transient WKB ring ordering.
     records = DrawingScene([p for p in render.scene.primitives
-                            if p.layer in {"CUTTING", "BEND", "BLIND_HOLE"}])
+                            if p.layer in {"CUTTING", "BEND", "BLIND_HOLE"}
+                            or (include_original_ink and p.layer == "MARKING")])
     payload = manufacturing_equivalence_payload(
         replace(render, scene=records),
         ManufacturingParameters("physical_marking_stock_v1", snapshot["t"], None),
@@ -122,6 +124,40 @@ def _source_sha256(snapshot, selected):
     return sha256(physical.encode("utf-8")).hexdigest()
 
 
+def _require_custom_selected_stock(snapshot, key, owner, selected, seal):
+    """Bind the actual selected render to the saved catalog and canonical stock."""
+    from .custom_part_catalog import is_custom_part
+    if not is_custom_part(key):
+        return
+    if "t" not in snapshot:
+        raise ValueError("PHYSICAL_MARKING_CUSTOM_SOURCE_REQUIRED")
+    from .custom_fold_api import custom_part_spec, custom_saved_part_inputs
+    from .custom_fold_manufacturing import build_custom_fold_render_data
+    # Use the saved operator profile and holes, not the supplied render.
+    profiles, features = custom_saved_part_inputs(snapshot, key)
+    canonical = build_custom_fold_render_data(custom_part_spec(
+        snapshot, key, profiles=profiles, features=features,
+    ))
+    expected = open_selected_physical_marking_preview(selected_normal_marking_inventory(key, canonical), key)
+    # The existing stock seal deliberately omits owner and preview ink. Check
+    # catalog origin separately, including identical stock in another project.
+    actual = open_selected_physical_marking_preview(selected_normal_marking_inventory(key, selected._render), key)
+    if (selected != actual
+            or selected.selected_key != key
+            or selected._render.metadata.get("physical_owner_id") != owner
+            or _source_sha256(snapshot, selected) != seal
+            or _source_sha256(snapshot, expected) != seal):
+        raise ValueError("PHYSICAL_MARKING_CUSTOM_SOURCE_MISMATCH")
+
+
+def require_custom_owner_receipt_stock(snapshot, receipt):
+    from .custom_part_catalog import is_custom_part
+    if is_custom_part(receipt.part_key) and receipt.output_capability != "check_only":
+        raise ValueError("PHYSICAL_MARKING_NORMAL_OUTPUT_UNSUPPORTED")
+    _require_custom_selected_stock(snapshot, receipt.part_key, receipt.owner_id,
+                                   receipt.source, receipt.source_sha256)
+
+
 def _existing_normal_marking_draft(snapshot, key, render):
     from .physical_sheet_editor_context import resolve_physical_sheet_editor_context
     from .operator_physical_sheet_marking import open_physical_sheet_marking
@@ -135,17 +171,37 @@ def _existing_normal_marking_draft(snapshot, key, render):
     )
 
 
+def _open_saved_c_marking_receipt(snapshot, geometry, key):
+    from .operator_persisted_marking_candidate import require_ordinary_selected_marking_stock, _verify_original
+    from .receiving_saved_c_divider_source import resolve_saved_c_marking_owner
+    owner = resolve_saved_c_marking_owner(snapshot, key)
+    if owner is None:
+        raise ValueError("PHYSICAL_MARKING_DURABLE_OWNER_REQUIRED")
+    selected = require_ordinary_selected_marking_stock(snapshot, geometry, key)
+    # Stock proof already replays the saved C and its original joint ink.
+    _verify_original(selected._render)
+    return SelectedPhysicalMarkingReceipt(
+        key, owner, selected, "verified_normal",
+        _source_sha256(snapshot, selected, include_original_ink=True), marking_only=True,
+    )
+
+
 def open_selected_owner_receipt(snapshot, geometry, key):
     if not isinstance(snapshot, Mapping):
         raise ValueError("PHYSICAL_MARKING_PROJECT_REQUIRED")
+    from .receiving_saved_c_divider_source import is_c_divider_source_guard_key
+    if is_c_divider_source_guard_key(key):
+        return _open_saved_c_marking_receipt(snapshot, geometry, key)
     owner = resolve_workspace_physical_root_owner(snapshot, key)
     if owner is None:
         raise ValueError("PHYSICAL_MARKING_DURABLE_OWNER_REQUIRED")
     selected = open_selected_physical_marking_preview(geometry, key)
+    seal = _source_sha256(snapshot, selected)
+    _require_custom_selected_stock(snapshot, key, owner, selected, seal)
     normal = _existing_normal_marking_draft(snapshot, key, selected._render)
     return SelectedPhysicalMarkingReceipt(
         key, owner, selected, "existing_normal" if normal else "check_only",
-        _source_sha256(snapshot, selected), normal,
+        seal, normal,
     )
 
 
@@ -187,6 +243,9 @@ def open_selected_ordinary_marking_modal_source(snapshot, geometry, key):
     from .operator_persisted_marking_candidate import require_ordinary_selected_marking_stock, _verify_original
     from .workspace_state import _ordinary_explicit_root_key
 
+    from .receiving_saved_c_divider_source import is_c_divider_source_guard_key
+    if is_c_divider_source_guard_key(key):
+        return _open_saved_c_marking_receipt(snapshot, geometry, key)
     if not _ordinary_explicit_root_key(key, snapshot):
         raise ValueError("PHYSICAL_MARKING_NORMAL_OUTPUT_UNSUPPORTED")
     selected = require_ordinary_selected_marking_stock(snapshot, geometry, key)

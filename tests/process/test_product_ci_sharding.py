@@ -192,11 +192,14 @@ def test_issue2517_new_real_acceptance_suites_are_collected_and_run_exactly_once
     assert len(regression._ISSUE2517_ACCEPTANCE_PATHS) == len(expected)
     assert expected.issubset(PYTEST_PATHS)
     assert len(set(PYTEST_PATHS)) == len(PYTEST_PATHS)
-    assert set(regression._ACCEPTANCE_OWNERS.values()) == set(range(2, 18))
+    assert set(regression._ISSUE2517_ACCEPTANCE_OWNERS.values()) == set(range(2, 18))
     for filename in expected:
         assert (root / filename).is_file()
     seen = Counter(path for i in range(18) for path in shard_paths(i, 18))
     assert all(seen[filename] == 1 for filename in expected)
+    pure_insert = "tests/test_endcap_insert_world_height_native.py"
+    assert regression._ADDITIONAL_ACCEPTANCE_OWNERS[pure_insert] == 12
+    assert seen[pure_insert] == 1 and pure_insert in shard_paths(12, 18)
     # Preserve immutable, measured October assignments and measured 304 count.
     manifest = json.loads(regression._EIGHTEEN_SHARD_MANIFEST.read_text(encoding="utf-8"))
     assert set(manifest["file_owners"]).isdisjoint(expected)
@@ -657,3 +660,16 @@ def test_collected_nodeid_normalizes_windows_path_without_mutating_parameter_esc
         "tests/test_example.py::TestClass::test_case"
     )
     assert _collected_nodeid("1802 tests collected") is None
+
+
+def test_issue3414_release_selectors_are_collected_exactly_once():
+    required = {
+        "tests/test_issue3414_receiving_horizontal_divider_owner.py",
+        "tests/test_issue3414_saved_c_copy_source.py",
+        "tests/test_issue3414_saved_c_copy_target.py",
+        "tests/test_issue3414_saved_c_divider_marking.py",
+        "tests/test_issue3414_saved_c_divider_source.py",
+    }
+    for count in (1, 3, 10, 18, 20):
+        seen = Counter(path for i in range(count) for path in shard_paths(i, count))
+        assert all(seen[path] == 1 for path in required)
