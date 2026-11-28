@@ -10,7 +10,7 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Mapping
 
-from .receiving_layout import RECEIVING_DOOR_STATE_KEYS, update_receiving_bay
+from .receiving_layout import RECEIVING_DOOR_STATE_KEYS, update_receiving_bay, HORIZONTAL_DIVIDER_OCCUPANCY
 
 
 def project_receiving_single_bay_door_controls(snapshot: Mapping[str, object]):
@@ -20,12 +20,21 @@ def project_receiving_single_bay_door_controls(snapshot: Mapping[str, object]):
     untouched. An eligible but malformed layout fails closed via the existing
     canonical Receiving layout validator.
     """
+    return _project_single_bay_door_controls(snapshot, allocate_divider_owner=False)
+
+
+def commit_receiving_single_bay_door_controls(snapshot: Mapping[str, object]):
+    """Commit an accepted Main Door-grid edit, not a passive refresh or Open."""
+    return _project_single_bay_door_controls(snapshot, allocate_divider_owner=True)
+
+
+def _project_single_bay_door_controls(snapshot, *, allocate_divider_owner):
     if (not isinstance(snapshot, Mapping)
             or snapshot.get("model") not in ("受電箱", "RECEIVING")
             or snapshot.get("active_mode", "set_bay") != "set_bay"):
         return None
     layout = snapshot.get("receiving_layout")
-    if not isinstance(layout, Mapping) or not snapshot.get("inner_doors"):
+    if not isinstance(layout, Mapping):
         return None
     sets = layout.get("sets") or ()
     if not isinstance(sets, (list, tuple)) or len(sets) != 1:
@@ -36,10 +45,19 @@ def project_receiving_single_bay_door_controls(snapshot: Mapping[str, object]):
     bays = only_set.get("bays") or ()
     if not isinstance(bays, (list, tuple)) or len(bays) != 1:
         return None
+    # Legacy no-inner-door calls retain their original non-owning behavior.
+    # An enrolled Bay can explicitly lose its C boundary even if the edit
+    # removed the last inner door. Never infer a new occupant from a read.
+    bay = bays[0]
+    if not snapshot.get("inner_doors") and not (
+            isinstance(bay, Mapping) and HORIZONTAL_DIVIDER_OCCUPANCY in bay
+            and "multi_door_enabled" in snapshot and "door_layout_columns" in snapshot):
+        return None
     source_door = {
         key: deepcopy(snapshot[key]) for key in RECEIVING_DOOR_STATE_KEYS
         if key in snapshot
     }
     return update_receiving_bay(
         layout, set_index=0, bay_index=0, door_state=source_door,
+        _allocate_divider_owner=allocate_divider_owner,
     )

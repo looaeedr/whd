@@ -234,12 +234,13 @@ def _export_selected_resolved_parts(self, folder, flags, *, owner_guard_sink=Non
     active_mode = normalize_quantity_snapshot(mode_source)["active_mode"]
     chosen = getattr(self, "receiving_dxf_group_mode_var", None)
     group_mode = chosen.get() if chosen is not None else None
-    manufacturing_api.plan_scoped_base_plate_normal_output(mode_source, flags, group_mode)
     source_guard = _current_authoritative_export_guard(designer, mode_source, host=self)
     marking_source = mode_source
     if workspace is not None:
         from gui_modules.application.physical_part_hole_editor import current_workspace_marking_source
-        marking_source = current_workspace_marking_source(designer) or mode_source
+        marking_source = current_workspace_marking_source(designer, host=self) or mode_source
+    group_mode = manufacturing_api.normalize_saved_c_selected_export_mode(marking_source, flags, group_mode)
+    manufacturing_api.plan_scoped_base_plate_normal_output(mode_source, flags, group_mode)
     if workspace is not None and active_mode == "quantity":
         owner_keys = manufacturing_api.require_existing_normal_owner_marking_route(
             marking_source, flags, ordinary=True,
@@ -253,7 +254,7 @@ def _export_selected_resolved_parts(self, folder, flags, *, owner_guard_sink=Non
             source_guard()
             if owner_session_guard is not None:
                 owner_session_guard()
-            return current_workspace_marking_source(designer), geometry
+            return current_workspace_marking_source(designer, host=self), geometry
         from phase6_manufacturing_adapter import (
             build_manufacturing_request, build_scene_payload_for_app,
             operator_finished_dimensions_for_app,
@@ -373,7 +374,7 @@ def _export_selected_resolved_parts(self, folder, flags, *, owner_guard_sink=Non
         source_guard()
         if owner_session_guard is not None:
             owner_session_guard()
-        snapshot = current_workspace_marking_source(designer)
+        snapshot = current_workspace_marking_source(designer, host=self)
         if not snapshot:
             raise ValueError("ROOT_MARKING_PROJECT_SOURCE_REQUIRED")
         return snapshot, geometry
@@ -920,8 +921,14 @@ def export_selected_dxf(self):
         scoped_mark_source = reader() if callable(reader) else None
     try:
         group = getattr(self, "receiving_dxf_group_mode_var", None)
+        group_mode = group.get() if group is not None else None
+        if group_mode == manufacturing_api.SAVED_C_PHYSICAL_EXPORT_MODE and designer is not None:
+            from gui_modules.application.physical_part_hole_editor import current_workspace_marking_source
+            group_mode = manufacturing_api.normalize_saved_c_selected_export_mode(
+                current_workspace_marking_source(designer, host=self), flags, group_mode,
+            )
         manufacturing_api.plan_scoped_base_plate_normal_output(
-            scoped_mark_source or {}, flags, group.get() if group is not None else None,
+            scoped_mark_source or {}, flags, group_mode,
         )
     except ValueError as exc:
         messagebox.showerror("底板無法輸出", str(exc))
@@ -948,7 +955,7 @@ def export_selected_dxf(self):
     if designer is not None and getattr(designer, "designer_workspace", None) is not None:
         from gui_modules.application.physical_part_hole_editor import current_workspace_marking_source
         try:
-            marking_source = current_workspace_marking_source(designer)
+            marking_source = current_workspace_marking_source(designer, host=self)
             if manufacturing_api.require_existing_normal_owner_marking_route(marking_source, flags, ordinary=True):
                 owner_session_guard = final_publish_guard
         except ValueError as exc:

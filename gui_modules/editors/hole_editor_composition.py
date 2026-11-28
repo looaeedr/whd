@@ -1515,8 +1515,11 @@ def _install_manual_marking_actions(s):
     copy_versions = api.list_ordinary_marking_copy_versions(copy_opening_snapshot, s.part_key)
     copy_version = (api.project_operator_quantity_version_controls(copy_opening_snapshot["quantity"])["selected_version_id"]
                     if copy_versions else None)
+    # A C editor already owns a verified durable receipt. Use the same full
+    # current-source transport as its Confirm, never the raw divider preview.
+    c_copy_target = api.resolve_saved_c_marking_owner(copy_opening_snapshot, s.part_key) is not None
     ordinary_endcap_copy = (
-        api.supports_saved_ordinary_copy_part(copy_opening_snapshot, s.part_key)
+        (c_copy_target or api.supports_saved_ordinary_copy_part(copy_opening_snapshot, s.part_key))
         and getattr(s.manual_marking_draft, "output_capability", None) == "verified_normal"
     )
 
@@ -1537,11 +1540,14 @@ def _install_manual_marking_actions(s):
             raise ValueError("MANUAL_COPY_TARGET_EDITOR_SESSION_STALE")
         if scoped_copy:
             return None, copy_app._phase6_input_snapshot
-        live = current_workspace_marking_source(copy_app)
+        live = current_workspace_marking_source(copy_app, host=copy_host if c_copy_target else None)
         if ordinary_endcap_copy:
-            payload = build_scene_payload_for_app(copy_app, s.part_key)
-            render = copy_host._query_fold_designer_render_data(s.part_key, payload)
-            geometry = api.selected_normal_marking_inventory(s.part_key, render)
+            if c_copy_target:
+                geometry = copy_app._phase6_resolve_manufacturing_geometry()
+            else:
+                payload = build_scene_payload_for_app(copy_app, s.part_key)
+                render = copy_host._query_fold_designer_render_data(s.part_key, payload)
+                geometry = api.selected_normal_marking_inventory(s.part_key, render)
             if copy_version is not None:
                 version_receipt = api.open_quantity_physical_marking(live, geometry, s.part_key)
                 if version_receipt.owner.version_id != copy_version:
@@ -1738,11 +1744,13 @@ def _install_manual_marking_actions(s):
             target_data = read_project(target_path)["snapshot"]
             if ordinary_endcap_copy:
                 source_label = simpledialog.askstring(
-                    "選擇來源板件", "輸入封頭、封尾、門板或底板：", parent=s.editor,
+                    "選擇來源板件", "輸入封頭、封尾、門板、底板或 C 水平中隔：", parent=s.editor,
                 )
                 if source_label is None:
                     return False
                 source_role = {"封頭": "head", "封尾": "tail", "\u9580\u677f": "door", "\u5e95\u677f": "base_plate"}.get(source_label.strip())
+                if source_label.strip() == "C 水平中隔":
+                    source_role = api.select_saved_c_marking_copy_part(source_data)
                 if source_role is None:
                     raise ValueError("MANUAL_COPY_EXPLICIT_ORDINARY_SOURCE_REQUIRED")
                 source = dict(
@@ -1804,6 +1812,7 @@ def _install_manual_marking_actions(s):
                     target_project_sha256=target_sha, target_part_key=s.part_key,
                     target_version_id=copy_version,
                     resolve_saved_geometry=api.resolve_saved_ordinary_copy_geometry,
+                    **({"target_opened_receipt": s.manual_marking_draft} if c_copy_target else {}),
                 ))
                 group, _ = api.verify_saved_endcap_marking_copy(**verified_copy_args(receipt))
             else:

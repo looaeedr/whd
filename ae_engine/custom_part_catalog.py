@@ -13,6 +13,7 @@ from copy import deepcopy
 from collections.abc import Mapping, MutableMapping
 import math
 import re
+from uuid import uuid4
 
 PREFIX = "custom:"
 PRESET = "OUTSIDE_17_100"
@@ -50,6 +51,10 @@ def _descriptor(key, value):
     count = _positive_integer(row.get("per_box_count",1),"每箱片數")
     if row.get("fold_preset",PRESET) != PRESET:
         raise ValueError("不支援的自訂板件折法預設")
+    if "physical_owner_id" in row and (
+            not isinstance(row["physical_owner_id"], str)
+            or not re.fullmatch(r"root-owner:[a-f0-9]{32}", row["physical_owner_id"])):
+        raise ValueError("CUSTOM_PHYSICAL_OWNER_INVALID")
     row.update(physical_id=key,display_name=name,fold_axis=axis,
                transverse_length=length,per_box_count=count,fold_preset=PRESET)
     return row
@@ -61,11 +66,18 @@ class CustomPartCatalog:
         data=dict(payload or {})
         self._next_id=_positive_integer(data.get("next_id",1),"自訂 ID counter")
         self._items={}
+        owners = set()
         for key,row in dict(data.get("items") or {}).items():
             match=re.fullmatch(r"custom:([1-9][0-9]*)",str(key))
             if not match:
                 raise ValueError("非法自訂板件 physical ID")
-            self._items[key]=_descriptor(key,row)
+            item = _descriptor(key, row)
+            owner = item.get("physical_owner_id")
+            if owner is not None:
+                if owner in owners:
+                    raise ValueError("CUSTOM_PHYSICAL_OWNER_DUPLICATE")
+                owners.add(owner)
+            self._items[key] = item
             self._next_id=max(self._next_id,int(match.group(1))+1)
 
     @property
@@ -80,7 +92,12 @@ class CustomPartCatalog:
 
     def add(self,**values):
         key=f"{PREFIX}{self._next_id}"
+        if "physical_owner_id" in values:
+            raise ValueError("CUSTOM_PHYSICAL_OWNER_CREATION_ONLY")
         item=_descriptor(key,values)
+        # Only the actual catalog creation transaction assigns an owner.
+        # Legacy load, projection, edits and Save As never create one.
+        item["physical_owner_id"] = f"root-owner:{uuid4().hex}"
         self._items[key]=item
         self._next_id+=1
         return key
@@ -99,6 +116,19 @@ class CustomPartCatalog:
 
     def remove(self,key):
         return self._items.pop(str(key),None) is not None
+
+
+def resolve_custom_part_catalog(snapshot):
+    """Read the one catalog authority; duplicate persisted mirrors must agree."""
+    data = dict(snapshot or {})
+    workspace = data.get("workspace")
+    workspace = workspace if isinstance(workspace, Mapping) else {}
+    top, nested = data.get("custom_parts"), workspace.get("custom_parts")
+    catalog = CustomPartCatalog(top if top is not None else nested)
+    if top is not None and nested is not None:
+        if catalog.snapshot() != CustomPartCatalog(nested).snapshot():
+            raise ValueError("CUSTOM_PART_CATALOG_CONFLICT")
+    return catalog
 
 
 def custom_part_only_change(previous, current):

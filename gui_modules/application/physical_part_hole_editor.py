@@ -28,6 +28,8 @@ def open_workspace_sheet_editor(host, key, *, verified_only=False):
 
     features = workspace.features_for(key)
     snapshot = current_workspace_marking_source(app)
+    if snapshot and manufacturing_api.resolve_saved_c_marking_owner(snapshot, key) is not None:
+        return _open_saved_c_divider_marking_editor(host, key)
     owner = manufacturing_api.resolve_workspace_physical_root_owner(snapshot, key)
     claim = owner is not None and manufacturing_api.read_workspace_marking_owner_record(snapshot, owner)
     legacy_marks = any(manufacturing_api.is_manual_mark(row) for row in features)
@@ -107,7 +109,7 @@ def open_workspace_sheet_editor(host, key, *, verified_only=False):
     )
 
 
-def current_workspace_marking_source(app):
+def current_workspace_marking_source(app, *, host=None):
     """Transport selected workspace authority; GUI does not classify records."""
     from collections.abc import Mapping
     from ae_engine import manufacturing_api as api
@@ -137,6 +139,15 @@ def current_workspace_marking_source(app):
     if isinstance(workspace, dict):
         snapshot["workspace"] = {k: v for k, v in workspace.items()
                                  if k not in (api.ROOT_PHYSICAL_OCCUPANCY_KEY, api.ROOT_MARKING_STORE_KEY)}
+    if api.needs_current_saved_c_marking_source(snapshot):
+        # Existing complete live-sync transport, not a fabricated saved cache.
+        # The Engine C source proof still compares both representations.
+        from fold_designer_bridge import _phase6_corner_transaction_payload
+        payload = _phase6_corner_transaction_payload(app)
+        snapshot = {**snapshot, **payload["settings"], **app._phase6_box_whd, **payload}
+        reader = getattr(getattr(host, "workspace_controller", None), "workspace_snapshot", None)
+        if callable(reader):
+            api.require_current_saved_c_marking_occupant(snapshot, reader())
     return snapshot
 
 
@@ -184,6 +195,40 @@ def _open_structural_sheet_marking_editor(host, key, payload, context, features)
     return _present_physical_sheet_editor(
         host, key, operator_part_label(key, snapshot=payload), context,
         (*role_features, *opened.saved_marks), receipt, confirm,
+    )
+
+
+def _open_saved_c_divider_marking_editor(host, key):
+    from ae_engine import manufacturing_api as api
+    from phase6_part_navigation import operator_part_label
+
+    app = host.fold_designer_app
+    workspace = app.designer_workspace
+    epoch = host.project_controller.project_load_epoch
+
+    def read_current():
+        _require_current_project(host, app, workspace, epoch)
+        if key not in workspace.available_parts:
+            raise ValueError("ROOT_MARKING_SELECTION_STALE")
+        geometry = app._phase6_resolve_manufacturing_geometry()
+        snapshot = current_workspace_marking_source(app, host=host)
+        return snapshot, api.open_selected_ordinary_marking_modal_source(snapshot, geometry, key)
+
+    snapshot, receipt = read_current()
+    draft = api.open_workspace_owner_marking_draft(snapshot, receipt)
+
+    def confirm(pending):
+        current, fresh = read_current()
+        accepted = api.validate_physical_sheet_marking_draft(receipt, pending)
+        update = api.prepare_workspace_owner_marking_commit(current, draft, fresh, accepted)
+        if workspace.commit_saved_c_divider_marking(update, read_current=read_current):
+            app._phase6_publish_live_state(force=True)
+            from fold_designer_bridge import _phase6_refresh_corner_data_unfold_view
+            app.root.after_idle(lambda: _phase6_refresh_corner_data_unfold_view(app))
+
+    return _present_physical_sheet_editor(
+        host, key, operator_part_label(key, snapshot=snapshot), receipt.context,
+        draft.saved_marks, receipt, confirm,
     )
 
 

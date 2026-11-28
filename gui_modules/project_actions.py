@@ -135,10 +135,14 @@ def load_phase6_project(self, path, *, open_designer=True):
                 manufacturing_api.workspace_contains_quantity_physical_markings(state)
                 for state in (snapshot, read_workspace())
             )
-            if has_version_marks:
-                # Reusing the native Designer must not keep the previous file's
-                # quantity workspace. Hydrate the existing owner in place, using
-                # the same Engine-normalized data as a fresh Designer.
+            has_custom_catalog = callable(read_workspace) and any(
+                manufacturing_api.resolve_custom_part_catalog(state).has_history
+                for state in (snapshot, read_workspace())
+            )
+            if has_version_marks or has_custom_catalog:
+                # A complete Open replaces the previous file's quantity or
+                # custom workspace, including a new file with an empty catalog.
+                # Reuse the existing owner and its Engine-normalized hydration.
                 from copy import deepcopy
                 designer.designer_workspace.replace_receiving_snapshot(snapshot)
                 designer._phase6_input_snapshot.clear()

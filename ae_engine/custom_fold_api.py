@@ -6,18 +6,31 @@
 
 """Custom single-axis folds use the existing outside-dimension conversion."""
 from collections.abc import Mapping
-from .custom_part_catalog import CustomPartCatalog
+from .custom_part_catalog import resolve_custom_part_catalog
 from .box_body_fold_profile import outside_profile_to_material as _outside_profile_to_material, apply_outside_dimension_compensation, profile_to_fold_segments
 from .contracts import CustomFoldPartSpec
 from dataclasses import replace
 
 def descriptor_from_snapshot(snapshot, key):
-    data = dict(snapshot or {})
-    payload = data.get("custom_parts") or dict(data.get("workspace") or {}).get("custom_parts")
-    item = CustomPartCatalog(payload).get(key)
+    item = resolve_custom_part_catalog(snapshot).get(key)
     if item is None:
         raise ValueError(f"自訂板件缺少正式 Fold metadata: {key}")
     return item
+
+def custom_saved_part_inputs(snapshot, key):
+    """Read saved Fold and feature rows for the selected catalog occupant."""
+    nested = snapshot.get("workspace") or {}
+
+    def row(field, default):
+        top, inner = snapshot.get(field) or {}, nested.get(field) or {}
+        if not isinstance(top, Mapping) or not isinstance(inner, Mapping):
+            raise ValueError("PHYSICAL_MARKING_CUSTOM_SOURCE_MISMATCH")
+        if key in top and key in inner and top[key] != inner[key]:
+            raise ValueError("PHYSICAL_MARKING_CUSTOM_SOURCE_MISMATCH")
+        return top.get(key, inner.get(key, default))
+
+    return row("part_profiles", None), tuple(row("part_features", ()))
+
 
 def build_custom_part_profiles(snapshot, key):
     item = descriptor_from_snapshot(snapshot, key)
@@ -53,7 +66,7 @@ def custom_part_spec(snapshot, key, *, features=(), profiles=None):
         fold_profile=tuple(replace(seg,formed_length=float(row["len"])+float(row.get("ui_len_add",0)))
                            for seg,row in zip(profile_to_fold_segments(compensated),compensated)),
         transverse_length=item["transverse_length"],thickness=float(snapshot.get("t",2)),
-        features=tuple(features))
+        features=tuple(features), physical_owner_id=item.get("physical_owner_id"))
 
 
 def project_operator_custom_fold_save_profiles(snapshot, key, profiles):

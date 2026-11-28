@@ -9,7 +9,7 @@ from collections.abc import Mapping
 from .receiving_quantity_versions import QuantityModel, QUANTITY_MODE, SET_BAY_MODE
 from .cabinet_types import receiving
 from .receiving_quantity_box import BOX_KEY, positive_dimension, project_common_box
-from .custom_part_catalog import CustomPartCatalog
+from .custom_part_catalog import resolve_custom_part_catalog
 
 
 # Existing top-level physical presence is shared by Vault/Receiving operator
@@ -47,6 +47,8 @@ def fresh_receiving_mode(mode, dimensions, *, thickness=2.0, auto_nfb=False):
     result["receiving_layout"] = new_receiving_layout(
         width=dims["w"], height=dims["h"], depth=dims["d"],
         new_physical_board=(mode == SET_BAY_MODE),
+        door_state={key: deepcopy(result[key]) for key in RECEIVING_DOOR_STATE_KEYS if key in result}
+        if mode == SET_BAY_MODE else None,
     )
     result = ensure_receiving_layout(result)
     result["active_mode"] = mode
@@ -116,9 +118,7 @@ class ReceivingModeSession:
                 self._validator(deepcopy(candidate))
         # One project allocator spans both memory-only mode buffers. Retain
         # history without copying any inactive physical sheet into a new mode.
-        def catalog(snapshot):
-            return CustomPartCatalog(snapshot.get("custom_parts") or
-                                     dict(snapshot.get("workspace") or {}).get("custom_parts"))
+        catalog = resolve_custom_part_catalog
         next_id = max(catalog(value).snapshot()["next_id"]
                       for value in (current, candidate, *self._buffers.values()))
         if next_id > 1:

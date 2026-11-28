@@ -110,6 +110,8 @@ def validate_physical_sheet_marking_draft(draft, features):
         from .operator_manual_marking import is_manual_mark
         parts = tuple(features)
         role_rows = tuple(row for row in parts if not is_manual_mark(row))
+        if draft.marking_only and role_rows:
+            raise ValueError("C_DIVIDER_MARKING_ONLY")
         accepted_role = propose_operator_physical_sheet_hole_features(draft.part_key, draft.context, role_rows)
         from .operator_manual_marking import _validate_manual_strokes
         candidates = tuple(row for row in parts if is_manual_mark(row))
