@@ -69,6 +69,12 @@ def require_ordinary_selected_marking_stock(snapshot, geometry, part_key):
         raise ValueError("OWNER_MARKING_UNMARKED_BASELINE_REQUIRED")
     api.require_verified_operator_baseline_sources(canonical_family_name(snapshot))
     api._require_single_part_dxf_source(render)
+    # Existing certification proves that the sheet can be manufactured, not
+    # that it is the current saved C occupant's stock. This is a restriction
+    # only; it does not admit this part to the modal, owner store or writer.
+    from .receiving_saved_c_divider_source import is_c_divider_source_guard_key
+    if canonical_family_name(snapshot) == "受電箱" and is_c_divider_source_guard_key(part_key):
+        api.require_saved_receiving_c_divider_source(snapshot, geometry, part_key)
     return selected
 
 
@@ -77,6 +83,11 @@ def _read_current(snapshot, geometry, part_key):
     require_ordinary_selected_marking_stock(snapshot, geometry, part_key)
     receipt = api.open_physical_sheet_marking(part_key, snapshot=snapshot, geometry=geometry)
     if receipt.output_capability == "check_only":
+        # Durable identity alone must not broaden the existing ordinary
+        # marking admission (the modal source uses the same predicate).
+        from .workspace_state import _ordinary_explicit_root_key
+        if not _ordinary_explicit_root_key(part_key, snapshot):
+            raise ValueError("PHYSICAL_MARKING_NORMAL_OUTPUT_UNSUPPORTED")
         # Here the ordinary selected stock gate above has already passed;
         # publication still additionally requires _verify_original.
         receipt = replace(receipt, output_capability="verified_normal")
@@ -152,9 +163,9 @@ class _SingleSelectedOwnerMarkingWitness:
         self.assert_render(rows[0][2])
 
     def assert_current(self, current_source=None):
-        from .workspace_state import resolve_workspace_physical_root_owner
+        from .operator_root_marking_store import resolve_workspace_marking_owner
         snapshot, geometry = self._read() if current_source is None else current_source
-        owner = self._resolve_owner or resolve_workspace_physical_root_owner
+        owner = self._resolve_owner or resolve_workspace_marking_owner
         if owner(snapshot, self._evidence.part_key) != self._evidence.owner_id:
             raise ValueError("ROOT_MARKING_OWNER_STALE")
         receipt, draft, candidate = self._read_candidate(snapshot, geometry, self._evidence.part_key)
@@ -227,8 +238,7 @@ def _prepare_selected_ordinary_marking_batch(expected_snapshot, resolved, flags,
     from .manufacturing_export import resolved_physical_render_parts
     from .manufacturing_export_selection import select_resolved_export_geometry
     from .operator_manual_marking_batch import witness_selected_manual_marking_rows
-    from .operator_root_marking_store import read_workspace_marking_owner_record
-    from .workspace_state import resolve_workspace_physical_root_owner
+    from .operator_root_marking_store import read_workspace_marking_owner_record, resolve_workspace_marking_owner
 
     if not callable(read_current):
         raise ValueError("PHYSICAL_MARKING_CURRENT_SOURCE_REQUIRED")
@@ -245,7 +255,7 @@ def _prepare_selected_ordinary_marking_batch(expected_snapshot, resolved, flags,
             resolve_owner = box_body_piece_marking_owner
             read_candidate = read_persisted_box_body_piece_evidence
         else:
-            resolve_owner = resolve_workspace_physical_root_owner
+            resolve_owner = resolve_workspace_marking_owner
             read_candidate = _read_current
         expected_owner = resolve_owner(expected_snapshot, key)
         if expected_owner is None or resolve_owner(snapshot, key) != expected_owner:

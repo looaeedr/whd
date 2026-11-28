@@ -219,6 +219,8 @@ def normalize_project_snapshot_authority(snapshot):
     from ae_engine.cabinet_types.receiving import is_receiving_snapshot
     from ae_engine.receiving_layout import ensure_receiving_layout, project_primary_bay_legacy_aliases
 
+    from .custom_part_catalog import resolve_custom_part_catalog
+    resolve_custom_part_catalog(snapshot)
     result = migrate_legacy_snapshot_joints(dict(snapshot or {}))
     # Single-cabinet panel names are project input, owned here alongside
     # the rest of canonical Save/Reload authority (#2696).

@@ -225,6 +225,7 @@ class CustomFoldPartSpec:
     transverse_length: float
     thickness: float
     features: tuple[FeatureLike, ...] = ()
+    physical_owner_id: str | None = None
 
 
 @dataclass(frozen=True)

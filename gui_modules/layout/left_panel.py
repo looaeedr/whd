@@ -152,6 +152,18 @@ def build_left_panel(host, ctrl_pad_frame):
             return
         host.receiving_dxf_group_combo.state(["!disabled"])
         try:
+            from gui_modules.application.physical_part_hole_editor import current_workspace_marking_source
+            source = current_workspace_marking_source(designer) if designer is not None else snapshot
+            choices = ("PER_SET", "ALL", "END_VS_MIDDLE")
+            if manufacturing_api.supports_saved_c_physical_export_mode(source):
+                choices += (manufacturing_api.SAVED_C_PHYSICAL_EXPORT_MODE,)
+            host.receiving_dxf_group_combo.configure(values=choices)
+            if host.receiving_dxf_group_mode_var.get() == manufacturing_api.SAVED_C_PHYSICAL_EXPORT_MODE:
+                host.receiving_dxf_group_preview_var.set(
+                    "輸出：已選合法板件逐片 DXF" if manufacturing_api.SAVED_C_PHYSICAL_EXPORT_MODE in choices
+                    else "目前不支援單 Bay C 打標逐片輸出，請重新選擇"
+                )
+                return
             groups = manufacturing_api.plan_receiving_grouped_dxf(
                 snapshot.get("receiving_layout"),
                 host.receiving_dxf_group_mode_var.get(),

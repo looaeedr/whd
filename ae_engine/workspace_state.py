@@ -16,7 +16,7 @@ from uuid import uuid4
 from .cabinet_types.policy import canonical_family_name
 from .cabinet_types.registry import resolve_cabinet_type
 
-from .custom_part_catalog import CustomPartCatalog, is_custom_part
+from .custom_part_catalog import CustomPartCatalog, is_custom_part, resolve_custom_part_catalog
 from .box_body_structure_state import normalize_box_body_structure_state
 
 
@@ -83,8 +83,20 @@ def _ordinary_explicit_root_key(key, source):
 
 
 def resolve_workspace_physical_root_owner(snapshot, part_key):
-    """Read a current explicit root, not scoped/derived assignment or eligibility."""
-    if not isinstance(snapshot, Mapping) or not _ordinary_explicit_root_key(part_key, snapshot):
+    """Read a current explicit root or catalog-owned sheet, never eligibility."""
+    if not isinstance(snapshot, Mapping):
+        return None
+    if is_custom_part(part_key):
+        nested = snapshot.get("workspace")
+        nested = nested if isinstance(nested, Mapping) else {}
+        presence = snapshot.get("existing_parts", nested.get("existing_parts", ())) or ()
+        if part_key not in presence:
+            return None
+        # Same persisted catalog authority as custom_part_spec; never infer
+        # an occupant from a local ID, matching geometry, or an old marking.
+        item = resolve_custom_part_catalog(snapshot).get(part_key)
+        return None if item is None else item.get("physical_owner_id")
+    if not _ordinary_explicit_root_key(part_key, snapshot):
         return None
     family = _registered_root_family(snapshot.get("model"))
     if not family:
@@ -362,7 +374,9 @@ class SharedWorkspaceState:
         self._root_marking_store = candidate._root_marking_store
         return self.snapshot()
 
-    def commit_owner_marking_update(self, update, *, model, read_current_receipt, read_proposed_receipt=None):
+    def commit_owner_marking_update(self, update, *, model, read_current_receipt, read_proposed_receipt=None,
+                                    read_current_source=None, read_current_role_features=None,
+                                    pending_role_features=None):
         from .operator_root_marking_store import (
             WorkspaceInitialOwnerMarkingUpdate, apply_initial_workspace_owner_marking_commit,
             apply_workspace_owner_marking_commit,
@@ -384,7 +398,49 @@ class SharedWorkspaceState:
             raise ValueError("ROOT_MARKING_OWNER_STALE")
         receipt = read_current_receipt()
         proposed = read_proposed_receipt() if read_proposed_receipt is not None else None
-        accepted = apply_workspace_owner_marking_commit({"model": model, **self.snapshot()}, update, receipt, proposed)
+        current = {"model": model, **self.snapshot()}
+        if is_custom_part(update.part_key):
+            # This shared state deliberately does not own project T or role
+            # features. Require the same full live source used to resolve stock.
+            if not callable(read_current_source):
+                raise ValueError("PHYSICAL_MARKING_CUSTOM_SOURCE_REQUIRED")
+            source = read_current_source()
+            if (not isinstance(source, Mapping) or "t" not in source
+                    or source.get("model") != model
+                    or resolve_custom_part_catalog(source).snapshot() != self._custom_parts.snapshot()):
+                raise ValueError("PHYSICAL_MARKING_CUSTOM_SOURCE_MISMATCH")
+            # The workspace remains authoritative for presence/profiles/ledger.
+            # No external snapshot may substitute a different catalog or ledger.
+            from .custom_fold_api import custom_saved_part_inputs
+            profiles, features = custom_saved_part_inputs(source, update.part_key)
+            if (profiles != current["part_profiles"].get(update.part_key)
+                    or (read_current_role_features is not None
+                        and features != tuple(read_current_role_features()))
+                    or (pending_role_features is not None and features != tuple(pending_role_features))
+                    or {"model": model, **self.snapshot()} != current):
+                raise ValueError("PHYSICAL_MARKING_CUSTOM_SOURCE_MISMATCH")
+            current.update(t=source["t"], part_features={update.part_key: features})
+        accepted = apply_workspace_owner_marking_commit(current, update, receipt, proposed)
+        changed = accepted != self._root_marking_store
+        self._root_marking_store = accepted
+        return changed
+
+    def commit_saved_c_divider_marking(self, update, *, read_current):
+        """Reuse the shared ledger CAS with live Bay authority, not root presence."""
+        from .operator_root_marking_store import (
+            WorkspaceOwnerMarkingUpdate, _root_store, apply_workspace_owner_marking_commit,
+        )
+        from .receiving_saved_c_divider_source import resolve_saved_c_marking_owner
+        if not isinstance(update, WorkspaceOwnerMarkingUpdate) or not callable(read_current):
+            raise ValueError("ROOT_MARKING_UPDATE_REQUIRED")
+        snapshot, receipt = read_current()
+        if resolve_saved_c_marking_owner(snapshot, update.part_key) != update.owner_id:
+            raise ValueError("ROOT_MARKING_OWNER_STALE")
+        if not getattr(receipt, 'marking_only', False):
+            raise ValueError("ROOT_MARKING_STOCK_RECEIPT_REQUIRED")
+        if _root_store(snapshot) != self._root_marking_store:
+            raise ValueError("ROOT_MARKING_WORKSPACE_STALE")
+        accepted = apply_workspace_owner_marking_commit(snapshot, update, receipt)
         changed = accepted != self._root_marking_store
         self._root_marking_store = accepted
         return changed

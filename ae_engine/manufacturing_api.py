@@ -386,7 +386,7 @@ from .receiving_base_fixing_plate_geometry import (
     FixingPlateSourcePreview2D, project_receiving_fixing_plate_source_2d,
 )
 from .receiving_single_bay_door_snapshot import (
-    project_receiving_single_bay_door_controls,
+    project_receiving_single_bay_door_controls, commit_receiving_single_bay_door_controls,
 )
 from .receiving_nfb_verified_scope import (
     NfbCsvVerifiedPhysicalSite, NfbCsvVerifiedExportScope,
@@ -548,6 +548,7 @@ from .sheetmetal_feature_reference import (
 from .operator_hole_editor_projection import (
     OperatorHoleEditorGeometry,
     project_operator_hole_editor_door,
+    select_legacy_quantity_door_hole_source,
     project_operator_hole_editor_door_cell,
     project_operator_hole_editor_box_body_face,
     project_operator_hole_editor_endcap,
@@ -583,10 +584,10 @@ from .standard_part_fold_profiles import build_standard_part_fold_profiles
 from .standard_part_fold_readback import read_standard_part_fold_profiles
 from .custom_part_catalog import (
     PREFIX as CUSTOM_PART_PREFIX, PRESET as CUSTOM_PART_PRESET,
-    CustomPartCatalog, is_custom_part, custom_part_only_change,
+    CustomPartCatalog, is_custom_part, custom_part_only_change, resolve_custom_part_catalog,
 )
 from .custom_fold_api import (
-    descriptor_from_snapshot, build_custom_part_profiles, custom_part_spec,
+    descriptor_from_snapshot, build_custom_part_profiles, custom_part_spec, custom_saved_part_inputs,
     project_operator_custom_fold_save_profiles,
 )
 # The custom Hole Editor must consume exactly the manufactured feature plane.
@@ -3019,6 +3020,9 @@ from .receiving_layout import (
     project_receiving_bay_legacy_aliases,
     new_receiving_layout as operator_new_receiving_layout,
 )
+from .receiving_horizontal_divider_owner import (
+    ReceivingHorizontalDividerOwnerReceipt, open_receiving_horizontal_divider_owner_receipt,
+)
 # Public editor-source projections reuse the existing canonical Engine owners.
 # These are detached draft readbacks, not NFB CUTTING or manufacturing approval.
 from .receiving_legacy_nfb_editor_bootstrap import (
@@ -3496,7 +3500,7 @@ from .operator_physical_sheet_marking import (
 
 from .operator_root_marking_store import (
     ROOT_MARKING_STORE_KEY, normalize_workspace_root_marking_store,
-    project_operator_detached_root_marking_count,
+    project_operator_detached_root_marking_count, resolve_workspace_marking_owner,
     read_workspace_marking_owner_record, open_workspace_owner_marking_draft,
     require_existing_normal_owner_marking_route,
     prepare_workspace_owner_marking_commit, prepare_workspace_initial_owner_marking_commit,
@@ -3551,7 +3555,7 @@ from .operator_manual_marking_copy import (
     list_ordinary_marking_copy_versions, list_saved_endcap_marking_copy_groups,
     list_saved_scoped_marking_copy_candidates, verify_saved_scoped_marking_copy,
     place_saved_scoped_marking_copy, supports_scoped_marking_copy,
-    list_saved_endcap_marking_copy_candidates,
+    list_saved_endcap_marking_copy_candidates, select_saved_c_marking_copy_part,
     verify_saved_endcap_marking_copy,
     place_saved_endcap_marking_copy,
 )
@@ -3560,4 +3564,14 @@ from .operator_quantity_marking_owner import (
     with_confirmed_quantity_physical_marking, workspace_contains_quantity_physical_markings,
     uses_quantity_physical_marking_editor, open_unassigned_quantity_marking_transfer,
     quantity_marking_can_offer_legacy_transfer, validate_unmarked_quantity_sheet_hole_edit,
+)
+
+# #3414: bounded saved C-divider source binding; no marking/export release.
+from .receiving_saved_c_divider_source import (
+    build_saved_receiving_c_divider_request,
+    resolve_saved_receiving_c_divider_source,
+    require_saved_receiving_c_divider_source,
+    resolve_saved_c_marking_owner, needs_current_saved_c_marking_source,
+    SAVED_C_PHYSICAL_EXPORT_MODE, supports_saved_c_physical_export_mode,
+    normalize_saved_c_selected_export_mode, require_current_saved_c_marking_occupant,
 )

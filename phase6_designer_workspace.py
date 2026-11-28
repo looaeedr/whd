@@ -8,7 +8,8 @@ from typing import Any, Mapping
 from phase6_box_body_structure import normalize_box_body_structure_state, legacy_box_body_structure_locked
 from ae_engine.manufacturing_api import (
     ROOT_PHYSICAL_OCCUPANCY_KEY, normalize_workspace_root_occupancy,
-    ROOT_MARKING_STORE_KEY, normalize_workspace_root_marking_store,
+    ROOT_MARKING_STORE_KEY, normalize_workspace_root_marking_store, resolve_custom_part_catalog,
+    custom_saved_part_inputs,
 )
 from phase6_workspace_state import MANDATORY_PART, SharedWorkspaceState
 from phase6_quantity_model import QuantityModel, normalize_quantity_snapshot
@@ -61,6 +62,14 @@ class Phase6DesignerWorkspace:
         )
         ws_source = source.get("workspace") if isinstance(source.get("workspace"), Mapping) else {}
         existing = source.get("existing_parts") or ws_source.get("existing_parts") or (MANDATORY_PART,)
+        catalog = resolve_custom_part_catalog(source).snapshot()
+        profiles = dict(source.get("part_profiles") or ws_source.get("part_profiles") or {})
+        features = dict(source.get("part_features") or ws_source.get("part_features") or {})
+        for key in catalog["items"]:
+            profile, role_features = custom_saved_part_inputs(source, key)
+            if profile is not None:
+                profiles[key] = profile
+            features[key] = list(role_features)
         shared = SharedWorkspaceState(
             existing_parts=existing,
             root_marking_store=source.get(ROOT_MARKING_STORE_KEY, ws_source.get(ROOT_MARKING_STORE_KEY)),
@@ -69,15 +78,15 @@ class Phase6DesignerWorkspace:
                 existing_parts=existing, model=source.get("model"),
             ),
             active_part=source.get("active_part") or ws_source.get("active_part"),
-            part_profiles=source.get("part_profiles") or ws_source.get("part_profiles"),
+            part_profiles=profiles,
             box_body_structure=structure,
-            custom_parts=source.get("custom_parts") or ws_source.get("custom_parts"),
+            custom_parts=catalog,
             active_repair="none",
         )
         return cls(
             shared_state=shared,
             selected_part=None,
-            part_features=source.get("part_features") or ws_source.get("part_features"),
+            part_features=features,
             part_face_features=source.get("part_face_features") or ws_source.get("part_face_features"),
             assembly_placements=source.get("assembly_placements") or ws_source.get("assembly_placements"),
             dirty=False,
@@ -97,17 +106,34 @@ class Phase6DesignerWorkspace:
 
     def commit_owner_marking_update(
         self, update, *, model, read_current_receipt, read_proposed_receipt=None, pending_role_features=None,
+        read_current_source=None,
     ):
         # Prepare all ordinary feature transport before the final Engine CAS.
         # The assignment after CAS has no modal callback or event re-entry.
         next_role = None if pending_role_features is None else deepcopy(list(pending_role_features))
-        changed = self._shared_state.commit_owner_marking_update(
+        state = self._shared_state
+
+        def read_current_role_features():
+            if self._shared_state is not state:
+                raise ValueError("ROOT_MARKING_WORKSPACE_STALE")
+            return self.features_for(update.part_key)
+
+        changed = state.commit_owner_marking_update(
             update, model=model, read_current_receipt=read_current_receipt,
             read_proposed_receipt=read_proposed_receipt,
+            read_current_source=read_current_source,
+            read_current_role_features=read_current_role_features,
+            pending_role_features=next_role,
         )
         if next_role is not None and self._part_features.get(update.part_key) != next_role:
             self._part_features[update.part_key] = next_role
             changed = True
+        if changed:
+            self.mark_dirty()
+        return changed
+
+    def commit_saved_c_divider_marking(self, update, *, read_current):
+        changed = self._shared_state.commit_saved_c_divider_marking(update, read_current=read_current)
         if changed:
             self.mark_dirty()
         return changed
