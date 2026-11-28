@@ -806,6 +806,26 @@ def resolve_legacy_door_cell_scene_placement(snapshot, part_key):
     return "front", (float(center_x), float(center_y), 0.0)
 
 
+def resolve_endcap_occupied_height_offset(placement, offset, part_spec):
+    """Anchor the outward core skin at the body rim plus existing occupancy.
+
+    The native transform mates the inside skin to the rim (one sheet of
+    outside occupation). INSERT has zero occupation; translate the thick
+    part so its outward skin, not its inward skin, lies on the rim.
+    """
+    from .contracts import EndCapPartSpec
+    from .sheetmetal_corner_policy import endcap_outer_thickness_factor
+
+    if not isinstance(part_spec, EndCapPartSpec) or part_spec.corner_policy is None:
+        return offset
+    if placement not in {"top", "head", "bottom", "tail"}:
+        return offset
+    outside_factor = endcap_outer_thickness_factor(part_spec.corner_policy)
+    inward = (1.0 - outside_factor) * float(part_spec.thickness)
+    dx, dy, dz = offset
+    return (dx, dy - inward if placement in {"top", "head"} else dy + inward, dz)
+
+
 def resolve_scene_assembly_placement(snapshot, part_key):
     key = str(part_key or "")
     family = cabinet_family_policy.canonical_family_name(snapshot)

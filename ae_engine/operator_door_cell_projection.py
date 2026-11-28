@@ -24,7 +24,7 @@ from .sheetmetal_part_adapters import build_door_result
 
 def project_operator_door_cell_result(
     values: Mapping[str, object], *, cell_width, cell_height, frame_edges,
-    material_frame_width=None, family_model=None,
+    material_frame_width=None, family_model=None, custom_source_model=None,
 ):
     """Project a physical Door cell using the same Family FW owner as PartSpec.
 
@@ -48,6 +48,20 @@ def project_operator_door_cell_result(
             "door_fold_l", "door_fold_r", "door_fold_t", "door_fold_b",
         )
     }
+    if custom_source_model is not None:
+        if family_model is not None or material_frame_width is not None:
+            raise ValueError("DOOR_CELL_PREVIEW_COMPETING_FRAME_WIDTH_SOURCES")
+        from .corner_type_ui import (
+            CUSTOM_MODEL_NAME, normalize_custom_model_name,
+        )
+        if normalize_custom_model_name(custom_source_model) != CUSTOM_MODEL_NAME:
+            raise ValueError("DOOR_CELL_PREVIEW_FRAME_WIDTH_SOURCE_REQUIRED")
+        # Preserve explicit Custom identity without inventing a Family. Main's
+        # official PartSpec resolves FW/T with the same Family-less Engine
+        # policy, whose default material FW is the validated operator FW.
+        material_frame_width = cabinet_family_policy.door_material_frame_width(
+            None, frame_width=values["fw"], thickness=t,
+        )
     if family_model is not None and material_frame_width is not None:
         raise ValueError("DOOR_CELL_PREVIEW_COMPETING_FRAME_WIDTH_SOURCES")
     if family_model is not None:

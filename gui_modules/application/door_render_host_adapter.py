@@ -84,11 +84,22 @@ def _door_layout_indicator_state_for_key(self, key):
 
 def _door_layout_cell_result(self, cell, val=None):
     val = val or self.get_float_values()
-    # Send the original operator FW/T and selected Family to Engine. The
-    # material-space frame width is a manufacturing value, not a GUI input.
+    # Send the original operator FW/T and selected source identity to Engine.
+    # Explicit Custom is a valid legacy Main route; unknown/missing selections
+    # must continue to fail the Engine's missing-source gate.
+    family_model = self._baseline_source_model()
+    source_kwargs = {"family_model": family_model}
+    if family_model is None:
+        baseline_var = getattr(self, "baseline_var", None)
+        selected_model = str(
+            baseline_var.get() if baseline_var is not None else ""
+        ).strip()
+        if (manufacturing_api.operator_normalize_custom_model_name(selected_model)
+                == manufacturing_api.operator_default_custom_model_name):
+            source_kwargs = {"custom_source_model": selected_model}
     return manufacturing_api.project_operator_door_cell_result(
         val, cell_width=cell.start_width, cell_height=cell.start_height,
-        frame_edges=cell.edges, family_model=self._baseline_source_model(),
+        frame_edges=cell.edges, **source_kwargs,
     )
 
 

@@ -252,6 +252,32 @@ def known_model_corner_state(part_keys, cabinet_family="金庫型") -> dict[str,
     )
 
 
+def project_operator_saved_project_corner_source(snapshot, part_keys):
+    """Restore missing whole-part Corner inputs from the existing Registry.
+
+    Project Open must not serialize a previous workspace's manual defaults as
+    if they were explicitly saved. A present part selection remains the
+    operator source; no custom or unregistered Family borrows Vault defaults.
+    """
+    from .cabinet_types.policy import canonical_family_name
+    from .endcap_factory_fold import selection_to_raw
+
+    source = snapshot.get("corner_state")
+    if source is not None and not isinstance(source, Mapping):
+        raise ValueError("SAVED_CORNER_SNAPSHOT_SOURCE_INVALID")
+    result = deepcopy(dict(source or {}))
+    family = canonical_family_name(snapshot)
+    for part, corners in known_model_corner_state(
+        part_keys, cabinet_family=family,
+    ).items():
+        if part not in result or result[part] == {}:
+            result[part] = {
+                key: selection_to_raw(selection)
+                for key, selection in corners.items()
+            }
+    return result
+
+
 def propose_operator_known_model_corner_draft(
     corner_state, corner_pair_same, *, baseline_model, cabinet_family,
     reset_all=False,

@@ -527,6 +527,12 @@ def _apply_phase6_project_snapshot(self, snapshot):
         snapshot.setdefault("active_part", workspace.get("active_part"))
         snapshot.setdefault("part_profiles", workspace.get("part_profiles", {}))
 
+    # Restore the same Registry-backed source as the manufacturing payload
+    # before either existing workspace can publish or save manual corners.
+    # An explicit saved part selection is not a missing legacy source.
+    snapshot["corner_state"] = manufacturing_api.project_operator_saved_project_corner_source(
+        snapshot, self.manual_corner_state.keys(),
+    )
     # Existing Phase6 snapshot restoration owns global dimensions/settings,
     # CornerType and fold profiles. Project-specific state below adds every
     # part's features and indicator workspace that the old snapshot omitted.
@@ -841,7 +847,10 @@ def _apply_original_fold_designer_snapshot(self, snapshot):
         # adapters materialize the missing key as an explicit null, so null
         # remains a migration signal. An explicit empty list is corrupt and
         # is rejected below instead of reviving scalar geometry.
-        migration_source = dict(settings)
+        # Missing legacy scalar fields follow the already-restored Settings
+        # owner, just as a fresh Designer does. Explicit source fields below
+        # remain authoritative; this is not a repair of an invalid saved Fold.
+        migration_source = self.settings_service.snapshot().as_dict()
         for key in (
             "model", "w", "h", "d", "t", "fw",
             "zl1", "zl2", "zr1", "zr2", "z_comp",

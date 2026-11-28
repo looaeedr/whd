@@ -187,10 +187,53 @@ def _open_structural_sheet_marking_editor(host, key, payload, context, features)
     )
 
 
+def _workspace_marking_geometry(host, key, *, features=None):
+    """Read the selected stock through the normal manufacturing source.
+
+    EndCap stock may be replayed by the verified assembly resolver even when
+    the single-part payload carries no committed relief polygons. Read the
+    same request/result as normal output, including prospective hole edits.
+    Do not publish or mutate the workspace while obtaining this receipt.
+    """
+    from ae_engine import manufacturing_api as api
+    from phase6_manufacturing_adapter import (
+        build_manufacturing_request, build_scene_payload_for_app,
+        operator_finished_dimensions_for_app,
+    )
+
+    app = host.fold_designer_app
+
+    def scene(part):
+        payload = build_scene_payload_for_app(app, part)
+        if part == key and features is not None:
+            payload["features"] = features
+        return payload
+
+    if api.plan_operator_manufacturing_part_source(key).needs_committed_relief:
+        request = build_manufacturing_request(
+            app, scene_payload_builder=scene,
+            render_data_provider=app._scene_query_callback,
+            part_spec_provider=app._part_spec_query_callback,
+            finished_dimensions_provider=lambda part=None: operator_finished_dimensions_for_app(app, part),
+        )
+        return api.resolve_manufacturing_request(request).geometry
+    render = host._query_fold_designer_render_data(key, scene(key))
+    return api.selected_normal_marking_inventory(key, render)
+
+
+def _workspace_marking_edit_context(host, key, context):
+    from ae_engine import manufacturing_api as api
+
+    if not api.plan_operator_manufacturing_part_source(key).needs_committed_relief:
+        return context
+    return api.resolve_selected_physical_sheet_editor_context(
+        _workspace_marking_geometry(host, key, features=()), key,
+    )
+
+
 def _open_owner_bound_workspace_marking_editor(host, key, *, editing_context, role_features):
     from ae_engine import manufacturing_api as api
     from phase6_part_navigation import operator_part_label
-    from phase6_manufacturing_adapter import build_scene_payload_for_app
 
     app = host.fold_designer_app
     workspace = app.designer_workspace
@@ -212,17 +255,14 @@ def _open_owner_bound_workspace_marking_editor(host, key, *, editing_context, ro
 
     def read_current(expected_owner=unset, next_holes=None):
         selected_snapshot(expected_owner)
-        payload = build_scene_payload_for_app(app, key)
-        if next_holes is not None:
-            payload["features"] = next_holes
-        render = host._query_fold_designer_render_data(key, payload)
-        geometry = api.selected_normal_marking_inventory(key, render)
+        geometry = _workspace_marking_geometry(host, key, features=next_holes)
         snapshot = selected_snapshot(expected_owner)
         if next_holes is not None:
             snapshot["part_features"] = {**snapshot.get("part_features", {}), key: next_holes}
         return snapshot, api.open_selected_ordinary_marking_modal_source(snapshot, geometry, key)
 
     snapshot, opened = read_current()
+    editing_context = _workspace_marking_edit_context(host, key, editing_context)
     draft = (api.open_workspace_owner_marking_draft(snapshot, opened)
              if opened.owner_id is not None else None)
     role_features = tuple(role_features)
@@ -293,7 +333,6 @@ def _open_owner_bound_workspace_marking_editor(host, key, *, editing_context, ro
 def _offer_legacy_quantity_marking_transfer(host, key):
     from tkinter import messagebox
     from ae_engine import manufacturing_api as api
-    from phase6_manufacturing_adapter import build_scene_payload_for_app
 
     app = host.fold_designer_app
     workspace = app.designer_workspace
@@ -301,9 +340,7 @@ def _offer_legacy_quantity_marking_transfer(host, key):
 
     def read():
         _require_current_project(host, app, workspace, epoch)
-        payload = build_scene_payload_for_app(app, key)
-        render = host._query_fold_designer_render_data(key, payload)
-        return current_workspace_marking_source(app), api.selected_normal_marking_inventory(key, render)
+        return current_workspace_marking_source(app), _workspace_marking_geometry(host, key)
 
     snapshot, geometry = read()
     opened = api.open_unassigned_quantity_marking_transfer(snapshot, geometry, key)
@@ -337,12 +374,11 @@ def _open_version_bound_workspace_marking_editor(host, key, editing_context, rol
         _require_current_project(host, app, workspace, project_epoch)
         if tuple(workspace.features_for(key)) != role_features:
             raise ValueError("ROOT_MARKING_ROLE_FEATURES_STALE")
-        payload = build_scene_payload_for_app(app, key)
-        render = host._query_fold_designer_render_data(key, payload)
-        return current_workspace_marking_source(app), api.selected_normal_marking_inventory(key, render)
+        return current_workspace_marking_source(app), _workspace_marking_geometry(host, key)
 
     snapshot, geometry = read_current()
     opened = api.open_quantity_physical_marking(snapshot, geometry, key)
+    editing_context = _workspace_marking_edit_context(host, key, editing_context)
     saved = () if opened.saved_record is None else opened.saved_record["features"]
 
     def confirm(pending):

@@ -39,6 +39,7 @@ from .receiving_pairing_marking import (
 )
 from .assembly_intent import normalize_assembly_intent_id
 from .assembly_scene_part import AssemblyScenePart
+from .assembly_placement import resolve_endcap_occupied_height_offset
 # Preserve Phase6's operator text-number coercion for the legacy request path.
 def _num(value, default=0.0):
     try:
@@ -146,6 +147,10 @@ def resolve(request):
             placement, offset = "standalone", (0.0,0.0,0.0)
         else:
             placement, offset = resolve_scene_assembly_placement(snapshot, key)
+            if key in {"head", "tail"}:
+                offset = resolve_endcap_occupied_height_offset(
+                    placement, offset, part_input.part_spec,
+                )
         parts.append(
             AssemblyScenePart(
                 part_key=key,

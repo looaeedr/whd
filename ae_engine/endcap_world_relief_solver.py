@@ -22,6 +22,7 @@ def solve_world_backprojected_endcap_relief(
     endcap_y_profile,
     finished_dimensions,
     endcap_placement="top",
+    endcap_offset=(0.0, 0.0, 0.0),
     sheet_thickness=0.0,
     clearance=0.0,
     max_iterations=8,
@@ -156,6 +157,7 @@ def solve_world_backprojected_endcap_relief(
                     endcap_y_profile=endcap_y_profile,
                     endcap_fold_guides=getattr(endcap_render_data, "fold_guides", ()),
                     endcap_placement=endcap_placement,
+                    endcap_offset=endcap_offset,
                     sheet_thickness=t,
                     preserve_core_origin=preserve_endcap_core_origin,
                 ))
@@ -197,6 +199,7 @@ def solve_world_backprojected_endcap_relief(
                     endcap_y_profile=endcap_y_profile,
                     endcap_fold_guides=getattr(endcap_render_data, "fold_guides", ()),
                     endcap_placement=endcap_placement,
+                    endcap_offset=endcap_offset,
                     sheet_thickness=t,
                     preserve_core_origin=preserve_endcap_core_origin,
                 )
@@ -213,6 +216,7 @@ def solve_world_backprojected_endcap_relief(
                         endcap_y_profile=endcap_y_profile,
                         endcap_fold_guides=getattr(endcap_render_data, "fold_guides", ()),
                         endcap_placement=endcap_placement,
+                        endcap_offset=endcap_offset,
                         sheet_thickness=t,
                         preserve_core_origin=preserve_endcap_core_origin,
                     )
@@ -324,6 +328,7 @@ def solve_world_backprojected_endcap_relief(
                 endcap_y_profile=endcap_y_profile,
                 endcap_fold_guides=getattr(endcap_render_data, "fold_guides", ()),
                 endcap_placement=endcap_placement,
+                endcap_offset=endcap_offset,
                 sheet_thickness=t,
                 preserve_core_origin=preserve_endcap_core_origin,
             )
@@ -495,6 +500,7 @@ def solve_world_backprojected_endcap_relief(
             endcap_y_profile=endcap_y_profile,
             endcap_fold_guides=getattr(endcap_render_data, "fold_guides", ()),
             endcap_placement=endcap_placement,
+            endcap_offset=endcap_offset,
             sheet_thickness=t,
             preserve_core_origin=preserve_endcap_core_origin,
         )
@@ -514,6 +520,7 @@ def solve_world_backprojected_endcap_relief(
                 endcap_y_profile=endcap_y_profile,
                 endcap_fold_guides=getattr(endcap_render_data, "fold_guides", ()),
                 endcap_placement=endcap_placement,
+                endcap_offset=endcap_offset,
                 sheet_thickness=t,
                 preserve_core_origin=preserve_endcap_core_origin,
             )
