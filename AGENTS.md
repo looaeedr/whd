@@ -46,6 +46,8 @@ whd_schema: WHD_DOC_META_V1
 4. **Set/Bay 按需存在**：涉及多盤或裝配的實體 Set／Bay 拓樸及身份由 Engine 管理；**獨立單板件不需也不得被強迫建立 Set/Bay**。
 5. **輸出不可分裂**：2D、3D、DXF 必須由同一 canonical FinalScene／核准等價製造幾何衍生，**不可各算各的**；驗證幾何、來源、DXF Save→Reload／reopen（依操作適用範圍）。
 
+- **新增箱型同一套工作區／製造模型**：依 CURRENT 04 §1.1，任何新增或改接的箱型（含拉線箱）須接既有主畫面箱型選擇、板件工作區、專案控制器及適用的公開 Engine／PartSpec／FinalScene 製造鏈。2D、截角／避空、3D、DXF 同源，只在 Engine 的 Family／Topology／Policy／Registry 擴充真差異。另開專用工作區、複製模型或製造路徑、只加選單／改旗標、以舊箱型 fallback 或解除資格拒絕冒充共用，一律不得驗收或合併。須附真主工作區、Save→Open、同源幾何與既有箱型不退化證據；詳見 CURRENT 04。
+
 **PartSpec 是製造資料契約而非固定呼叫時序。** 它可以由公開 API 接收為已確認輸入，也可以由 Engine 依來源、Family／Policy 解析建立；上方為**責任鏈，不是強制 API 先被呼叫、PartSpec 才能建立的執行順序**。單板和 Set/Bay／批次／NFB 按操作使用既有適用的公開 API，不強迫全用一個函式。合法板件逐件製造與驗證，缺資料逐件報錯，整套完整性再由 Engine 核對 Set/Bay／BOM／裝配。現行 source-only external CLI 的未認證拒絕維持，不能用它否決已具備的正式 Python Engine API，也不得繞過其資格保護。
 
 **資料提供者：** GUI 收操作／Project；CADSplit 收原 DXF／CSV／尺寸／孔位／來源關聯與已確認設定。**唯一製造者：** WHD Engine 公開 API＋Family／Policy／Topology。**同源輸出：** 2D／3D／DXF 依 Engine canonical 結果，GUI／CADSplit 只呈現或操作輸出，不能自製幾何。以上是 AI 庫 04 CURRENT 強制規則；未實測雙來源等價 Request、DXF reopen、失敗隔離，不得宣稱 CADSplit 全面打通。
