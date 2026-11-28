@@ -264,8 +264,8 @@ def _workspace_marking_geometry(host, key, *, features=None):
     """
     from ae_engine import manufacturing_api as api
     from phase6_manufacturing_adapter import (
-        build_manufacturing_request, build_scene_payload_for_app,
-        operator_finished_dimensions_for_app,
+        SelectedEndcapMarkingSceneSource, build_manufacturing_request,
+        build_scene_payload_for_app, operator_finished_dimensions_for_app,
     )
 
     app = host.fold_designer_app
@@ -278,7 +278,7 @@ def _workspace_marking_geometry(host, key, *, features=None):
 
     if api.plan_operator_manufacturing_part_source(key).needs_committed_relief:
         request = build_manufacturing_request(
-            app, scene_payload_builder=scene, selected_endcap_part_key=key,
+            app, scene_payload_builder=SelectedEndcapMarkingSceneSource(key, scene),
             render_data_provider=app._scene_query_callback,
             part_spec_provider=app._part_spec_query_callback,
             finished_dimensions_provider=lambda part=None: operator_finished_dimensions_for_app(app, part),

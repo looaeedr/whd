@@ -12,9 +12,9 @@ not own solver/orchestration logic and does not switch the canonical resolver.
 from __future__ import annotations
 
 from copy import deepcopy
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from typing import Any
-from collections.abc import Mapping, MutableMapping
+from collections.abc import Callable, Mapping, MutableMapping
 import re
 
 from ae_engine import manufacturing_api
@@ -455,6 +455,17 @@ def _cabinet_model(app: Any, snapshot: dict) -> str:
     )
 
 
+@dataclass(frozen=True)
+class SelectedEndcapMarkingSceneSource:
+    """A narrow scene reader for one selected EndCap marking receipt."""
+
+    part_key: str
+    read_scene: Callable[[str], Mapping]
+
+    def __call__(self, part_key: str) -> Mapping:
+        return self.read_scene(part_key)
+
+
 def build_manufacturing_request(
     app: Any,
     *,
@@ -463,7 +474,6 @@ def build_manufacturing_request(
     part_spec_provider=None,
     finished_dimensions_provider=None,
     cache_key_fingerprint="",
-    selected_endcap_part_key=None,
 ) -> ManufacturingResolveRequest:
     """Build one immutable manufacturing request from current app/workspace state.
 
@@ -501,9 +511,9 @@ def build_manufacturing_request(
     # live Workspace after building the part DTOs could publish a self-
     # contradictory immutable Request if selection changes during callbacks.
     canonical_part_keys = _canonical_part_keys(app)
-    if selected_endcap_part_key is not None:
+    if isinstance(scene_payload_builder, SelectedEndcapMarkingSceneSource):
         canonical_part_keys = manufacturing_api.selected_endcap_marking_request_part_keys(
-            snapshot, canonical_part_keys, selected_endcap_part_key,
+            snapshot, canonical_part_keys, scene_payload_builder.part_key,
         )
     part_inputs: list[ManufacturingPartInput] = []
     scene_values_by_part = {}
