@@ -213,6 +213,104 @@ def _protected_ink(render):
             raise ValueError("WIRE_PULL_HOLE_PROTECTED_INK_UNSUPPORTED")
 
 
+# One rear opening on the original body in the first P2 slice. The shared
+# ProfileFeature serializer persists the source tag along with the contour.
+REAR_OPENING = "WIRE_PULL:box_body:rear:cover_opening"
+
+
+def _rear_profile(bounds):
+    if not isinstance(bounds, (tuple, list)) or len(bounds) != 4:
+        raise ValueError("WIRE_PULL_REAR_OPENING_BOUNDS_INVALID")
+    x, y, right, top = bounds
+    if any(type(n) not in (float, int) or not isfinite(n) for n in bounds) or right <= x or top <= y:
+        raise ValueError("WIRE_PULL_REAR_OPENING_BOUNDS_INVALID")
+    w, h = right-x, top-y
+    return ProfileFeature(tuple(Vec2(u,v) for u,v in ((0,0),(w,0),(w,h),(0,h))),
+                          FeatureAnchor.ABSOLUTE_FINISHED_FACE, Vec2(x,y), source_type=REAR_OPENING)
+
+
+def set_rear_opening(proposal, bounds):
+    """Replace the single rear configuration, or selectively cancel with None."""
+    confirm(proposal.spec, proposal, manual=proposal.manual)
+    manual = dict(proposal.manual)
+    retained = tuple(f for f in manual.get("box_body", ()) if f.source_type != REAR_OPENING)
+    if bounds is None and retained == manual.get("box_body", ()):
+        return proposal
+    if bounds is not None:
+        retained += (_rear_profile(bounds),)
+    if retained:
+        manual["box_body"] = retained
+    else:
+        manual.pop("box_body", None)
+    fresh = propose(proposal.spec, proposal.options, manual=manual.items(),
+                    overrides=proposal.overrides, additions=proposal.additions,
+                    removed=proposal.removed, sizes=proposal.sizes)
+    confirm(proposal.spec, fresh, manual=fresh.manual)
+    return fresh
+
+
+def rear_opening_bounds(proposal):
+    """Read the saved canonical rear opening bounds from an Engine proposal."""
+    confirm(proposal.spec, proposal, manual=proposal.manual)
+    openings = tuple(f for f in dict(proposal.manual).get("box_body", ())
+                     if f.source_type == REAR_OPENING)
+    if not openings:
+        return None
+    if len(openings) != 1 or not isinstance(openings[0], ProfileFeature):
+        raise ValueError("WIRE_PULL_REAR_OPENING_PROFILE_INVALID")
+    feature = openings[0]
+    if len(feature.points) != 4:
+        raise ValueError("WIRE_PULL_REAR_OPENING_PROFILE_INVALID")
+    x, y = feature.offset.x, feature.offset.y
+    corner = feature.points[2]
+    bounds = (x, y, x + corner.x, y + corner.y)
+    if feature != _rear_profile(bounds):
+        raise ValueError("WIRE_PULL_REAR_OPENING_PROFILE_INVALID")
+    return bounds
+
+
+def propose_with_rear_opening(spec, options=HoleOptions(), *, flat_bounds,
+                              manual=(), overrides=(), additions=(), removed=(), sizes=()):
+    """Atomically replace or clear the rear opening before validating a proposal."""
+    manual_map = dict(manual)
+    retained = tuple(feature for feature in manual_map.get("box_body", ())
+                     if feature.source_type != REAR_OPENING)
+    if flat_bounds is not None:
+        retained += (_rear_profile(flat_bounds),)
+    if retained:
+        manual_map["box_body"] = retained
+    else:
+        manual_map.pop("box_body", None)
+    return propose(spec, options, manual=tuple(manual_map.items()), overrides=overrides,
+                   additions=additions, removed=removed, sizes=sizes)
+
+
+def _check_rear_opening(part, features):
+    openings = [f for f in features if f.source_type == REAR_OPENING]
+    if not openings:
+        return
+    if len(openings) != 1 or part.part_key != "box_body":
+        raise ValueError("WIRE_PULL_REAR_OPENING_OWNER_INVALID")
+    opening = openings[0]
+    if not isinstance(opening, ProfileFeature) or len(opening.points) != 4:
+        raise ValueError("WIRE_PULL_REAR_OPENING_PROFILE_INVALID")
+    x, y = opening.offset.x, opening.offset.y
+    corner = opening.points[2]
+    bounds = (x,y,x+corner.x,y+corner.y)
+    if opening != _rear_profile(bounds):
+        raise ValueError("WIRE_PULL_REAR_OPENING_PROFILE_INVALID")
+    footprint = box(*bounds)
+    rear = box(*_face(part,"rear").flat_bounds)
+    prior = with_physical_sheet_features(part.part_key, part.render_data,
+                                         tuple(f for f in features if f is not opening))
+    from ..operator_manual_marking import _circle_crosses_path
+    if (not rear.contains_properly(footprint) or not prior.material.contains_properly(footprint)
+            or any(ink.intersects(footprint) for ink in _protected_ink(prior))
+            or any(isinstance(p, CirclePrimitive) and p.layer == "MARKING"
+                   and _circle_crosses_path(p, footprint.exterior) for p in prior.scene.primitives)):
+        raise ValueError("WIRE_PULL_REAR_OPENING_MATERIAL_CONFLICT")
+
+
 def _build(spec, options, *, manual=(), overrides=(), additions=(), removed=(), sizes=(), topology=None):
     """Pure candidate generation. Manual is ((part_key, tuple(Feature)), ...).
 
@@ -363,6 +461,7 @@ def _build(spec, options, *, manual=(), overrides=(), additions=(), removed=(), 
     # Validate complete footprints against both the actual face and material.
     occupied={}
     for part in topology.parts:
+        _check_rear_opening(part, manual_map.get(part.part_key, ()))
         old=with_physical_sheet_features(part.part_key,part.render_data,manual_map.get(part.part_key,()))
         occupied[part.part_key]=[]
         protected=tuple(_protected_ink(old))

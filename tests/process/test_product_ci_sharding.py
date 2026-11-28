@@ -91,7 +91,7 @@ def test_each_selector_appears_in_exactly_one_shard(count):
         owners, durations = manifest["file_owners"], manifest["file_seconds"]
         assert len(owners) == len(durations) == 304
         assert manifest["canonical_selector_count"] == (
-            len(PYTEST_PATHS) - len(regression._ISSUE2517_ACCEPTANCE_PATHS))
+            len(PYTEST_PATHS) - len(regression._ACCEPTANCE_OWNERS))
         assert manifest["schema"] == "WHD_PRODUCT_CI_FILE_DURATION_ASSIGNMENT_V2"
         assert manifest["source_run_id"] == 40903796624
         assert manifest["observed_split_run_id"] == 40909061327
@@ -156,8 +156,8 @@ def test_each_selector_appears_in_exactly_one_shard(count):
                     assert index == (
                         1 if function == manifest["t15_critical_function"] else 6
                     )
-                elif node in regression._ISSUE2517_ACCEPTANCE_OWNERS:
-                    assert regression._ISSUE2517_ACCEPTANCE_OWNERS[node] == index
+                elif node in regression._ACCEPTANCE_OWNERS:
+                    assert regression._ACCEPTANCE_OWNERS[node] == index
                 else:
                     assert owners[node.split("::", 1)[0]] == index
     else:
@@ -657,3 +657,16 @@ def test_collected_nodeid_normalizes_windows_path_without_mutating_parameter_esc
         "tests/test_example.py::TestClass::test_case"
     )
     assert _collected_nodeid("1802 tests collected") is None
+
+
+def test_issue3508_release_selectors_are_collected_exactly_once():
+    required = {
+        "tests/test_issue3508_front_rear_live_combined.py",
+        "tests/test_issue3508_rear_marking_corner.py",
+        "tests/test_issue3508_rear_opening.py",
+        "tests/test_issue3508_rear_opening_gui.py",
+        "tests/test_issue3508_wire_pull_front_face_selection.py",
+    }
+    for count in (1, 3, 10, 18, 20):
+        seen = Counter(path for i in range(count) for path in shard_paths(i, count))
+        assert all(seen[path] == 1 for path in required)

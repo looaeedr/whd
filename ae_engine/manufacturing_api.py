@@ -920,6 +920,29 @@ def resolve_standard_cabinet_topology(spec):
     return cabinet_family_policy.resolve_standard_cabinet_topology(spec)
 
 
+def set_wire_pull_rear_opening(proposal, *, flat_bounds):
+    """Explicit canonical flat (left, bottom, right, top) in mm; None cancels."""
+    from .cabinet_types.wire_pull_holes import set_rear_opening
+    return set_rear_opening(proposal, flat_bounds)
+
+
+def wire_pull_rear_opening_bounds(proposal):
+    """Return the Engine-owned canonical rear opening bounds, or None."""
+    from .cabinet_types.wire_pull_holes import rear_opening_bounds
+    return rear_opening_bounds(proposal)
+
+
+def propose_wire_pull_holes_with_rear_opening(
+    spec, options=None, *, flat_bounds, manual=(), overrides=(), additions=(), removed=(), sizes=()
+):
+    """Replace/clear the opening in Engine-owned source before proposal validation."""
+    from .cabinet_types.wire_pull_holes import HoleOptions, propose_with_rear_opening
+    return propose_with_rear_opening(
+        spec, HoleOptions() if options is None else options, flat_bounds=flat_bounds,
+        manual=manual, overrides=overrides, additions=additions, removed=removed, sizes=sizes,
+    )
+
+
 def wire_pull_default_hole_options():
     """Return the Engine-owned standard hole configuration for operator forms."""
     from .cabinet_types.wire_pull_holes import HoleOptions
