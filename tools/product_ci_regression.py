@@ -543,7 +543,17 @@ _ISSUE2517_ACCEPTANCE_OWNERS = {
     path: 2 + (index % 16)
     for index, path in enumerate(_ISSUE2517_ACCEPTANCE_PATHS)
 }
-PYTEST_PATHS += _ISSUE2517_ACCEPTANCE_PATHS
+# New acceptance files do not have timings in the historical manifest.
+# Keep its measured lanes intact and assign these whole files explicitly.
+_ADDITIONAL_ACCEPTANCE_OWNERS = {
+    "tests/test_issue3508_front_rear_live_combined.py": 2,
+    "tests/test_issue3508_rear_marking_corner.py": 4,
+    "tests/test_issue3508_rear_opening.py": 6,
+    "tests/test_issue3508_rear_opening_gui.py": 8,
+    "tests/test_issue3508_wire_pull_front_face_selection.py": 10,
+}
+_ACCEPTANCE_OWNERS = _ISSUE2517_ACCEPTANCE_OWNERS | _ADDITIONAL_ACCEPTANCE_OWNERS
+PYTEST_PATHS += _ISSUE2517_ACCEPTANCE_PATHS + tuple(_ADDITIONAL_ACCEPTANCE_OWNERS)
 
 
 def _sha256(path: Path) -> str:
@@ -694,11 +704,17 @@ def _duration_profiled_paths(index: int) -> tuple[str, ...]:
     for selector in PYTEST_PATHS:
         selectors_by_file.setdefault(selector.split("::", 1)[0], []).append(selector)
     canonical_files = set(selectors_by_file)
-    measured_files = canonical_files - set(_ISSUE2517_ACCEPTANCE_PATHS)
+    measured_files = canonical_files - set(_ACCEPTANCE_OWNERS)
     if (len(_ISSUE2517_ACCEPTANCE_PATHS) != len(set(_ISSUE2517_ACCEPTANCE_PATHS))
             or len(_ISSUE2517_ACCEPTANCE_OWNERS) != len(_ISSUE2517_ACCEPTANCE_PATHS)
             or any(not (ROOT / path).is_file() for path in _ISSUE2517_ACCEPTANCE_PATHS)):
         raise ValueError("issue2517 acceptance selectors missing or duplicated")
+    if (len(_ACCEPTANCE_OWNERS) != len(_ISSUE2517_ACCEPTANCE_OWNERS)
+            + len(_ADDITIONAL_ACCEPTANCE_OWNERS)
+            or any(not (ROOT / path).is_file() or type(owner) is not int
+                   or not 0 <= owner < 18
+                   for path, owner in _ADDITIONAL_ACCEPTANCE_OWNERS.items())):
+        raise ValueError("additional acceptance selectors or lanes invalid")
     owners = manifest.get("file_owners", {})
     durations = manifest.get("file_seconds", {})
     split_file = manifest.get("split_file")
@@ -713,7 +729,7 @@ def _duration_profiled_paths(index: int) -> tuple[str, ...]:
     t15_functions = manifest.get("t15_source_functions")
     if (manifest.get("schema") != "WHD_PRODUCT_CI_FILE_DURATION_ASSIGNMENT_V2"
             or manifest.get("canonical_selector_count") != (
-                len(PYTEST_PATHS) - len(_ISSUE2517_ACCEPTANCE_PATHS))
+                len(PYTEST_PATHS) - len(_ACCEPTANCE_OWNERS))
             or manifest.get("canonical_file_count") != len(measured_files)
             or len(PYTEST_PATHS) != len(set(PYTEST_PATHS))
             or set(owners) != measured_files
@@ -866,8 +882,8 @@ def _duration_profiled_paths(index: int) -> tuple[str, ...]:
             if index in (1, 6):
                 assigned.extend(f"{t15_file}::{name}" for name in t15_functions
                                 if (name == t15_critical) == (index == 1))
-        elif selector in _ISSUE2517_ACCEPTANCE_OWNERS:
-            if _ISSUE2517_ACCEPTANCE_OWNERS[selector] == index:
+        elif selector in _ACCEPTANCE_OWNERS:
+            if _ACCEPTANCE_OWNERS[selector] == index:
                 assigned.append(selector)
         elif owners[selector.split("::", 1)[0]] == index:
             assigned.append(selector)

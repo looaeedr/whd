@@ -447,21 +447,25 @@ def _build_manual_round_feature(centre, diameter):
     )
 
 
-def _validate_round_marking(scene, material, circle):
+def _circle_crosses_path(circle, path):
+    """Test the true circumference against line segments, not buffered chords."""
     x, y, radius = circle.center.x, circle.center.y, circle.radius
     point = Point(x, y)
+    rows = tuple(path.coords)
+    for a, b in zip(rows, rows[1:]):
+        low = point.distance(LineString((a, b))) if a != b else hypot(a[0]-x, a[1]-y)
+        high = max(hypot(a[0]-x, a[1]-y), hypot(b[0]-x, b[1]-y))
+        if low - _EPS <= radius <= high + _EPS:
+            return True
+    return False
+
+
+def _validate_round_marking(scene, material, circle):
+    x, y, radius = circle.center.x, circle.center.y, circle.radius
     witness = Point(x + radius, y)
 
     def crosses_path(path):
-        # Segment distance takes its interior minimum, maximum is attained
-        # at an endpoint. Continuity then proves if r occurs on the segment.
-        rows = tuple(path.coords)
-        for a, b in zip(rows, rows[1:]):
-            low = point.distance(LineString((a, b))) if a != b else hypot(a[0]-x, a[1]-y)
-            high = max(hypot(a[0]-x, a[1]-y), hypot(b[0]-x, b[1]-y))
-            if low - _EPS <= radius <= high + _EPS:
-                return True
-        return False
+        return _circle_crosses_path(circle, path)
 
     error = "ROUND_MARKING_CIRCUMFERENCE_OUTSIDE_RETAINED_MATERIAL"
     if (not isinstance(material, Polygon) or not material.is_valid

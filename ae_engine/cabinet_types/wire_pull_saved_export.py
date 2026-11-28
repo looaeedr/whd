@@ -175,6 +175,9 @@ def _verify_standard_solid_contact(physical, t):
 
 
 def _validate_physical(proposal, renders):
+    from .wire_pull_holes import REAR_OPENING
+    if any(f.source_type == REAR_OPENING for _, features in proposal.manual for f in features):
+        raise ValueError("WIRE_PULL_REAR_COVER_JOINT_UNVERIFIED")
     spec = proposal.spec
     blocker = _endcap_blocker(spec)
     if blocker is not None:

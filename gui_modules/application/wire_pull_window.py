@@ -52,6 +52,8 @@ class WirePullWindow:
         self.renders = ()
         self.physical = None
         self.axis = None
+        # View-only selection; never part of a proposal or saved project.
+        self._confirmed_cover_face = None
         self._draft_edits = {}
         self._confirmed_inputs = None
         self._saved_export = None
@@ -93,6 +95,17 @@ class WirePullWindow:
         self.canvas = tk.Canvas(right, bg='#20252b', highlightthickness=0, height=120)
         self.canvas.pack(fill='both', expand=True)
         self.canvas.bind('<Configure>', lambda e: self._draw_part())
+        rear = ttk.LabelFrame(right, text='後側開口（mm；座標由 Engine 後側面定義）', padding=(4, 2))
+        rear.pack(fill='x', pady=(4, 0))
+        self.rear_opening_enabled = tk.BooleanVar(self.window, value=False)
+        ttk.Checkbutton(rear, text='在箱身後面設定開口', variable=self.rear_opening_enabled).pack(side='left')
+        self.rear_face_bounds = tk.StringVar(self.window, value='請先載入或輸入尺寸並預覽')
+        ttk.Label(rear, textvariable=self.rear_face_bounds).pack(side='left', padx=5)
+        self.rear_opening_fields = {}
+        for key, label in (('left', 'U左'), ('bottom', 'V下'), ('right', 'U右'), ('top', 'V上')):
+            ttk.Label(rear, text=label).pack(side='left')
+            var = self.rear_opening_fields[key] = tk.StringVar(self.window)
+            ttk.Entry(rear, textvariable=var, width=8).pack(side='left', padx=2)
         edit = ttk.Frame(right)
         edit.pack(fill='x', pady=(6, 0))
         ttk.Label(edit, text='孔組／XY(mm)').pack(side='left')
@@ -166,7 +179,8 @@ class WirePullWindow:
             setattr(self, attr, button)
             button.grid(row=index//4, column=index%4, sticky='ew', padx=2, pady=2)
         self._mesh_window = None
-        for var in (*self.fields.values(), *self.flags.values()):
+        for var in (*self.fields.values(), *self.flags.values(), self.rear_opening_enabled,
+                     *self.rear_opening_fields.values()):
             var.trace_add('write', self._invalidate_preview)
 
     def reset_factory_defaults(self):
@@ -176,6 +190,7 @@ class WirePullWindow:
         self.status.set('已恢復六項孔距出廠預設，請重新預覽／確認。')
 
     def _invalidate_preview(self, *_):
+        self._confirmed_cover_face = None
         self.proposal = None
         self.renders = ()
         self.physical = None
@@ -203,7 +218,32 @@ class WirePullWindow:
                           defaults=replace(self._options.defaults, **{
                               key: float(self.fields[key].get()) for key, _ in DISTANCES}),
                           **{key: var.get() for key, var in self.flags.items()})
-        return spec, options, dict(self._draft_edits)
+        edits = dict(self._draft_edits)
+        bounds = None
+        if self.rear_opening_enabled.get():
+            values = tuple(self.rear_opening_fields[key].get().strip()
+                           for key in ('left', 'bottom', 'right', 'top'))
+            if not all(values):
+                raise ValueError('WIRE_PULL_REAR_OPENING_BOUNDS_REQUIRED')
+            bounds = tuple(float(value) for value in values)
+        edits['_rear_opening_bounds'] = bounds
+        return spec, options, edits
+
+    def _propose(self, spec, options, edits):
+        edits = dict(edits)
+        bounds = edits.pop('_rear_opening_bounds', None)
+        return api.propose_wire_pull_holes_with_rear_opening(
+            spec, options, flat_bounds=bounds, **edits)
+
+    def _show_rear_face_bounds(self, spec):
+        try:
+            rear = next(face for face in api.resolve_standard_cabinet_topology(spec).part('box_body').mounting_faces
+                        if face.face_id == 'rear')
+            left, bottom, right, top = rear.flat_bounds
+            self.rear_face_bounds.set('Engine rear 範圍：U %.3f…%.3f；V %.3f…%.3f'
+                                      % (left, right, bottom, top))
+        except (ValueError, TypeError, StopIteration):
+            self.rear_face_bounds.set('尺寸有效後顯示 Engine 後側面範圍')
 
     def _retain_edits(self, proposal):
         self._draft_edits = {key: getattr(proposal, key) for key in
@@ -284,7 +324,7 @@ class WirePullWindow:
             moves = dict(self.proposal.overrides)
             moves[self.group_var.get()] = tuple(float(self.position[a].get()) for a in ('X', 'Y'))
             edits['overrides'] = tuple(moves.items())
-            proposal = api.propose_wire_pull_holes(spec, options, **edits)
+            proposal = self._propose(spec, options, edits)
             self._present_candidate(proposal)
             self._retain_edits(proposal)
         except (ValueError, TypeError, OverflowError) as exc:
@@ -306,7 +346,7 @@ class WirePullWindow:
             addition = api.make_wire_pull_hole_addition(group, kind, face,
                               tuple(float(self.position[a].get()) for a in ('X', 'Y')))
             edits['additions'] = (*self.proposal.additions, addition)
-            proposal = api.propose_wire_pull_holes(spec, options, **edits)
+            proposal = self._propose(spec, options, edits)
             self.group_var.set(group)
             self._present_candidate(proposal)
             self._retain_edits(proposal)
@@ -320,7 +360,7 @@ class WirePullWindow:
         try:
             spec, options, edits = self._source()
             edits['removed'] = (*self.proposal.removed, self.group_var.get())
-            proposal = api.propose_wire_pull_holes(spec, options, **edits)
+            proposal = self._propose(spec, options, edits)
             self._present_candidate(proposal)
             self._retain_edits(proposal)
         except (ValueError, TypeError, OverflowError) as exc:
@@ -344,7 +384,7 @@ class WirePullWindow:
             sizes = {(s.group_id, s.part_key): s for s in self.proposal.sizes}
             sizes[(group, part)] = override
             edits['sizes'] = tuple(sizes.values())
-            proposal = api.propose_wire_pull_holes(spec, options, **edits)
+            proposal = self._propose(spec, options, edits)
             self._present_candidate(proposal)
             self._retain_edits(proposal)
         except (ValueError, TypeError, OverflowError) as exc:
@@ -365,6 +405,8 @@ class WirePullWindow:
             self.status.set(str(exc))
 
     def _show(self, proposal, renders):
+        if self.proposal != proposal:
+            self._confirmed_cover_face = None
         self._close_mesh()
         self.physical = None
         self.proposal, self.renders = proposal, renders
@@ -392,7 +434,8 @@ class WirePullWindow:
     def preview(self):
         try:
             spec, options, edits = self._source()
-            proposal = api.propose_wire_pull_holes(spec, options, **edits)
+            self._show_rear_face_bounds(spec)
+            proposal = self._propose(spec, options, edits)
             return self._present_candidate(proposal)
         except (ValueError, TypeError, OverflowError) as exc:
             self._invalidate_preview()
@@ -419,9 +462,12 @@ class WirePullWindow:
         figure = Figure(figsize=(6, 5))
         self.axis = figure.add_subplot(111, projection='3d')
         colors = {'box_body': '#8195ad', 'head': '#adbcc9', 'tail': '#adbcc9', 'lid': '#607e99'}
+        artists = {}
         for part in physical.parts:
-            self.axis.add_collection3d(gridless_mesh_collection(
-                part.world_triangles, facecolor=colors.get(part.part_key, '#8195ad'), opacity=1.0))
+            artist = gridless_mesh_collection(
+                part.world_triangles, facecolor=colors.get(part.part_key, '#8195ad'), opacity=1.0)
+            self.axis.add_collection3d(artist)
+            artists[part.part_key] = artist
         self.axis.set_xlim(*physical.outside_bounds[0])
         self.axis.set_ylim(*physical.outside_bounds[1])
         self.axis.set_zlim(*physical.outside_bounds[2])
@@ -431,8 +477,86 @@ class WirePullWindow:
         self.axis.set_zlabel('Z (mm)')
         self.axis.set_box_aspect(tuple(hi-lo for lo, hi in physical.outside_bounds))  # display scaling only
         view = FigureCanvasTkAgg(figure, master=self._mesh_window)
+        self._bind_cover_face_selection(physical, artists, colors, view)
         view.get_tk_widget().pack(fill='both', expand=True)
         view.draw()
+
+    def _bind_cover_face_selection(self, physical, artists, colors, view):
+        """Select the existing front lid from the confirmed Engine projection only."""
+        window, axis = self._mesh_window, self.axis
+        window.protocol('WM_DELETE_WINDOW', self._close_mesh)
+        # The P1 public topology already returns lid/outer. No fabricated
+        # opening plane or additional face; unsupported faces are not choices.
+        lid = physical.part('lid')
+        face = next((f for f in lid.mounting_faces
+                     if f.part_key == lid.part_key and f.face_id == 'outer'), None)
+        identity = (face.part_key, face.face_id) if face is not None else None
+        toolbar = ttk.Frame(window, padding=(6, 4))
+        toolbar.pack(fill='x')
+        ttk.Label(toolbar, text='蓋板面（僅選取）').pack(side='left')
+        labels = ('未選取', '前面（既有外蓋）') if identity is not None else ('未選取',)
+        self._mesh_face_var = tk.StringVar(window, value=labels[0])
+        self._mesh_face_selector = ttk.Combobox(toolbar, textvariable=self._mesh_face_var,
+                                                values=labels, state='readonly', width=18)
+        self._mesh_face_selector.pack(side='left', padx=4)
+        selected = self._confirmed_cover_face if self._confirmed_cover_face == identity else None
+        baseline = selected
+        self._mesh_selected_cover_face = selected
+
+        def live():
+            return self._mesh_window is window and self.axis is axis
+
+        def select(value):
+            if not live() or (value is not None and value != identity):
+                return
+            self._mesh_selected_cover_face = value
+            self._mesh_face_var.set(labels[1] if value is not None else labels[0])
+            artist = artists[lid.part_key]
+            artist.set_facecolor('#e8ad42' if value is not None else colors[lid.part_key])
+            view.draw_idle()
+
+        def from_list(_event):
+            select(identity if self._mesh_face_selector.current() == 1 else None)
+
+        def confirm_selection():
+            nonlocal baseline
+            if live():
+                baseline = self._mesh_selected_cover_face
+                self._confirmed_cover_face = baseline
+
+        def cancel_selection():
+            select(baseline)
+
+        self._mesh_face_selector.bind('<<ComboboxSelected>>', from_list)
+        self._mesh_confirm_face_button = ttk.Button(toolbar, text='確認選取', command=confirm_selection)
+        self._mesh_confirm_face_button.pack(side='left', padx=2)
+        self._mesh_cancel_face_button = ttk.Button(toolbar, text='取消選取', command=cancel_selection)
+        self._mesh_cancel_face_button.pack(side='left', padx=2)
+        press = None
+
+        def on_press(event):
+            nonlocal press
+            press = ((event.x, event.y) if live() and event.inaxes is axis
+                     and event.button == 1 else None)
+
+        def on_release(event):
+            nonlocal press
+            start, press = press, None
+            if (not live() or identity is None or start is None
+                    or event.inaxes is not axis or event.button != 1
+                    or abs(event.x-start[0]) > 4 or abs(event.y-start[1]) > 4):
+                return
+            # Same display hit-test approach as the existing FinalScene 3D
+            # Hole Editor: use projected artist paths and draw-time z-order.
+            hits = [(artist.get_zorder(), index, key)
+                    for index, (key, artist) in enumerate(artists.items())
+                    if artist.get_visible() and artist.axes is axis and artist.contains(event)[0]]
+            if hits and max(hits)[2] == lid.part_key:
+                select(identity)
+
+        view.mpl_connect('button_press_event', on_press)
+        view.mpl_connect('button_release_event', on_release)
+        select(selected)
 
     def confirm(self):
         if not self.preview():
@@ -456,6 +580,11 @@ class WirePullWindow:
             self.fields[key].set(str(float(getattr(proposal.options.defaults, key))))
         for key, var in self.flags.items():
             var.set(getattr(proposal.options, key))
+        rear_bounds = api.wire_pull_rear_opening_bounds(proposal)
+        self.rear_opening_enabled.set(rear_bounds is not None)
+        for key, value in zip(('left', 'bottom', 'right', 'top'), rear_bounds or ('', '', '', '')):
+            self.rear_opening_fields[key].set('' if value == '' else str(value))
+        self._show_rear_face_bounds(proposal.spec)
         self._retain_edits(proposal)
         self._show(proposal, renders)
         self._confirmed_inputs = deepcopy(self._source())
